@@ -1,0 +1,21 @@
+# Java Maven CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: apicurio/ci:latest
+    working_directory: ~/repo
+    environment:
+      MAVEN_OPTS: -Xmx3200m
+    steps:
+      - checkout
+      - run: java -version
+      - run: mvn --version
+      - run: node --version
+      - run: npm --version
+      - run: ./mvnw clean package
+      - run: ./mvnw package -Pnative
+      - run: ./mvnw verify -Pnative

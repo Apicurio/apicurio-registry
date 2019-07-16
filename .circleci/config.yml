@@ -16,5 +16,5 @@ jobs:
       - run: mvn --version
       - run: node --version
       - run: npm --version
-      - run: ./mvnw clean package
-      - run: ./mvnw clean package verify -Pnative
+      - run: ./mvnw clean
+      - run: ./mvnw package -Pnative

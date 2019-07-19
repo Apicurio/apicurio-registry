@@ -17,6 +17,7 @@ jobs:
       - run: mv graalvm-ce-19.1.0 .graalvm
       - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
       - run: ./.graalvm/bin/gu install native-image
+      - run: pwd
       - run: echo $GRAALVM_HOME
       - run: $GRAALVM_HOME/bin/native-image --version
       - run: ./mvnw clean

@@ -14,5 +14,11 @@ jobs:
       - run: java -version
       - run: mvn --version
       - run: curl --version
+      - run: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L
+      - run: tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz
+      - run: mv graalvm-ce-19.1.0 .graalvm
+      - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
+      - run: export GRAALVM_HOME="`pwd`/.graalvm"
+      - run: ./.graalvm/bin/gu install native-image
       - run: ./mvnw clean
       - run: ./mvnw package -Pnative -Dnative-image.docker-build=false

@@ -5,8 +5,7 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: apicurio/ci:latest
+    machine
     working_directory: ~/repo
     environment:
       MAVEN_OPTS: -Xmx3200m
@@ -14,7 +13,6 @@ jobs:
       - checkout
       - run: java -version
       - run: mvn --version
-      - run: node --version
-      - run: npm --version
+      - run: curl --version
       - run: ./mvnw clean
       - run: ./mvnw package -Pnative -Dnative-image.docker-build=false

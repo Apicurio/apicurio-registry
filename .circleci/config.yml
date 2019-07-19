@@ -5,7 +5,7 @@
 version: 2
 jobs:
   build:
-    machine
+    machine: true
     working_directory: ~/repo
     environment:
       MAVEN_OPTS: -Xmx3200m

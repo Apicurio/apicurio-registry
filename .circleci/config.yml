@@ -9,16 +9,15 @@ jobs:
     working_directory: ~/repo
     environment:
       MAVEN_OPTS: -Xmx3200m
-      GRAALVM_HOME: ~/repo/.graalvm
+      GRAALVM_HOME: /home/circleci/repo/.graalvm
     steps:
       - checkout
       - run: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L
       - run: tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz
       - run: mv graalvm-ce-19.1.0 .graalvm
       - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
-      - run: ./.graalvm/bin/gu install native-image
-      - run: pwd
       - run: echo $GRAALVM_HOME
+      - run: $GRAALVM_HOME/bin/gu install native-image
       - run: $GRAALVM_HOME/bin/native-image --version
       - run: ./mvnw clean
       - run: echo ./mvnw package -Pnative -Dnative-image.docker-build=false

@@ -20,4 +20,4 @@ jobs:
       - run: $GRAALVM_HOME/bin/gu install native-image
       - run: $GRAALVM_HOME/bin/native-image --version
       - run: ./mvnw clean
-      - run: echo ./mvnw package -Pnative -Dnative-image.docker-build=false
+      - run: ./mvnw package -Pnative -Dnative-image.docker-build=false

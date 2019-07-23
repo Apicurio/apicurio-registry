@@ -19,3 +19,7 @@ jobs:
       - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
       - run: $GRAALVM_HOME/bin/gu install native-image
       - run: ./mvnw clean package -Pnative
+      - run:
+          name: Verify Native Image
+          command: ./mvnw verify -Pnative
+          no_output_timeout: 30m

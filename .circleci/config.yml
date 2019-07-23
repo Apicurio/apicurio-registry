@@ -13,13 +13,22 @@ jobs:
       GRAALVM_HOME: /home/circleci/repo/.graalvm
     steps:
       - checkout
+      - run:
+          name: Build (Standard)
+          command: ./mvnw clean package -DskipTests -Dmaven.test.skip=true
+      - run:
+          name: Verify (Standard)
+          command: ./mvnw test
       - run: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L
       - run: tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz
       - run: mv graalvm-ce-19.1.0 .graalvm
       - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
       - run: $GRAALVM_HOME/bin/gu install native-image
-      - run: ./mvnw clean package -Pnative
       - run:
-          name: Verify Native Image
+          name: Build (Native)
+          command: ./mvnw clean package -Pnative -DskipTests -Dmaven.test.skip=true
+          no_output_timeout: 30m
+      - run:
+          name: Verify (Native)
           command: ./mvnw verify -Pnative
           no_output_timeout: 30m

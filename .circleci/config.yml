@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     machine: true
-    resource_class: large
+    resource_class: medium
     working_directory: ~/repo
     environment:
       MAVEN_OPTS: -Xmx6400m
@@ -19,11 +19,12 @@ jobs:
       - run:
           name: Verify (Standard)
           command: ./mvnw test
-      - run: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L
-      - run: tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz
-      - run: mv graalvm-ce-19.1.0 .graalvm
-      - run: rm graalvm-ce-linux-amd64-19.1.0.tar.gz
-      - run: $GRAALVM_HOME/bin/gu install native-image
+      - run:
+          name: Install GraalVM
+          command: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L && tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz && mv graalvm-ce-19.1.0 .graalvm && rm graalvm-ce-linux-amd64-19.1.0.tar.gz
+      - run: 
+          name: Install native-image
+          command: $GRAALVM_HOME/bin/gu install native-image
       - run:
           name: Build (Native)
           command: ./mvnw clean package -Pnative -DskipTests -Dmaven.test.skip=true

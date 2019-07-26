@@ -86,9 +86,10 @@
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
+        <version.failsafe.plugin>2.22.1</version.failsafe.plugin>
         <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
         <version.source.plugin>2.4</version.source.plugin>
-        <version.surefire.plugin>2.22.0</version.surefire.plugin>
+        <version.surefire.plugin>2.22.1</version.surefire.plugin>
     </properties>
     
     <dependencyManagement>
@@ -120,6 +121,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>${version.javadoc.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${version.failsafe.plugin}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

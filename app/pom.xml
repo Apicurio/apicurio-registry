@@ -10,7 +10,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     
-    <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-app</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-app</name>
@@ -19,10 +18,16 @@
         <!-- Quarkus Dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy</artifactId>
+            <artifactId>quarkus-resteasy-jsonb</artifactId>
         </dependency>
-        
+
         <!-- Test Only -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>

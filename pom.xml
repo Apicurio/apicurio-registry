@@ -62,7 +62,7 @@
         <developer>
             <name>Aleš Justin</name>
             <id>alesj</id>
-            <email>alesj@redhat.com</email>
+            <email>ajustin@redhat.com</email>
             <organization>Red Hat</organization>
             <roles>
                 <role>Developer</role>
@@ -83,6 +83,9 @@
         <!-- Quarkus Version -->
         <quarkus.version>0.19.1</quarkus.version>
 
+        <!-- Confluent API -->
+        <confluent.version>5.3.0</confluent.version>
+
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
@@ -100,6 +103,13 @@
                 <version>${quarkus.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${confluent.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -190,7 +200,15 @@
             </plugin>
         </plugins>
     </build>
-    
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <name>Confluent</name>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>

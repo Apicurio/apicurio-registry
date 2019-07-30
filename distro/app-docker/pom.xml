@@ -14,7 +14,6 @@
     <name>apicurio-registry-distro-app-docker</name>
 
     <properties>
-        <docker.skip>false</docker.skip>
         <app.dir>app</app.dir>
     </properties>
 
@@ -80,7 +79,6 @@
                                     <build>
                                         <contextDir>${project.build.directory}/docker</contextDir>
                                         <dockerFile>./Dockerfile.jvm</dockerFile>
-                                        <skip>${docker.skip}</skip>
                                     </build>
                                 </image>
                             </images>
@@ -125,7 +123,6 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.jvm</dockerFile>
-                                                <skip>${docker.skip}</skip>
                                             </build>
                                         </image>
                                         <image>
@@ -133,7 +130,6 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.native</dockerFile>
-                                                <skip>${docker.skip}</skip>
                                             </build>
                                         </image>
                                     </images>
@@ -144,6 +140,20 @@
 
                 </plugins>
             </build>
+        </profile>
+
+        <profile>
+            <id>skipDocker</id>
+            <activation>
+                <property>
+                    <name>!docker</name>
+                </property>
+            </activation>
+
+            <properties>
+                <docker.skip>true</docker.skip>
+            </properties>
+
         </profile>
 
     </profiles>

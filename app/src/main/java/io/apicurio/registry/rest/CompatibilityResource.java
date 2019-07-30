@@ -1,6 +1,6 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.dto.RegisterSchemaRequest;
+import io.apicurio.registry.dto.RegisterSchemaRequest;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;

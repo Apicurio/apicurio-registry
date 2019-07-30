@@ -1,6 +1,6 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.dto.RegisterSchemaRequest;
+import io.apicurio.registry.dto.RegisterSchemaRequest;
 
 import java.util.Set;
 import javax.validation.constraints.NotNull;
@@ -34,6 +34,8 @@ public class SubjectsResource extends AbstractResource {
         @NotNull RegisterSchemaRequest request) {
 
         checkSubject(subject);
+
+        response.resume(store.findSchemaWithSubject(subject, checkDeletedSchema, request.getSchema()));
     }
 
     @GET

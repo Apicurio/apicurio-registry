@@ -21,6 +21,11 @@
             <artifactId>quarkus-resteasy-jsonb</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+        </dependency>
+
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>

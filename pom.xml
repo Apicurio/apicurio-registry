@@ -83,7 +83,10 @@
         <!-- Quarkus Version -->
         <quarkus.version>0.19.1</quarkus.version>
 
-        <!-- Confluent API -->
+        <!-- Schema types -->
+        <avro.version>1.9.0</avro.version>
+
+        <!-- Confluent API / client -->
         <confluent.version>5.3.0</confluent.version>
 
         <!-- Plugin Versions -->
@@ -103,6 +106,12 @@
                 <version>${quarkus.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
             </dependency>
 
             <dependency>

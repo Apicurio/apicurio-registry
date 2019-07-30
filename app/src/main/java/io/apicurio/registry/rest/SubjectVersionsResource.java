@@ -1,7 +1,8 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.dto.RegisterSchemaRequest;
-import io.apicurio.registry.rest.dto.Schema;
+import io.apicurio.registry.dto.RegisterSchemaRequest;
+import io.apicurio.registry.dto.RegisterSchemaResponse;
+import io.apicurio.registry.dto.Schema;
 
 import java.util.List;
 import javax.validation.constraints.NotNull;
@@ -51,8 +52,14 @@ public class SubjectVersionsResource extends AbstractResource {
     public void register(
         @Suspended AsyncResponse response,
         @Context HttpHeaders headers,
-        @PathParam("subject") String subjectName,
+        @PathParam("subject") String subject,
         @NotNull RegisterSchemaRequest request) {
+
+        int id = store.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
+
+        RegisterSchemaResponse registerSchemaResponse = new RegisterSchemaResponse();
+        registerSchemaResponse.setId(id);
+        response.resume(registerSchemaResponse);
     }
 
     @DELETE

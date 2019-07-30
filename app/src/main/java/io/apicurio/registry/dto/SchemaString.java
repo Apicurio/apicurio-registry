@@ -1,4 +1,4 @@
-package io.apicurio.registry.rest.dto;
+package io.apicurio.registry.dto;
 
 import javax.json.bind.annotation.JsonbProperty;
 

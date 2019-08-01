@@ -33,7 +33,7 @@ jobs:
           command: ./mvnw test
       - run:
           name: Install GraalVM
-          command: curl https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-linux-amd64-19.1.0.tar.gz -O -J -L && tar xfz graalvm-ce-linux-amd64-19.1.0.tar.gz && mv graalvm-ce-19.1.0 .graalvm && rm graalvm-ce-linux-amd64-19.1.0.tar.gz
+          command: curl https://github.com/oracle/graal/releases/download/vm-19.1.1/graalvm-ce-linux-amd64-19.1.1.tar.gz -O -J -L && tar xfz graalvm-ce-linux-amd64-19.1.1.tar.gz && mv graalvm-ce-19.1.1 .graalvm && rm graalvm-ce-linux-amd64-19.1.1.tar.gz
       - run: 
           name: Install native-image
           command: $GRAALVM_HOME/bin/gu install native-image

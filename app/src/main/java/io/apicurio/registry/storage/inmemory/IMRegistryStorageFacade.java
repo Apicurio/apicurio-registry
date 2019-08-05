@@ -1,10 +1,13 @@
 package io.apicurio.registry.storage.inmemory;
 
 import io.apicurio.registry.dto.Schema;
-import io.apicurio.registry.storage.ArtifactSequence;
-import io.apicurio.registry.storage.model.Artifact;
+import io.apicurio.registry.storage.ArtifactStorage;
+import io.apicurio.registry.storage.ArtifactVersionStorage;
+import io.apicurio.registry.storage.CounterStorage;
+import io.apicurio.registry.storage.GlobalArtifactStorage;
 import io.apicurio.registry.storage.model.ArtifactId;
-import io.apicurio.registry.storage.model.ArtifactSequenceId;
+import io.apicurio.registry.storage.model.ArtifactVersion;
+import io.apicurio.registry.storage.model.ArtifactVersionId;
 import io.apicurio.registry.store.RegistryStore;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -13,64 +16,67 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// TODO finish
 @ApplicationScoped
 @InMemory
 public class IMRegistryStorageFacade implements RegistryStore {
 
     @Inject
     @InMemory
-    private IMCounterStorage counterStorage;
+    private CounterStorage counterStorage;
 
     @Inject
     @InMemory
-    private IMArtifactSequenceStorage sequenceStorage;
+    private ArtifactStorage artifactStorage;
 
     @Inject
     @InMemory
-    private IMArtifactStorage artifactStorage;
+    private GlobalArtifactStorage globalArtifactStorage;
 
     @Override
     public Set<String> listSubjects() {
-        return sequenceStorage.getAllKeys().stream()
-                .map(ArtifactSequenceId::getSequence)
+        return artifactStorage.getAllKeys().stream()
+                .map(ArtifactId::getArtifactId)
                 .collect(Collectors.toSet());
     }
 
     @Override
     public List<Integer> deleteSubject(String subject) {
-        ArtifactSequenceId key = new ArtifactSequenceId(subject);
-        ArtifactSequence artifactSequence = sequenceStorage.getByKey(key);
-        List<ArtifactId> keys = artifactSequence.getAllKeys();
-        sequenceStorage.delete(key);
+        ArtifactId key = new ArtifactId(subject);
+        ArtifactVersionStorage artifactVersionStorage = artifactStorage.get(key);
+        List<ArtifactVersionId> keys = artifactVersionStorage.getAllKeys();
+        artifactStorage.delete(key);
         return keys.stream()
-                .map(ArtifactId::getVersion)
+                .map(ArtifactVersionId::getVersionId)
                 .map(Long::intValue /* TODO unsafe */)
                 .collect(Collectors.toList());
     }
 
     @Override
     public String getSchema(Integer id) {
-        return artifactStorage.getByKey(id.longValue()).getContent();
+        return globalArtifactStorage.get(id.longValue()).getContent();
     }
 
     @Override
     public Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) {
-        /*
-         * TODO The interface does not contain javadoc
-         */
-        ArtifactSequenceId key = new ArtifactSequenceId(subject);
-        ArtifactSequence sequence = sequenceStorage.getByKey(key);
-        ArtifactId latestVersion = sequence.getLatestVersion();
-        Artifact artifact = sequence.getByKey(latestVersion);
+        // TODO Guessing here, the interface does not contain javadoc
+        ArtifactId key = new ArtifactId(subject);
+        ArtifactVersionStorage artifactVersionStorage = artifactStorage.get(key);
+        ArtifactVersion latestVersion = artifactVersionStorage.getLatestVersion();
 
-        return new Schema(latestVersion.getSequence(), latestVersion.getVersion().intValue(),
-                latestVersion.getId().intValue(), artifact.getContent());
+        return new Schema(
+                latestVersion.getId().getArtifactId(),
+                latestVersion.getId().getVersionId().intValue(),
+                latestVersion.getGlobalId().intValue(),
+                latestVersion.getContent());
     }
 
     @Override
     public int registerSchema(String subject, Integer id, Integer version, String schema) {
-        // TODO
-        return 0;
+        // TODO Does not support user selected global ID or version ID
+        ArtifactVersionStorage artifactVersionStorage = artifactStorage.get(new ArtifactId(subject));
+        if (artifactVersionStorage == null)
+            artifactVersionStorage = artifactStorage.create(subject);
+        ArtifactVersion version_ = artifactVersionStorage.create(new ArtifactVersion(null, null, schema));
+        return version_.getGlobalId().intValue();
     }
 }

@@ -1,32 +1,23 @@
 package io.apicurio.registry.storage.model;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.EqualsAndHashCode.Include;
+import lombok.Getter;
+import lombok.ToString;
 
 /**
- * Uniquely Identifies an artifact
+ * Uniquely identifies an <em>artifact</em>,
+ * which is a sequence of {@link io.apicurio.registry.storage.model.ArtifactVersion}.
+ * <p>
+ * MUST be immutable.
  */
-@Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
-public class ArtifactId extends ArtifactSequenceId {
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
+public class ArtifactId {
 
-    public ArtifactId(String sequence, long version) {
-        super(sequence);
-        this.version = version;
-    }
-
-    /**
-     * Globally unique ID:(
-     * Thanks Confluent...
-     */
     @Include
-    public Long id;
-
-    /**
-     * Version ID, that together with sequence ID is also globally unique:
-     * < sequence, version>
-     */
-    @Include
-    private Long version;
+    private String artifactId;
 }

@@ -17,6 +17,6 @@ public class IMIdGeneratorFacade implements IdGenerator {
 
     @Override
     public int nextId() {
-        return (int) counterStorage.getAndIncById(DEFAULT_ID, 1);
+        return (int) counterStorage.incrementAndGet(DEFAULT_ID);
     }
 }

@@ -1,21 +1,30 @@
 package io.apicurio.registry.storage.model;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.EqualsAndHashCode.Include;
+import lombok.Getter;
+import lombok.ToString;
 
 /**
- * a piece of metadata about an artifact or sequence.
- * Can be marked read-only. TODO who enforces that?
+ * A piece of meta-data about an <em>artifact</em> or an <em>artifact version</em>.
+ * <p>
+ * Can be marked read-only.
+ * <p>
+ * MUST be immutable.
  */
-@Data
+@AllArgsConstructor
+@Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
 public class MetaValue {
+
+
 
     @Include
     private String key;
 
-    private String content;
+    private String value;
 
     private boolean readOnly;
 }

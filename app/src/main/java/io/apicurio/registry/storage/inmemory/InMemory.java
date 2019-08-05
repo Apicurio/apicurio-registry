@@ -8,7 +8,7 @@ import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * TODO Use this qualifier to select storage implementation?
+ * Qualifier used to request the in-memory implementation of the storage API.
  */
 @Qualifier
 @Retention(RUNTIME)

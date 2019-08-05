@@ -1,16 +1,22 @@
 package io.apicurio.registry.storage.model;
 
+/**
+ * A list of known types of <em>rules</em>.
+ */
 public enum RuleType {
 
-    NOOP_RULE("NOOP_RULE");
+    NOOP("NOOP"),
+    COMPATIBILITY("COMPATIBILITY"),
+    VALIDATION("VALIDATION"),
+    CONFORMANCE("CONFORMANCE");
 
-    RuleType(String type) {
-        this.type = type;
+    RuleType(String typeValue) {
+        this.typeValue = typeValue;
     }
 
-    private String type;
+    private String typeValue;
 
-    public String getType() {
-        return type;
+    public String getTypeValue() {
+        return typeValue;
     }
 }

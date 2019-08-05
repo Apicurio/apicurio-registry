@@ -2,18 +2,24 @@ package io.apicurio.registry.storage;
 
 /**
  * Storage for atomic counters.
- * TODO Does this need to be exposed to user?
+ * <p>
+ * Counters MUST be atomic even if the application is deployed in a cluster!
+ * <p>
+ * TODO Add locks?
  */
 public interface CounterStorage {
 
-    long DEAFULT_INITIAL_VALUE = 1; // TODO add def. method
+    long DEFAULT_INITIAL_VALUE = 0;
 
     String DEFAULT_ID = "DEFAULT_ID";
-    String ARTIFACT_SEQUENCE_ID = "ARTIFACT_SEQUENCE_ID";
+
     String ARTIFACT_ID = "ARTIFACT_ID";
-    String ARTIFACT_SEQUENCE_VERSION_PREFIX = "ARTIFACT_SEQUENCE_VERSION_PREFIX";
+    //String ARTIFACT_SEQUENCE_ID = "ARTIFACT_SEQUENCE_ID";
+    String ARTIFACT_VERSION_ID_PREFIX = "ARTIFACT_VERSION_ID_PREFIX:";
 
-    long getAndIncById(String counterKey, long initialValue);
+    long incrementAndGet(String key);
 
-    void delete(String counterKey);
+    long incrementAndGet(String key, long initialValue);
+
+    void delete(String key);
 }

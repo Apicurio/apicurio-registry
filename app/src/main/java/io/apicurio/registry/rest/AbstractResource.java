@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.storage.inmemory.InMemory;
 import io.apicurio.registry.store.RegistryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ public abstract class AbstractResource {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     @Inject
+    @InMemory
     RegistryStore store;
 
     protected void checkSubject(String subject) {

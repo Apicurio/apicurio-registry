@@ -2,6 +2,7 @@ package io.apicurio.registry.store.im;
 
 import io.apicurio.registry.dto.Schema;
 import io.apicurio.registry.dto.SchemaEntity;
+import io.apicurio.registry.storage.inmemory.InMemory;
 import io.apicurio.registry.store.IdGenerator;
 import io.apicurio.registry.store.RegistryStore;
 
@@ -27,6 +28,7 @@ public class InMemoryRegistryStore implements RegistryStore {
     private final Map<Integer, Schema> schemasIds = new ConcurrentHashMap<>();
 
     @Inject
+    @InMemory
     IdGenerator idGenerator;
 
     @Override

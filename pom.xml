@@ -81,7 +81,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <!-- Quarkus Version -->
-        <quarkus.version>0.19.1</quarkus.version>
+        <quarkus.version>0.20.0</quarkus.version>
 
         <!-- Schema types -->
         <avro.version>1.9.0</avro.version>
@@ -100,6 +100,7 @@
     
     <dependencyManagement>
         <dependencies>
+            <!-- Quarkus Dependencies -->
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
@@ -107,13 +108,24 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-jackson</artifactId>
+                <version>${quarkus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-resteasy-jackson</artifactId>
+                <version>${quarkus.version}</version>
+            </dependency>
 
+
+            <!-- Third Party Libraries -->
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>

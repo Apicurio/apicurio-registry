@@ -1,6 +1,6 @@
 package io.apicurio.registry;
 
-import io.apicurio.registry.rest.RestConstants;
+import io.apicurio.registry.rest.ccompat.RestConstants;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 

@@ -1,4 +1,4 @@
-package io.apicurio.registry.rest;
+package io.apicurio.registry.rest.ccompat;
 
 import io.apicurio.registry.store.RegistryStore;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package io.apicurio.registry.rest;
+package io.apicurio.registry.rest.ccompat;
 
 import javax.ws.rs.NotFoundException;
 

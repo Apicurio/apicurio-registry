@@ -107,6 +107,8 @@ public class IMArtifactVersionStorage implements ArtifactVersionStorage {
 
     @Override
     public void delete(ArtifactVersionId key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         Long globalId = storage.get(key);
         if (globalId != null) {
             storage.remove(key);
@@ -116,7 +118,11 @@ public class IMArtifactVersionStorage implements ArtifactVersionStorage {
 
     @Override
     public ArtifactVersion get(ArtifactVersionId key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         Long globalId = storage.get(key);
+        if (globalId == null)
+            return null;
         return globalArtifactStorage.get(globalId);
     }
 }

@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.inmemory;
 
 import io.apicurio.registry.storage.RuleInstanceStorage;
+import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.model.RuleInstance;
 import io.apicurio.registry.storage.model.RuleType;
 
@@ -22,16 +23,22 @@ public class IMRuleInstanceStorage implements RuleInstanceStorage {
 
     @Override
     public void put(RuleType key, RuleInstance value) {
+        if(key == null || value == null || !key.equals(value.getType()))
+            throw new StorageException("Bad or inconsistent parameters.");
         storage.put(key, value);
     }
 
     @Override
     public void delete(RuleType key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         storage.remove(key);
     }
 
     @Override
     public RuleInstance get(RuleType key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         return storage.get(key);
     }
 }

@@ -36,4 +36,8 @@ public class ArtifactVersion {
     private Long globalId;
 
     private String content;
+
+    public ArtifactVersion(String content) {
+        this.content = content;
+    }
 }

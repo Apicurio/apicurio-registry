@@ -3,7 +3,6 @@ package io.apicurio.registry.storage.inmemory;
 import io.apicurio.registry.storage.GlobalArtifactStorage;
 import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.model.ArtifactVersion;
-import io.apicurio.registry.storage.model.ArtifactVersionId;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -38,6 +37,8 @@ public class IMGlobalArtifactStorage implements GlobalArtifactStorage {
 
     @Override
     public ArtifactVersion get(Long key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         return storage.get(key);
     }
 
@@ -47,6 +48,8 @@ public class IMGlobalArtifactStorage implements GlobalArtifactStorage {
     }
 
     public void delete(Long key) {
+        if (key == null)
+            throw new StorageException("Null key values are not supported.");
         storage.remove(key);
     }
 }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.model;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.EqualsAndHashCode.Include;
 import lombok.Getter;
@@ -14,16 +15,19 @@ import lombok.ToString;
  * <p>
  * MUST be immutable.
  */
+@AllArgsConstructor
 @Getter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class ArtifactVersionId extends ArtifactId {
+public class ArtifactVersionId {
 
-    public ArtifactVersionId(String artifactId, Long versionId) {
-        super(artifactId);
-        this.versionId = versionId;
-    }
+    @Include
+    private String artifactId;
 
     @Include
     private Long versionId;
+
+    public ArtifactId asArtifactId() {
+        return new ArtifactId(artifactId);
+    }
 }

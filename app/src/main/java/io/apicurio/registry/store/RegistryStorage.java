@@ -29,13 +29,13 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
  */
 public interface RegistryStorage {
 
-    public void createArtifact(String artifactId, String content) throws ArtifactAlreadyExistsException, RegistryStorageException;
+    public ArtifactMetaData createArtifact(String artifactId, String content) throws ArtifactAlreadyExistsException, RegistryStorageException;
     
     public void deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
     
     public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
     
-    public void updateArtifact(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactMetaData updateArtifact(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException;
     
     public ArtifactMetaData getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
     

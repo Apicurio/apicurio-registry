@@ -19,23 +19,6 @@ package io.apicurio.registry.store;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuleNotFoundException extends StorageException {
+public class RuleConfigurationDto {
 
-    private static final long serialVersionUID = -5024749463194169679L;
-    
-    private final String ruleName;
-
-    /**
-     * Constructor.
-     */
-    public RuleNotFoundException(String ruleName) {
-        this.ruleName = ruleName;
-    }
-
-    /**
-     * @return the ruleName
-     */
-    public String getRuleName() {
-        return ruleName;
-    }
 }

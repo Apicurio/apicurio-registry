@@ -19,7 +19,7 @@ package io.apicurio.registry.store;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RegistryStorageException extends Exception {
+public class RegistryStorageException extends StorageException {
 
     private static final long serialVersionUID = 708084955101638005L;
     

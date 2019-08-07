@@ -19,7 +19,7 @@ package io.apicurio.registry.store;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class VersionNotFoundException extends Exception {
+public class VersionNotFoundException extends StorageException {
 
     private static final long serialVersionUID = 969959730600115392L;
     

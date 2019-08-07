@@ -17,25 +17,22 @@
 package io.apicurio.registry.store;
 
 /**
+ * Base class for all storage exceptions.
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactRuleAlreadyExistsException extends Exception {
-
-    private static final long serialVersionUID = 2412206165461946827L;
+public abstract class StorageException extends Exception {
     
-    private final String ruleName;
+    private static final long serialVersionUID = 7551763806044016474L;
 
-    /**
-     * Constructor.
-     */
-    public ArtifactRuleAlreadyExistsException(String ruleName) {
-        this.ruleName = ruleName;
+    public StorageException() {
+    }
+    
+    public StorageException(Throwable cause) {
+        super(cause);
+    }
+    
+    public StorageException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 
-    /**
-     * @return the ruleName
-     */
-    public String getRuleName() {
-        return ruleName;
-    }
 }

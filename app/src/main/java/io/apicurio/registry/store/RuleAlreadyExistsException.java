@@ -19,16 +19,16 @@ package io.apicurio.registry.store;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuleNotFoundException extends StorageException {
+public class RuleAlreadyExistsException extends StorageException {
 
-    private static final long serialVersionUID = -5024749463194169679L;
+    private static final long serialVersionUID = 2412206165461946827L;
     
     private final String ruleName;
 
     /**
      * Constructor.
      */
-    public RuleNotFoundException(String ruleName) {
+    public RuleAlreadyExistsException(String ruleName) {
         this.ruleName = ruleName;
     }
 

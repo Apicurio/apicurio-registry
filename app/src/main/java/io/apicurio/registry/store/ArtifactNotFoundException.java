@@ -19,7 +19,7 @@ package io.apicurio.registry.store;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactNotFoundException extends Exception {
+public class ArtifactNotFoundException extends StorageException {
 
     private static final long serialVersionUID = -3614783501078800654L;
     

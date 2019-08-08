@@ -1,15 +1,18 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import java.lang.Integer;
+import java.lang.Long;
 import java.lang.String;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -46,11 +49,17 @@ public interface ArtifactsResource {
    * Content-Type: application/json+avro
    * ```
    *
+   * This operation may fail for one of the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
    */
   @POST
   @Produces("application/json")
   @Consumes({"application/json", "application/x-yaml"})
-  ArtifactMetaData createArtifact(String X_Registry_ArtifactType, Request data);
+  ArtifactMetaData createArtifact(
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, Request data);
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
@@ -97,95 +106,32 @@ public interface ArtifactsResource {
   void deleteArtifact(@PathParam("artifactId") String artifactId);
 
   /**
-   * Returns a list of all version numbers for the artifact.
+   * Gets the meta-data for an artifact in the registry.  The returned meta-data will include
+   * both generated (read-only) and editable meta-data (such as name and description).
    *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
-   *
    */
-  @Path("/{artifactId}/versions")
+  @Path("/{artifactId}/meta")
   @GET
   @Produces("application/json")
-  List<Integer> listArtifactVersions(@PathParam("artifactId") String artifactId);
+  ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId);
 
   /**
-   * Creates a new version of the artifact by uploading new content.  The configured rules for
-   * the artifact will be applied, and if they all pass then the new content will be added
-   * as the most recent version of the artifact.  If any of the rules fail then an error 
-   * will be returned.
-   *
-   * The body of the request should be the raw content of the new artifact version.  This 
-   * will typically be in JSON format for *most* of the supported types, but may be in another 
-   * format for a few (e.g. Protobuff).
-   *
-   * The registry will attempt to figure out what kind of artifact is being added from the
-   * following supported list:
-   *
-   * * Avro (avro)
-   * * Protobuff (protobuff)
-   * * JSON Schema (json)
-   * * OpenAPI (openapi)
-   * * AsyncAPI (asyncapi)
-   *
-   * Alternatively, the artifact type can be indicated by either explicitly specifying the 
-   * type via the `X-Registry-ArtifactType` HTTP Request Header or by including a hint in the 
-   * Request's `Content-Type`.
-   *
-   * For example:
-   *
-   * ```
-   * Content-Type: application/json+avro
-   * ```
+   * Updates the editable parts of the artifact's meta-data.  Not all meta-data fields can
+   * be updated.  For example `createdOn` and `createdBy` are both read-only properties.
    *
    * This operation can fail for the following reasons:
    *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
-   *
    */
-  @Path("/{artifactId}/versions")
-  @POST
-  @Produces("application/json")
-  @Consumes({"application/json", "application/x-yaml"})
-  VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId, Request data);
-
-  /**
-   * Retrieves a single version of the artifact content.  Both the `artifactId` and the
-   * unique `version` number must be provided.  The `Content-Type` of the
-   * response will depend on what type of artifact it is.  In most cases this will be
-   * `application/json` but for some types it may be different (e.g. *avro*).
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions/{version}")
-  @GET
-  @Produces({"application/json", "application/x-yaml"})
-  void getArtifactVersion(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
-
-  /**
-   * Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`
-   * are needed.  If this is the only version of the artifact, then this operation is the same
-   * as deleting the entire artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions/{version}")
-  @DELETE
-  void deleteArtifactVersion(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
+  @Path("/{artifactId}/meta")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactMetaData(@PathParam("artifactId") String artifactId, EditableMetaData data);
 
   /**
    * Returns a list of all rules configured for the artifact.  The set of rules determines
@@ -211,7 +157,7 @@ public interface ArtifactsResource {
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * Rule (named in the request body) not found (HTTP error `400`)
+   * * Rule (named in the request body) is unknown (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    */
   @Path("/{artifactId}/rules")
@@ -285,32 +231,96 @@ public interface ArtifactsResource {
       @PathParam("artifactId") String artifactId);
 
   /**
-   * Gets the meta-data for an artifact in the registry.  The returned meta-data will include
-   * both generated (read-only) and editable meta-data (such as name and description).
+   * Returns a list of all version numbers for the artifact.
    *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
+   *
    */
-  @Path("/{artifactId}/meta")
+  @Path("/{artifactId}/versions")
   @GET
   @Produces("application/json")
-  ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId);
+  List<Long> listArtifactVersions(@PathParam("artifactId") String artifactId);
 
   /**
-   * Updates the editable parts of the artifact's meta-data.  Not all meta-data fields can
-   * be updated.  For example `createdOn` and `createdBy` are both read-only properties.
+   * Creates a new version of the artifact by uploading new content.  The configured rules for
+   * the artifact will be applied, and if they all pass then the new content will be added
+   * as the most recent version of the artifact.  If any of the rules fail then an error 
+   * will be returned.
+   *
+   * The body of the request should be the raw content of the new artifact version.  This 
+   * will typically be in JSON format for *most* of the supported types, but may be in another 
+   * format for a few (e.g. Protobuff).
+   *
+   * The registry will attempt to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (avro)
+   * * Protobuff (protobuff)
+   * * JSON Schema (json)
+   * * OpenAPI (openapi)
+   * * AsyncAPI (asyncapi)
+   *
+   * Alternatively, the artifact type can be indicated by either explicitly specifying the 
+   * type via the `X-Registry-ArtifactType` HTTP Request Header or by including a hint in the 
+   * Request's `Content-Type`.
+   *
+   * For example:
+   *
+   * ```
+   * Content-Type: application/json+avro
+   * ```
    *
    * This operation can fail for the following reasons:
    *
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
+   *
    */
-  @Path("/{artifactId}/meta")
-  @PUT
-  @Consumes("application/json")
-  void updateArtifactMetaData(@PathParam("artifactId") String artifactId, EditableMetaData data);
+  @Path("/{artifactId}/versions")
+  @POST
+  @Produces("application/json")
+  @Consumes({"application/json", "application/x-yaml"})
+  VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, Request data);
+
+  /**
+   * Retrieves a single version of the artifact content.  Both the `artifactId` and the
+   * unique `version` number must be provided.  The `Content-Type` of the
+   * response will depend on what type of artifact it is.  In most cases this will be
+   * `application/json` but for some types it may be different (e.g. *avro*).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/versions/{version}")
+  @GET
+  @Produces({"application/json", "application/x-yaml"})
+  void getArtifactVersion(@PathParam("version") Integer version,
+      @PathParam("artifactId") String artifactId);
+
+  /**
+   * Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`
+   * are needed.  If this is the only version of the artifact, then this operation is the same
+   * as deleting the entire artifact.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/versions/{version}")
+  @DELETE
+  void deleteArtifactVersion(@PathParam("version") Integer version,
+      @PathParam("artifactId") String artifactId);
 
   /**
    * Retrieves the meta-data for a single version of the artifact.  The version meta-data

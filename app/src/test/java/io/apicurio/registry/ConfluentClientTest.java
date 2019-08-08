@@ -13,7 +13,7 @@ import java.util.Collection;
 public class ConfluentClientTest {
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:8081", 3);
+        return new CachedSchemaRegistryClient("http://localhost:8081/confluent", 3);
     }
 
     @Test    
@@ -30,8 +30,11 @@ public class ConfluentClientTest {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id = client.register("foobar", schema);
 
+        client.reset();
+
         schema = client.getById(id);
         Assertions.assertNotNull(schema);
     }
 
+    // TODO -- cover all endpoints!
 }

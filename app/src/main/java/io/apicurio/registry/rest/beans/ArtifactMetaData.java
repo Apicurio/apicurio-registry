@@ -2,14 +2,10 @@
 package io.apicurio.registry.rest.beans;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 
 /**
@@ -28,7 +24,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
     "modifiedOn",
     "id",
     "version",
-    "type"
+    "type",
+    "clientId"
 })
 public class ArtifactMetaData {
 
@@ -71,7 +68,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("id")
     @JsonPropertyDescription("")
-    private Integer id;
+    private String id;
     /**
      * 
      * (Required)
@@ -87,7 +84,14 @@ public class ArtifactMetaData {
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
-    private ArtifactMetaData.Type type;
+    private ArtifactType type;
+    /**
+     * Identifier provided by the client.  Must be globally unique.
+     * 
+     */
+    @JsonProperty("clientId")
+    @JsonPropertyDescription("Identifier provided by the client.  Must be globally unique.")
+    private String clientId;
 
     @JsonProperty("name")
     public String getName() {
@@ -195,7 +199,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("id")
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
@@ -205,7 +209,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("id")
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -235,7 +239,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("type")
-    public ArtifactMetaData.Type getType() {
+    public ArtifactType getType() {
         return type;
     }
 
@@ -245,50 +249,26 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("type")
-    public void setType(ArtifactMetaData.Type type) {
+    public void setType(ArtifactType type) {
         this.type = type;
     }
 
-    public enum Type {
+    /**
+     * Identifier provided by the client.  Must be globally unique.
+     * 
+     */
+    @JsonProperty("clientId")
+    public String getClientId() {
+        return clientId;
+    }
 
-        AVRO("avro"),
-        PROTOBUFF("protobuff"),
-        JSON("json"),
-        OPENAPI("openapi"),
-        ASYNCAPI("asyncapi");
-        private final String value;
-        private final static Map<String, ArtifactMetaData.Type> CONSTANTS = new HashMap<String, ArtifactMetaData.Type>();
-
-        static {
-            for (ArtifactMetaData.Type c: values()) {
-                CONSTANTS.put(c.value, c);
-            }
-        }
-
-        private Type(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return this.value;
-        }
-
-        @JsonValue
-        public String value() {
-            return this.value;
-        }
-
-        @JsonCreator
-        public static ArtifactMetaData.Type fromValue(String value) {
-            ArtifactMetaData.Type constant = CONSTANTS.get(value);
-            if (constant == null) {
-                throw new IllegalArgumentException(value);
-            } else {
-                return constant;
-            }
-        }
-
+    /**
+     * Identifier provided by the client.  Must be globally unique.
+     * 
+     */
+    @JsonProperty("clientId")
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
 }

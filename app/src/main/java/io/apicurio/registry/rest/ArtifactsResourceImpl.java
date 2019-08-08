@@ -21,6 +21,7 @@ import java.util.List;
 import javax.ws.rs.core.Request;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
@@ -31,10 +32,11 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 public class ArtifactsResourceImpl implements ArtifactsResource {
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(java.lang.String, javax.ws.rs.core.Request)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, javax.ws.rs.core.Request)
      */
     @Override
-    public ArtifactMetaData createArtifact(String X_Registry_ArtifactType, Request data) {
+    public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+            Request data) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -70,16 +72,17 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * @see io.apicurio.registry.rest.ArtifactsResource#listArtifactVersions(java.lang.String)
      */
     @Override
-    public List<Integer> listArtifactVersions(String artifactId) {
+    public List<Long> listArtifactVersions(String artifactId) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, javax.ws.rs.core.Request)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, javax.ws.rs.core.Request)
      */
     @Override
-    public VersionMetaData createArtifactVersion(String artifactId, Request data) {
+    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType,
+            Request data) {
         // TODO Auto-generated method stub
         return null;
     }

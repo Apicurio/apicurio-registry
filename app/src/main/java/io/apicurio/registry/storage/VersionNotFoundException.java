@@ -19,23 +19,24 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class VersionNotFoundException extends StorageException {
+public class VersionNotFoundException extends ArtifactNotFoundException {
 
     private static final long serialVersionUID = 969959730600115392L;
-    
+
     private final long version;
 
     /**
      * Constructor.
      */
-    public VersionNotFoundException(long version) {
+    public VersionNotFoundException(String artifactId, long version) {
+        super(artifactId);
         this.version = version;
     }
 
     /**
      * @return the version
      */
-    public long getArtifactId() {
+    public long getVersion() {
         return version;
     }
 

@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest;
 
+import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
 
 import javax.validation.constraints.NotNull;
@@ -30,7 +31,10 @@ public class CompatibilityResource extends AbstractResource {
         @PathParam("version") String version,
         @NotNull RegisterSchemaRequest request) throws Exception {
 
-        // TODO - headers, result?
-        response.resume(facade.testCompatibility(subject, version, request));
+        // TODO - headers?
+        boolean isCompatible = facade.testCompatibility(subject, version, request);
+        CompatibilityCheckResponse result = new CompatibilityCheckResponse();
+        result.setIsCompatible(isCompatible);
+        response.resume(result);
     }
 }

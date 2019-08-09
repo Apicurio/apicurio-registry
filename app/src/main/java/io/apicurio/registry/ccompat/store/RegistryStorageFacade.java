@@ -9,6 +9,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
 
 /**
  * @author Ales Justin
@@ -16,7 +17,7 @@ import java.util.Set;
 public interface RegistryStorageFacade {
     Set<String> listSubjects();
 
-    Set<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException;
+    SortedSet<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException;
 
     String getSchema(Integer id) throws ArtifactNotFoundException, RegistryStorageException;;
 
@@ -26,9 +27,15 @@ public interface RegistryStorageFacade {
 
     Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException;;
 
+    /**
+     * @return global id
+     */
     int registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
-    void deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    /**
+     * @return schema version as integer
+     */
+    int deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
     boolean testCompatibility(String subject, String version, RegisterSchemaRequest request) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 }

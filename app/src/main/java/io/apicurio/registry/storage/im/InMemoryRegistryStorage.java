@@ -12,10 +12,11 @@ import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,15 +41,16 @@ public class InMemoryRegistryStorage implements RegistryStorage {
         return v2c;
     }
 
-    private StoredArtifact toStoredArtifact(Map<String, String> content) {
-        StoredArtifact storedArtifact = new StoredArtifact();
-        storedArtifact.content = content.get(MetaDataKeys.CONTENT);
-        storedArtifact.version = Long.parseLong(content.get(MetaDataKeys.VERSION));
-        storedArtifact.id = Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID));
-        return storedArtifact;
+    private Map<String, String> getContentMap(String artifactId, Long version) throws ArtifactNotFoundException, VersionNotFoundException {
+        Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
+        Map<String, String> content = v2c.get(version);
+        if (content == null) {
+            throw new VersionNotFoundException(artifactId, version);
+        }
+        return content;
     }
 
-    private Map<String, String> getContent(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    private Map<String, String> getLatestContentMap(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
         return v2c.entrySet()
                   .stream()
@@ -56,6 +58,14 @@ public class InMemoryRegistryStorage implements RegistryStorage {
                   .orElseThrow(() -> new RegistryStorageException("Race-condition?!", null))
                   .getValue();
 
+    }
+
+    private StoredArtifact toStoredArtifact(Map<String, String> content) {
+        StoredArtifact storedArtifact = new StoredArtifact();
+        storedArtifact.content = content.get(MetaDataKeys.CONTENT);
+        storedArtifact.version = Long.parseLong(content.get(MetaDataKeys.VERSION));
+        storedArtifact.id = Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID));
+        return storedArtifact;
     }
 
     private Map<String, String> createOrUpdateArtifact(String artifactId, String content, boolean create) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
@@ -108,15 +118,15 @@ public class InMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public Set<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
-        // TODO -- mark deleted
-        return v2c.keySet();
+        v2c.values().forEach(m -> m.put(MetaDataKeys.DELETED, Boolean.TRUE.toString()));
+        return new TreeSet<>(v2c.keySet());
     }
 
     @Override
     public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return toStoredArtifact(getContent(artifactId));
+        return toStoredArtifact(getLatestContentMap(artifactId));
     }
 
     @Override
@@ -144,10 +154,8 @@ public class InMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public Map<String, String> getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getContent(artifactId);
-        Map<String, String> metadata = new HashMap<>(content);
-        metadata.remove(MetaDataKeys.CONTENT);
-        return metadata;
+        Map<String, String> content = getLatestContentMap(artifactId);
+        return MetaDataKeys.toMetaData(content);
     }
 
     @Override
@@ -186,23 +194,28 @@ public class InMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public List<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return null;
+    public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
+        // TODO -- always new TreeSet ... optimization?!
+        return new TreeSet<>(v2c.keySet());
     }
 
     @Override
     public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return null;
+        Map<String, String> content = getContentMap(artifactId, version);
+        return toStoredArtifact(content);
     }
 
     @Override
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-
+        Map<String, String> content = getContentMap(artifactId, version);
+        content.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
     }
 
     @Override
     public Map<String, String> getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return null;
+        Map<String, String> content = getContentMap(artifactId, version);
+        return MetaDataKeys.toMetaData(content);
     }
 
     @Override

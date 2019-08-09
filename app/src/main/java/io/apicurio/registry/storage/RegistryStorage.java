@@ -19,6 +19,7 @@ package io.apicurio.registry.storage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 
 /**
  * The storage layer for the registry.
@@ -43,7 +44,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public Set<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
     
     /**
      * Gets the most recent version of the content of the artifact with the given ID.
@@ -158,12 +159,12 @@ public interface RegistryStorage {
     public void deleteArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
     
     /**
-     * Gets a list of all artifact versions that exist for a given artifact.
+     * Gets a sorted set of all artifact versions that exist for a given artifact.
      * @param artifactId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public List<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored content for a single version of a given artifact.

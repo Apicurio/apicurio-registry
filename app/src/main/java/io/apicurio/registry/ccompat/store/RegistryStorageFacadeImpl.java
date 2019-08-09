@@ -14,6 +14,7 @@ import io.apicurio.registry.types.Current;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -42,7 +43,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Set<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
+    public SortedSet<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(subject);
     }
 
@@ -93,13 +94,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public void deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
             Long version = Long.parseLong(versionString);
             storage.deleteArtifactVersion(subject, version);
+            return version.intValue();
         } catch (NumberFormatException e) {
             // delete latest
-            storage.deleteArtifact(subject);
+            SortedSet<Long> versions = storage.getArtifactVersions(subject);
+            Long latestVersion = versions.last();
+            storage.deleteArtifactVersion(subject, latestVersion);
+            return latestVersion.intValue();
         }
     }
 

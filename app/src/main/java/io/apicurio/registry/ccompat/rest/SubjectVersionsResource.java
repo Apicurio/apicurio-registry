@@ -71,7 +71,6 @@ public class SubjectVersionsResource extends AbstractResource {
         @PathParam("subject") String subject,
         @PathParam("version") String version) throws Exception {
 
-        // TODO -- response result?
-        facade.deleteSchema(subject, version);
+        response.resume(facade.deleteSchema(subject, version));
     }
 }

@@ -49,7 +49,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public String getSchema(Integer id) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifact(id).content;
+        return storage.getArtifactVersion(id).content;
     }
 
     @Override

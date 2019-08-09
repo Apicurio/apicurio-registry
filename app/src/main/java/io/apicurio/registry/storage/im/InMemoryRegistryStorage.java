@@ -130,15 +130,6 @@ public class InMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public StoredArtifact getArtifact(long id) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = global.get(id);
-        if (content == null) {
-            throw new ArtifactNotFoundException(String.valueOf(id));
-        }
-        return toStoredArtifact(content);
-    }
-
-    @Override
     public Map<String, String> updateArtifact(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             return createOrUpdateArtifact(artifactId, content, false);
@@ -198,6 +189,15 @@ public class InMemoryRegistryStorage implements RegistryStorage {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
         // TODO -- always new TreeSet ... optimization?!
         return new TreeSet<>(v2c.keySet());
+    }
+
+    @Override
+    public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        Map<String, String> content = global.get(id);
+        if (content == null) {
+            throw new ArtifactNotFoundException(String.valueOf(id));
+        }
+        return toStoredArtifact(content);
     }
 
     @Override

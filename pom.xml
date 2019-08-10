@@ -86,6 +86,9 @@
         <!-- Schema types -->
         <avro.version>1.9.0</avro.version>
 
+        <!-- Storage types -->
+        <infinispan.version>9.4.16.Final</infinispan.version>
+
         <!-- Confluent API / client -->
         <confluent.version>5.3.0</confluent.version>
 
@@ -96,10 +99,24 @@
         <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
         <version.source.plugin>2.4</version.source.plugin>
         <version.surefire.plugin>2.22.1</version.surefire.plugin>
+        <version.jar.plugin>3.1.2</version.jar.plugin>
     </properties>
     
     <dependencyManagement>
         <dependencies>
+            <!-- This project -->
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-app</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-app</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+
             <!-- Quarkus Dependencies -->
             <dependency>
                 <groupId>io.quarkus</groupId>
@@ -109,8 +126,12 @@
                 <scope>import</scope>
             </dependency>
 
-
             <!-- Third Party Libraries -->
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
@@ -157,6 +178,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
                     <version>${version.deploy.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${version.jar.plugin}</version>
                 </plugin>
                 <plugin>
                     <groupId>io.quarkus</groupId>
@@ -230,6 +256,7 @@
     <modules>
         <module>app</module>
         <module>distro</module>
+        <module>infinispan</module>
         <module>tests</module>
     </modules>
 

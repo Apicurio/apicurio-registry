@@ -1,4 +1,4 @@
-package io.apicurio.registry.storage.im;
+package io.apicurio.registry.storage.impl;
 
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -19,19 +19,29 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import javax.enterprise.context.ApplicationScoped;
+import javax.annotation.PostConstruct;
 
 /**
  * @author Ales Justin
  */
-@ApplicationScoped
-public class InMemoryRegistryStorage implements RegistryStorage {
+public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
-    private AtomicLong counter = new AtomicLong(1);
+    private Map<String, Map<Long, Map<String, String>>> storage;
+    private Map<Long, Map<String, String>> global;
 
-    private Map<String, Map<Long, Map<String, String>>> storage = new ConcurrentHashMap<>();
-    private Map<Long, Map<String, String>> global = new ConcurrentHashMap<>();
+    @PostConstruct
+    public void init() {
+        storage = createStorageMap();
+        global = createGlobalMap();
+        afterInit();
+    }
+
+    protected void afterInit() {
+    }
+
+    protected abstract long nextGlobalId();
+    protected abstract Map<String, Map<Long, Map<String, String>>> createStorageMap();
+    protected abstract Map<Long, Map<String, String>> createGlobalMap();
 
     private Map<Long, Map<String, String>> getVersion2ContentMap(String artifactId) throws ArtifactNotFoundException {
         Map<Long, Map<String, String>> v2c = storage.get(artifactId);
@@ -97,7 +107,7 @@ public class InMemoryRegistryStorage implements RegistryStorage {
         }
         storage.put(artifactId, v2c);
 
-        long globalId = counter.getAndIncrement();
+        long globalId = nextGlobalId();
         contents.put(MetaDataKeys.CONTENT, content);
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));

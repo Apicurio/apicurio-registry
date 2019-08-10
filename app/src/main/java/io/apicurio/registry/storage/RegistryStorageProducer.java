@@ -16,8 +16,10 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.storage.im.InMemoryRegistryStorage;
+import io.apicurio.registry.storage.impl.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ import javax.inject.Inject;
  */
 @ApplicationScoped
 public class RegistryStorageProducer {
+    private static Logger log = LoggerFactory.getLogger(RegistryStorageProducer.class);
 
     @Inject
     Instance<RegistryStorage> storages;
@@ -40,14 +43,20 @@ public class RegistryStorageProducer {
     @Current
     public RegistryStorage realImpl() {
         List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
+        RegistryStorage impl = null;
         if (list.size() == 1) {
-            return list.get(0);
+            impl = list.get(0);
         } else {
             for (RegistryStorage rs : list) {
                 if (rs instanceof InMemoryRegistryStorage == false) {
-                    return rs;
+                    impl = rs;
+                    break;
                 }
             }
+        }
+        if (impl != null) {
+            log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
+            return impl;
         }
         throw new IllegalStateException("Should not be here ... ?!");
     }

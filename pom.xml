@@ -97,6 +97,9 @@
         <!-- Confluent API / client -->
         <confluent.version>5.3.0</confluent.version>
 
+        <!-- Build config -->
+        <quarkus.profile>dev</quarkus.profile>
+
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
@@ -105,6 +108,7 @@
         <version.source.plugin>2.4</version.source.plugin>
         <version.surefire.plugin>2.22.1</version.surefire.plugin>
         <version.jar.plugin>3.1.2</version.jar.plugin>
+        <version.properties.plugin>1.0.0</version.properties.plugin>
     </properties>
     
     <dependencyManagement>
@@ -160,12 +164,22 @@
                 <version>${confluent.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.8</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>properties-maven-plugin</artifactId>
+                    <version>${version.properties.plugin}</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -221,6 +235,25 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>set-system-properties</goal>
+                        </goals>
+                        <configuration>
+                            <properties>
+                                <property>
+                                    <name>quarkus.profile</name>
+                                    <value>${quarkus.profile}</value>
+                                </property>
+                            </properties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

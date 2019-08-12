@@ -32,6 +32,11 @@ public class RuleNotFoundException extends NotFoundException {
         this.ruleName = ruleName;
     }
 
+    public RuleNotFoundException(String ruleName, Throwable cause) {
+        super("Artifact with ID '" + ruleName + "' not found.", cause);
+        this.ruleName = ruleName;
+    }
+
     /**
      * @return the ruleName
      */

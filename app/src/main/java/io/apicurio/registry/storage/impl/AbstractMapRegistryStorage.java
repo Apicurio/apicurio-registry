@@ -83,11 +83,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     private StoredArtifact toStoredArtifact(Map<String, String> content) {
-        StoredArtifact storedArtifact = new StoredArtifact();
-        storedArtifact.content = content.get(MetaDataKeys.CONTENT);
-        storedArtifact.version = Long.parseLong(content.get(MetaDataKeys.VERSION));
-        storedArtifact.id = Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID));
-        return storedArtifact;
+        return StoredArtifact.builder()
+            .content(content.get(MetaDataKeys.CONTENT))
+            .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
+            .id(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
+            .build();
     }
 
     protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {

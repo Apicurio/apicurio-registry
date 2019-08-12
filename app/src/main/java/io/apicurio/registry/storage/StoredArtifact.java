@@ -16,11 +16,16 @@
 
 package io.apicurio.registry.storage;
 
+import lombok.Builder;
+import lombok.Value;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@Value
+@Builder
 public class StoredArtifact {
     public String content;
     public Long version;
-    public Long id;
+    public Long id; // TODO Which ID is this?
 }

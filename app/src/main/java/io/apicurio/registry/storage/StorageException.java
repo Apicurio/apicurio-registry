@@ -28,11 +28,15 @@ public abstract class StorageException extends RegistryException {
 
     public StorageException() {
     }
-    
+
+    public StorageException(String reason) {
+        super(reason);
+    }
+
     public StorageException(Throwable cause) {
         super(cause);
     }
-    
+
     public StorageException(String reason, Throwable cause) {
         super(reason, cause);
     }

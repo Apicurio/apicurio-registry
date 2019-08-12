@@ -16,25 +16,26 @@
 
 package io.apicurio.registry.storage;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
 public class RuleConfigurationDto {
 
-    private String configuration;
+    private String configuration; // TODO why not a map?
     
     /**
      * Constructor.
      */
     public RuleConfigurationDto() {
-    }
-
-    /**
-     * Constructor.
-     * @param configuration
-     */
-    public RuleConfigurationDto(String configuration) {
-        this.setConfiguration(configuration);
     }
 
     /**

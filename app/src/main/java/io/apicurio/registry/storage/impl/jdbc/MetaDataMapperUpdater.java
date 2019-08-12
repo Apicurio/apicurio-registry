@@ -1,0 +1,118 @@
+package io.apicurio.registry.storage.impl.jdbc;
+
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.MetaDataKeys;
+import io.apicurio.registry.storage.impl.jdbc.entity.Artifact;
+import io.apicurio.registry.storage.impl.jdbc.entity.MetaData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.persistence.EntityManager;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.apicurio.registry.storage.MetaDataKeys.*;
+
+public class MetaDataMapperUpdater {
+
+    private static Logger log = LoggerFactory.getLogger(MetaDataMapperUpdater.class);
+
+    private final List<MetaData> existing;
+
+    private final Map<String, String> added = new HashMap<>();
+
+    public MetaDataMapperUpdater(List<MetaData> existing) {
+        this.existing = existing;
+    }
+
+    public MetaDataMapperUpdater() {
+        this.existing = Collections.emptyList();
+    }
+
+    public MetaDataMapperUpdater update(String key, String value) {
+        added.put(key, value);
+        return this;
+    }
+
+    public MetaDataMapperUpdater update(String key, Object value) {
+        added.put(key, String.valueOf(value));
+        return this;
+    }
+
+    public MetaDataMapperUpdater update(Map<String, String> map) {
+        added.putAll(map);
+        return this;
+    }
+
+    public MetaDataMapperUpdater update(Artifact artifact) {
+        this.update(GLOBAL_ID, artifact.getGlobalId());
+        this.update(ARTIFACT_ID, artifact.getArtifactId());
+        this.update(VERSION, artifact.getVersion());
+        this.update(CONTENT, artifact.getContent());
+        return this;
+    }
+
+    public MetaDataMapperUpdater update(EditableArtifactMetaDataDto metaData) {
+        this.update(this.mapToMap(metaData));
+        return this;
+    }
+
+    /**
+     * Merge added into the existing
+     */
+    private Map<String, String> merge() {
+        HashMap<String, String> res = new HashMap<>();
+        existing.forEach(e -> res.put(e.getKey(), e.getValue()));
+        res.putAll(added);
+        return res;
+    }
+
+    /**
+     * Persist new and update existing metadata entry,
+     * do not remove existing ones.
+     */
+    public MetaDataMapperUpdater persistUpdate(EntityManager em, String artifactId, Long version) {
+        Map<String, String> toPersist = new HashMap<>(added);
+
+        existing.forEach(e -> {
+            if (added.containsKey(e.getKey())) {
+                toPersist.remove(e.getKey());
+                e.setValue(added.get(e.getKey()));
+                em.merge(e);
+            }
+        });
+
+        toPersist.forEach((key, value) -> {
+            if(value != null)
+                em.persist(
+                        MetaData.builder()
+                                .artifactId(artifactId)
+                                .version(version)
+                                .key(key)
+                                .value(value)
+                                .build()
+                );
+        });
+
+        return this;
+    }
+
+    public ArtifactMetaDataDto toArtifactMetaDataDto() {
+        return MetaDataKeys.toArtifactMetaData(merge());
+    }
+
+    public ArtifactVersionMetaDataDto toArtifactVersionMetaDataDto() {
+        return MetaDataKeys.toArtifactVersionMetaData(merge());
+    }
+
+    public Map<String, String> mapToMap(EditableArtifactMetaDataDto dto) {
+        Map<String, String> res = new HashMap<>();
+        res.put(NAME, dto.getName());
+        res.put(DESCRIPTION, dto.getDescription());
+        return res;
+    }
+}

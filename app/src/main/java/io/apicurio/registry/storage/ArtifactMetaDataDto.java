@@ -17,12 +17,20 @@
 package io.apicurio.registry.storage;
 
 import io.apicurio.registry.types.ArtifactType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
 public class ArtifactMetaDataDto {
 
     private String id;
@@ -33,7 +41,7 @@ public class ArtifactMetaDataDto {
     private String modifiedBy;
     private Date modifiedOn;
     private int version;
-    private long globalId;
+    private long globalId; // TODO which? global ID points to a specific artifact version
     private ArtifactType type;
     
     /**

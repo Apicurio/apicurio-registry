@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class MetaDataKeys {
     public static String ARTIFACT_ID = "artifact_id";
-    public static String CONTENT = "content";
+    public static String CONTENT = "content"; // TODO discuss
     public static String GLOBAL_ID = "global_id";
     public static String VERSION = "version";
     public static String NAME = "name";
@@ -29,21 +29,23 @@ public class MetaDataKeys {
 
     public static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
-        
+
+        dto.setId(content.get(ARTIFACT_ID));
+
         String createdOn = content.get(CREATED_ON);
         String modifiedOn = content.get(MODIFIED_ON);
         
         dto.setCreatedBy(content.get(CREATED_BY));
         if (createdOn != null) {
-            dto.setCreatedOn(new Date(Long.parseLong(createdOn)));
+            dto.setCreatedOn(new Date(Long.parseLong(createdOn))); // TODO discuss
         }
         dto.setModifiedBy(content.get(MODIFIED_BY));
         if (modifiedOn != null) {
-            dto.setModifiedOn(new Date(Long.parseLong(modifiedOn)));
+            dto.setModifiedOn(new Date(Long.parseLong(modifiedOn))); // TODO discuss
         }
         dto.setDescription(content.get(DESCRIPTION));
         dto.setName(content.get(NAME));
-        dto.setType(ArtifactType.fromValue(content.get(TYPE)));
+        dto.setType(ArtifactType.fromValue(content.get(TYPE))); // TODO null check
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         return dto;
@@ -53,7 +55,7 @@ public class MetaDataKeys {
         ArtifactVersionMetaDataDto dto = new ArtifactVersionMetaDataDto();
         String createdOn = content.get(CREATED_ON);
         if (createdOn != null) {
-            dto.setCreatedOn(new Date(Long.parseLong(createdOn)));
+            dto.setCreatedOn(new Date(Long.parseLong(createdOn))); // TODO discuss
         }
         dto.setCreatedBy(content.get(CREATED_BY));
         dto.setDescription(content.get(DESCRIPTION));

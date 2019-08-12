@@ -16,9 +16,18 @@
 
 package io.apicurio.registry.storage;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
 public class EditableArtifactMetaDataDto {
 
     private String name;

@@ -26,11 +26,8 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
       - run:
-          name: Build (Standard)
-          command: ./mvnw clean package -DskipTests -Dmaven.test.skip=true
-      - run:
-          name: Verify (Standard)
-          command: ./mvnw test
+          name: Build & Verify (Standard)
+          command: ./mvnw clean test package
       - run:
           name: Install GraalVM
           command: curl https://github.com/oracle/graal/releases/download/vm-19.1.1/graalvm-ce-linux-amd64-19.1.1.tar.gz -O -J -L && tar xfz graalvm-ce-linux-amd64-19.1.1.tar.gz && mv graalvm-ce-19.1.1 .graalvm && rm graalvm-ce-linux-amd64-19.1.1.tar.gz
@@ -38,10 +35,6 @@ jobs:
           name: Install native-image
           command: $GRAALVM_HOME/bin/gu install native-image
       - run:
-          name: Build (Native)
-          command: ./mvnw clean package -Pnative -DskipTests -Dmaven.test.skip=true
-          no_output_timeout: 30m
-      - run:
-          name: Verify (Native)
-          command: ./mvnw verify -Pnative
-          no_output_timeout: 30m
+          name: Build & Verify (Native)
+          command: ./mvnw clean package -Pnative
+          no_output_timeout: 40m

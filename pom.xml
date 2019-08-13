@@ -256,12 +256,17 @@
     <modules>
         <module>app</module>
         <module>distro</module>
-        <module>infinispan</module>
         <module>tests</module>
     </modules>
 
 
     <profiles>
+        <profile>
+            <id>infinispan</id>
+            <modules>
+                <module>infinispan</module>
+            </modules>
+        </profile>
         <profile>
             <id>release</id>
             <build>

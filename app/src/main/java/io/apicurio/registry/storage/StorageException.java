@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
-
-import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
+package io.apicurio.registry.storage;
 
 /**
+ * Base class for all storage exceptions.
  * @author eric.wittmann@gmail.com
  */
-@QuarkusTest
-public class RulesResourceTest {
+public abstract class StorageException extends Exception {
+    
+    private static final long serialVersionUID = 7551763806044016474L;
 
-    @Test    
-    public void testGlobalRulesEndpoint() {
-        given()
-            .when().contentType(RestConstants.JSON).get("/rules")
-            .then()
-            .statusCode(200)
-            .body(anything());
+    public StorageException() {
+    }
+    
+    public StorageException(Throwable cause) {
+        super(cause);
+    }
+    
+    public StorageException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 
 }

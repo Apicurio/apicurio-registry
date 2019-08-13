@@ -14,28 +14,29 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
-
-import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
+package io.apicurio.registry.storage;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@QuarkusTest
-public class RulesResourceTest {
+public class ArtifactNotFoundException extends StorageException {
 
-    @Test    
-    public void testGlobalRulesEndpoint() {
-        given()
-            .when().contentType(RestConstants.JSON).get("/rules")
-            .then()
-            .statusCode(200)
-            .body(anything());
+    private static final long serialVersionUID = -3614783501078800654L;
+    
+    private final String artifactId;
+
+    /**
+     * Constructor.
+     */
+    public ArtifactNotFoundException(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    /**
+     * @return the artifactId
+     */
+    public String getArtifactId() {
+        return artifactId;
     }
 
 }

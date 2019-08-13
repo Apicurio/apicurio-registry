@@ -20,7 +20,7 @@ jobs:
             - v1-dependencies-
       - run:
           name: Download Dependencies
-          command: mvn dependency:go-offline
+          command: mvn de.qaware.maven:go-offline-maven-plugin:resolve-dependencies
       - save_cache:
           paths:
             - ~/.m2

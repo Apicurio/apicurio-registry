@@ -38,4 +38,13 @@ public class RuleAlreadyExistsException extends StorageException {
     public String getRuleName() {
         return ruleName;
     }
+
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "A rule named '" + this.ruleName + "' already exists.";
+    }
+
 }

@@ -39,4 +39,12 @@ public class ArtifactNotFoundException extends StorageException {
         return artifactId;
     }
 
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "No artifact with ID '" + this.artifactId + "' was found.";
+    }
+
 }

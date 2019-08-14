@@ -39,7 +39,7 @@ public class RulesResourceImpl implements RulesResource {
     RegistryStorage storage;
     @Inject
     ErrorFactory errorFactory;
-
+    
     /**
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()
      */
@@ -58,6 +58,7 @@ public class RulesResourceImpl implements RulesResource {
     @Override
     public void createGlobalRule(Rule data) {
         try {
+            // TODO validate the rule name (only support rules we have implemented)
             RuleConfigurationDto configDto = new RuleConfigurationDto();
             // TODO copy data from the jax-rs entity into the dto
             storage.createGlobalRule(data.getName(), configDto);

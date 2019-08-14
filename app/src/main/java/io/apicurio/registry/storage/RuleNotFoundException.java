@@ -38,4 +38,13 @@ public class RuleNotFoundException extends StorageException {
     public String getRuleName() {
         return ruleName;
     }
+
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "No rule named '" + this.ruleName + "' was found.";
+    }
+
 }

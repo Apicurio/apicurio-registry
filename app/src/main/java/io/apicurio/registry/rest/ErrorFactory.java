@@ -18,6 +18,7 @@ package io.apicurio.registry.rest;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.apicurio.registry.rest.beans.Error;
@@ -41,7 +42,7 @@ public class ErrorFactory {
     
     private static WebApplicationException toWebApplicationException(Throwable t, int code) {
         Error error = toError(t, code);
-        Response response = Response.status(code).entity(error).build();
+        Response response = Response.status(code).type(MediaType.APPLICATION_JSON).entity(error).build();
         WebApplicationException wae = new WebApplicationException(response);
         return wae;
     }

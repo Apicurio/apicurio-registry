@@ -252,26 +252,41 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Override
     public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
-        
+        String cdata = config.getConfiguration();
+        String prevValue = globalRules.putIfAbsent(ruleName, cdata == null ? "" : cdata);
+        if (prevValue != null) {
+            throw new RuleAlreadyExistsException(ruleName);
+        }
     }
 
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
-
+        globalRules.clear();
     }
 
     @Override
     public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-        return null;
+        String cdata = globalRules.get(ruleName);
+        if (cdata == null) {
+            throw new RuleNotFoundException(ruleName);
+        }
+        return new RuleConfigurationDto();
     }
 
     @Override
     public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-
+        if (!globalRules.containsKey(ruleName)) {
+            throw new RuleNotFoundException(ruleName);
+        }
+        String cdata = config.getConfiguration();
+        globalRules.put(ruleName, cdata == null ? "" : cdata);
     }
 
     @Override
     public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-
+        String prevValue = globalRules.remove(ruleName);
+        if (prevValue == null) {
+            throw new RuleNotFoundException(ruleName);
+        }
     }
 }

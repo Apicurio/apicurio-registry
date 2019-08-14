@@ -38,5 +38,13 @@ public class ArtifactAlreadyExistsException extends StorageException {
     public String getArtifactId() {
         return artifactId;
     }
+    
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "An artifact with ID '" + this.artifactId + "' already exists.";
+    }
 
 }

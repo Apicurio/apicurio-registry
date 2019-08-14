@@ -36,5 +36,5 @@ jobs:
           command: $GRAALVM_HOME/bin/gu install native-image
       - run:
           name: Build & Verify (Native)
-          command: ./mvnw clean package -Pnative
+          command: ./mvnw clean package verify -Pnative
           no_output_timeout: 40m

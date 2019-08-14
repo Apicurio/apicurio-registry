@@ -109,7 +109,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * @see io.apicurio.registry.rest.ArtifactsResource#listArtifactRules(java.lang.String)
      */
     @Override
-    public List<Rule> listArtifactRules(String artifactId) {
+    public List<String> listArtifactRules(String artifactId) {
         // TODO Auto-generated method stub
         return null;
     }

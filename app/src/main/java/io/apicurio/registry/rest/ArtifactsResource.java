@@ -147,7 +147,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/rules")
   @GET
   @Produces("application/json")
-  List<Rule> listArtifactRules(@PathParam("artifactId") String artifactId);
+  List<String> listArtifactRules(@PathParam("artifactId") String artifactId);
 
   /**
    * Adds a rule to the list of rules that get applied to the artifact when adding new

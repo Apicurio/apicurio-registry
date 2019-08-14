@@ -19,7 +19,7 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactAlreadyExistsException extends StorageException {
+public class ArtifactAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = -1015140450163088675L;
     

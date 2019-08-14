@@ -23,10 +23,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
 
 /**
  * Implementation of the @RulesResource JAX-RS interface.
@@ -45,11 +42,7 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public List<String> listGlobalRules() {
-        try {
-            return storage.getGlobalRules();
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        return storage.getGlobalRules();
     }
 
     /**
@@ -57,16 +50,10 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void createGlobalRule(Rule data) {
-        try {
-            // TODO validate the rule name (only support rules we have implemented)
-            RuleConfigurationDto configDto = new RuleConfigurationDto();
-            // TODO copy data from the jax-rs entity into the dto
-            storage.createGlobalRule(data.getName(), configDto);
-        } catch (RuleAlreadyExistsException e) {
-            throw this.errorFactory.create(e);
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        // TODO validate the rule name (only support rules we have implemented)
+        RuleConfigurationDto configDto = new RuleConfigurationDto();
+        configDto.setConfiguration(data.getConfig());
+        storage.createGlobalRule(data.getName(), configDto);
     }
 
     /**
@@ -74,11 +61,7 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void deleteAllGlobalRules() {
-        try {
-            storage.deleteGlobalRules();
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        storage.deleteGlobalRules();
     }
 
     /**
@@ -86,17 +69,11 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public Rule getGlobalRuleConfig(String ruleName) {
-        try {
-            RuleConfigurationDto dto = storage.getGlobalRule(ruleName);
-            Rule rule = new Rule();
-            rule.setName(ruleName);
-            // TODO also set the rule's config data
-            return rule;
-        } catch (RuleNotFoundException e) {
-            throw this.errorFactory.create(e);
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        RuleConfigurationDto dto = storage.getGlobalRule(ruleName);
+        Rule rule = new Rule();
+        rule.setName(ruleName);
+        rule.setConfig(dto.getConfiguration());
+        return rule;
     }
 
     /**
@@ -104,19 +81,13 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public Rule updateGlobalRuleConfig(String ruleName, Rule data) {
-        try {
-            RuleConfigurationDto configDto = new RuleConfigurationDto();
-            // TODO set the inbound config info on the dto
-            storage.updateGlobalRule(ruleName, configDto);
-            Rule rule = new Rule();
-            rule.setName(ruleName);
-            rule.setConfig(data.getConfig());
-            return rule;
-        } catch (RuleNotFoundException e) {
-            throw this.errorFactory.create(e);
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        RuleConfigurationDto configDto = new RuleConfigurationDto();
+        configDto.setConfiguration(data.getConfig());
+        storage.updateGlobalRule(ruleName, configDto);
+        Rule rule = new Rule();
+        rule.setName(ruleName);
+        rule.setConfig(data.getConfig());
+        return rule;
     }
 
     /**
@@ -124,13 +95,7 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void deleteGlobalRule(String ruleName) {
-        try {
-            storage.deleteGlobalRule(ruleName);
-        } catch (RuleNotFoundException e) {
-            throw this.errorFactory.create(e);
-        } catch (RegistryStorageException e) {
-            throw this.errorFactory.create(e);
-        }
+        storage.deleteGlobalRule(ruleName);
     }
 
 }

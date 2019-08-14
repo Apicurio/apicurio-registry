@@ -19,7 +19,7 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuleAlreadyExistsException extends StorageException {
+public class RuleAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2412206165461946827L;
     

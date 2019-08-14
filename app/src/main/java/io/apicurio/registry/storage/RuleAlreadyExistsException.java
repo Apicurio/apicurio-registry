@@ -19,7 +19,7 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuleAlreadyExistsException extends StorageException {
+public class RuleAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2412206165461946827L;
     
@@ -38,4 +38,13 @@ public class RuleAlreadyExistsException extends StorageException {
     public String getRuleName() {
         return ruleName;
     }
+
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "A rule named '" + this.ruleName + "' already exists.";
+    }
+
 }

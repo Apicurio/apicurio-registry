@@ -27,4 +27,9 @@ public class InMemoryRegistryStorage extends AbstractMapRegistryStorage {
     protected Map<Long, Map<String, String>> createGlobalMap() {
         return new ConcurrentHashMap<>();
     }
+
+    @Override
+    protected Map<String, String> createGlobalRulesMap() {
+        return new ConcurrentHashMap<>();
+    }
 }

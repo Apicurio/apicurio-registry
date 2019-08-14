@@ -2,3 +2,9 @@ target/
 .project
 .settings
 .classpath
+
+# IntelliJ / IDEA
+.idea/
+*.iml
+*.ipr
+*.iws

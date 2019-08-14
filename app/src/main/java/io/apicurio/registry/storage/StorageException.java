@@ -20,7 +20,7 @@ package io.apicurio.registry.storage;
  * Base class for all storage exceptions.
  * @author eric.wittmann@gmail.com
  */
-public abstract class StorageException extends Exception {
+public abstract class StorageException extends RuntimeException {
     
     private static final long serialVersionUID = 7551763806044016474L;
 

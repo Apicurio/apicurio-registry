@@ -16,28 +16,31 @@
 
 package io.apicurio.registry.rest;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleConfigurationDto;
 
 /**
  * Implementation of the @RulesResource JAX-RS interface.
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
 public class RulesResourceImpl implements RulesResource {
 
+    @Inject
+    RegistryStorage storage;
+    
     /**
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()
      */
     @Override
     public List<String> listGlobalRules() {
-        // TODO provide a real implementation of this.
-        List<String> dummyData = new ArrayList<String>();
-        
-        dummyData.add("Rule1");
-        
-        return dummyData;
+        return storage.getGlobalRules();
     }
 
     /**
@@ -45,8 +48,10 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void createGlobalRule(Rule data) {
-        // TODO Auto-generated method stub
-        
+        // TODO validate the rule name (only support rules we have implemented)
+        RuleConfigurationDto configDto = new RuleConfigurationDto();
+        configDto.setConfiguration(data.getConfig());
+        storage.createGlobalRule(data.getName(), configDto);
     }
 
     /**
@@ -54,35 +59,41 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void deleteAllGlobalRules() {
-        // TODO Auto-generated method stub
-        
+        storage.deleteGlobalRules();
     }
 
     /**
      * @see io.apicurio.registry.rest.RulesResource#getGlobalRuleConfig(java.lang.String)
      */
     @Override
-    public Rule getGlobalRuleConfig(String rule) {
-        // TODO Auto-generated method stub
-        return null;
+    public Rule getGlobalRuleConfig(String ruleName) {
+        RuleConfigurationDto dto = storage.getGlobalRule(ruleName);
+        Rule rule = new Rule();
+        rule.setName(ruleName);
+        rule.setConfig(dto.getConfiguration());
+        return rule;
     }
 
     /**
      * @see io.apicurio.registry.rest.RulesResource#updateGlobalRuleConfig(java.lang.String, io.apicurio.registry.rest.beans.Rule)
      */
     @Override
-    public Rule updateGlobalRuleConfig(String rule, Rule data) {
-        // TODO Auto-generated method stub
-        return null;
+    public Rule updateGlobalRuleConfig(String ruleName, Rule data) {
+        RuleConfigurationDto configDto = new RuleConfigurationDto();
+        configDto.setConfiguration(data.getConfig());
+        storage.updateGlobalRule(ruleName, configDto);
+        Rule rule = new Rule();
+        rule.setName(ruleName);
+        rule.setConfig(data.getConfig());
+        return rule;
     }
 
     /**
      * @see io.apicurio.registry.rest.RulesResource#deleteGlobalRule(java.lang.String)
      */
     @Override
-    public void deleteGlobalRule(String rule) {
-        // TODO Auto-generated method stub
-        
+    public void deleteGlobalRule(String ruleName) {
+        storage.deleteGlobalRule(ruleName);
     }
 
 }

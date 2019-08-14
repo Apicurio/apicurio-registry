@@ -1,5 +1,17 @@
 package io.apicurio.registry.storage.impl;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.PostConstruct;
+
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.MetaDataKeys;
@@ -11,16 +23,6 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.PostConstruct;
-
 /**
  * @author Ales Justin
  */
@@ -28,11 +30,13 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     private Map<String, Map<Long, Map<String, String>>> storage;
     private Map<Long, Map<String, String>> global;
+    private Map<String, String> globalRules;
 
     @PostConstruct
     public void init() {
         storage = createStorageMap();
         global = createGlobalMap();
+        globalRules = createGlobalRulesMap();
         afterInit();
     }
 
@@ -42,6 +46,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     protected abstract long nextGlobalId();
     protected abstract Map<String, Map<Long, Map<String, String>>> createStorageMap();
     protected abstract Map<Long, Map<String, String>> createGlobalMap();
+    protected abstract Map<String, String> createGlobalRulesMap();
 
     private Map<Long, Map<String, String>> getVersion2ContentMap(String artifactId) throws ArtifactNotFoundException {
         Map<Long, Map<String, String>> v2c = storage.get(artifactId);
@@ -240,31 +245,48 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Override
     public List<String> getGlobalRules() throws RegistryStorageException {
-        return null;
+        List<String> ruleNames = new ArrayList<>();
+        ruleNames.addAll(globalRules.keySet());
+        return ruleNames;
     }
 
     @Override
     public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
-
+        String cdata = config.getConfiguration();
+        String prevValue = globalRules.putIfAbsent(ruleName, cdata == null ? "" : cdata);
+        if (prevValue != null) {
+            throw new RuleAlreadyExistsException(ruleName);
+        }
     }
 
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
-
+        globalRules.clear();
     }
 
     @Override
     public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-        return null;
+        String cdata = globalRules.get(ruleName);
+        if (cdata == null) {
+            throw new RuleNotFoundException(ruleName);
+        }
+        return new RuleConfigurationDto();
     }
 
     @Override
     public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-
+        if (!globalRules.containsKey(ruleName)) {
+            throw new RuleNotFoundException(ruleName);
+        }
+        String cdata = config.getConfiguration();
+        globalRules.put(ruleName, cdata == null ? "" : cdata);
     }
 
     @Override
     public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-
+        String prevValue = globalRules.remove(ruleName);
+        if (prevValue == null) {
+            throw new RuleNotFoundException(ruleName);
+        }
     }
 }

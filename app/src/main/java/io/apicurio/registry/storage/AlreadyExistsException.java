@@ -19,32 +19,19 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactNotFoundException extends NotFoundException {
+public abstract class AlreadyExistsException extends StorageException {
 
-    private static final long serialVersionUID = -3614783501078800654L;
+    private static final long serialVersionUID = 5055445625652989500L;
+
+    public AlreadyExistsException() {
+    }
     
-    private final String artifactId;
-
-    /**
-     * Constructor.
-     */
-    public ArtifactNotFoundException(String artifactId) {
-        this.artifactId = artifactId;
+    public AlreadyExistsException(Throwable cause) {
+        super(cause);
     }
-
-    /**
-     * @return the artifactId
-     */
-    public String getArtifactId() {
-        return artifactId;
-    }
-
-    /**
-     * @see java.lang.Throwable#getMessage()
-     */
-    @Override
-    public String getMessage() {
-        return "No artifact with ID '" + this.artifactId + "' was found.";
+    
+    public AlreadyExistsException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 
 }

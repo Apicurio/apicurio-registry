@@ -21,4 +21,34 @@ package io.apicurio.registry.storage;
  */
 public class RuleConfigurationDto {
 
+    private String configuration;
+    
+    /**
+     * Constructor.
+     */
+    public RuleConfigurationDto() {
+    }
+
+    /**
+     * Constructor.
+     * @param configuration
+     */
+    public RuleConfigurationDto(String configuration) {
+        this.setConfiguration(configuration);
+    }
+
+    /**
+     * @return the configuration
+     */
+    public String getConfiguration() {
+        return configuration;
+    }
+
+    /**
+     * @param configuration the configuration to set
+     */
+    public void setConfiguration(String configuration) {
+        this.configuration = configuration;
+    }
+    
 }

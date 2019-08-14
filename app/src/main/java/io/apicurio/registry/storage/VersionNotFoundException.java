@@ -40,4 +40,12 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
         return version;
     }
 
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "'.";
+    }
+
 }

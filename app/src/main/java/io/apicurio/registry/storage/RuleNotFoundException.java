@@ -19,7 +19,7 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuleNotFoundException extends StorageException {
+public class RuleNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -5024749463194169679L;
     
@@ -38,4 +38,13 @@ public class RuleNotFoundException extends StorageException {
     public String getRuleName() {
         return ruleName;
     }
+
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "No rule named '" + this.ruleName + "' was found.";
+    }
+
 }

@@ -17,14 +17,17 @@
 package io.apicurio.registry;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.rest.beans.Rule;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -45,8 +48,8 @@ public class RulesResourceTest {
     public void testGlobalRules() {
         // Add a global rule
         Rule rule = new Rule();
-        rule.setName("SyntaxValidationRule");
-        rule.setConfig("");
+        rule.setName("SyntaxValidation");
+        rule.setConfig("syntax-validation-config");
         given()
             .when().contentType(RestConstants.JSON).body(rule).post("/rules")
             .then()
@@ -59,7 +62,106 @@ public class RulesResourceTest {
             .then()
             .statusCode(409)
             .body("code", equalTo(409))
-            .body("message", equalTo("A rule named 'SyntaxValidationRule' already exists."));
+            .body("message", equalTo("A rule named 'SyntaxValidation' already exists."));
+        
+        // Add another global rule
+        rule.setName("Compatibility");
+        rule.setConfig("compatibility-config");
+        given()
+            .when().contentType(RestConstants.JSON).body(rule).post("/rules")
+            .then()
+            .statusCode(204)
+            .body(anything());
+
+        // Get the list of rules (should be 2 of them)
+        given()
+            .when().get("/rules")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+            .body("[1]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+            .body("[2]", nullValue());
+        
+        // Get a single rule by name
+        given()
+            .when().get("/rules/Compatibility")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("name", equalTo("Compatibility"))
+            .body("config", equalTo("compatibility-config"));
+
+        // Update a rule's config
+        rule.setName("Compatibility");
+        rule.setConfig("updated-configuration");
+        given()
+            .when().contentType(RestConstants.JSON).body(rule).put("/rules/Compatibility")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("name", equalTo("Compatibility"))
+            .body("config", equalTo("updated-configuration"));
+
+        // Get a single (updated) rule by name
+        given()
+            .when().get("/rules/Compatibility")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("name", equalTo("Compatibility"))
+            .body("config", equalTo("updated-configuration"));
+
+        // Try to update a rule's config for a rule that doesn't exist.
+        rule.setName("RuleDoesNotExist");
+        rule.setConfig("rdne-config");
+        given()
+            .when().contentType(RestConstants.JSON).body(rule).put("/rules/RuleDoesNotExist")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("code", equalTo(404))
+            .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+
+        // Delete a rule
+        given()
+            .when().delete("/rules/Compatibility")
+            .then()
+            .statusCode(204)
+            .body(anything());
+
+        // Get a single (deleted) rule by name (should fail with a 404)
+        given()
+            .when().get("/rules/Compatibility")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("code", equalTo(404))
+            .body("message", equalTo("No rule named 'Compatibility' was found."));
+
+        // Get the list of rules (should be 1 of them)
+        given()
+            .when().get("/rules")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+            .body("[1]", nullValue());
+
+        // Delete all rules
+        given()
+            .when().delete("/rules")
+            .then()
+            .statusCode(204);
+
+        // Get the list of rules (no rules now)
+        given()
+            .when().get("/rules")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("[0]", nullValue());
+
     }
 
 }

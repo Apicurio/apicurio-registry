@@ -269,12 +269,12 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/Rule"
+                                        "type": "string"
                                     }
                                 }
                             }
                         },
-                        "description": "Returns the rules configured for the artifact."
+                        "description": "Returns the names of all rules configured for the artifact."
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
@@ -757,12 +757,12 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/Rule"
+                                        "type": "string"
                                     }
                                 }
                             }
                         },
-                        "description": "The list of globally configured rules."
+                        "description": "The list of globally configured rules (names only)."
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"

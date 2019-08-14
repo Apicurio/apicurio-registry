@@ -20,6 +20,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     private static String COUNTER_CACHE = "counter-cache";
     private static String STORAGE_CACHE = "storage-cache";
     private static String GLOBAL_CACHE = "global-cache";
+    private static String GLOBAL_RULES_CACHE = "global-rules-cache";
 
     @Inject
     EmbeddedCacheManager manager;
@@ -65,5 +66,20 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         );
 
         return manager.getCache(GLOBAL_CACHE, true);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRulesMap()
+     */
+    @Override
+    protected Map<String, String> createGlobalRulesMap() {
+        manager.defineConfiguration(
+            GLOBAL_RULES_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(GLOBAL_RULES_CACHE, true);
     }
 }

@@ -270,7 +270,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (cdata == null) {
             throw new RuleNotFoundException(ruleName);
         }
-        return new RuleConfigurationDto();
+        return new RuleConfigurationDto(cdata);
     }
 
     @Override

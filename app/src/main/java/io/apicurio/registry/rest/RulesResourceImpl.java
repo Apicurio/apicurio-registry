@@ -34,8 +34,6 @@ public class RulesResourceImpl implements RulesResource {
 
     @Inject
     RegistryStorage storage;
-    @Inject
-    ErrorFactory errorFactory;
     
     /**
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()

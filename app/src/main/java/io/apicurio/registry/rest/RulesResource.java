@@ -18,43 +18,6 @@ import javax.ws.rs.Produces;
 @Path("/rules")
 public interface RulesResource {
   /**
-   * Gets a list of all the currently configured global rules (if any).
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @GET
-  @Produces("application/json")
-  List<String> listGlobalRules();
-
-  /**
-   * Adds a rule to the list of globally configured rules.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * The named rule is unknown (HTTP error `400`)
-   * * The rule already exists (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @POST
-  @Consumes("application/json")
-  void createGlobalRule(Rule data);
-
-  /**
-   * Deletes all globally configured rules.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @DELETE
-  void deleteAllGlobalRules();
-
-  /**
    * Returns information about the named globally configured rule.
    *
    * This operation can fail for the following reasons:
@@ -96,4 +59,41 @@ public interface RulesResource {
   @Path("/{rule}")
   @DELETE
   void deleteGlobalRule(@PathParam("rule") String rule);
+
+  /**
+   * Gets a list of all the currently configured global rules (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @GET
+  @Produces("application/json")
+  List<Rule> listGlobalRules();
+
+  /**
+   * Adds a rule to the list of globally configured rules.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * The named rule is unknown (HTTP error `400`)
+   * * The rule already exists (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @POST
+  @Consumes("application/json")
+  void createGlobalRule(Rule data);
+
+  /**
+   * Deletes all globally configured rules.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @DELETE
+  void deleteAllGlobalRules();
 }

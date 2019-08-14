@@ -134,51 +134,6 @@ public interface ArtifactsResource {
   void updateArtifactMetaData(@PathParam("artifactId") String artifactId, EditableMetaData data);
 
   /**
-   * Returns a list of all rules configured for the artifact.  The set of rules determines
-   * how the content of an artifact can evolve over time.  If no rules are configured for
-   * an artifact, then the set of globally configured rules will be used.  If no global
-   * rules are defined then there are no restrictions on content evolution.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{artifactId}/rules")
-  @GET
-  @Produces("application/json")
-  List<String> listArtifactRules(@PathParam("artifactId") String artifactId);
-
-  /**
-   * Adds a rule to the list of rules that get applied to the artifact when adding new
-   * versions.  All configured rules must pass in order to successfully add a new artifact
-   * version.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * Rule (named in the request body) is unknown (HTTP error `400`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{artifactId}/rules")
-  @POST
-  @Consumes("application/json")
-  void createArtifactRule(@PathParam("artifactId") String artifactId, Rule data);
-
-  /**
-   * Deletes all of the rules configured for the artifact.  After this is done, the global
-   * rules will once again apply to the artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{artifactId}/rules")
-  @DELETE
-  void deleteArtifactRules(@PathParam("artifactId") String artifactId);
-
-  /**
    * Returns information about a single rule configured for an artifact.  This is useful
    * when you want to know what the current configuration settings are for a specific rule.
    *
@@ -373,4 +328,49 @@ public interface ArtifactsResource {
   @DELETE
   void deleteArtifactVersionMetaData(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
+
+  /**
+   * Returns a list of all rules configured for the artifact.  The set of rules determines
+   * how the content of an artifact can evolve over time.  If no rules are configured for
+   * an artifact, then the set of globally configured rules will be used.  If no global
+   * rules are defined then there are no restrictions on content evolution.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/rules")
+  @GET
+  @Produces("application/json")
+  List<Rule> listArtifactRules(@PathParam("artifactId") String artifactId);
+
+  /**
+   * Adds a rule to the list of rules that get applied to the artifact when adding new
+   * versions.  All configured rules must pass in order to successfully add a new artifact
+   * version.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * Rule (named in the request body) is unknown (HTTP error `400`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/rules")
+  @POST
+  @Consumes("application/json")
+  void createArtifactRule(@PathParam("artifactId") String artifactId, Rule data);
+
+  /**
+   * Deletes all of the rules configured for the artifact.  After this is done, the global
+   * rules will once again apply to the artifact.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/rules")
+  @DELETE
+  void deleteArtifactRules(@PathParam("artifactId") String artifactId);
 }

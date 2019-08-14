@@ -256,100 +256,6 @@
                 }
             ]
         },
-        "/artifacts/{artifactId}/rules": {
-            "summary": "Manage the rules for a single artifact.",
-            "get": {
-                "tags": [
-                    "rules"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "Returns the names of all rules configured for the artifact."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifactRules",
-                "summary": "List Artifact Rules",
-                "description": "Returns a list of all rules configured for the artifact.  The set of rules determines\nhow the content of an artifact can evolve over time.  If no rules are configured for\nan artifact, then the set of globally configured rules will be used.  If no global\nrules are defined then there are no restrictions on content evolution.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Rule"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "rules"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "The rule was added.  A URI to the new rule can be found in the `Location` response header."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    }
-                },
-                "operationId": "createArtifactRule",
-                "summary": "Create Artifact Rule",
-                "description": "Adds a rule to the list of rules that get applied to the artifact when adding new\nversions.  All configured rules must pass in order to successfully add a new artifact\nversion.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Rule (named in the request body) is unknown (HTTP error `400`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "delete": {
-                "tags": [
-                    "rules"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "The rules were successfully deleted."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteArtifactRules",
-                "summary": "Delete Artifact Rules",
-                "description": "Deletes all of the rules configured for the artifact.  After this is done, the global\nrules will once again apply to the artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "parameters": [
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client provided) or integer (server generated) representing the unique artifact identifier.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/artifacts/{artifactId}/rules/{rule}": {
             "summary": "Manage the configuration of a single artifact rule.",
             "get": {
@@ -743,86 +649,6 @@
                 }
             ]
         },
-        "/rules": {
-            "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
-            "get": {
-                "tags": [
-                    "rules",
-                    "global rules"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The list of globally configured rules (names only)."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listGlobalRules",
-                "summary": "List Global Rules",
-                "description": "Gets a list of all the currently configured global rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Rule"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "rules",
-                    "global rules"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "The global rule was added.  A URI to the new rule can be found in the `Location` response header."
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    }
-                },
-                "operationId": "createGlobalRule",
-                "summary": "Create Global Rule",
-                "description": "Adds a rule to the list of globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* The named rule is unknown (HTTP error `400`)\n* The rule already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "delete": {
-                "tags": [
-                    "rules",
-                    "global rules"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "All global rules have been removed successfully."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteAllGlobalRules",
-                "summary": "Delete All Global Rules",
-                "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
-        },
         "/rules/{rule}": {
             "summary": "Manage the configuration of a single global artifact rule.",
             "get": {
@@ -913,6 +739,180 @@
                 {
                     "name": "rule",
                     "description": "The unique name of a rule.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/rules": {
+            "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
+            "get": {
+                "tags": [
+                    "rules",
+                    "global rules"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Rule"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of globally configured rules."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listGlobalRules",
+                "summary": "List Global Rules",
+                "description": "Gets a list of all the currently configured global rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Rule"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "rules",
+                    "global rules"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The global rule was added."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createGlobalRule",
+                "summary": "Create Global Rule",
+                "description": "Adds a rule to the list of globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* The named rule is unknown (HTTP error `400`)\n* The rule already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "rules",
+                    "global rules"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "All global rules have been removed successfully."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteAllGlobalRules",
+                "summary": "Delete All Global Rules",
+                "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/artifacts/{artifactId}/rules": {
+            "summary": "Manage the rules for a single artifact.",
+            "get": {
+                "tags": [
+                    "rules"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Rule"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Returns the rules configured for the artifact."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactRules",
+                "summary": "List Artifact Rules",
+                "description": "Returns a list of all rules configured for the artifact.  The set of rules determines\nhow the content of an artifact can evolve over time.  If no rules are configured for\nan artifact, then the set of globally configured rules will be used.  If no global\nrules are defined then there are no restrictions on content evolution.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Rule"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "rules"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The rule was added."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifactRule",
+                "summary": "Create Artifact Rule",
+                "description": "Adds a rule to the list of rules that get applied to the artifact when adding new\nversions.  All configured rules must pass in order to successfully add a new artifact\nversion.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Rule (named in the request body) is unknown (HTTP error `400`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "delete": {
+                "tags": [
+                    "rules"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The rules were successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifactRules",
+                "summary": "Delete Artifact Rules",
+                "description": "Deletes all of the rules configured for the artifact.  After this is done, the global\nrules will once again apply to the artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client provided) or integer (server generated) representing the unique artifact identifier.",
                     "schema": {
                         "type": "string"
                     },

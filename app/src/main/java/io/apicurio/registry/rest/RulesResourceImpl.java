@@ -31,15 +31,11 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()
      */
     @Override
-    public List<Rule> listGlobalRules() {
+    public List<String> listGlobalRules() {
         // TODO provide a real implementation of this.
-        List<Rule> dummyData = new ArrayList<Rule>();
+        List<String> dummyData = new ArrayList<String>();
         
-        Rule dummyRule = new Rule();
-        dummyRule.setName("DummyRule");
-        dummyRule.setConfig("FULL");
-        
-        dummyData.add(dummyRule);
+        dummyData.add("Rule1");
         
         return dummyData;
     }

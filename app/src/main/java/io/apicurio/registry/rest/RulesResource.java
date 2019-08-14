@@ -27,7 +27,7 @@ public interface RulesResource {
    */
   @GET
   @Produces("application/json")
-  List<Rule> listGlobalRules();
+  List<String> listGlobalRules();
 
   /**
    * Adds a rule to the list of globally configured rules.

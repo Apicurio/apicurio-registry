@@ -1,7 +1,6 @@
 package io.apicurio.registry.storage.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,8 +11,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
 
+import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -83,7 +86,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return storedArtifact;
     }
 
-    private Map<String, String> createOrUpdateArtifact(String artifactId, String content, boolean create) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    private ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, String content, boolean create)
+            throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         if (artifactId == null) {
             if (!create) {
                 throw new ArtifactNotFoundException(artifactId);
@@ -113,20 +117,30 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         storage.put(artifactId, v2c);
 
         long globalId = nextGlobalId();
+        // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         contents.put(MetaDataKeys.CONTENT, content);
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
-        // TODO -- creator, etc
+        contents.put(MetaDataKeys.CREATED_ON, String.valueOf(System.currentTimeMillis()));
+//        contents.put(MetaDataKeys.NAME, null);
+//        contents.put(MetaDataKeys.DESCRIPTION, null);
+        contents.put(MetaDataKeys.TYPE, artifactType.value());
+        // TODO -- creator, modifiedBy
         global.put(globalId, contents);
-
-        return Collections.unmodifiableMap(contents);
+        
+        ArtifactMetaDataDto dto = MetaDataKeys.toArtifactMetaData(contents);
+        return dto;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.lang.String)
+     */
     @Override
-    public Map<String, String> createArtifact(String artifactId, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content)
+            throws ArtifactAlreadyExistsException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, content, true);
+            return createOrUpdateArtifact(artifactId, artifactType, content, true);
         } catch (ArtifactNotFoundException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
@@ -144,10 +158,14 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return toStoredArtifact(getLatestContentMap(artifactId));
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.lang.String)
+     */
     @Override
-    public Map<String, String> updateArtifact(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content)
+            throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, content, false);
+            return createOrUpdateArtifact(artifactId, artifactType, content, false);
         } catch (ArtifactAlreadyExistsException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
@@ -159,14 +177,17 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public Map<String, String> getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<String, String> content = getLatestContentMap(artifactId);
-        return MetaDataKeys.toMetaData(content);
+        return MetaDataKeys.toArtifactMetaData(content);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
     @Override
-    public void updateArtifactMetaData(String artifactId, Map<String, String> metaData) throws ArtifactNotFoundException, RegistryStorageException {
-
+    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
+            throws ArtifactNotFoundException, RegistryStorageException {
     }
 
     @Override
@@ -227,15 +248,22 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         content.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, long)
+     */
     @Override
-    public Map<String, String> getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(artifactId, version);
-        return MetaDataKeys.toMetaData(content);
+        return MetaDataKeys.toArtifactVersionMetaData(content);
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, long version, Map<String, String> metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-
+    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
     }
 
     @Override

@@ -33,7 +33,7 @@ public interface RegistryStorageFacade {
     long registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
     /**
-     * @return schema version as integer
+     * @return schema version as long
      */
     long deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 

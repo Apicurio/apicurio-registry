@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import java.io.InputStream;
 import java.lang.Integer;
 import java.lang.Long;
 import java.lang.String;
@@ -18,7 +19,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Request;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -51,6 +51,7 @@ public interface ArtifactsResource {
    *
    * This operation may fail for one of the following reasons:
    *
+   * * An invalid `ArtifactType` was indicated (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -59,7 +60,7 @@ public interface ArtifactsResource {
   @Consumes({"application/json", "application/x-yaml"})
   ArtifactMetaData createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, Request data);
+      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
@@ -92,7 +93,7 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes({"application/json", "application/x-yaml"})
-  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId, Request data);
+  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -239,7 +240,7 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"application/json", "application/x-yaml"})
   VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, Request data);
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the

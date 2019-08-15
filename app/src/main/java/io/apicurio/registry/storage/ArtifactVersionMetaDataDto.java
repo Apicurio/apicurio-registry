@@ -25,6 +25,8 @@ import io.apicurio.registry.rest.beans.ArtifactType;
  */
 public class ArtifactVersionMetaDataDto {
 
+    private int version;
+    private long globalId;
     private String name;
     private String description;
     private String createdBy;
@@ -105,6 +107,34 @@ public class ArtifactVersionMetaDataDto {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the globalId
+     */
+    public long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * @param globalId the globalId to set
+     */
+    public void setGlobalId(long globalId) {
+        this.globalId = globalId;
+    }
+
+    /**
+     * @return the version
+     */
+    public int getVersion() {
+        return version;
+    }
+
+    /**
+     * @param version the version to set
+     */
+    public void setVersion(int version) {
+        this.version = version;
     }
 
 }

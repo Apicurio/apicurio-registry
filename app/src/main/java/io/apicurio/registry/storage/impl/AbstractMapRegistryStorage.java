@@ -146,6 +146,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifact(java.lang.String)
+     */
     @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
@@ -153,6 +156,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return new TreeSet<>(v2c.keySet());
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String)
+     */
     @Override
     public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return toStoredArtifact(getLatestContentMap(artifactId));
@@ -171,11 +177,17 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds()
+     */
     @Override
     public Set<String> getArtifactIds() {
         return storage.keySet();
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String)
+     */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<String, String> content = getLatestContentMap(artifactId);
@@ -190,36 +202,57 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             throws ArtifactNotFoundException, RegistryStorageException {
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRules(java.lang.String)
+     */
     @Override
     public List<String> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return null;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
     @Override
     public void createArtifactRule(String artifactId, String ruleName, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
 
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String)
+     */
     @Override
     public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
 
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, java.lang.String)
+     */
     @Override
     public RuleConfigurationDto getArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         return null;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
     @Override
     public void updateArtifactRule(String artifactId, String ruleName, RuleConfigurationDto rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
 
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String)
+     */
     @Override
     public void deleteArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
 
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersions(java.lang.String)
+     */
     @Override
     public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
@@ -227,6 +260,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return new TreeSet<>(v2c.keySet());
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(long)
+     */
     @Override
     public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Map<String, String> content = global.get(id);
@@ -236,12 +272,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return toStoredArtifact(content);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(java.lang.String, long)
+     */
     @Override
     public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(artifactId, version);
         return toStoredArtifact(content);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, long)
+     */
     @Override
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(artifactId, version);
@@ -266,11 +308,17 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, long)
+     */
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRules()
+     */
     @Override
     public List<String> getGlobalRules() throws RegistryStorageException {
         List<String> ruleNames = new ArrayList<>();
@@ -278,6 +326,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return ruleNames;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
     @Override
     public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
         String cdata = config.getConfiguration();
@@ -287,11 +338,17 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRules()
+     */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
         globalRules.clear();
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(java.lang.String)
+     */
     @Override
     public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
         String cdata = globalRules.get(ruleName);
@@ -301,6 +358,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return new RuleConfigurationDto(cdata);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
     @Override
     public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
         if (!globalRules.containsKey(ruleName)) {
@@ -310,6 +370,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         globalRules.put(ruleName, cdata == null ? "" : cdata);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(java.lang.String)
+     */
     @Override
     public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
         String prevValue = globalRules.remove(ruleName);

@@ -56,7 +56,7 @@ public class SubjectVersionsResource extends AbstractResource {
         @PathParam("subject") String subject,
         @NotNull RegisterSchemaRequest request) throws Exception {
 
-        int id = facade.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
+        long id = facade.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
 
         RegisterSchemaResponse registerSchemaResponse = new RegisterSchemaResponse();
         registerSchemaResponse.setId(id);

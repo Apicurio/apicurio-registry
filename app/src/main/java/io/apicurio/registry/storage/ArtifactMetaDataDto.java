@@ -25,6 +25,7 @@ import io.apicurio.registry.rest.beans.ArtifactType;
  */
 public class ArtifactMetaDataDto {
 
+    private String id;
     private String name;
     private String description;
     private String createdBy;
@@ -32,6 +33,7 @@ public class ArtifactMetaDataDto {
     private String modifiedBy;
     private Date modifiedOn;
     private int version;
+    private long globalId;
     private ArtifactType type;
     
     /**
@@ -150,6 +152,34 @@ public class ArtifactMetaDataDto {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the id
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * @param id the id to set
+     */
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /**
+     * @return the globalId
+     */
+    public long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * @param globalId the globalId to set
+     */
+    public void setGlobalId(long globalId) {
+        this.globalId = globalId;
     }
 
 }

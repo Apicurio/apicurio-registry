@@ -80,7 +80,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public int registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public long registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metadata = null;
         try {
             metadata = storage.getArtifactMetaData(subject);
@@ -91,15 +91,15 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         } else {
             metadata = storage.updateArtifact(subject, ArtifactType.avro, schema);
         }
-        return metadata.getVersion();
+        return metadata.getGlobalId();
     }
 
     @Override
-    public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public long deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
-            Long version = Long.parseLong(versionString);
+            long version = Long.parseLong(versionString);
             storage.deleteArtifactVersion(subject, version);
-            return version.intValue();
+            return version;
         } catch (NumberFormatException e) {
             // delete latest
             SortedSet<Long> versions = storage.getArtifactVersions(subject);

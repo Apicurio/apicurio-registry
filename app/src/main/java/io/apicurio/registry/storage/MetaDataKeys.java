@@ -45,6 +45,7 @@ public class MetaDataKeys {
         dto.setName(content.get(NAME));
         dto.setType(ArtifactType.fromValue(content.get(TYPE)));
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
+        dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         return dto;
     }
 
@@ -58,6 +59,8 @@ public class MetaDataKeys {
         dto.setDescription(content.get(DESCRIPTION));
         dto.setName(content.get(NAME));
         dto.setType(ArtifactType.fromValue(content.get(TYPE)));
+        dto.setVersion(Integer.parseInt(content.get(VERSION)));
+        dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         return dto;
     }
 }

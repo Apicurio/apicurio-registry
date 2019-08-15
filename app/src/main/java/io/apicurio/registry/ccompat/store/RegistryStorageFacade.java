@@ -30,12 +30,12 @@ public interface RegistryStorageFacade {
     /**
      * @return global id
      */
-    int registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    long registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * @return schema version as integer
      */
-    int deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    long deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
     boolean testCompatibility(String subject, String version, RegisterSchemaRequest request) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 }

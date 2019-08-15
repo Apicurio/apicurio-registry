@@ -7,15 +7,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class RegisterSchemaResponse {
 
-    private int id;
+    private long id;
 
     @JsonProperty("id")
-    public int getId() {
+    public long getId() {
         return id;
     }
 
     @JsonProperty("id")
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 }

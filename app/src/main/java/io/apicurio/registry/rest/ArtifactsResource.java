@@ -12,6 +12,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Response;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactType;
@@ -75,7 +76,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}")
   @GET
   @Produces({"application/json", "application/x-yaml"})
-  void getLatestArtifact(@PathParam("artifactId") String artifactId);
+  Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**
    * Updates an artifact by uploading new content.  The update could fail for a number
@@ -92,7 +93,8 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes({"application/json", "application/x-yaml"})
-  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId, InputStream data);
+    ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
+            @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -257,7 +259,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions/{version}")
   @GET
   @Produces({"application/json", "application/x-yaml"})
-  void getArtifactVersion(@PathParam("version") Integer version,
+  Response getArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
   /**

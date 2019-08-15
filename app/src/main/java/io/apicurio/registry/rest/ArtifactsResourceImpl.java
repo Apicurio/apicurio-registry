@@ -16,20 +16,79 @@
 
 package io.apicurio.registry.rest;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import java.io.InputStream;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.InternalServerErrorException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 
+import io.apicurio.registry.ArtifactIdGenerator;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.RegistryStorage;
 
 /**
+ * Implements the {@link ArtifactsResource} interface.
  * @author eric.wittmann@gmail.com
  */
 public class ArtifactsResourceImpl implements ArtifactsResource {
+    
+    @Inject
+    RegistryStorage storage;
+    @Inject
+    ArtifactIdGenerator idGenerator;
+    
+    @Context
+    HttpServletRequest request;
+    
+    private static final String toString(InputStream stream) {
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = stream.read(buffer)) != -1) {
+                result.write(buffer, 0, length);
+            }
+            return result.toString(StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+    }
+
+    /**
+     * Tries to figure out the artiact type by analyzing the content-type.
+     * @param request
+     */
+    private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
+        String contentType = request.getHeader("Content-Type");
+        // TODO handle protobuff here as well - it's the only one that's not JSON
+        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
+            String [] split = contentType.split(";");
+            if (split.length > 1) {
+                for (String s : split) {
+                    if (s.contains("artifactType=")) {
+                        try {
+                            String at = s.split("=")[1];
+                            return ArtifactType.valueOf(at);
+                        } catch (Throwable t) {
+                            // Unsupported artifact type.
+                            // TODO should we throw something that would result in a 400 here?
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
 
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
@@ -37,8 +96,33 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
             InputStream data) {
-        // TODO Auto-generated method stub
-        return null;
+        String artifactId = xRegistryArtifactId;
+        if (artifactId == null || artifactId.trim().isEmpty()) {
+            artifactId = idGenerator.generate();
+        }
+        ArtifactType artifactType = xRegistryArtifactType;
+        if (artifactType == null) {
+            artifactType = getArtifactTypeFromContentType(this.request);
+            if (artifactType == null) {
+                // TODO we need to figure out what type of content is being added
+                artifactType = ArtifactType.avro;
+            }
+        }
+        String content = toString(data);
+        
+        ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
+        
+        ArtifactMetaData metaData = new ArtifactMetaData();
+        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setDescription(dto.getDescription());
+        metaData.setId(artifactId);
+        metaData.setModifiedBy(dto.getModifiedBy());
+        metaData.setModifiedOn(dto.getModifiedOn());
+        metaData.setName(dto.getName());
+        metaData.setType(artifactType);
+        metaData.setVersion(dto.getVersion());
+        return metaData;
     }
 
     /**

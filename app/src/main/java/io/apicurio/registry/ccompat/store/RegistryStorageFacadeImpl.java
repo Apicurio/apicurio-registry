@@ -1,23 +1,24 @@
 package io.apicurio.registry.ccompat.store;
 
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.Current;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -80,17 +81,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public int registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> metadata = null;
+        ArtifactMetaDataDto metadata = null;
         try {
             metadata = storage.getArtifactMetaData(subject);
         } catch (ArtifactNotFoundException ignored) {
         }
         if (metadata == null) {
-            metadata = storage.createArtifact(subject, schema);
+            metadata = storage.createArtifact(subject, ArtifactType.avro, schema);
         } else {
-            metadata = storage.updateArtifact(subject, schema);
+            metadata = storage.updateArtifact(subject, ArtifactType.avro, schema);
         }
-        return Integer.parseInt(metadata.get(MetaDataKeys.GLOBAL_ID));
+        return metadata.getVersion();
     }
 
     @Override

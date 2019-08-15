@@ -17,7 +17,7 @@ public class ConfluentClientTest {
         return new CachedSchemaRegistryClient("http://localhost:8081/confluent", 3);
     }
 
-    @Test    
+    @Test
     public void testSmoke() throws Exception {
         SchemaRegistryClient client = buildClient();
         Collection<String> subjects = client.getAllSubjects();

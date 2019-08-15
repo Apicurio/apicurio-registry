@@ -35,7 +35,7 @@ import io.restassured.http.ContentType;
 @QuarkusTest
 public class RulesResourceTest {
 
-    @Test    
+    @Test
     public void testGlobalRulesEndpoint() {
         given()
             .when().contentType(RestConstants.JSON).get("/rules")

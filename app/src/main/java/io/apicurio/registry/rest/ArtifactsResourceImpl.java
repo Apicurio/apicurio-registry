@@ -19,13 +19,17 @@ package io.apicurio.registry.rest;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import io.apicurio.registry.ArtifactIdGenerator;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -35,6 +39,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.StoredArtifact;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -63,6 +68,29 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
+    
+    /**
+     * Figures out the artifact type in the following order of precedent:
+     * 
+     *  1) The provided X-Registry-ArtifactType header
+     *  2) A hint provided in the Content-Type header
+     *  3) Determined from the content itself
+     * 
+     * @param content
+     * @param xArtifactType
+     * @param request
+     */
+    private static final ArtifactType determineArtifactType(String content, ArtifactType xArtifactType, HttpServletRequest request) {
+        ArtifactType artifactType = xArtifactType;
+        if (artifactType == null) {
+            artifactType = getArtifactTypeFromContentType(request);
+            if (artifactType == null) {
+                // TODO we need to figure out what type of content is being added
+                artifactType = ArtifactType.avro;
+            }
+        }
+        return artifactType;
+    }
 
     /**
      * Tries to figure out the artiact type by analyzing the content-type.
@@ -76,12 +104,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             if (split.length > 1) {
                 for (String s : split) {
                     if (s.contains("artifactType=")) {
+                        String at = s.split("=")[1];
                         try {
-                            String at = s.split("=")[1];
                             return ArtifactType.valueOf(at);
-                        } catch (Throwable t) {
-                            // Unsupported artifact type.
-                            // TODO should we throw something that would result in a 400 here?
+                        } catch (IllegalArgumentException e) {
+                            throw new BadRequestException("Unsupported artifact type: " + at);
                         }
                     }
                 }
@@ -91,27 +118,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
+     * Creates a jax-rs meta-data entity from the id, type, and storage meta-data.
+     * @param artifactId
+     * @param artifactType
+     * @param dto
      */
-    @Override
-    public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
-            InputStream data) {
-        String artifactId = xRegistryArtifactId;
-        if (artifactId == null || artifactId.trim().isEmpty()) {
-            artifactId = idGenerator.generate();
-        }
-        ArtifactType artifactType = xRegistryArtifactType;
-        if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(this.request);
-            if (artifactType == null) {
-                // TODO we need to figure out what type of content is being added
-                artifactType = ArtifactType.avro;
-            }
-        }
-        String content = toString(data);
-        
-        ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
-        
+    private static ArtifactMetaData dtoToMetaData(String artifactId, ArtifactType artifactType,
+            ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
@@ -126,21 +139,46 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getLatestArtifact(java.lang.String)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
      */
     @Override
-    public void getLatestArtifact(String artifactId) {
-        // TODO Auto-generated method stub
+    public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+            InputStream data) {
+        String artifactId = xRegistryArtifactId;
+        if (artifactId == null || artifactId.trim().isEmpty()) {
+            artifactId = idGenerator.generate();
+        }
+        String content = toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         
+        ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
+        
+        ArtifactMetaData metaData = dtoToMetaData(artifactId, artifactType, dto);
+        return metaData;
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#getLatestArtifact(java.lang.String)
      */
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId, InputStream data) {
-        // TODO Auto-generated method stub
-        return null;
+    public Response getLatestArtifact(String artifactId) {
+        StoredArtifact artifact = storage.getArtifact(artifactId);
+        // TODO support protobuff - the content-type will be different for protobuff artifacts
+        Response response = Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
+        return response;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.io.InputStream)
+     */
+    @Override
+    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType,
+            InputStream data) {
+        String content = toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        ArtifactMetaDataDto dto = storage.updateArtifact(artifactId, artifactType, content);
+        
+        return dtoToMetaData(artifactId, artifactType, dto);
     }
 
     /**
@@ -148,8 +186,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void deleteArtifact(String artifactId) {
-        // TODO Auto-generated method stub
-        
+        storage.deleteArtifact(artifactId);
     }
 
     /**
@@ -157,8 +194,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        SortedSet<Long> versions = storage.getArtifactVersions(artifactId);
+        List<Long> rval = new ArrayList<Long>(versions.size());
+        rval.addAll(versions);
+        return rval;
     }
 
     /**
@@ -175,9 +214,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactVersion(java.lang.Integer, java.lang.String)
      */
     @Override
-    public void getArtifactVersion(Integer version, String artifactId) {
+    public Response getArtifactVersion(Integer version, String artifactId) {
         // TODO Auto-generated method stub
-        
+        return null;
     }
 
     /**

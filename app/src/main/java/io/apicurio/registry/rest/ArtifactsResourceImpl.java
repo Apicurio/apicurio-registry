@@ -18,7 +18,7 @@ package io.apicurio.registry.rest;
 
 import java.util.List;
 
-import javax.ws.rs.core.Request;
+import java.io.InputStream;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactType;
@@ -32,11 +32,11 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 public class ArtifactsResourceImpl implements ArtifactsResource {
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, javax.ws.rs.core.Request)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
      */
     @Override
     public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
-            Request data) {
+            InputStream data) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -51,10 +51,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, javax.ws.rs.core.Request)
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId, Request data) {
+    public ArtifactMetaData updateArtifact(String artifactId, InputStream data) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -78,11 +78,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, javax.ws.rs.core.Request)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.io.InputStream)
      */
     @Override
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType,
-            Request data) {
+            InputStream data) {
         // TODO Auto-generated method stub
         return null;
     }

@@ -19,6 +19,7 @@ package io.apicurio.registry;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
+import org.hamcrest.CustomMatcher;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
@@ -30,17 +31,19 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class ArtifactsResourceTest {
 
+    private static final String EMPTY_API_CONTENT = "{\r\n" + 
+            "    \"openapi\": \"3.0.2\",\r\n" + 
+            "    \"info\": {\r\n" + 
+            "        \"title\": \"Empty API\",\r\n" + 
+            "        \"version\": \"1.0.0\",\r\n" + 
+            "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
+            "    }\r\n" + 
+            "}";
+
     @Test
     public void testCreateArtifact() {
         // Add an artifact
-        String artifactContent = "{\r\n" + 
-                "    \"openapi\": \"3.0.2\",\r\n" + 
-                "    \"info\": {\r\n" + 
-                "        \"title\": \"Empty API\",\r\n" + 
-                "        \"version\": \"1.0.0\",\r\n" + 
-                "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
-                "    }\r\n" + 
-                "}";
+        String artifactContent = EMPTY_API_CONTENT;
         
         // Create OpenAPI artifact - indicate the type via a header param
         given()
@@ -93,14 +96,7 @@ public class ArtifactsResourceTest {
     @Test
     public void testGetArtifact() {
         // Add an artifact
-        String artifactContent = "{\r\n" + 
-                "    \"openapi\": \"3.0.2\",\r\n" + 
-                "    \"info\": {\r\n" + 
-                "        \"title\": \"Empty API\",\r\n" + 
-                "        \"version\": \"1.0.0\",\r\n" + 
-                "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
-                "    }\r\n" + 
-                "}";
+        String artifactContent = EMPTY_API_CONTENT;
         
         // Create OpenAPI artifact
         given()
@@ -138,22 +134,8 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testUpdateArtifact() {
-        String artifactContent = "{\r\n" + 
-                "    \"openapi\": \"3.0.2\",\r\n" + 
-                "    \"info\": {\r\n" + 
-                "        \"title\": \"Empty API\",\r\n" + 
-                "        \"version\": \"1.0.0\",\r\n" + 
-                "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
-                "    }\r\n" + 
-                "}";
-        String updatedArtifactContent = "{\r\n" + 
-                "    \"openapi\": \"3.0.2\",\r\n" + 
-                "    \"info\": {\r\n" + 
-                "        \"title\": \"Empty API (Updated)\",\r\n" + 
-                "        \"version\": \"1.0.0\",\r\n" + 
-                "        \"description\": \"An UPDATED example API design using OpenAPI.\"\r\n" + 
-                "    }\r\n" + 
-                "}";
+        String artifactContent = EMPTY_API_CONTENT;
+        String updatedArtifactContent = EMPTY_API_CONTENT.replace("Empty API", "Empty API (Updated)");
         
         // Create OpenAPI artifact
         given()
@@ -172,7 +154,6 @@ public class ArtifactsResourceTest {
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactId", "testUpdateArtifact/EmptyAPI")
                 .header("X-Registry-ArtifactType", "openapi")
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
                 .body(updatedArtifactContent)
@@ -192,5 +173,112 @@ public class ArtifactsResourceTest {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API (Updated)"));
         
+    }
+    
+    @Test
+    public void testDeleteArtifact() {
+        // Add an artifact
+        String artifactContent = EMPTY_API_CONTENT;
+        
+        // Create OpenAPI artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testDeleteArtifact/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testDeleteArtifact/EmptyAPI"))
+                .body("type", equalTo("openapi"));
+
+        // Make sure we can get the artifact content
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+        
+        // Delete the artifact
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
+                .delete("/artifacts/{artifactId}")
+            .then()
+                .statusCode(204);
+        
+        // Try to get artifact content for an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(404)
+                .body("code", equalTo(404))
+                .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
+    
+    }
+    
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testListArtifactVersions() {
+        // Add an artifact
+        String artifactContent = EMPTY_API_CONTENT;
+        
+        // Create an artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testListArtifactVersions/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
+                .body("type", equalTo("openapi"));
+
+        // Update the artifact 5 times
+        for (int idx = 0; idx < 5; idx++) {
+            given()
+                .when()
+                    .contentType(RestConstants.JSON)
+                    .header("X-Registry-ArtifactType", "openapi")
+                    .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
+                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
+                    .put("/artifacts/{artifactId}")
+                .then()
+                    .statusCode(200)
+                    .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
+                    .body("type", equalTo("openapi"));
+        }
+        
+        // List the artifact versions
+        given()
+            .when()
+                .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
+                .get("/artifacts/{artifactId}/versions")
+            .then()
+                .log().all()
+                .statusCode(200)
+                // The following custom matcher makes sure that 6 versions are returned
+                .body(new CustomMatcher("Unexpected list of artifact versions.") {
+                    @Override
+                    public boolean matches(Object item) {
+                        String val = item.toString();
+                        if (val == null) {
+                            return false;
+                        }
+                        if (!val.startsWith("[") || !val.endsWith("]")) {
+                            return false;
+                        }
+                        return val.split(",").length == 6;
+                    }
+                });
     }
 }

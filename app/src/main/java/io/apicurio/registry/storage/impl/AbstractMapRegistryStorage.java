@@ -106,16 +106,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             throw new ArtifactAlreadyExistsException(artifactId);
         }
 
-        long version = v2c.keySet().stream().max(Long::compareTo).orElse(1L);
+        long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         Map<String, String> contents = new ConcurrentHashMap<>();
-        Map<String, String> previous = v2c.putIfAbsent(version, contents);
-        // loop, due to possible race-condition
-        while (previous != null) {
-            version++;
-            previous = v2c.putIfAbsent(version, contents);
-        }
-        storage.put(artifactId, v2c);
-
         long globalId = nextGlobalId();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         contents.put(MetaDataKeys.CONTENT, content);
@@ -126,7 +118,19 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 //        contents.put(MetaDataKeys.NAME, null);
 //        contents.put(MetaDataKeys.DESCRIPTION, null);
         contents.put(MetaDataKeys.TYPE, artifactType.value());
-        // TODO -- creator, modifiedBy
+        // TODO -- createdBy, modifiedBy
+
+        // Store in v2c
+        Map<String, String> previous = v2c.putIfAbsent(version, contents);
+        // loop, due to possible race-condition
+        while (previous != null) {
+            version++;
+            contents.put(MetaDataKeys.VERSION, Long.toString(version));
+            previous = v2c.putIfAbsent(version, contents);
+        }
+        storage.put(artifactId, v2c);
+
+        // Also store in global
         global.put(globalId, contents);
         
         ArtifactMetaDataDto dto = MetaDataKeys.toArtifactMetaData(contents);
@@ -151,8 +155,12 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
-        v2c.values().forEach(m -> m.put(MetaDataKeys.DELETED, Boolean.TRUE.toString()));
+        Map<Long, Map<String, String>> v2c = storage.remove(artifactId);
+        v2c.values().forEach(m -> {
+            m.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
+            long globalId = Long.parseLong(m.get(MetaDataKeys.GLOBAL_ID));
+            global.remove(globalId);
+        });
         return new TreeSet<>(v2c.keySet());
     }
 

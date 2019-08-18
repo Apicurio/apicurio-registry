@@ -137,6 +137,24 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         metaData.setVersion(dto.getVersion());
         return metaData;
     }
+    
+    /**
+     * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
+     * @param artifactId
+     * @param artifactType
+     * @param dto
+     */
+    private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
+            ArtifactMetaDataDto dto) {
+        VersionMetaData metaData = new VersionMetaData();
+        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setDescription(dto.getDescription());
+        metaData.setName(dto.getName());
+        metaData.setType(artifactType);
+        metaData.setVersion(dto.getVersion());
+        return metaData;
+    }
 
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
@@ -206,8 +224,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType,
             InputStream data) {
-        // TODO Auto-generated method stub
-        return null;
+        String content = toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        ArtifactMetaDataDto metaDataDto = storage.updateArtifact(artifactId, artifactType, content);
+        return dtoToVersionMetaData(artifactId, artifactType, metaDataDto);
     }
 
     /**

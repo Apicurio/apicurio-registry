@@ -172,7 +172,6 @@ public class ArtifactsResourceTest {
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API (Updated)"));
-        
     }
     
     @Test
@@ -222,7 +221,6 @@ public class ArtifactsResourceTest {
                 .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
     
     }
-    
 
     @SuppressWarnings("rawtypes")
     @Test
@@ -264,7 +262,7 @@ public class ArtifactsResourceTest {
                 .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
                 .get("/artifacts/{artifactId}/versions")
             .then()
-                .log().all()
+//                .log().all()
                 .statusCode(200)
                 // The following custom matcher makes sure that 6 versions are returned
                 .body(new CustomMatcher("Unexpected list of artifact versions.") {
@@ -281,4 +279,47 @@ public class ArtifactsResourceTest {
                     }
                 });
     }
+    
+    @Test
+    public void testCreateArtifactVersion() {
+        String artifactContent = EMPTY_API_CONTENT;
+        String updatedArtifactContent = EMPTY_API_CONTENT.replace("Empty API", "Empty API (Updated)");
+        
+        // Create OpenAPI artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testCreateArtifactVersion/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testCreateArtifactVersion/EmptyAPI"))
+                .body("type", equalTo("openapi"));
+
+        // Create a new version of the artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactType", "openapi")
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo(2))
+                .body("type", equalTo("openapi"));
+
+        // Get the artifact content (should be the updated content)
+        given()
+            .when()
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API (Updated)"));
+    }
+
 }

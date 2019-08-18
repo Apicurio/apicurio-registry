@@ -235,8 +235,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
+        // TODO support protobuff - the content-type will be different for protobuff artifacts
+        Response response = Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
+        return response;
     }
 
     /**

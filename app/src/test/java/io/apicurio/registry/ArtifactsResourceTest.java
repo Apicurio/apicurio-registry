@@ -173,6 +173,17 @@ public class ArtifactsResourceTest {
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API (Updated)"));
+        
+        // Try to update an artifact that doesn't exist.
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactType", "openapi")
+                .pathParam("artifactId", "testUpdateArtifact/MissingAPI")
+                .body(updatedArtifactContent)
+                .put("/artifacts/{artifactId}")
+            .then()
+                .statusCode(404);
     }
     
     @Test
@@ -220,6 +231,13 @@ public class ArtifactsResourceTest {
                 .body("code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
     
+        // Try to delete an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifact/MissingAPI")
+                .delete("/artifacts/{artifactId}")
+            .then()
+                .statusCode(404);
     }
 
     @SuppressWarnings("rawtypes")
@@ -277,6 +295,15 @@ public class ArtifactsResourceTest {
                         return val.split(",").length == 6;
                     }
                 });
+        
+        // Try to list artifact versions for an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testListArtifactVersions/MissingAPI")
+                .get("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(404);
+
     }
     
     @Test
@@ -319,6 +346,17 @@ public class ArtifactsResourceTest {
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API (Updated)"));
+
+        // Try to create a new version of an artifact that doesn't exist.
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactType", "openapi")
+                .pathParam("artifactId", "testCreateArtifactVersion/MissingAPI")
+                .body(updatedArtifactContent)
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(404);
     }
     
     @Test
@@ -375,6 +413,15 @@ public class ArtifactsResourceTest {
             .when()
                 .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                 .pathParam("version", 12345)
+                .get("/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
+        
+        // Now get a version of an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactVersion/MissingAPI")
+                .pathParam("version", 1)
                 .get("/artifacts/{artifactId}/versions/{version}")
             .then()
                 .statusCode(404);
@@ -470,6 +517,8 @@ public class ArtifactsResourceTest {
                 .get("/artifacts/{artifactId}/versions/{version}")
             .then()
                 .statusCode(404);
+        
+        // TODO test deleting ALL versions of an artifact - the entire artifact should be deleted
     }
 
 

@@ -105,6 +105,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (create && v2c.size() > 0) {
             throw new ArtifactAlreadyExistsException(artifactId);
         }
+        
+        if (!create && v2c.size() == 0) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         Map<String, String> contents = new ConcurrentHashMap<>();
@@ -156,6 +160,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = storage.remove(artifactId);
+        if (v2c == null) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
         v2c.values().forEach(m -> {
             m.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
             long globalId = Long.parseLong(m.get(MetaDataKeys.GLOBAL_ID));

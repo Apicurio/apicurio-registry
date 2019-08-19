@@ -40,6 +40,7 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.Current;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -48,7 +49,9 @@ import io.apicurio.registry.storage.StoredArtifact;
 public class ArtifactsResourceImpl implements ArtifactsResource {
     
     @Inject
+    @Current
     RegistryStorage storage;
+
     @Inject
     ArtifactIdGenerator idGenerator;
     

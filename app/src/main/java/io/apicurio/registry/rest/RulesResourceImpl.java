@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.types.Current;
 
 /**
  * Implementation of the @RulesResource JAX-RS interface.
@@ -33,6 +34,7 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 public class RulesResourceImpl implements RulesResource {
 
     @Inject
+    @Current
     RegistryStorage storage;
     
     /**

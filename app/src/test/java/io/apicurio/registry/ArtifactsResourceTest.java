@@ -322,20 +322,20 @@ public class ArtifactsResourceTest {
     }
     
     @Test
-    public void testArtifactVersion() {
+    public void testGetArtifactVersion() {
         String artifactContent = EMPTY_API_CONTENT;
         
         // Create an artifact
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactId", "testArtifactVersion/EmptyAPI")
+                .header("X-Registry-ArtifactId", "testGetArtifactVersion/EmptyAPI")
                 .header("X-Registry-ArtifactType", "openapi")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
-                .body("id", equalTo("testArtifactVersion/EmptyAPI"))
+                .body("id", equalTo("testGetArtifactVersion/EmptyAPI"))
                 .body("type", equalTo("openapi"));
 
         // Update the artifact 5 times
@@ -345,12 +345,12 @@ public class ArtifactsResourceTest {
                 .when()
                     .contentType(RestConstants.JSON)
                     .header("X-Registry-ArtifactType", "openapi")
-                    .pathParam("artifactId", "testArtifactVersion/EmptyAPI")
+                    .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
-                    .body("id", equalTo("testArtifactVersion/EmptyAPI"))
+                    .body("id", equalTo("testGetArtifactVersion/EmptyAPI"))
                     .body("type", equalTo("openapi"))
                 .extract().body().path("version");
             versions.add(version);
@@ -362,13 +362,114 @@ public class ArtifactsResourceTest {
             String expected = "Empty API (Update " + idx + ")";
             given()
                 .when()
-                    .pathParam("artifactId", "testArtifactVersion/EmptyAPI")
+                    .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .pathParam("version", version)
                     .get("/artifacts/{artifactId}/versions/{version}")
                 .then()
                     .statusCode(200)
                     .body("info.title", equalTo(expected));
         }
+        
+        // Now get a version that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
+                .pathParam("version", 12345)
+                .get("/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testDeleteArtifactVersion() {
+        String artifactContent = EMPTY_API_CONTENT;
+        
+        // Create an artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
+                .body("type", equalTo("openapi"));
+
+        // Update the artifact 5 times
+        List<Integer> versions = new ArrayList<>();
+        for (int idx = 0; idx < 5; idx++) {
+            Integer version = given()
+                .when()
+                    .contentType(RestConstants.JSON)
+                    .header("X-Registry-ArtifactType", "openapi")
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
+                    .put("/artifacts/{artifactId}")
+                .then()
+                    .statusCode(200)
+                    .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
+                    .body("type", equalTo("openapi"))
+                .extract().body().path("version");
+            System.out.println("Update.  Created version: " + version);
+            versions.add(version);
+        }
+        
+        // Delete odd artifact versions
+        for (int idx = 0; idx < 5; idx++) {
+            if (idx % 2 == 0) {
+                continue;
+            }
+            
+            Integer version = versions.get(idx);
+            System.out.println("Deleting version: " + version);
+            given()
+                .when()
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", version)
+                    .delete("/artifacts/{artifactId}/versions/{version}")
+                .then()
+                    .statusCode(204);
+        }
+        
+        // Check that the correct versions were deleted
+        for (int idx = 0; idx < 5; idx++) {
+            Integer version = versions.get(idx);
+            int expectedCode;
+            // Even indexes are still there, odd were deleted
+            if (idx % 2 == 0) {
+                expectedCode = 200;
+            } else {
+                expectedCode = 404;
+            }
+            System.out.println("Checking version: " + version);
+            given()
+                .when()
+                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                    .pathParam("version", version)
+                    .get("/artifacts/{artifactId}/versions/{version}")
+                .then()
+                    .statusCode(expectedCode);
+        }
+
+        // Now try to delete a version that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
+                .pathParam("version", 12345)
+                .get("/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
+
+        // Try to delete a version of an artifact where the artifact doesn't exist
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactVersion/MissingAPI")
+                .pathParam("version", 1)
+                .get("/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(404);
     }
 
 

@@ -294,8 +294,12 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        Map<String, String> content = getContentMap(artifactId, version);
-        content.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
+        Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
+        Map<String, String> removed = v2c.remove(version);
+        if (removed == null) {
+            throw new VersionNotFoundException(artifactId, version);
+        }
+        removed.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
     }
 
     /**

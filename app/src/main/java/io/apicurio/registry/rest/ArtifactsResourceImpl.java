@@ -246,8 +246,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void deleteArtifactVersion(Integer version, String artifactId) {
-        // TODO Auto-generated method stub
-        
+        storage.deleteArtifactVersion(artifactId, version);
     }
 
     /**

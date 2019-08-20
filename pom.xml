@@ -83,6 +83,9 @@
         <!-- Quarkus Version -->
         <quarkus.version>0.20.0</quarkus.version>
 
+        <!-- Jandex -->
+        <jandex.version>1.0.6</jandex.version>
+
         <!-- Schema types -->
         <avro.version>1.9.0</avro.version>
 
@@ -185,6 +188,18 @@
                     <version>${version.jar.plugin}</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.jboss.jandex</groupId>
+                    <artifactId>jandex-maven-plugin</artifactId>
+                    <version>${jandex.version}</version>
+                    <executions>
+                        <execution>
+                            <id>make-index</id>
+                            <goals>
+                                <goal>jandex</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>                <plugin>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-maven-plugin</artifactId>
                     <version>${quarkus.version}</version>

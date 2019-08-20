@@ -1,16 +1,5 @@
 package io.apicurio.registry.storage.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.annotation.PostConstruct;
-
 import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
@@ -25,6 +14,17 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import javax.annotation.PostConstruct;
 
 /**
  * @author Ales Justin
@@ -86,6 +86,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return storedArtifact;
     }
 
+    protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
+        return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
+    }
+
     private ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, String content, boolean create)
             throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         if (artifactId == null) {
@@ -95,12 +99,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             artifactId = UUID.randomUUID().toString();
         }
 
-        Map<Long, Map<String, String>> v2c = storage.compute(artifactId, (id, m) -> {
-            if (m == null) {
-                m = new ConcurrentHashMap<>();
-            }
-            return m;
-        });
+        Map<Long, Map<String, String>> v2c = storage.compute(artifactId, lookupFn());
 
         if (create && v2c.size() > 0) {
             throw new ArtifactAlreadyExistsException(artifactId);
@@ -137,8 +136,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         // Also store in global
         global.put(globalId, contents);
         
-        ArtifactMetaDataDto dto = MetaDataKeys.toArtifactMetaData(contents);
-        return dto;
+        return MetaDataKeys.toArtifactMetaData(contents);
     }
 
     /**
@@ -340,9 +338,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public List<String> getGlobalRules() throws RegistryStorageException {
-        List<String> ruleNames = new ArrayList<>();
-        ruleNames.addAll(globalRules.keySet());
-        return ruleNames;
+        return new ArrayList<>(globalRules.keySet());
     }
 
     /**

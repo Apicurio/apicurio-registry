@@ -7,6 +7,8 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.util.function.SerializableBiFunction;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -81,5 +83,11 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         );
 
         return manager.getCache(GLOBAL_RULES_CACHE, true);
+    }
+
+    @Override // make it serializable
+    protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
+        //noinspection unchecked
+        return (SerializableBiFunction) ((id, m) -> (m == null) ? new ConcurrentHashMap<>() : m);
     }
 }

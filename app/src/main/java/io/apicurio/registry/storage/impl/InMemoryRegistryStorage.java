@@ -32,4 +32,9 @@ public class InMemoryRegistryStorage extends AbstractMapRegistryStorage {
     protected Map<String, String> createGlobalRulesMap() {
         return new ConcurrentHashMap<>();
     }
+    
+    @Override
+    protected Map<String, Map<String, String>> createArtifactRulesMap() {
+        return new ConcurrentHashMap<>();
+    }
 }

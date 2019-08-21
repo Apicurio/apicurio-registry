@@ -39,6 +39,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.Current;
 
@@ -257,8 +258,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public List<String> listArtifactRules(String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        return storage.getArtifactRules(artifactId);
     }
 
     /**
@@ -266,8 +266,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void createArtifactRule(String artifactId, Rule data) {
-        // TODO Auto-generated method stub
-        
+        RuleConfigurationDto config = new RuleConfigurationDto();
+        config.setConfiguration(data.getConfig());
+        storage.createArtifactRule(artifactId, data.getName(), config);
     }
 
     /**
@@ -275,8 +276,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void deleteArtifactRules(String artifactId) {
-        // TODO Auto-generated method stub
-        
+        storage.deleteArtifactRules(artifactId);
     }
 
     /**
@@ -284,8 +284,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public Rule getArtifactRuleConfig(String rule, String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        RuleConfigurationDto dto = storage.getArtifactRule(artifactId, rule);
+        Rule rval = new Rule();
+        rval.setConfig(dto.getConfiguration());
+        rval.setName(rule);
+        return rval;
     }
 
     /**
@@ -293,8 +296,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public Rule updateArtifactRuleConfig(String rule, String artifactId, Rule data) {
-        // TODO Auto-generated method stub
-        return null;
+        RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
+        storage.updateArtifactRule(artifactId, rule, dto);
+        Rule rval = new Rule();
+        rval.setName(rule);
+        rval.setConfig(data.getConfig());
+        return rval;
     }
 
     /**
@@ -302,8 +309,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void deleteArtifactRule(String rule, String artifactId) {
-        // TODO Auto-generated method stub
-        
+        storage.deleteArtifactRule(artifactId, rule);
     }
 
     /**

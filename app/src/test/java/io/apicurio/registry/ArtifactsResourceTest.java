@@ -17,7 +17,10 @@
 package io.apicurio.registry;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +29,9 @@ import org.hamcrest.CustomMatcher;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
+import io.apicurio.registry.rest.beans.Rule;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -521,5 +526,189 @@ public class ArtifactsResourceTest {
         // TODO test deleting ALL versions of an artifact - the entire artifact should be deleted
     }
 
+    @Test
+    public void testArtifactRules() {
+        String artifactContent = EMPTY_API_CONTENT;
+        String artifactId = "testArtifactRules/EmptyAPI";
+        
+        // Create an artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200);
+
+        // Add a rule
+        Rule rule = new Rule();
+        rule.setName("SyntaxValidation");
+        rule.setConfig("syntax-validation-config");
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+        
+        // Try to add the rule again - should get a 409
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(409)
+                .body("code", equalTo(409))
+                .body("message", equalTo("A rule named 'SyntaxValidation' already exists."));
+        
+        // Add another rule
+        rule.setName("Compatibility");
+        rule.setConfig("compatibility-config");
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the list of rules (should be 2 of them)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+                .body("[1]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+                .body("[2]", nullValue());
+        
+        // Get a single rule by name
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/Compatibility")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo("Compatibility"))
+                .body("config", equalTo("compatibility-config"));
+
+        // Update a rule's config
+        rule.setName("Compatibility");
+        rule.setConfig("updated-configuration");
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .put("/artifacts/{artifactId}/rules/Compatibility")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo("Compatibility"))
+                .body("config", equalTo("updated-configuration"));
+
+        // Get a single (updated) rule by name
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/Compatibility")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("name", equalTo("Compatibility"))
+                .body("config", equalTo("updated-configuration"));
+
+        // Try to update a rule's config for a rule that doesn't exist.
+        rule.setName("RuleDoesNotExist");
+        rule.setConfig("rdne-config");
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .put("/artifacts/{artifactId}/rules/RuleDoesNotExist")
+            .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("code", equalTo(404))
+                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+
+        // Delete a rule
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .delete("/artifacts/{artifactId}/rules/Compatibility")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get a single (deleted) rule by name (should fail with a 404)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/Compatibility")
+            .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("code", equalTo(404))
+                .body("message", equalTo("No rule named 'Compatibility' was found."));
+
+        // Get the list of rules (should be 1 of them)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules")
+            .then()
+                .log().all()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+                .body("[1]", nullValue());
+
+        // Delete all rules
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .delete("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204);
+
+        // Get the list of rules (no rules now)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
+
+        // Add a rule to an artifact that doesn't exist.
+        rule = new Rule();
+        rule.setName("SyntaxValidation");
+        rule.setConfig("syntax-validation-config");
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(rule)
+                .pathParam("artifactId", "MissingArtifact")
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(404)
+                .body(anything());
+
+    }
 
 }

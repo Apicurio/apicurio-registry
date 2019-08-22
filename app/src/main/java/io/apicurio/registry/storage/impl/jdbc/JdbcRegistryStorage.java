@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 
 @Jdbc
-@RequestScoped
+@ApplicationScoped
 public class JdbcRegistryStorage implements RegistryStorage {
 
     private static Logger log = LoggerFactory.getLogger(JdbcRegistryStorage.class);
@@ -51,21 +52,13 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Inject
     private JdbcEntityMapper mapper;
 
-    @PostConstruct
-    private void init() {
-    }
-
-
     private long _getNextArtifactVersion(String artifactId) {
-        List<Long> res1 = entityManager.createQuery(
-                "SELECT a.version FROM Artifact a " +
-                        "WHERE a.artifactId = :artifact_id " +
-                        "ORDER BY a.version DESC", Long.class)
+        Long latest = entityManager.createQuery(
+                "SELECT MAX(a.version) FROM Artifact a " +
+                        "WHERE a.artifactId = :artifact_id", Long.class)
                 .setParameter("artifact_id", artifactId)
-                .setMaxResults(1)
-                .getResultList();
-
-        return (res1.size() == 1 ? res1.get(0) : 0) + 1;
+                .getSingleResult();
+        return latest != null ? latest + 1 : 1;
     }
 
     private List<MetaData> _getMetaData(String artifactId, Long version) {
@@ -119,6 +112,11 @@ public class JdbcRegistryStorage implements RegistryStorage {
                 .getSingleResult() != 0;
     }
 
+    private void _ensureArtifactExists(String artifactId) {
+        if (!_artifactExists(artifactId))
+            throw new ArtifactNotFoundException(artifactId);
+    }
+
     private boolean _artifactVersionExists(String artifactId, long version) {
         return entityManager.createQuery("SELECT COUNT(a) FROM Artifact a " +
                 "WHERE a.artifactId = :artifact_id AND a.version = :version", Long.class)
@@ -127,9 +125,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
                 .getSingleResult() != 0;
     }
 
-
     // ========================================================================
-
 
     @Override
     @Transactional
@@ -172,9 +168,9 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         try {
+            requireNonNull(artifactId);
 
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            _ensureArtifactExists(artifactId);
 
             List<Long> res1 = entityManager.createQuery(
                     "SELECT a.version FROM Artifact a " +
@@ -186,14 +182,11 @@ public class JdbcRegistryStorage implements RegistryStorage {
             if (res1.size() == 0)
                 throw new ArtifactNotFoundException(artifactId);
 
-            int affected = entityManager.createQuery(
+            entityManager.createQuery(
                     "DELETE FROM Artifact a " +
                             "WHERE a.artifactId = :artifact_id")
                     .setParameter("artifact_id", artifactId)
                     .executeUpdate();
-
-            if (res1.size() != affected)
-                throw new RegistryStorageException("Assertion failed when deleting artifact '" + artifactId + "'");
 
             // delete meta data
             entityManager.createQuery(
@@ -220,6 +213,8 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         try {
+            requireNonNull(artifactId);
+
             Artifact artifact = _getArtifact(artifactId);
 
             return mapper.toStoredArtifact(artifact);
@@ -235,7 +230,10 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            // TODO mostly duplicate - do we need this method?
+            requireNonNull(artifactId);
+            requireNonNull(artifactType);
+            requireNonNull(content);
+
             long nextVersion = _getNextArtifactVersion(artifactId);
 
             if (nextVersion == 1) {
@@ -267,7 +265,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public Set<String> getArtifactIds() { // TODO paging?
+    public Set<String> getArtifactIds() {
         try {
             List<String> res1 = entityManager.createQuery(
                     "SELECT a.artifactId FROM Artifact a", String.class)
@@ -280,14 +278,14 @@ public class JdbcRegistryStorage implements RegistryStorage {
         }
     }
 
-
     // =======================================================
-
 
     @Override
     @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         try {
+            requireNonNull(artifactId);
+
             Artifact artifact = _getArtifact(artifactId);
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
@@ -305,8 +303,10 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            requireNonNull(artifactId);
+            requireNonNull(metaData);
+
+            _ensureArtifactExists(artifactId);
 
             new MetaDataMapperUpdater(_getMetaData(artifactId, null))
                     .update(metaData)
@@ -322,15 +322,13 @@ public class JdbcRegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            _ensureArtifactExists(artifactId);
 
-            List<Rule> res1 = entityManager.createQuery("SELECT r FROM Rule r " +
-                    "WHERE r.artifactId = :artifact_id", Rule.class)
+            return entityManager.createQuery("SELECT r.name FROM Rule r " +
+                    "WHERE r.artifactId = :artifact_id", String.class)
                     .setParameter("artifact_id", artifactId)
                     .getResultList();
 
-            return res1.stream().map(Rule::getName).collect(Collectors.toList());
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -369,8 +367,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            _ensureArtifactExists(artifactId);
 
             entityManager.createQuery("DELETE FROM Rule r " +
                     "WHERE r.artifactId = :artifact_id")
@@ -405,6 +402,10 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public void updateArtifactRule(String artifactId, String ruleName, RuleConfigurationDto ruleConfiguration) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         try {
+            requireNonNull(artifactId);
+            requireNonNull(ruleName);
+            requireNonNull(ruleConfiguration);
+
             Rule rule = _getRule(artifactId, ruleName);
 
             new RuleConfigMapperUpdater(_getRuleConfig(rule))
@@ -420,9 +421,10 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public void deleteArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         try {
+            requireNonNull(artifactId);
+            requireNonNull(ruleName);
 
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            _ensureArtifactExists(artifactId);
 
             int affected = entityManager.createQuery("DELETE FROM Rule r " +
                     "WHERE r.artifactId = :artifact_id AND r.name = :name", Rule.class)
@@ -441,8 +443,9 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            if (!_artifactExists(artifactId))
-                throw new ArtifactNotFoundException(artifactId);
+            requireNonNull(artifactId);
+
+            _ensureArtifactExists(artifactId);
 
             List<Long> res1 = entityManager.createQuery(
                     "SELECT a.version FROM Artifact a " +
@@ -462,7 +465,6 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
-
             Artifact artifact = entityManager.createQuery(
                     "SELECT a FROM Artifact a " +
                             "WHERE a.globalId = :global_id", Artifact.class)
@@ -479,8 +481,9 @@ public class JdbcRegistryStorage implements RegistryStorage {
 
     @Override
     public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        // TODO ArtifactVersionNotFoundEx ?
+        requireNonNull(artifactId);
         try {
+            // TODO ArtifactVersionNotFoundEx ?
             if (!_artifactVersionExists(artifactId, version))
                 throw new VersionNotFoundException(artifactId, version);
 
@@ -494,6 +497,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        requireNonNull(artifactId);
         try {
             // TODO ArtifactVersionNotFoundEx ?
             int affected = entityManager.createQuery("DELETE FROM Artifact a " +
@@ -511,6 +515,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        requireNonNull(artifactId);
         try {
             Artifact artifact = _getArtifact(artifactId, version);
 
@@ -525,9 +530,10 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        requireNonNull(artifactId);
+        requireNonNull(metaData);
         try {
-            if (!_artifactVersionExists(artifactId, version))
-                throw new VersionNotFoundException(artifactId, version);
+            _ensureArtifactExists(artifactId);
 
             new MetaDataMapperUpdater(_getMetaData(artifactId, version))
                     .update(metaData)
@@ -542,8 +548,9 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Transactional
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
-            if (!_artifactVersionExists(artifactId, version))
-                throw new VersionNotFoundException(artifactId, version);
+            requireNonNull(artifactId);
+
+            _ensureArtifactExists(artifactId);
 
             entityManager.createQuery("DELETE FROM MetaData md " +
                     "WHERE md.artifactId = :artifact_id AND md.version = :version", MetaData.class)
@@ -570,6 +577,8 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
+        requireNonNull(ruleName);
+        requireNonNull(config);
         try {
 
             if (getGlobalRules().contains(ruleName))
@@ -606,6 +615,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
+        requireNonNull(ruleName);
         try {
             Rule rule = _getRule(null, ruleName);
             return new RuleConfigMapperUpdater(_getRuleConfig(rule))
@@ -620,6 +630,8 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
+        requireNonNull(ruleName);
+        requireNonNull(config);
         try {
             Rule rule = _getRule(null, ruleName);
             new RuleConfigMapperUpdater(_getRuleConfig(rule))
@@ -636,6 +648,7 @@ public class JdbcRegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
+        requireNonNull(ruleName);
         try {
             Rule rule = _getRule(null, ruleName);
             entityManager.remove(rule);

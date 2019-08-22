@@ -8,7 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * WARNING: Ensure backward compatibility!
+ * WARNING: Ensure backward compatibility when updating the string values,
+ * they may be used in the persistence layer.
  */
 public enum ArtifactType {
 

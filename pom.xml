@@ -100,6 +100,9 @@
         <!-- Build config -->
         <quarkus.profile>dev</quarkus.profile>
 
+        <!-- Dependency versions -->
+        <lombok.version>1.18.8</lombok.version>
+
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
@@ -167,7 +170,7 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.8</version>
+                <version>${lombok.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

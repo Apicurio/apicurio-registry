@@ -1,8 +1,8 @@
-package io.apicurio.registry.storage.impl.jdbc;
+package io.apicurio.registry.storage.impl.jpa;
 
 import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.impl.jdbc.entity.Rule;
-import io.apicurio.registry.storage.impl.jdbc.entity.RuleConfig;
+import io.apicurio.registry.storage.impl.jpa.entity.Rule;
+import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 
 import javax.persistence.EntityManager;
 import java.util.Collections;

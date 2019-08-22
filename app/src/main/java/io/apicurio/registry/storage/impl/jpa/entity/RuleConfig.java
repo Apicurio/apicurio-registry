@@ -1,4 +1,4 @@
-package io.apicurio.registry.storage.impl.jdbc.entity;
+package io.apicurio.registry.storage.impl.jpa.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,4 +1,4 @@
-package io.apicurio.registry.storage.impl.jdbc;
+package io.apicurio.registry.storage.impl.jpa;
 
 import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -14,16 +14,15 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.jdbc.entity.Artifact;
-import io.apicurio.registry.storage.impl.jdbc.entity.MetaData;
-import io.apicurio.registry.storage.impl.jdbc.entity.Rule;
-import io.apicurio.registry.storage.impl.jdbc.entity.RuleConfig;
+import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
+import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
+import io.apicurio.registry.storage.impl.jpa.entity.Rule;
+import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -36,21 +35,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-@Jdbc
+@JPA
 @ApplicationScoped
-public class JdbcRegistryStorage implements RegistryStorage {
+public class JPARegistryStorage implements RegistryStorage {
 
-    private static Logger log = LoggerFactory.getLogger(JdbcRegistryStorage.class);
+    private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
 
     @Inject
     private EntityManager entityManager;
 
     @Inject
-    private JdbcEntityMapper mapper;
+    private JPAEntityMapper mapper;
 
     private long _getNextArtifactVersion(String artifactId) {
         Long latest = entityManager.createQuery(

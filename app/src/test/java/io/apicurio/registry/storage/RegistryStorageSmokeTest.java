@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage;
 
 import io.apicurio.registry.rest.beans.ArtifactType;
-import io.apicurio.registry.storage.impl.jdbc.Jdbc;
+import io.apicurio.registry.storage.impl.jpa.JPA;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -19,7 +19,7 @@ public class RegistryStorageSmokeTest {
     private static Logger log = LoggerFactory.getLogger(RegistryStorageSmokeTest.class);
 
     @Inject
-    @Jdbc
+    @JPA
     private RegistryStorage storage;
 
     @Test

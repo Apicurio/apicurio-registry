@@ -1,11 +1,11 @@
-package io.apicurio.registry.storage.impl.jdbc;
+package io.apicurio.registry.storage.impl.jpa;
 
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.storage.impl.jdbc.entity.Artifact;
-import io.apicurio.registry.storage.impl.jdbc.entity.MetaData;
+import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
+import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

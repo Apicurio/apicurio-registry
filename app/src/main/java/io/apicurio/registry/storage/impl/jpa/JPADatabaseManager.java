@@ -1,7 +1,6 @@
-package io.apicurio.registry.storage.impl.jdbc;
+package io.apicurio.registry.storage.impl.jpa;
 
 import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.StorageException;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -11,12 +10,11 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import java.util.Optional;
-import java.util.Properties;
 
 @ApplicationScoped
-public class JdbcDatabaseManager {
+public class JPADatabaseManager {
 
-    private static Logger log = LoggerFactory.getLogger(JdbcDatabaseManager.class);
+    private static Logger log = LoggerFactory.getLogger(JPADatabaseManager.class);
 
     @ConfigProperty(name = "registry.storage.type")
     private Optional<String> storageType;

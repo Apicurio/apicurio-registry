@@ -1,26 +1,29 @@
-package io.apicurio.registry.storage.impl.jdbc.entity;
+package io.apicurio.registry.storage.impl.jpa.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
+import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+
 @Entity
 @Table(
-        name = "meta",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"artifact_id", "version", "key"}),
-        indexes = @Index(columnList = "artifact_id, version, key", unique = true)
+        name = "artifacts",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"artifact_id", "version"}),
+        indexes = @Index(columnList = "artifact_id, version", unique = true)
 )
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,27 +31,22 @@ import javax.persistence.UniqueConstraint;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class MetaData {
+public class Artifact {
 
     @Id
     @GeneratedValue
-    @Column(name = "id", updatable = false, nullable = false)
+    @Column(name = "global_id", updatable = false, nullable = false)
     @EqualsAndHashCode.Include
-    private Long id;
+    private Long globalId;
 
     @Column(name = "artifact_id", updatable = false, nullable = false)
-    @EqualsAndHashCode.Include
     private String artifactId;
 
-    @Column(name = "version", updatable = false)
-    @EqualsAndHashCode.Include
+    @Column(name = "version", updatable = false, nullable = false)
     private Long version;
 
-    @Column(name = "key", updatable = false, nullable = false)
-    @EqualsAndHashCode.Include
-    private String key;
-
-    @Column(name = "value", nullable = false)
-    @Setter
-    private String value;
+    @Column(name = "value", updatable = false, nullable = false)
+    @Lob
+    @Basic(fetch = FetchType.EAGER)
+    private String content;
 }

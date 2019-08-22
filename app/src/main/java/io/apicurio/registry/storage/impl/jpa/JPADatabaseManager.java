@@ -17,9 +17,9 @@ public class JPADatabaseManager {
     private static Logger log = LoggerFactory.getLogger(JPADatabaseManager.class);
 
     @ConfigProperty(name = "registry.storage.type")
-    private Optional<String> storageType;
+    Optional<String> storageType;
 
-    private void onStart(@Observes StartupEvent event) {
+    void onStart(@Observes StartupEvent event) {
 
         log.info("JDBC Database Manager is starting...");
 
@@ -31,7 +31,7 @@ public class JPADatabaseManager {
         log.info("JDBC storage type: " + storageType.get());
     }
 
-    private void onStop(@Observes ShutdownEvent event) {
+    void onStop(@Observes ShutdownEvent event) {
         log.info("JDBC Database Manager is stopping...");
     }
 }

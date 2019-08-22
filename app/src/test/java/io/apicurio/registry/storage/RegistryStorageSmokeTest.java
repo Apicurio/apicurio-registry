@@ -20,7 +20,7 @@ public class RegistryStorageSmokeTest {
 
     @Inject
     @JPA
-    private RegistryStorage storage;
+    RegistryStorage storage;
 
     @Test
     public void testArtifactsAndMeta() {

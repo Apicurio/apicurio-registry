@@ -45,10 +45,10 @@ public class JPARegistryStorage implements RegistryStorage {
     private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
 
     @Inject
-    private EntityManager entityManager;
+    EntityManager entityManager;
 
     @Inject
-    private JPAEntityMapper mapper;
+    JPAEntityMapper mapper;
 
     private long _getNextArtifactVersion(String artifactId) {
         Long latest = entityManager.createQuery(

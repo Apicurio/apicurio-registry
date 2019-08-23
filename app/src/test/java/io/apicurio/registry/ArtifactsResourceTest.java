@@ -20,6 +20,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
@@ -737,7 +738,9 @@ public class ArtifactsResourceTest {
                 .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("version", anything())
                 .body("type", equalTo("openapi"))
-                .body("createdOn", anything());
+                .body("createdOn", anything())
+                .body("name", nullValue())
+                .body("description", nullValue());
         
         // Try to get artifact meta-data for an artifact that doesn't exist.
         given()
@@ -775,6 +778,115 @@ public class ArtifactsResourceTest {
         // TODO update the artifact content and then make sure the name/description meta-data is still available
     }
     
-    // TODO test the artifact version meta-data operations
+    @Test
+    public void testArtifactVersionMetaData() {
+        String artifactContent = EMPTY_API_CONTENT;
+        String updatedArtifactContent_v2 = EMPTY_API_CONTENT.replace("Empty API", "Empty API (v2)");
+        String updatedArtifactContent_v3 = EMPTY_API_CONTENT.replace("Empty API", "Empty API (v3)");
+        
+        // Create OpenAPI artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testArtifactVersionMetaData/EmptyAPI"))
+                .body("type", equalTo("openapi"));
 
+        // Create a new version of the artifact
+        int version2 = given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactType", "openapi")
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .body(updatedArtifactContent_v2)
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("version", notNullValue())
+                .body("type", equalTo("openapi"))
+            .extract().body().path("version");
+
+        // Create another new version of the artifact
+        int version3 = given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactType", "openapi")
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .body(updatedArtifactContent_v3)
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("version", notNullValue())
+                .body("type", equalTo("openapi"))
+            .extract().body().path("version");
+
+        // Get meta-data for v2
+        given()
+            .when()
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .pathParam("version", version2)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo(version2))
+                .body("type", equalTo("openapi"))
+                .body("createdOn", anything())
+                .body("name", nullValue())
+                .body("description", nullValue());
+
+        // Update the version meta-data
+        String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(metaData)
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .pathParam("version", version2)
+                .put("/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(204);
+
+        // Get the (updated) artifact meta-data
+        given()
+            .when()
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .pathParam("version", version2)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo(version2))
+                .body("type", equalTo("openapi"))
+                .body("createdOn", anything())
+                .body("name", equalTo("Updated Name"))
+                .body("description", equalTo("Updated description."));
+
+        // Get the version meta-data for the version we **didn't** update
+        given()
+            .when()
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .pathParam("version", version3)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo(version3))
+                .body("type", equalTo("openapi"))
+                .body("createdOn", anything())
+                .body("name", nullValue())
+                .body("description", nullValue());
+
+        // Get the version meta-data for a non-existant version
+        given()
+            .when()
+                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                .pathParam("version", 12345)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(404);
+
+    }
 }

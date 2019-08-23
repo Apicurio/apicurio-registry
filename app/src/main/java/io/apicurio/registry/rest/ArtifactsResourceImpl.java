@@ -368,7 +368,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
-        dto.setDescription(dto.getDescription());
+        dto.setDescription(data.getDescription());
         storage.updateArtifactVersionMetaData(artifactId, version.longValue(), dto);
     }
 

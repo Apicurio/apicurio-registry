@@ -220,6 +220,13 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
+        Map<String, String> content = getLatestContentMap(artifactId);
+        if (metaData.getName() != null) {
+            content.put(MetaDataKeys.NAME, metaData.getName());
+        }
+        if (metaData.getDescription() != null) {
+            content.put(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+        }
     }
 
     /**
@@ -380,6 +387,13 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        Map<String, String> content = getContentMap(artifactId, version);
+        if (metaData.getName() != null) {
+            content.put(MetaDataKeys.NAME, metaData.getName());
+        }
+        if (metaData.getDescription() != null) {
+            content.put(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+        }
     }
 
     /**
@@ -387,6 +401,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        Map<String, String> content = getContentMap(artifactId, version);
+        content.remove(MetaDataKeys.NAME);
+        content.remove(MetaDataKeys.DESCRIPTION);
 
     }
 

@@ -708,7 +708,73 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(404)
                 .body(anything());
-
     }
+
+    @Test
+    public void testArtifactMetaData() {
+        String artifactContent = EMPTY_API_CONTENT;
+        
+        // Create OpenAPI artifact
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .header("X-Registry-ArtifactId", "testGetArtifactMetaData/EmptyAPI")
+                .header("X-Registry-ArtifactType", "openapi")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("type", equalTo("openapi"));
+        
+        // Get the artifact meta-data
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("version", anything())
+                .body("type", equalTo("openapi"))
+                .body("createdOn", anything());
+        
+        // Try to get artifact meta-data for an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactMetaData/MissingAPI")
+                .get("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(404)
+                .body("code", equalTo(404))
+                .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
+        
+        // Update the artifact meta-data
+        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\"}";
+        given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(metaData)
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .put("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(204);
+
+        // Get the (updated) artifact meta-data
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("version", anything())
+                .body("name", equalTo("Empty API Name"))
+                .body("description", equalTo("Empty API description."));
+        
+        // TODO update the artifact content and then make sure the name/description meta-data is still available
+    }
+    
+    // TODO test the artifact version meta-data operations
 
 }

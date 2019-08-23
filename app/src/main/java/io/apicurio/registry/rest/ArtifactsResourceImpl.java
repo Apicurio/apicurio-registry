@@ -38,6 +38,8 @@ import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
@@ -89,7 +91,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(request);
             if (artifactType == null) {
-                // TODO we need to figure out what type of content is being added
+                // TODO we need to figure out what type of content is being added by actually analyzing the content itself
                 artifactType = ArtifactType.avro;
             }
         }
@@ -150,6 +152,24 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
             ArtifactMetaDataDto dto) {
+        VersionMetaData metaData = new VersionMetaData();
+        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setDescription(dto.getDescription());
+        metaData.setName(dto.getName());
+        metaData.setType(artifactType);
+        metaData.setVersion(dto.getVersion());
+        return metaData;
+    }
+
+    /**
+     * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
+     * @param artifactId
+     * @param artifactType
+     * @param dto
+     */
+    private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
+            ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
@@ -317,8 +337,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
+        return dtoToMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -326,8 +346,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
-        // TODO Auto-generated method stub
-        
+        EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
+        dto.setName(data.getName());
+        dto.setDescription(data.getDescription());
+        storage.updateArtifactMetaData(artifactId, dto);
     }
 
     /**
@@ -335,8 +357,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        // TODO Auto-generated method stub
-        return null;
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, version);
+        return dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -344,8 +366,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
-        // TODO Auto-generated method stub
-        
+        EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
+        dto.setName(data.getName());
+        dto.setDescription(dto.getDescription());
+        storage.updateArtifactVersionMetaData(artifactId, version.longValue(), dto);
     }
 
     /**
@@ -353,8 +377,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        // TODO Auto-generated method stub
-        
+        storage.deleteArtifactVersionMetaData(artifactId, version);
     }
 
 }

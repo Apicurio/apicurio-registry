@@ -1,8 +1,10 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
+ENV APP_PATH app/target/apicurio-registry-app-*-runner
+
 WORKDIR /work/
 
-COPY target-${app.dir}/*-runner /work/application
+COPY ${APP_PATH} /work/application
 
 RUN chmod 775 /work
 

@@ -1,16 +1,6 @@
 package io.apicurio.registry.ccompat.store;
 
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
-import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -18,7 +8,15 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -107,11 +105,5 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             storage.deleteArtifactVersion(subject, latestVersion);
             return latestVersion.intValue();
         }
-    }
-
-    @Override
-    public boolean testCompatibility(String subject, String version, RegisterSchemaRequest request) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        // TODO
-        return false;
     }
 }

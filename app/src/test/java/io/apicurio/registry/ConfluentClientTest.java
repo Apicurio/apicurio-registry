@@ -24,7 +24,6 @@ public class ConfluentClientTest {
         Assertions.assertNotNull(subjects);
     }
 
-
     @Test
     public void testSimpleOps() throws Exception {
         SchemaRegistryClient client = buildClient();
@@ -41,8 +40,7 @@ public class ConfluentClientTest {
 
         client.reset();
 
-        // TODO -- it's always false atm!
-        Assertions.assertFalse(client.testCompatibility(subject, schema2));
+        Assertions.assertTrue(client.testCompatibility(subject, schema2));
 
         schema = client.getById(id2);
         Assertions.assertNotNull(schema);

@@ -16,21 +16,23 @@
 
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.beans.Error;
+import io.apicurio.registry.rules.RulesException;
+import io.apicurio.registry.storage.AlreadyExistsException;
+import io.apicurio.registry.storage.NotFoundException;
+import io.apicurio.registry.types.RegistryException;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.StorageException;
-
 /**
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
 @Provider
-public class StorageExceptionMapper implements ExceptionMapper<StorageException> {
+public class RegistryExceptionMapper implements ExceptionMapper<RegistryException> {
 
     private static Error toError(Throwable t, int code) {
         Error error = new Error();
@@ -42,21 +44,23 @@ public class StorageExceptionMapper implements ExceptionMapper<StorageException>
     
     private static Response toResponse(Throwable t, int code) {
         Error error = toError(t, code);
-        Response response = Response.status(code).type(MediaType.APPLICATION_JSON).entity(error).build();
-        return response;
+        return Response.status(code).type(MediaType.APPLICATION_JSON).entity(error).build();
     }
 
     /**
      * @see javax.ws.rs.ext.ExceptionMapper#toResponse(java.lang.Throwable)
      */
     @Override
-    public Response toResponse(StorageException exception) {
+    public Response toResponse(RegistryException exception) {
         int code = 500;
         if (exception instanceof AlreadyExistsException) {
             code = 409;
         }
         if (exception instanceof NotFoundException) {
             code = 404;
+        }
+        if (exception instanceof RulesException) {
+            code = 403; // forbidden ?
         }
         return toResponse(exception, code);
     }

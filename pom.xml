@@ -88,6 +88,8 @@
 
         <!-- Schema types -->
         <avro.version>1.9.0</avro.version>
+        <json-schema-validator.version>1.0.19</json-schema-validator.version>
+        <wire-schema.version>3.0.0-rc01</wire-schema.version>
 
         <!-- Storage types -->
         <infinispan.version>9.4.16.Final</infinispan.version>
@@ -140,6 +142,18 @@
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-schema</artifactId>
+                <version>${wire-schema.version}</version>
+            </dependency>
+
+            <!-- Tests -->
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>

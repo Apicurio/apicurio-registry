@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
-
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
@@ -33,7 +32,6 @@ import javax.ws.rs.core.Response;
 
 import io.apicurio.registry.ArtifactIdGenerator;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
@@ -43,11 +41,13 @@ import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
 public class ArtifactsResourceImpl implements ArtifactsResource {
     
@@ -104,7 +104,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
         String contentType = request.getHeader("Content-Type");
-        // TODO handle protobuff here as well - it's the only one that's not JSON
+        // TODO handle protobuf here as well - it's the only one that's not JSON
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
             String [] split = contentType.split(";");
             if (split.length > 1) {
@@ -181,7 +181,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.rest.beans.ArtifactType, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, java.io.InputStream)
      */
     @Override
     public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
@@ -194,9 +194,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         
         ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
-        
-        ArtifactMetaData metaData = dtoToMetaData(artifactId, artifactType, dto);
-        return metaData;
+
+        return dtoToMetaData(artifactId, artifactType, dto);
     }
 
     /**
@@ -205,19 +204,18 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public Response getLatestArtifact(String artifactId) {
         StoredArtifact artifact = storage.getArtifact(artifactId);
-        // TODO support protobuff - the content-type will be different for protobuff artifacts
-        Response response = Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
-        return response;
+        // TODO support protobuf - the content-type will be different for protobuff artifacts
+        return Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType,
-            InputStream data) {
+    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         String content = toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- apply rules
         ArtifactMetaDataDto dto = storage.updateArtifact(artifactId, artifactType, content);
         
         return dtoToMetaData(artifactId, artifactType, dto);
@@ -243,7 +241,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, io.apicurio.registry.rest.beans.ArtifactType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifactVersion(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType,

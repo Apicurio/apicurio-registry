@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.storage;
 
-import java.util.Date;
+import io.apicurio.registry.types.ArtifactType;
 
-import io.apicurio.registry.rest.beans.ArtifactType;
+import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com

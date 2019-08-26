@@ -16,10 +16,13 @@
 
 package io.apicurio.registry;
 
+import com.networknt.schema.JsonSchema;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ArtifactTypeAdapter;
 import io.apicurio.registry.types.ArtifactWrapper;
 import io.apicurio.registry.types.CompatibilityLevel;
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +54,9 @@ public class ArtifactTypeTest {
         ArtifactType avro = ArtifactType.avro;
         ArtifactTypeAdapter adapter = avro.getAdapter();
         ArtifactWrapper avroWrapper = adapter.wrapper(avroString);
+        Assertions.assertNotNull(avroWrapper.getArtifactImpl());
+        Assertions.assertNotNull(avroWrapper.toExactImpl(Schema.class));
+        Assertions.assertNotNull(avroWrapper.getCanonicalString());
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), avroString));
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
@@ -63,6 +69,9 @@ public class ArtifactTypeTest {
         ArtifactType json = ArtifactType.json;
         ArtifactTypeAdapter adapter = json.getAdapter();
         ArtifactWrapper jsonWrapper = adapter.wrapper(jsonString);
+        Assertions.assertNotNull(jsonWrapper.getArtifactImpl());
+        Assertions.assertNotNull(jsonWrapper.toExactImpl(JsonSchema.class));
+        Assertions.assertNotNull(jsonWrapper.getCanonicalString());
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), jsonString));
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.singletonList(jsonString), jsonString));
@@ -90,6 +99,9 @@ public class ArtifactTypeTest {
         ArtifactType protobuf = ArtifactType.protobuf;
         ArtifactTypeAdapter adapter = protobuf.getAdapter();
         ArtifactWrapper protobufWrapper = adapter.wrapper(data);
+        Assertions.assertNotNull(protobufWrapper.getArtifactImpl());
+        Assertions.assertNotNull(protobufWrapper.toExactImpl(ProtoFileElement.class));
+        Assertions.assertNotNull(protobufWrapper.getCanonicalString());
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), data));
 
@@ -99,6 +111,8 @@ public class ArtifactTypeTest {
                        "message Channel {\n" +
                        "  int64 id = 1;\n" +
                        "  string name = 2;\n" +
+                       //"  reserved 3;\n" +
+                       //"  reserved \"description\";\n" +
                        "  string description = 3;\n" + // TODO
                        "  string newff = 4;\n" +
                        "}\n" +

@@ -22,6 +22,7 @@ import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.types.RegistryException;
 
+import java.net.HttpURLConnection;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -52,15 +53,15 @@ public class RegistryExceptionMapper implements ExceptionMapper<RegistryExceptio
      */
     @Override
     public Response toResponse(RegistryException exception) {
-        int code = 500;
+        int code = HttpURLConnection.HTTP_INTERNAL_ERROR;
         if (exception instanceof AlreadyExistsException) {
-            code = 409;
+            code = HttpURLConnection.HTTP_CONFLICT;
         }
         if (exception instanceof NotFoundException) {
-            code = 404;
+            code = HttpURLConnection.HTTP_NOT_FOUND;
         }
         if (exception instanceof RulesException) {
-            code = 403; // forbidden ?
+            code = HttpURLConnection.HTTP_BAD_REQUEST;
         }
         return toResponse(exception, code);
     }

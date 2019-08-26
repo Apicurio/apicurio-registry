@@ -2,7 +2,10 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.impl.jpa.JPA;
+import io.apicurio.registry.storage.util.H2DatabaseService;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +24,18 @@ public class RegistryStorageSmokeTest {
     @Inject
     @JPA
     RegistryStorage storage;
+
+    private static H2DatabaseService h2ds = new H2DatabaseService();
+
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        h2ds.start();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        h2ds.stop();
+    }
 
     @Test
     public void testArtifactsAndMeta() {

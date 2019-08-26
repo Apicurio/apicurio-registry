@@ -102,6 +102,7 @@
 
         <!-- Dependency versions -->
         <lombok.version>1.18.8</lombok.version>
+        <h2.version>1.4.199</h2.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
@@ -112,6 +113,7 @@
         <version.surefire.plugin>2.22.1</version.surefire.plugin>
         <version.jar.plugin>3.1.2</version.jar.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
+        <version.dependency.plugin>3.1.1</version.dependency.plugin>
     </properties>
     
     <dependencyManagement>
@@ -234,6 +236,11 @@
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-maven-plugin</artifactId>
                     <version>${quarkus.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${version.dependency.plugin}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

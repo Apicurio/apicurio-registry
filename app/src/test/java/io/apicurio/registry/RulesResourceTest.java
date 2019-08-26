@@ -22,6 +22,9 @@ import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
+import io.apicurio.registry.storage.util.H2DatabaseService;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
@@ -34,6 +37,18 @@ import io.restassured.http.ContentType;
  */
 @QuarkusTest
 public class RulesResourceTest {
+
+    private static H2DatabaseService h2ds = new H2DatabaseService();
+
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        h2ds.start();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        h2ds.stop();
+    }
 
     @Test
     public void testGlobalRulesEndpoint() {

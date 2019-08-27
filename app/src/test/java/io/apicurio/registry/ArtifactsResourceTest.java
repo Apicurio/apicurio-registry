@@ -62,7 +62,6 @@ public class ArtifactsResourceTest {
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
-                .log().all()
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/1"))
                 .body("type", equalTo("openapi"));

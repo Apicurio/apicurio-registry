@@ -17,7 +17,7 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.rules.RulesException;
+import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.types.RegistryException;
@@ -60,7 +60,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<RegistryExceptio
         if (exception instanceof NotFoundException) {
             code = HttpURLConnection.HTTP_NOT_FOUND;
         }
-        if (exception instanceof RulesException) {
+        if (exception instanceof RuleViolationException) {
             code = HttpURLConnection.HTTP_BAD_REQUEST;
         }
         return toResponse(exception, code);

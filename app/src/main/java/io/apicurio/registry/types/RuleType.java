@@ -4,9 +4,8 @@ package io.apicurio.registry.types;
  * @author Ales Justin
  */
 public enum RuleType {
-    COMPATIBILITY,
-    SYNTAX_VALIDATION,
-    SEMANTIC_VALIDATION;
+    compatibility,
+    validation;
 
     public static RuleType fromString(String string) {
         for (RuleType type : values()) {

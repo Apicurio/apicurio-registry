@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
+
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
@@ -35,6 +36,8 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
@@ -54,6 +57,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Inject
     @Current
     RegistryStorage storage;
+    
+    @Inject
+    RulesService rulesService;
 
     @Inject
     ArtifactIdGenerator idGenerator;
@@ -191,8 +197,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             artifactId = idGenerator.generate();
         }
         String content = toString(data);
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.create);
         ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
 
         return dtoToMetaData(artifactId, artifactType, dto);
@@ -215,7 +222,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         String content = toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- apply rules
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.update);
         ArtifactMetaDataDto dto = storage.updateArtifact(artifactId, artifactType, content);
         
         return dtoToMetaData(artifactId, artifactType, dto);
@@ -248,6 +255,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             InputStream data) {
         String content = toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.update);
         ArtifactMetaDataDto metaDataDto = storage.updateArtifact(artifactId, artifactType, content);
         return dtoToVersionMetaData(artifactId, artifactType, metaDataDto);
     }

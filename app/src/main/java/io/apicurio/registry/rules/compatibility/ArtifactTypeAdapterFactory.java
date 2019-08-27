@@ -1,8 +1,10 @@
 
-package io.apicurio.registry.types;
+package io.apicurio.registry.rules.compatibility;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import io.apicurio.registry.types.ArtifactType;
 
 public class ArtifactTypeAdapterFactory {
 

@@ -1,28 +1,22 @@
-package io.apicurio.registry.types;
+package io.apicurio.registry.rules.compatibility;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaValidationException;
 import org.apache.avro.SchemaValidator;
 import org.apache.avro.SchemaValidatorBuilder;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
  */
 public class AvroArtifactTypeAdapter implements ArtifactTypeAdapter {
-    @Override
-    public ArtifactWrapper wrapper(String schemaString) {
-        Schema.Parser parser = new Schema.Parser();
-        Schema schema = parser.parse(schemaString);
-        return new ArtifactWrapper(schema, schema.toString());
-    }
 
     @Override
-    public boolean isCompatibleWith(String compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
+    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
 
         if (schemaValidator == null) {
@@ -41,19 +35,19 @@ public class AvroArtifactTypeAdapter implements ArtifactTypeAdapter {
         }
     }
 
-    private SchemaValidator validatorFor(String compatibilityLevel) {
+    private SchemaValidator validatorFor(CompatibilityLevel compatibilityLevel) {
         switch (compatibilityLevel) {
-            case "BACKWARD":
+            case BACKWARD:
                 return new SchemaValidatorBuilder().canReadStrategy().validateLatest();
-            case "BACKWARD_TRANSITIVE":
+            case BACKWARD_TRANSITIVE:
                 return new SchemaValidatorBuilder().canReadStrategy().validateAll();
-            case "FORWARD":
+            case FORWARD:
                 return new SchemaValidatorBuilder().canBeReadStrategy().validateLatest();
-            case "FORWARD_TRANSITIVE":
+            case FORWARD_TRANSITIVE:
                 return new SchemaValidatorBuilder().canBeReadStrategy().validateAll();
-            case "FULL":
+            case FULL:
                 return new SchemaValidatorBuilder().mutualReadStrategy().validateLatest();
-            case "FULL_TRANSITIVE":
+            case FULL_TRANSITIVE:
                 return new SchemaValidatorBuilder().mutualReadStrategy().validateAll();
             default:
                 return null;

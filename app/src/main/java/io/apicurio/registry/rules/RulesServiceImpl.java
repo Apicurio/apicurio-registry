@@ -1,16 +1,17 @@
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ArtifactTypeAdapter;
-import io.apicurio.registry.types.ArtifactTypeAdapterFactory;
-import io.apicurio.registry.types.CompatibilityLevel;
-import io.apicurio.registry.types.Current;
-
 import java.util.Collections;
+import java.util.List;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author Ales Justin
@@ -21,24 +22,74 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     @Current
     RegistryStorage storage;
-
-    public void validate(RuleContext context) {
-        switch (context.getRuleType()) {
-            case COMPATIBILITY:
-                if (!isCompatible(context.getArtifactType(), context.getLevel(), context.getArtifactId(), context.getContent())) {
-                    throw new RulesException(String.format("Incompatible artifact: %s [%s]", context.getArtifactId(), context.getArtifactType()));
-                }
-                break;
-            case SYNTAX_VALIDATION:
-                break;
-            case SEMANTIC_VALIDATION:
-                break;
+    
+    @Inject
+    RuleExecutorFactory factory;
+    
+    /**
+     * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rules.RuleApplicationType)
+     */
+    @Override
+    public void applyRules(String artifactId, ArtifactType artifactType, String artifactContent,
+            RuleApplicationType ruleApplicationType) throws RuleViolationException {
+        boolean useGlobalRules = false;
+        @SuppressWarnings("unchecked")
+        List<String> rules = Collections.EMPTY_LIST;
+        if (ruleApplicationType == RuleApplicationType.update) {
+            rules = storage.getArtifactRules(artifactId);
+        }
+        if (rules.isEmpty()) {
+            rules = storage.getGlobalRules();
+            useGlobalRules = true;
+        }
+        if (rules.isEmpty()) {
+            return;
+        }
+        String currentArtifactContent = null;
+        if (ruleApplicationType == RuleApplicationType.update) {
+            StoredArtifact currentArtifact = storage.getArtifact(artifactId);
+            currentArtifactContent = currentArtifact.content;
+        }
+        for (String ruleName : rules) {
+            RuleType ruleType = RuleType.valueOf(ruleName);
+            RuleConfigurationDto configurationDto = useGlobalRules ? 
+                    storage.getGlobalRule(ruleName) : storage.getArtifactRule(artifactId, ruleName);
+            RuleExecutor executor = factory.createExecutor(ruleType);
+            RuleContext context = new RuleContext(artifactId, artifactType, configurationDto.getConfiguration(), 
+                    currentArtifactContent, artifactContent);
+            executor.execute(context);
         }
     }
-
-    public boolean isCompatible(ArtifactType type, CompatibilityLevel level, String artifactId, String content) {
-        StoredArtifact artifact = storage.getArtifact(artifactId); // check against the last one
-        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(type);
-        return adapter.isCompatibleWith(level.name(), Collections.singletonList(artifact.content), content);
+    
+    /**
+     * @see io.apicurio.registry.rules.RulesService#applyRule(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rules.RuleApplicationType)
+     */
+    @Override
+    public void applyRule(String artifactId, ArtifactType artifactType, String artifactContent,
+            RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
+            throws RuleViolationException {
+        String currentArtifactContent = null;
+        if (ruleApplicationType == RuleApplicationType.update) {
+            StoredArtifact currentArtifact = storage.getArtifact(artifactId);
+            currentArtifactContent = currentArtifact.content;
+        }
+        applyRule(artifactId, artifactType, currentArtifactContent, artifactContent, ruleType, ruleConfiguration);
+    }
+    
+    /**
+     * Applies a single rule.  Throws an exception if the rule is violated.
+     * @param artifactId
+     * @param artifactType
+     * @param currentContent
+     * @param updatedContent
+     * @param ruleType
+     * @param ruleConfiguration
+     */
+    private void applyRule(String artifactId, ArtifactType artifactType, String currentContent,
+            String updatedContent, RuleType ruleType, String ruleConfiguration) {
+        RuleExecutor executor = factory.createExecutor(ruleType);
+        RuleContext context = new RuleContext(artifactId, artifactType, ruleConfiguration, 
+                currentContent, updatedContent);
+        executor.execute(context);
     }
 }

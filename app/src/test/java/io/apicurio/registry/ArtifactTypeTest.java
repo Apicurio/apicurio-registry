@@ -16,18 +16,15 @@
 
 package io.apicurio.registry;
 
-import com.networknt.schema.JsonSchema;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ArtifactTypeAdapter;
-import io.apicurio.registry.types.ArtifactTypeAdapterFactory;
-import io.apicurio.registry.types.ArtifactWrapper;
-import io.apicurio.registry.types.CompatibilityLevel;
-import org.apache.avro.Schema;
+import java.util.Collections;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
+import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter;
+import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapterFactory;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -39,14 +36,10 @@ public class ArtifactTypeTest {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         ArtifactType avro = ArtifactType.avro;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(avro);
-        ArtifactWrapper avroWrapper = adapter.wrapper(avroString);
-        Assertions.assertNotNull(avroWrapper.getArtifactImpl());
-        Assertions.assertNotNull(avroWrapper.toExactImpl(Schema.class));
-        Assertions.assertNotNull(avroWrapper.getCanonicalString());
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), avroString));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString));
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.singletonList(avroString), avroString2));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2));
     }
 
     @Test
@@ -54,13 +47,9 @@ public class ArtifactTypeTest {
         String jsonString = "{\"name\":\"foobar\"}";
         ArtifactType json = ArtifactType.json;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(json);
-        ArtifactWrapper jsonWrapper = adapter.wrapper(jsonString);
-        Assertions.assertNotNull(jsonWrapper.getArtifactImpl());
-        Assertions.assertNotNull(jsonWrapper.toExactImpl(JsonSchema.class));
-        Assertions.assertNotNull(jsonWrapper.getCanonicalString());
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), jsonString));
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.singletonList(jsonString), jsonString));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString));
     }
 
     @Test
@@ -84,12 +73,8 @@ public class ArtifactTypeTest {
 
         ArtifactType protobuf = ArtifactType.protobuf;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(protobuf);
-        ArtifactWrapper protobufWrapper = adapter.wrapper(data);
-        Assertions.assertNotNull(protobufWrapper.getArtifactImpl());
-        Assertions.assertNotNull(protobufWrapper.toExactImpl(ProtoFileElement.class));
-        Assertions.assertNotNull(protobufWrapper.getCanonicalString());
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.emptyList(), data));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));
 
         String data2 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -111,7 +96,7 @@ public class ArtifactTypeTest {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.singletonList(data), data2));
+        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2));
 
         String data3 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -130,6 +115,6 @@ public class ArtifactTypeTest {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertFalse(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD.name(), Collections.singletonList(data), data3));
+        Assertions.assertFalse(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3));
     }
 }

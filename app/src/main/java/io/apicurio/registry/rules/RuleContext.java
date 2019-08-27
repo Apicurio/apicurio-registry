@@ -1,46 +1,68 @@
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.CompatibilityLevel;
-import io.apicurio.registry.types.RuleType;
-
 import java.util.Objects;
+
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
 public class RuleContext {
-    private RuleType ruleType;
-    private ArtifactType artifactType;
-    private CompatibilityLevel level;
-    private String artifactId;
-    private String content;
+    private final String artifactId;
+    private final ArtifactType artifactType;
+    private final String configuration;
+    private final String currentContent;
+    private final String updatedContent;
 
-    public RuleContext(RuleType ruleType, ArtifactType artifactType, CompatibilityLevel level, String artifactId, String content) {
-        this.ruleType = Objects.requireNonNull(ruleType);
-        this.artifactType = Objects.requireNonNull(artifactType);
-        this.level = level;
+    /**
+     * Constructor.
+     * @param artifactId
+     * @param artifactType
+     * @param configuration
+     * @param currentContent
+     * @param updatedContent
+     */
+    public RuleContext(String artifactId, ArtifactType artifactType, String configuration,
+            String currentContent, String updatedContent) {
         this.artifactId = Objects.requireNonNull(artifactId);
-        this.content = Objects.requireNonNull(content);
+        this.artifactType = Objects.requireNonNull(artifactType);
+        this.configuration = Objects.requireNonNull(configuration);
+        this.currentContent = Objects.requireNonNull(currentContent);
+        this.updatedContent = Objects.requireNonNull(updatedContent);
     }
-
-    public RuleType getRuleType() {
-        return ruleType;
-    }
-
-    public ArtifactType getArtifactType() {
-        return artifactType;
-    }
-
-    public CompatibilityLevel getLevel() {
-        return level;
-    }
-
+    
+    /**
+     * @return the artifactId
+     */
     public String getArtifactId() {
         return artifactId;
     }
 
-    public String getContent() {
-        return content;
+    /**
+     * @return the artifactType
+     */
+    public ArtifactType getArtifactType() {
+        return artifactType;
+    }
+
+    /**
+     * @return the configuration
+     */
+    public String getConfiguration() {
+        return configuration;
+    }
+
+    /**
+     * @return the currentContent
+     */
+    public String getCurrentContent() {
+        return currentContent;
+    }
+    
+    /**
+     * @return the updatedContent
+     */
+    public String getUpdatedContent() {
+        return updatedContent;
     }
 }

@@ -1,14 +1,18 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.CompatibilityLevel;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author Ales Justin
  */
 public interface RulesService {
 
-    void validate(RuleContext context);
+    public void applyRules(String artifactId, ArtifactType artifactType, String artifactContent,
+            RuleApplicationType ruleApplicationType) throws RuleViolationException;
 
-    boolean isCompatible(ArtifactType type, CompatibilityLevel level, String artifactId, String content);
+    public void applyRule(String artifactId, ArtifactType artifactType, String artifactContent,
+            RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
+            throws RuleViolationException;
+
 }

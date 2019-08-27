@@ -17,6 +17,8 @@ import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 
+import io.apicurio.registry.rules.compatibility.ProtobufArtifactTypeAdapter;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +37,7 @@ import java.util.Set;
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  * @see ProtobufArtifactTypeAdapter
  */
-class ProtobufFile {
+public class ProtobufFile {
 
     private final ProtoFileElement element;
 
@@ -172,6 +174,7 @@ class ProtobufFile {
         }
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void processMessageElement(String scope, MessageElement messageElement) {
 
         // reservedFields

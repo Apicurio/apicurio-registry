@@ -2,9 +2,12 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.CompatibilityLevel;
+import io.apicurio.registry.types.RuleType;
 
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -39,7 +42,13 @@ public class CompatibilityResource extends AbstractResource {
         @NotNull RegisterSchemaRequest request) throws Exception {
 
         // TODO - headers, level?
-        boolean isCompatible = rules.isCompatible(ArtifactType.avro, CompatibilityLevel.BACKWARD_TRANSITIVE, subject, request.getSchema());
+        boolean isCompatible = true;
+        try {
+            rules.applyRule(subject, ArtifactType.avro, request.getSchema(), RuleType.compatibility, 
+                    CompatibilityLevel.BACKWARD_TRANSITIVE.name(), RuleApplicationType.update);
+        } catch (RuleViolationException e) {
+            isCompatible = false;
+        }
         CompatibilityCheckResponse result = new CompatibilityCheckResponse();
         result.setIsCompatible(isCompatible);
         response.resume(result);

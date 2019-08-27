@@ -2,7 +2,6 @@
 package io.apicurio.registry.types;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.HashMap;
@@ -10,16 +9,15 @@ import java.util.Map;
 
 public enum ArtifactType {
 
-    avro("avro", new AvroArtifactTypeAdapter()),
-    protobuf("protobuf", new ProtobufArtifactTypeAdapter()),
-    json("json", new JsonArtifactTypeAdapter()),
-    openapi("openapi", NoopArtifactTypeAdapter.INSTANCE),
-    asyncapi("asyncapi", NoopArtifactTypeAdapter.INSTANCE);
+    avro("avro"),
+    protobuf("protobuf"),
+    json("json"),
+    openapi("openapi"),
+    asyncapi("asyncapi");
 
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 
     private final String value;
-    private transient ArtifactTypeAdapter adapter;
 
     static {
         for (ArtifactType c : values()) {
@@ -27,9 +25,8 @@ public enum ArtifactType {
         }
     }
 
-    private ArtifactType(String value, ArtifactTypeAdapter adapter) {
+    private ArtifactType(String value) {
         this.value = value;
-        this.adapter = adapter;
     }
 
     @Override
@@ -40,11 +37,6 @@ public enum ArtifactType {
     @JsonValue
     public String value() {
         return this.value;
-    }
-
-    @JsonIgnore
-    public ArtifactTypeAdapter getAdapter() {
-        return adapter;
     }
 
     @JsonCreator

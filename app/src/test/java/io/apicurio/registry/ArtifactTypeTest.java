@@ -20,16 +20,13 @@ import com.networknt.schema.JsonSchema;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ArtifactTypeAdapter;
+import io.apicurio.registry.types.ArtifactTypeAdapterFactory;
 import io.apicurio.registry.types.ArtifactWrapper;
 import io.apicurio.registry.types.CompatibilityLevel;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Collections;
 
 /**
@@ -38,21 +35,10 @@ import java.util.Collections;
 public class ArtifactTypeTest {
 
     @Test
-    public void testSerialization() throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(ArtifactType.protobuf);
-
-        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        ArtifactType at = (ArtifactType) ois.readObject();
-        Assertions.assertNotNull(at.getAdapter());
-    }
-
-    @Test
     public void testAvro() {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         ArtifactType avro = ArtifactType.avro;
-        ArtifactTypeAdapter adapter = avro.getAdapter();
+        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(avro);
         ArtifactWrapper avroWrapper = adapter.wrapper(avroString);
         Assertions.assertNotNull(avroWrapper.getArtifactImpl());
         Assertions.assertNotNull(avroWrapper.toExactImpl(Schema.class));
@@ -67,7 +53,7 @@ public class ArtifactTypeTest {
     public void testJson() {
         String jsonString = "{\"name\":\"foobar\"}";
         ArtifactType json = ArtifactType.json;
-        ArtifactTypeAdapter adapter = json.getAdapter();
+        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(json);
         ArtifactWrapper jsonWrapper = adapter.wrapper(jsonString);
         Assertions.assertNotNull(jsonWrapper.getArtifactImpl());
         Assertions.assertNotNull(jsonWrapper.toExactImpl(JsonSchema.class));
@@ -97,7 +83,7 @@ public class ArtifactTypeTest {
                       "}\n";
 
         ArtifactType protobuf = ArtifactType.protobuf;
-        ArtifactTypeAdapter adapter = protobuf.getAdapter();
+        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(protobuf);
         ArtifactWrapper protobufWrapper = adapter.wrapper(data);
         Assertions.assertNotNull(protobufWrapper.getArtifactImpl());
         Assertions.assertNotNull(protobufWrapper.toExactImpl(ProtoFileElement.class));

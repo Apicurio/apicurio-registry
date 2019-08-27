@@ -3,6 +3,8 @@ package io.apicurio.registry.rules;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ArtifactTypeAdapter;
+import io.apicurio.registry.types.ArtifactTypeAdapterFactory;
 import io.apicurio.registry.types.CompatibilityLevel;
 import io.apicurio.registry.types.Current;
 
@@ -36,6 +38,7 @@ public class RulesServiceImpl implements RulesService {
 
     public boolean isCompatible(ArtifactType type, CompatibilityLevel level, String artifactId, String content) {
         StoredArtifact artifact = storage.getArtifact(artifactId); // check against the last one
-        return type.getAdapter().isCompatibleWith(level.name(), Collections.singletonList(artifact.content), content);
+        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(type);
+        return adapter.isCompatibleWith(level.name(), Collections.singletonList(artifact.content), content);
     }
 }

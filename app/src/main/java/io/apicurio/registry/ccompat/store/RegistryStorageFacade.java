@@ -1,6 +1,5 @@
 package io.apicurio.registry.ccompat.store;
 
-import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -36,6 +35,4 @@ public interface RegistryStorageFacade {
      * @return schema version as long
      */
     long deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
-
-    boolean testCompatibility(String subject, String version, RegisterSchemaRequest request) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 }

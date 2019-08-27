@@ -1,9 +1,9 @@
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+
 import java.util.Date;
 import java.util.Map;
-
-import io.apicurio.registry.rest.beans.ArtifactType;
 
 /**
  * @author Ales Justin

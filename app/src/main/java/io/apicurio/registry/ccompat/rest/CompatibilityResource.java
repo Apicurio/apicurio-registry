@@ -2,7 +2,11 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
+import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.CompatibilityLevel;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.HeaderParam;
@@ -21,6 +25,9 @@ import javax.ws.rs.container.Suspended;
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class CompatibilityResource extends AbstractResource {
 
+    @Inject
+    RulesService rules;
+
     @POST
     @Path("/subjects/{subject}/versions/{version}")
     public void testCompatabilityBySubjectName(
@@ -31,8 +38,8 @@ public class CompatibilityResource extends AbstractResource {
         @PathParam("version") String version,
         @NotNull RegisterSchemaRequest request) throws Exception {
 
-        // TODO - headers?
-        boolean isCompatible = facade.testCompatibility(subject, version, request);
+        // TODO - headers, level?
+        boolean isCompatible = rules.isCompatible(ArtifactType.avro, CompatibilityLevel.BACKWARD_TRANSITIVE, subject, request.getSchema());
         CompatibilityCheckResponse result = new CompatibilityCheckResponse();
         result.setIsCompatible(isCompatible);
         response.resume(result);

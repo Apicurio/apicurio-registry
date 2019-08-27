@@ -23,7 +23,7 @@ import java.util.function.Function;
  * kafka producer when unrecoverable error occurs.
  * This producer is not suitable for transactional use. It is suitable for normal or idempotent use.
  */
-class AsyncProducer<K, V> implements Function<ProducerRecord<K, V>, CompletableFuture<RecordMetadata>>, AutoCloseable {
+public class AsyncProducer<K, V> implements Function<ProducerRecord<K, V>, CompletableFuture<RecordMetadata>>, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncProducer.class);
 
     private final Properties producerProps;

@@ -6,6 +6,20 @@ option java_package = "io.apicurio.registry.kafka.proto";
 
 option java_outer_classname = "Reg";
 
-message Schema {
-    fixed64 id = 1;
+enum ActionType {
+    UNDEFINED = 0;
+    // crud
+    CREATE = 1;
+    READ = 2;
+    UPDATE = 3;
+    DELETE = 4;
+}
+
+message SchemaValue {
+    ActionType type = 1;
+    int32 artifactType = 2;
+    string artifactId = 3;
+    fixed64 version = 4;
+    fixed64 id = 5;
+    bytes content = 6;
 }

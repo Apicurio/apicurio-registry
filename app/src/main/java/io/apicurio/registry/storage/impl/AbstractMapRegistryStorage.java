@@ -117,7 +117,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
     }
 
-    private ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, String content, boolean create)
+    protected ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, String content, boolean create, long globalId)
             throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         if (artifactId == null) {
             if (!create) {
@@ -138,7 +138,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         Map<String, String> contents = new ConcurrentHashMap<>();
-        long globalId = nextGlobalId();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         contents.put(MetaDataKeys.CONTENT, content);
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
@@ -173,7 +172,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, artifactType, content, true);
+            return createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
         } catch (ArtifactNotFoundException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
@@ -211,7 +210,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content)
             throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, artifactType, content, false);
+            return createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
         } catch (ArtifactAlreadyExistsException e) {
             throw new RegistryStorageException("Invalid state", e);
         }

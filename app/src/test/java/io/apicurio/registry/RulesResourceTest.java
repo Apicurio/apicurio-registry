@@ -22,7 +22,7 @@ import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.apicurio.registry.storage.util.H2DatabaseService;
+import io.apicurio.registry.util.H2DatabaseService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

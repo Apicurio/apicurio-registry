@@ -1,6 +1,6 @@
 package io.apicurio.registry;
 
-import io.apicurio.registry.storage.util.H2DatabaseService;
+import io.apicurio.registry.util.H2DatabaseService;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.quarkus.test.junit.QuarkusTest;

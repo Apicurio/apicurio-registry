@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.util;
 
 import java.util.Properties;
 

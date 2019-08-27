@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
+package io.apicurio.registry.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

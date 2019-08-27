@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -71,6 +71,13 @@
         </developer>
     </developers>
 
+    <modules>
+        <module>app</module>
+        <module>distro</module>
+        <module>storage-jpa</module>
+        <module>tests</module>
+    </modules>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -115,7 +122,7 @@
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
     </properties>
-    
+
     <dependencyManagement>
         <dependencies>
             <!-- This project -->
@@ -232,7 +239,8 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>                <plugin>
+                </plugin>
+                <plugin>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-maven-plugin</artifactId>
                     <version>${quarkus.version}</version>
@@ -325,18 +333,15 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <modules>
-        <module>app</module>
-        <module>distro</module>
-        <module>tests</module>
-    </modules>
-
-
     <profiles>
         <profile>
             <id>infinispan</id>
             <modules>
+                <module>app</module>
+                <module>distro</module>
                 <module>infinispan</module>
+                <module>storage-jpa</module>
+                <module>tests</module>
             </modules>
         </profile>
         <profile>

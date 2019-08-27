@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.nullValue;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.apicurio.registry.storage.util.H2DatabaseService;
+import io.apicurio.registry.util.H2DatabaseService;
 import org.hamcrest.CustomMatcher;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

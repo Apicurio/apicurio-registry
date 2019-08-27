@@ -1,7 +1,7 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.apicurio.registry.storage.util.H2DatabaseService;
+import io.apicurio.registry.util.H2DatabaseService;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

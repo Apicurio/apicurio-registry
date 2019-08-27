@@ -1,6 +1,5 @@
 package io.apicurio.registry.storage.impl.jpa;
 
-import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -18,10 +17,10 @@ import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import io.apicurio.registry.storage.impl.jpa.entity.Rule;
 import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
+import io.apicurio.registry.types.ArtifactType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;

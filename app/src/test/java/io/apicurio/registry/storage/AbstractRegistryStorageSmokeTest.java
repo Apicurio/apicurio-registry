@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.rest.beans.ArtifactType;
+import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;

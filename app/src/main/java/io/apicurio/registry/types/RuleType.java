@@ -1,19 +1,46 @@
+
 package io.apicurio.registry.types;
 
-/**
- * @author Ales Justin
- */
-public enum RuleType {
-    COMPATIBILITY,
-    SYNTAX_VALIDATION,
-    SEMANTIC_VALIDATION;
+import java.util.HashMap;
+import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-    public static RuleType fromString(String string) {
-        for (RuleType type : values()) {
-            if (string.equalsIgnoreCase(type.name())) {
-                return type;
-            }
+public enum RuleType {
+
+    VALIDATION("VALIDATION"),
+    COMPATIBILITY("COMPATIBILITY");
+    private final String value;
+    private final static Map<String, RuleType> CONSTANTS = new HashMap<String, RuleType>();
+
+    static {
+        for (RuleType c: values()) {
+            CONSTANTS.put(c.value, c);
         }
-        throw new IllegalArgumentException("No such rule: " + string);
     }
+
+    private RuleType(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return this.value;
+    }
+
+    @JsonValue
+    public String value() {
+        return this.value;
+    }
+
+    @JsonCreator
+    public static RuleType fromValue(String value) {
+        RuleType constant = CONSTANTS.get(value);
+        if (constant == null) {
+            throw new IllegalArgumentException(value);
+        } else {
+            return constant;
+        }
+    }
+
 }

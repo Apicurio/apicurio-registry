@@ -3,10 +3,13 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.RuleType;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
-
 import java.io.InputStream;
+import java.lang.Integer;
+import java.lang.Long;
+import java.lang.String;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -32,20 +35,18 @@ public interface ArtifactsResource {
    * The registry will attempt to figure out what kind of artifact is being added from the
    * following supported list:
    *
-   * * Avro (avro)
-   * * Protobuff (protobuff)
-   * * JSON Schema (json)
-   * * OpenAPI (openapi)
-   * * AsyncAPI (asyncapi)
+   * * Avro (AVRO)
+   * * Protobuff (PROTOBUFF)
+   * * JSON Schema (JSON)
+   * * OpenAPI (OPENAPI)
+   * * AsyncAPI (ASYNCAPI)
    *
    * Alternatively, the artifact type can be indicated by either explicitly specifying the 
    * type via the `X-Registry-ArtifactType` HTTP Request Header or by including a hint in the 
-   * Request's `Content-Type`.
-   *
-   * For example:
+   * Request's `Content-Type`.  For example:
    *
    * ```
-   * Content-Type: application/json+avro
+   * Content-Type: application/json; artifactType=AVRO
    * ```
    *
    * This operation may fail for one of the following reasons:
@@ -64,7 +65,7 @@ public interface ArtifactsResource {
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
    * response will depend on what type of artifact it is.  In most cases this will be
-   * `application/json` but for some types it may be different (e.g. *avro*).
+   * `application/json` but for some types it may be different (e.g. *protobuff*).
    *
    * This operation may fail for one of the following reasons:
    *
@@ -78,11 +79,32 @@ public interface ArtifactsResource {
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**
-   * Updates an artifact by uploading new content.  The update could fail for a number
-   * of reasons including:
+   * Updates an artifact by uploading new content.  The body of the request should
+   * be the raw content of the artifact.  This will typically be in JSON format for *most*
+   * of the supported types, but may be in another format for a few (e.g. Protobuff).
+   *
+   * The registry will attempt to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (AVRO)
+   * * Protobuff (PROTOBUFF)
+   * * JSON Schema (JSON)
+   * * OpenAPI (OPENAPI)
+   * * AsyncAPI (ASYNCAPI)
+   *
+   * Alternatively, the artifact type can be indicated by either explicitly specifying the 
+   * type via the `X-Registry-ArtifactType` HTTP Request Header or by including a hint in the 
+   * Request's `Content-Type`.  For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
+   *
+   * The update could fail for a number of reasons including:
    *
    * * No artifact with the `artifactId` exists (HTTP error `404`)
    * * The new content violates one of the rules configured for the artifact (HTTP error `400`)
+   * * The provided Artifact Type is not recognized (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    * When successful, this creates a new version of the artifact, making it the most recent
@@ -92,8 +114,8 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes({"application/json", "application/x-yaml"})
-    ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
-            @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -141,7 +163,8 @@ public interface ArtifactsResource {
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name is configured for this artifact (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    */
   @Path("/{artifactId}/rules/{rule}")
@@ -158,7 +181,8 @@ public interface ArtifactsResource {
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name is configured for this artifact (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -178,7 +202,8 @@ public interface ArtifactsResource {
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name is configured for this artifact (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    */
   @Path("/{artifactId}/rules/{rule}")
@@ -213,11 +238,11 @@ public interface ArtifactsResource {
    * The registry will attempt to figure out what kind of artifact is being added from the
    * following supported list:
    *
-   * * Avro (avro)
-   * * Protobuff (protobuff)
-   * * JSON Schema (json)
-   * * OpenAPI (openapi)
-   * * AsyncAPI (asyncapi)
+   * * Avro (AVRO)
+   * * Protobuff (PROTOBUFF)
+   * * JSON Schema (JSON)
+   * * OpenAPI (OPENAPI)
+   * * AsyncAPI (ASYNCAPI)
    *
    * Alternatively, the artifact type can be indicated by either explicitly specifying the 
    * type via the `X-Registry-ArtifactType` HTTP Request Header or by including a hint in the 
@@ -226,7 +251,7 @@ public interface ArtifactsResource {
    * For example:
    *
    * ```
-   * Content-Type: application/json+avro
+   * Content-Type: application/json; artifactType=AVRO
    * ```
    *
    * This operation can fail for the following reasons:
@@ -246,7 +271,7 @@ public interface ArtifactsResource {
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the
    * unique `version` number must be provided.  The `Content-Type` of the
    * response will depend on what type of artifact it is.  In most cases this will be
-   * `application/json` but for some types it may be different (e.g. *avro*).
+   * `application/json` but for some types it may be different (e.g. *protobuff*).
    *
    * This operation can fail for the following reasons:
    *
@@ -344,7 +369,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/rules")
   @GET
   @Produces("application/json")
-  List<String> listArtifactRules(@PathParam("artifactId") String artifactId);
+  List<RuleType> listArtifactRules(@PathParam("artifactId") String artifactId);
 
   /**
    * Adds a rule to the list of rules that get applied to the artifact when adding new

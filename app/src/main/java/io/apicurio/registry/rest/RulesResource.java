@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.RuleType;
 import java.lang.String;
 import java.util.List;
 import javax.ws.rs.Consumes;
@@ -22,7 +23,8 @@ public interface RulesResource {
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -36,7 +38,8 @@ public interface RulesResource {
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -52,7 +55,8 @@ public interface RulesResource {
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -70,14 +74,14 @@ public interface RulesResource {
    */
   @GET
   @Produces("application/json")
-  List<String> listGlobalRules();
+  List<RuleType> listGlobalRules();
 
   /**
    * Adds a rule to the list of globally configured rules.
    *
    * This operation can fail for the following reasons:
    *
-   * * The named rule is unknown (HTTP error `400`)
+   * * The rule type is unknown (HTTP error `400`)
    * * The rule already exists (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *

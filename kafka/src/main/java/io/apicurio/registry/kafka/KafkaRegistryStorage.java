@@ -2,19 +2,24 @@ package io.apicurio.registry.kafka;
 
 import com.google.protobuf.ByteString;
 import io.apicurio.registry.kafka.proto.Reg;
+import io.apicurio.registry.kafka.utils.ProtoUtil;
 import io.apicurio.registry.rest.beans.ArtifactType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.SortedSet;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
@@ -27,89 +32,118 @@ import javax.inject.Inject;
 public class KafkaRegistryStorage extends SimpleMapRegistryStorage {
 
     @Inject
-    Function<ProducerRecord<String, Reg.SchemaValue>, CompletableFuture<RecordMetadata>> schemaProducer;
+    Function<ProducerRecord<Reg.UUID, Reg.SchemaValue>, CompletableFuture<RecordMetadata>> schemaProducer;
 
     private volatile long offset = 0;
+
+    private final Map<UUID, CompletableFuture<Object>> cfMap = new ConcurrentHashMap<>();
 
     @Override
     protected long nextGlobalId() {
         return offset;
     }
 
-    private long submit(Reg.ActionType actionType, String artifactId, ArtifactType artifactType, String content) {
-        try {
-            Reg.SchemaValue.Builder builder = Reg.SchemaValue.newBuilder()
-                                                             .setType(actionType)
-                                                             .setArtifactId(artifactId);
-            if (artifactType != null) {
-                builder.setArtifactType(artifactType.ordinal());
-            }
-            if (content != null) {
-                builder.setContent(ByteString.copyFrom(content, StandardCharsets.UTF_8));
-            }
-            ProducerRecord<String, Reg.SchemaValue> record = new ProducerRecord<>(
-                KafkaProducerConfiguration.SCHEMA_TOPIC,
-                artifactId,
-                builder.build()
-            );
-            return schemaProducer.apply(record).get().offset();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException(e);
-        }
+    @SuppressWarnings("unchecked")
+    private <T> CompletableFuture<T> submit(Reg.ActionType actionType, String artifactId, ArtifactType artifactType, long version, String content) {
+        UUID reqId = UUID.randomUUID();
+        CompletableFuture<Object> cf = new CompletableFuture<>();
+        cfMap.put(reqId, cf);
+        return send(reqId, actionType, artifactId, artifactType, version, content)
+            .whenComplete((r, x) -> {
+                if (x != null) cfMap.remove(reqId);
+            })
+            .thenCompose(r -> (CompletableFuture<T>) cf);
     }
 
-    public void consumeSchemaValue(ConsumerRecord<String, Reg.SchemaValue> record) {
+    private CompletableFuture<?> send(UUID reqId, Reg.ActionType actionType, String artifactId, ArtifactType artifactType, long version, String content) {
+        Reg.SchemaValue.Builder builder = Reg.SchemaValue.newBuilder()
+                                                         .setType(actionType)
+                                                         .setArtifactId(artifactId)
+                                                         .setVersion(version);
+        if (artifactType != null) {
+            builder.setArtifactType(artifactType.ordinal());
+        }
+        if (content != null) {
+            builder.setContent(ByteString.copyFrom(content, StandardCharsets.UTF_8));
+        }
+        ProducerRecord<Reg.UUID, Reg.SchemaValue> record = new ProducerRecord<>(
+            KafkaRegistryConfiguration.SCHEMA_TOPIC,
+            ProtoUtil.convert(reqId),
+            builder.build()
+        );
+        return schemaProducer.apply(record);
+    }
+
+    public void consumeSchemaValue(ConsumerRecord<Reg.UUID, Reg.SchemaValue> record) {
         offset = record.offset();
         Reg.SchemaValue schemaValue = record.value();
         Reg.ActionType type = schemaValue.getType();
-        if (type == Reg.ActionType.CREATE || type == Reg.ActionType.UPDATE) {
-            String content = schemaValue.getContent().toString(StandardCharsets.UTF_8);
-            createOrUpdateArtifact(
-                record.key(),
-                ArtifactType.values()[schemaValue.getArtifactType()],
-                content,
-                Reg.ActionType.CREATE == type,
-                offset);
-        } else if (type == Reg.ActionType.DELETE) {
-            deleteArtifact(schemaValue.getArtifactId());
+        CompletableFuture<Object> cf = cfMap.remove(ProtoUtil.convert(record.key()));
+        if (cf == null) {
+            cf = new CompletableFuture<>(); // handle the msg anyway
         }
-    }
-
-    // loop until we get currently produced msg
-    private ArtifactMetaDataDto latest(long offset, String artifactId) {
-        while (true) {
-            ArtifactMetaDataDto dto = getArtifactMetaData(artifactId);
-            if (dto.getGlobalId() == offset) {
-                return dto;
+        try {
+            if (type == Reg.ActionType.CREATE || type == Reg.ActionType.UPDATE) {
+                String content = schemaValue.getContent().toString(StandardCharsets.UTF_8);
+                cf.complete(createOrUpdateArtifact(
+                    schemaValue.getArtifactId(),
+                    ArtifactType.values()[schemaValue.getArtifactType()],
+                    content,
+                    Reg.ActionType.CREATE == type,
+                    offset));
+            } else if (type == Reg.ActionType.DELETE) {
+                long version = schemaValue.getVersion();
+                if (version >= 0) {
+                    super.deleteArtifactVersion(schemaValue.getArtifactId(), version);
+                    cf.complete(Void.class); // just set something
+                } else {
+                    cf.complete(super.deleteArtifact(schemaValue.getArtifactId()));
+                }
             }
-            try {
-                Thread.sleep(10L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            }
+        } catch (Throwable e) {
+            cf.completeExceptionally(e);
         }
     }
 
     @Override
     public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        long offset = submit(Reg.ActionType.CREATE, artifactId, artifactType, content);
-        return latest(offset, artifactId);
+        return get(submit(Reg.ActionType.CREATE, artifactId, artifactType, 0, content));
     }
 
     @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        SortedSet<Long> ids = super.deleteArtifact(artifactId);
-        submit(Reg.ActionType.DELETE, artifactId, null, null);
-        return ids;
+        //noinspection unchecked
+        return get(submit(Reg.ActionType.DELETE, artifactId, null, -1, null));
     }
 
     @Override
     public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
-        long offset = submit(Reg.ActionType.UPDATE, artifactId, artifactType, content);
-        return latest(offset, artifactId);
+        return get(submit(Reg.ActionType.UPDATE, artifactId, artifactType, 0, content));
     }
+
+    @Override
+    public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        get(submit(Reg.ActionType.DELETE, artifactId, null, version, null));
+    }
+
+    private static <T> T get(CompletableFuture<T> cf) {
+        boolean interrupted = false;
+        while (true) {
+            try {
+                return cf.get();
+            } catch (InterruptedException e) {
+                interrupted = true;
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof RuntimeException) throw (RuntimeException) t;
+                if (t instanceof Error) throw (Error) t;
+                throw new RuntimeException(t);
+            } finally {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    }
+
 }

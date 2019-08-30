@@ -6,6 +6,11 @@ option java_package = "io.apicurio.registry.kafka.proto";
 
 option java_outer_classname = "Reg";
 
+message UUID {
+    fixed64 msb = 1;
+    fixed64 lsb = 2;
+}
+
 enum ActionType {
     UNDEFINED = 0;
     // crud

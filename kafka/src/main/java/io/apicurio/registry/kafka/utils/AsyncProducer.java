@@ -16,14 +16,13 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 /**
  * An async wrapper for kafka producer that is resilient in the event of failures - it recreates the underlying
  * kafka producer when unrecoverable error occurs.
  * This producer is not suitable for transactional use. It is suitable for normal or idempotent use.
  */
-public class AsyncProducer<K, V> implements Function<ProducerRecord<K, V>, CompletableFuture<RecordMetadata>>, AutoCloseable {
+public class AsyncProducer<K, V> implements ProducerActions<K, V> {
     private static final Logger log = LoggerFactory.getLogger(AsyncProducer.class);
 
     private final Properties producerProps;

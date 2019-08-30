@@ -28,6 +28,12 @@ public interface ConsumerActions<K, V> {
      */
     <R> CompletableFuture<R> submit(Function<? super Consumer<K, V>, ? extends R> consumerAction);
 
+    // Lifecycle
+
+    default void start() {};
+    default boolean isRunning() {return true;};
+    default void stop() {};
+
     /**
      * Implementation of actions that allow dynamic assignment of topic/partitions.
      *

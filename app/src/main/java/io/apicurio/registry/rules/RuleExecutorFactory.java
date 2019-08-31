@@ -24,6 +24,7 @@ import io.apicurio.registry.rules.validation.ValidationRuleExecutor;
 import io.apicurio.registry.types.RuleType;
 
 /**
+ * Creates a rule executor from a {@link RuleType}.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
@@ -33,7 +34,7 @@ public class RuleExecutorFactory {
     CompatibilityRuleExecutor compatibility;
     @Inject
     ValidationRuleExecutor validation;
-    
+
     public RuleExecutor createExecutor(RuleType ruleType) {
         switch (ruleType) {
             case compatibility:

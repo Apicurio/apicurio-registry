@@ -8,12 +8,10 @@ import io.apicurio.registry.types.ProtobufFile;
  * @author Ales Justin
  */
 public class ProtobufArtifactTypeAdapter implements ArtifactTypeAdapter {
-//    @Override
-//    public ArtifactWrapper wrapper(String schemaString) {
-//        ProtoFileElement element = ProtoParser.parse(Location.get(""), schemaString);
-//        return new ArtifactWrapper(element, element.toSchema());
-//    }
 
+    /**
+     * @see io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     */
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         if (existingSchemas.isEmpty()) {

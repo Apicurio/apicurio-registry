@@ -25,6 +25,9 @@ import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
 
 /**
+ * Rule executor for the "Compatibility" rule.  The Compatibility Rule is responsible
+ * for ensuring that the updated content does not violate the configured compatibility
+ * level.  Levels include e.g. Backward compatibility.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped

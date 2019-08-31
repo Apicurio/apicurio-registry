@@ -15,6 +15,9 @@ import org.apache.avro.SchemaValidatorBuilder;
  */
 public class AvroArtifactTypeAdapter implements ArtifactTypeAdapter {
 
+    /**
+     * @see io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     */
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);

@@ -34,6 +34,7 @@ public class ValidationRuleExecutor implements RuleExecutor {
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
         // TODO implement this
+        throw new UnsupportedOperationException();
     }
 
 }

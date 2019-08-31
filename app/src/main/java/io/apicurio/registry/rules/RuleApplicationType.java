@@ -21,6 +21,6 @@ package io.apicurio.registry.rules;
  */
 public enum RuleApplicationType {
 
-    create, update;
+    CREATE, UPDATE;
     
 }

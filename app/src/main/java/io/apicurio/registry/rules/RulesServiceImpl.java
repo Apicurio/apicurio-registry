@@ -14,6 +14,7 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
 /**
+ * Implements the {@link RulesService} interface.
  * @author Ales Justin
  */
 @ApplicationScoped
@@ -35,7 +36,7 @@ public class RulesServiceImpl implements RulesService {
         boolean useGlobalRules = false;
         @SuppressWarnings("unchecked")
         List<String> rules = Collections.EMPTY_LIST;
-        if (ruleApplicationType == RuleApplicationType.update) {
+        if (ruleApplicationType == RuleApplicationType.UPDATE) {
             rules = storage.getArtifactRules(artifactId);
         }
         if (rules.isEmpty()) {
@@ -46,7 +47,7 @@ public class RulesServiceImpl implements RulesService {
             return;
         }
         String currentArtifactContent = null;
-        if (ruleApplicationType == RuleApplicationType.update) {
+        if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
             currentArtifactContent = currentArtifact.content;
         }
@@ -69,7 +70,7 @@ public class RulesServiceImpl implements RulesService {
             RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
             throws RuleViolationException {
         String currentArtifactContent = null;
-        if (ruleApplicationType == RuleApplicationType.update) {
+        if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
             currentArtifactContent = currentArtifact.content;
         }

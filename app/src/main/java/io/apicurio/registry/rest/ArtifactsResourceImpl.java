@@ -199,7 +199,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         String content = toString(data);
         
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.create);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
         ArtifactMetaDataDto dto = storage.createArtifact(artifactId, artifactType, content);
 
         return dtoToMetaData(artifactId, artifactType, dto);
@@ -222,7 +222,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         String content = toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.update);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         ArtifactMetaDataDto dto = storage.updateArtifact(artifactId, artifactType, content);
         
         return dtoToMetaData(artifactId, artifactType, dto);
@@ -255,7 +255,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             InputStream data) {
         String content = toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.update);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         ArtifactMetaDataDto metaDataDto = storage.updateArtifact(artifactId, artifactType, content);
         return dtoToVersionMetaData(artifactId, artifactType, metaDataDto);
     }

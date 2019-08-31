@@ -7,21 +7,11 @@ import java.util.List;
  * @author Jonathan Halliday
  */
 public class JsonArtifactTypeAdapter implements ArtifactTypeAdapter {
-//    private ObjectMapper objectMapper = new ObjectMapper();
-//
-//    @Override
-//    public ArtifactWrapper wrapper(String schemaString) {
-//        try {
-//            JsonNode node = objectMapper.readTree(schemaString);
-//            JsonSchemaFactory factory = JsonSchemaFactory.getInstance();
-//            JsonSchema jsonSchema = factory.getSchema(node);
-//            String reconstitutedCanonicalForm = objectMapper.writeValueAsString(node);
-//            return new ArtifactWrapper(jsonSchema, reconstitutedCanonicalForm);
-//        } catch (IOException e) {
-//            throw new IllegalStateException(e);
-//        }
-//    }
-
+    
+    /**
+     * @see io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     */
+    @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         return existingSchemas.isEmpty() || existingSchemas.get(0).equals(proposedSchema);
     }

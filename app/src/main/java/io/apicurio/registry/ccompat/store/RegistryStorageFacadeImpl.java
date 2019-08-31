@@ -85,9 +85,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         } catch (ArtifactNotFoundException ignored) {
         }
         if (metadata == null) {
-            metadata = storage.createArtifact(subject, ArtifactType.avro, schema);
+            metadata = storage.createArtifact(subject, ArtifactType.AVRO, schema);
         } else {
-            metadata = storage.updateArtifact(subject, ArtifactType.avro, schema);
+            metadata = storage.updateArtifact(subject, ArtifactType.AVRO, schema);
         }
         return metadata.getGlobalId();
     }

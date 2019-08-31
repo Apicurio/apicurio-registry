@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.RuleType;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -23,20 +25,13 @@ public class RuleAlreadyExistsException extends AlreadyExistsException {
 
     private static final long serialVersionUID = 2412206165461946827L;
     
-    private final String ruleName;
+    private final RuleType rule;
 
     /**
      * Constructor.
      */
-    public RuleAlreadyExistsException(String ruleName) {
-        this.ruleName = ruleName;
-    }
-
-    /**
-     * @return the ruleName
-     */
-    public String getRuleName() {
-        return ruleName;
+    public RuleAlreadyExistsException(RuleType rule) {
+        this.rule = rule;
     }
 
     /**
@@ -44,7 +39,7 @@ public class RuleAlreadyExistsException extends AlreadyExistsException {
      */
     @Override
     public String getMessage() {
-        return "A rule named '" + this.ruleName + "' already exists.";
+        return "A rule named '" + this.rule.name() + "' already exists.";
     }
 
 }

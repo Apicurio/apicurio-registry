@@ -44,7 +44,7 @@ public class CompatibilityResource extends AbstractResource {
         // TODO - headers, level?
         boolean isCompatible = true;
         try {
-            rules.applyRule(subject, ArtifactType.avro, request.getSchema(), RuleType.compatibility, 
+            rules.applyRule(subject, ArtifactType.AVRO, request.getSchema(), RuleType.COMPATIBILITY, 
                     CompatibilityLevel.BACKWARD_TRANSITIVE.name(), RuleApplicationType.UPDATE);
         } catch (RuleViolationException e) {
             isCompatible = false;

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 
@@ -58,30 +59,30 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/1"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Create OpenAPI artifact - indicate the type via the content-type
         given()
             .when()
-                .contentType(RestConstants.JSON + "; artifactType=openapi")
+                .contentType(RestConstants.JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/2"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Try to create the same artifact ID (should fail)
         given()
             .when()
-                .contentType(RestConstants.JSON + "; artifactType=openapi")
+                .contentType(RestConstants.JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
                 .body(artifactContent)
                 .post("/artifacts")
@@ -110,13 +111,13 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testGetArtifact/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifact/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
         
         // Get the artifact content
         given()
@@ -149,26 +150,26 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testUpdateArtifact/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Update OpenAPI artifact
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
                 .body(updatedArtifactContent)
                 .put("/artifacts/{artifactId}")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -184,7 +185,7 @@ public class ArtifactsResourceTest {
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testUpdateArtifact/MissingAPI")
                 .body(updatedArtifactContent)
                 .put("/artifacts/{artifactId}")
@@ -201,13 +202,13 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testDeleteArtifact/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testDeleteArtifact/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Make sure we can get the artifact content
         given()
@@ -256,27 +257,27 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testListArtifactVersions/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Update the artifact 5 times
         for (int idx = 0; idx < 5; idx++) {
             given()
                 .when()
                     .contentType(RestConstants.JSON)
-                    .header("X-Registry-ArtifactType", "openapi")
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
-                    .body("type", equalTo("openapi"));
+                    .body("type", equalTo("OPENAPI"));
         }
         
         // List the artifact versions
@@ -322,26 +323,26 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testCreateArtifactVersion/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifactVersion/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Create a new version of the artifact
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
                 .body(updatedArtifactContent)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", equalTo(2))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -357,7 +358,7 @@ public class ArtifactsResourceTest {
         given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testCreateArtifactVersion/MissingAPI")
                 .body(updatedArtifactContent)
                 .post("/artifacts/{artifactId}/versions")
@@ -374,13 +375,13 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testGetArtifactVersion/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifactVersion/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Update the artifact 5 times
         List<Integer> versions = new ArrayList<>();
@@ -388,14 +389,14 @@ public class ArtifactsResourceTest {
             Integer version = given()
                 .when()
                     .contentType(RestConstants.JSON)
-                    .header("X-Registry-ArtifactType", "openapi")
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testGetArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo("openapi"))
+                    .body("type", equalTo("OPENAPI"))
                 .extract().body().path("version");
             versions.add(version);
         }
@@ -442,13 +443,13 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Update the artifact 5 times
         List<Integer> versions = new ArrayList<>();
@@ -456,14 +457,14 @@ public class ArtifactsResourceTest {
             Integer version = given()
                 .when()
                     .contentType(RestConstants.JSON)
-                    .header("X-Registry-ArtifactType", "openapi")
+                    .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo("openapi"))
+                    .body("type", equalTo("OPENAPI"))
                 .extract().body().path("version");
             System.out.println("Update.  Created version: " + version);
             versions.add(version);
@@ -537,7 +538,7 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
@@ -545,7 +546,7 @@ public class ArtifactsResourceTest {
 
         // Add a rule
         Rule rule = new Rule();
-        rule.setName("SyntaxValidation");
+        rule.setType(RuleType.VALIDATION);
         rule.setConfig("syntax-validation-config");
         given()
             .when()
@@ -567,10 +568,10 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(409)
                 .body("code", equalTo(409))
-                .body("message", equalTo("A rule named 'SyntaxValidation' already exists."));
+                .body("message", equalTo("A rule named 'VALIDATION' already exists."));
         
         // Add another rule
-        rule.setName("Compatibility");
+        rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("compatibility-config");
         given()
             .when()
@@ -590,67 +591,68 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
-                .body("[1]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+                .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
+                .body("[1]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
                 .body("[2]", nullValue());
         
         // Get a single rule by name
         given()
             .when()
                 .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/Compatibility")
+                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("name", equalTo("Compatibility"))
+                .body("type", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("compatibility-config"));
 
         // Update a rule's config
-        rule.setName("Compatibility");
+        rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("updated-configuration");
         given()
             .when()
                 .contentType(RestConstants.JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
-                .put("/artifacts/{artifactId}/rules/Compatibility")
+                .put("/artifacts/{artifactId}/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("name", equalTo("Compatibility"))
+                .body("type", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("updated-configuration"));
 
         // Get a single (updated) rule by name
         given()
             .when()
                 .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/Compatibility")
+                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("name", equalTo("Compatibility"))
+                .body("type", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("updated-configuration"));
 
         // Try to update a rule's config for a rule that doesn't exist.
-        rule.setName("RuleDoesNotExist");
-        rule.setConfig("rdne-config");
-        given()
-            .when()
-                .contentType(RestConstants.JSON)
-                .body(rule)
-                .pathParam("artifactId", artifactId)
-                .put("/artifacts/{artifactId}/rules/RuleDoesNotExist")
-            .then()
-                .statusCode(404)
-                .contentType(ContentType.JSON)
-                .body("code", equalTo(404))
-                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+        // TODO test for a rule that doesn't exist
+//        rule.setType("RuleDoesNotExist");
+//        rule.setConfig("rdne-config");
+//        given()
+//            .when()
+//                .contentType(RestConstants.JSON)
+//                .body(rule)
+//                .pathParam("artifactId", artifactId)
+//                .put("/artifacts/{artifactId}/rules/RuleDoesNotExist")
+//            .then()
+//                .statusCode(404)
+//                .contentType(ContentType.JSON)
+//                .body("code", equalTo(404))
+//                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
 
         // Delete a rule
         given()
             .when()
                 .pathParam("artifactId", artifactId)
-                .delete("/artifacts/{artifactId}/rules/Compatibility")
+                .delete("/artifacts/{artifactId}/rules/COMPATIBILITY")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -659,12 +661,12 @@ public class ArtifactsResourceTest {
         given()
             .when()
                 .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/Compatibility")
+                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
             .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
                 .body("code", equalTo(404))
-                .body("message", equalTo("No rule named 'Compatibility' was found."));
+                .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
 
         // Get the list of rules (should be 1 of them)
         given()
@@ -675,7 +677,7 @@ public class ArtifactsResourceTest {
                 .log().all()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("[0]", anyOf(equalTo("SyntaxValidation"), equalTo("Compatibility")))
+                .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
                 .body("[1]", nullValue());
 
         // Delete all rules
@@ -698,7 +700,7 @@ public class ArtifactsResourceTest {
 
         // Add a rule to an artifact that doesn't exist.
         rule = new Rule();
-        rule.setName("SyntaxValidation");
+        rule.setType(RuleType.VALIDATION);
         rule.setConfig("syntax-validation-config");
         given()
             .when()
@@ -720,13 +722,13 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testGetArtifactMetaData/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
         
         // Get the artifact meta-data
         given()
@@ -737,7 +739,7 @@ public class ArtifactsResourceTest {
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("version", anything())
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());
@@ -789,40 +791,40 @@ public class ArtifactsResourceTest {
             .when()
                 .contentType(RestConstants.JSON)
                 .header("X-Registry-ArtifactId", "testArtifactVersionMetaData/EmptyAPI")
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testArtifactVersionMetaData/EmptyAPI"))
-                .body("type", equalTo("openapi"));
+                .body("type", equalTo("OPENAPI"));
 
         // Create a new version of the artifact
         int version2 = given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v2)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
             .extract().body().path("version");
 
         // Create another new version of the artifact
         int version3 = given()
             .when()
                 .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactType", "openapi")
+                .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v3)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
             .extract().body().path("version");
 
         // Get meta-data for v2
@@ -834,7 +836,7 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());
@@ -860,7 +862,7 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
                 .body("createdOn", anything())
                 .body("name", equalTo("Updated Name"))
                 .body("description", equalTo("Updated description."));
@@ -874,7 +876,7 @@ public class ArtifactsResourceTest {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version3))
-                .body("type", equalTo("openapi"))
+                .body("type", equalTo("OPENAPI"))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());

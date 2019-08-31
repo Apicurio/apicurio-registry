@@ -37,9 +37,9 @@ public class RuleExecutorFactory {
 
     public RuleExecutor createExecutor(RuleType ruleType) {
         switch (ruleType) {
-            case compatibility:
+            case COMPATIBILITY:
                 return compatibility;
-            case validation:
+            case VALIDATION:
                 return validation;
             default:
                 throw new RuntimeException("Rule type not supported");

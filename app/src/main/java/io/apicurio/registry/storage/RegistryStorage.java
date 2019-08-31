@@ -16,11 +16,12 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.types.ArtifactType;
-
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * The storage layer for the registry.
@@ -101,19 +102,19 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public List<String> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
     
     /**
      * Creates an artifact rule for a specific Artifact.  If the named rule already exists for the artifact, then
      * this should fail.
      * @param artifactId
-     * @param ruleName
+     * @param rule
      * @param config
      * @throws ArtifactNotFoundException
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
      */
-    public void createArtifactRule(String artifactId, String ruleName, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes all rules stored/configured for the artifact.
@@ -126,33 +127,33 @@ public interface RegistryStorage {
     /**
      * Gets all of the information for a single rule configured on a given artifact.
      * @param artifactId
-     * @param ruleName
-     * @throws ArtifactNotFoundException
-     * @throws RuleNotFoundException
-     * @throws RegistryStorageException
-     */
-    public RuleConfigurationDto getArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
-
-    /**
-     * Updates the configuration information for a single rule on a given artifact.
-     * @param artifactId
-     * @param ruleName
      * @param rule
      * @throws ArtifactNotFoundException
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    public void updateArtifactRule(String artifactId, String ruleName, RuleConfigurationDto rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
-    
+    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
     /**
-     * Deletes a single stored/configured rule for a given artifact.
+     * Updates the configuration information for a single rule on a given artifact.
      * @param artifactId
-     * @param ruleName
+     * @param rule
+     * @param config
      * @throws ArtifactNotFoundException
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    public void deleteArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+    
+    /**
+     * Deletes a single stored/configured rule for a given artifact.
+     * @param artifactId
+     * @param rule
+     * @throws ArtifactNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    public void deleteArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
     
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
@@ -228,16 +229,16 @@ public interface RegistryStorage {
      * Gets a list of all global rule names.
      * @throws RegistryStorageException
      */
-    public List<String> getGlobalRules() throws RegistryStorageException;
+    public List<RuleType> getGlobalRules() throws RegistryStorageException;
 
     /**
      * Creates a single global rule.  Duplicates (by name) are not allowed.  Stores the rule name and configuration.
-     * @param ruleName
+     * @param rule
      * @param config
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
      */
-    public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException;
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException;
     
     /**
      * Deletes all of the globally configured rules.
@@ -247,27 +248,27 @@ public interface RegistryStorage {
     
     /**
      * Gets all information about a single global rule.
-     * @param ruleName
+     * @param rule
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException;
+    public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
 
     /**
      * Updates the configuration settings for a single global rule.
-     * @param ruleName
+     * @param rule
      * @param config
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException;
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException;
 
     /**
      * Deletes a single global rule.
-     * @param ruleName
+     * @param rule
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
      */
-    public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException;
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
 
 }

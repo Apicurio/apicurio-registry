@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.RuleType;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -23,20 +25,13 @@ public class RuleNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -5024749463194169679L;
     
-    private final String ruleName;
+    private final RuleType rule;
 
     /**
      * Constructor.
      */
-    public RuleNotFoundException(String ruleName) {
-        this.ruleName = ruleName;
-    }
-
-    /**
-     * @return the ruleName
-     */
-    public String getRuleName() {
-        return ruleName;
+    public RuleNotFoundException(RuleType rule) {
+        this.rule = rule;
     }
 
     /**
@@ -44,7 +39,7 @@ public class RuleNotFoundException extends NotFoundException {
      */
     @Override
     public String getMessage() {
-        return "No rule named '" + this.ruleName + "' was found.";
+        return "No rule named '" + this.rule.name() + "' was found.";
     }
 
 }

@@ -31,11 +31,11 @@ public class ArtifactTypeAdapterFactory {
 
     static {
         ADAPTERS = new HashMap<>();
-        ADAPTERS.put(ArtifactType.avro, new AvroArtifactTypeAdapter());
-        ADAPTERS.put(ArtifactType.protobuf, new ProtobufArtifactTypeAdapter());
-        ADAPTERS.put(ArtifactType.json, new JsonArtifactTypeAdapter());
-        ADAPTERS.put(ArtifactType.openapi, NoopArtifactTypeAdapter.INSTANCE);
-        ADAPTERS.put(ArtifactType.asyncapi, NoopArtifactTypeAdapter.INSTANCE);
+        ADAPTERS.put(ArtifactType.AVRO, new AvroArtifactTypeAdapter());
+        ADAPTERS.put(ArtifactType.PROTOBUFF, new ProtobufArtifactTypeAdapter());
+        ADAPTERS.put(ArtifactType.JSON, new JsonArtifactTypeAdapter());
+        ADAPTERS.put(ArtifactType.OPENAPI, NoopArtifactTypeAdapter.INSTANCE);
+        ADAPTERS.put(ArtifactType.ASYNCAPI, NoopArtifactTypeAdapter.INSTANCE);
     }
 
     public static ArtifactTypeAdapter toAdapter(ArtifactType type) {

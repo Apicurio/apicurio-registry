@@ -1,5 +1,18 @@
 package io.apicurio.registry.storage.impl;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -14,20 +27,11 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import javax.annotation.PostConstruct;
+import io.apicurio.registry.types.RuleType;
 
 /**
+ * Base class for all map-based registry storage implementation.  Examples of 
+ * subclasses of this might be an in-memory impl as well as an Infinispan impl.
  * @author Ales Justin
  */
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
@@ -233,29 +237,29 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRules(java.lang.String)
      */
     @Override
-    public List<String> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         // check if the artifact exists
         getVersion2ContentMap(artifactId);
         // get the rules
         @SuppressWarnings("unchecked")
         Map<String, String> arules = artifactRules.getOrDefault(artifactId, Collections.EMPTY_MAP);
-        return new ArrayList<>(arules.keySet());
+        return arules.keySet().stream().map(key -> RuleType.fromValue(key)).collect(Collectors.toList());
     }
     
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void createArtifactRule(String artifactId, String ruleName, RuleConfigurationDto config)
+    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // create a rule for the artifact
         String cdata = config.getConfiguration();
         Map<String, String> rules = artifactRules.compute(artifactId, rulesLookupFn());
-        String prevValue = rules.putIfAbsent(ruleName, cdata == null ? "" : cdata);
+        String prevValue = rules.putIfAbsent(rule.name(), cdata == null ? "" : cdata);
         if (prevValue != null) {
-            throw new RuleAlreadyExistsException(ruleName);
+            throw new RuleAlreadyExistsException(rule);
         }
     }
 
@@ -271,28 +275,28 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
      */
-    @Override
     @SuppressWarnings("unchecked")
-    public RuleConfigurationDto getArtifactRule(String artifactId, String ruleName)
+    @Override
+    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // get artifact rule
         Map<String, String> rules = artifactRules.getOrDefault(artifactId, Collections.EMPTY_MAP);
-        String config = rules.get(ruleName);
+        String config = rules.get(rule.name());
         if (config == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
         return new RuleConfigurationDto(config);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void updateArtifactRule(String artifactId, String ruleName, RuleConfigurationDto config)
+    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
@@ -300,30 +304,31 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         String cdata = config.getConfiguration();
         Map<String, String> rules = artifactRules.get(artifactId);
         if (rules == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
-        String prevValue = rules.put(ruleName, cdata == null ? "" : cdata);
+        String prevValue = rules.put(rule.name(), cdata == null ? "" : cdata);
         if (prevValue == null) {
-            rules.remove(ruleName);
-            throw new RuleNotFoundException(ruleName);
+            rules.remove(rule.name());
+            throw new RuleNotFoundException(rule);
         }
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
-    public void deleteArtifactRule(String artifactId, String ruleName) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+    public void deleteArtifactRule(String artifactId, RuleType rule)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // delete a rule for the artifact
         Map<String, String> rules = artifactRules.get(artifactId);
         if (rules == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
-        String prevValue = rules.remove(ruleName);
+        String prevValue = rules.remove(rule.name());
         if (prevValue == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
     }
 
@@ -411,19 +416,20 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRules()
      */
     @Override
-    public List<String> getGlobalRules() throws RegistryStorageException {
-        return new ArrayList<>(globalRules.keySet());
+    public List<RuleType> getGlobalRules() throws RegistryStorageException {
+        return globalRules.keySet().stream().map(key -> RuleType.fromValue(key)).collect(Collectors.toList());
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void createGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleAlreadyExistsException, RegistryStorageException {
         String cdata = config.getConfiguration();
-        String prevValue = globalRules.putIfAbsent(ruleName, cdata == null ? "" : cdata);
+        String prevValue = globalRules.putIfAbsent(rule.name(), cdata == null ? "" : cdata);
         if (prevValue != null) {
-            throw new RuleAlreadyExistsException(ruleName);
+            throw new RuleAlreadyExistsException(rule);
         }
     }
 
@@ -436,37 +442,38 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
-    public RuleConfigurationDto getGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-        String cdata = globalRules.get(ruleName);
+    public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        String cdata = globalRules.get(rule.name());
         if (cdata == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
         return new RuleConfigurationDto(cdata);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(java.lang.String, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void updateGlobalRule(String ruleName, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-        if (!globalRules.containsKey(ruleName)) {
-            throw new RuleNotFoundException(ruleName);
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
+        String rname = rule.name();
+        if (!globalRules.containsKey(rname)) {
+            throw new RuleNotFoundException(rule);
         }
         String cdata = config.getConfiguration();
-        globalRules.put(ruleName, cdata == null ? "" : cdata);
+        globalRules.put(rname, cdata == null ? "" : cdata);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
-    public void deleteGlobalRule(String ruleName) throws RuleNotFoundException, RegistryStorageException {
-        String prevValue = globalRules.remove(ruleName);
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        String prevValue = globalRules.remove(rule.name());
         if (prevValue == null) {
-            throw new RuleNotFoundException(ruleName);
+            throw new RuleNotFoundException(rule);
         }
     }
 }

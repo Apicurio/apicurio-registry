@@ -3,7 +3,9 @@ package io.apicurio.registry.rest.beans;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.registry.types.RuleType;
 
 
 /**
@@ -14,13 +16,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "name",
-    "config"
+    "config",
+    "type"
 })
 public class Rule {
 
-    @JsonProperty("name")
-    private String name;
     /**
      * 
      * (Required)
@@ -28,16 +28,13 @@ public class Rule {
      */
     @JsonProperty("config")
     private String config;
-
-    @JsonProperty("name")
-    public String getName() {
-        return name;
-    }
-
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("type")
+    @JsonPropertyDescription("")
+    private RuleType type;
 
     /**
      * 
@@ -57,6 +54,24 @@ public class Rule {
     @JsonProperty("config")
     public void setConfig(String config) {
         this.config = config;
+    }
+
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("type")
+    public RuleType getType() {
+        return type;
+    }
+
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("type")
+    public void setType(RuleType type) {
+        this.type = type;
     }
 
 }

@@ -1,7 +1,7 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.Rule;
-import java.lang.String;
+import io.apicurio.registry.types.RuleType;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -22,21 +22,23 @@ public interface RulesResource {
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
   @Path("/{rule}")
   @GET
   @Produces("application/json")
-  Rule getGlobalRuleConfig(@PathParam("rule") String rule);
+  Rule getGlobalRuleConfig(@PathParam("rule") RuleType rule);
 
   /**
    * Updates the configuration for a globally configured rule.
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -44,7 +46,7 @@ public interface RulesResource {
   @PUT
   @Produces("application/json")
   @Consumes("application/json")
-  Rule updateGlobalRuleConfig(@PathParam("rule") String rule, Rule data);
+  Rule updateGlobalRuleConfig(@PathParam("rule") RuleType rule, Rule data);
 
   /**
    * Deletes a single global rule.  If this is the only rule configured, this is the same
@@ -52,13 +54,14 @@ public interface RulesResource {
    *
    * This operation can fail for the following reasons:
    *
-   * * No rule named `rule` exists (HTTP error `404`)
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
   @Path("/{rule}")
   @DELETE
-  void deleteGlobalRule(@PathParam("rule") String rule);
+  void deleteGlobalRule(@PathParam("rule") RuleType rule);
 
   /**
    * Gets a list of all the currently configured global rules (if any).
@@ -70,14 +73,14 @@ public interface RulesResource {
    */
   @GET
   @Produces("application/json")
-  List<String> listGlobalRules();
+  List<io.apicurio.registry.rest.beans.RuleType> listGlobalRules();
 
   /**
    * Adds a rule to the list of globally configured rules.
    *
    * This operation can fail for the following reasons:
    *
-   * * The named rule is unknown (HTTP error `400`)
+   * * The rule type is unknown (HTTP error `400`)
    * * The rule already exists (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *

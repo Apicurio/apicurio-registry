@@ -1,26 +1,23 @@
 
 package io.apicurio.registry.types;
 
+import java.util.HashMap;
+import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public enum ArtifactType {
 
-    avro("avro"),
-    protobuf("protobuf"),
-    json("json"),
-    openapi("openapi"),
-    asyncapi("asyncapi");
-
+    AVRO("AVRO"),
+    PROTOBUFF("PROTOBUFF"),
+    JSON("JSON"),
+    OPENAPI("OPENAPI"),
+    ASYNCAPI("ASYNCAPI");
+    private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 
-    private final String value;
-
     static {
-        for (ArtifactType c : values()) {
+        for (ArtifactType c: values()) {
             CONSTANTS.put(c.value, c);
         }
     }

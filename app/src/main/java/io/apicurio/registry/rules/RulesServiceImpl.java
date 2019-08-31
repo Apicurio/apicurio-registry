@@ -35,7 +35,7 @@ public class RulesServiceImpl implements RulesService {
             RuleApplicationType ruleApplicationType) throws RuleViolationException {
         boolean useGlobalRules = false;
         @SuppressWarnings("unchecked")
-        List<String> rules = Collections.EMPTY_LIST;
+        List<RuleType> rules = Collections.EMPTY_LIST;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             rules = storage.getArtifactRules(artifactId);
         }
@@ -51,10 +51,9 @@ public class RulesServiceImpl implements RulesService {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
             currentArtifactContent = currentArtifact.content;
         }
-        for (String ruleName : rules) {
-            RuleType ruleType = RuleType.valueOf(ruleName);
+        for (RuleType ruleType : rules) {
             RuleConfigurationDto configurationDto = useGlobalRules ? 
-                    storage.getGlobalRule(ruleName) : storage.getArtifactRule(artifactId, ruleName);
+                    storage.getGlobalRule(ruleType) : storage.getArtifactRule(artifactId, ruleType);
             RuleExecutor executor = factory.createExecutor(ruleType);
             RuleContext context = new RuleContext(artifactId, artifactType, configurationDto.getConfiguration(), 
                     currentArtifactContent, artifactContent);

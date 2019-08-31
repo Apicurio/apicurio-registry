@@ -25,6 +25,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * Implementation of the @RulesResource JAX-RS interface.
@@ -41,7 +42,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()
      */
     @Override
-    public List<String> listGlobalRules() {
+    public List<RuleType> listGlobalRules() {
         return storage.getGlobalRules();
     }
 
@@ -53,7 +54,7 @@ public class RulesResourceImpl implements RulesResource {
         // TODO validate the rule name (only support rules we have implemented)
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
-        storage.createGlobalRule(data.getName(), configDto);
+        storage.createGlobalRule(data.getType(), configDto);
     }
 
     /**
@@ -65,37 +66,37 @@ public class RulesResourceImpl implements RulesResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.RulesResource#getGlobalRuleConfig(java.lang.String)
+     * @see io.apicurio.registry.rest.RulesResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
-    public Rule getGlobalRuleConfig(String ruleName) {
-        RuleConfigurationDto dto = storage.getGlobalRule(ruleName);
-        Rule rule = new Rule();
-        rule.setName(ruleName);
-        rule.setConfig(dto.getConfiguration());
-        return rule;
+    public Rule getGlobalRuleConfig(RuleType rule) {
+        RuleConfigurationDto dto = storage.getGlobalRule(rule);
+        Rule ruleBean = new Rule();
+        ruleBean.setType(rule);
+        ruleBean.setConfig(dto.getConfiguration());
+        return ruleBean;
     }
 
     /**
-     * @see io.apicurio.registry.rest.RulesResource#updateGlobalRuleConfig(java.lang.String, io.apicurio.registry.rest.beans.Rule)
+     * @see io.apicurio.registry.rest.RulesResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.beans.Rule)
      */
     @Override
-    public Rule updateGlobalRuleConfig(String ruleName, Rule data) {
+    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
-        storage.updateGlobalRule(ruleName, configDto);
-        Rule rule = new Rule();
-        rule.setName(ruleName);
-        rule.setConfig(data.getConfig());
-        return rule;
+        storage.updateGlobalRule(rule, configDto);
+        Rule ruleBean = new Rule();
+        ruleBean.setType(rule);
+        ruleBean.setConfig(data.getConfig());
+        return ruleBean;
     }
 
     /**
-     * @see io.apicurio.registry.rest.RulesResource#deleteGlobalRule(java.lang.String)
+     * @see io.apicurio.registry.rest.RulesResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
-    public void deleteGlobalRule(String ruleName) {
-        storage.deleteGlobalRule(ruleName);
+    public void deleteGlobalRule(RuleType rule) {
+        storage.deleteGlobalRule(rule);
     }
 
 }

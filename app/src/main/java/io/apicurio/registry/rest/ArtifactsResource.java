@@ -1,16 +1,8 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.Long;
-import java.lang.String;
 import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -21,6 +13,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -369,7 +368,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/rules")
   @GET
   @Produces("application/json")
-  List<io.apicurio.registry.rest.beans.RuleType> listArtifactRules(
+  List<RuleType> listArtifactRules(
       @PathParam("artifactId") String artifactId);
 
   /**

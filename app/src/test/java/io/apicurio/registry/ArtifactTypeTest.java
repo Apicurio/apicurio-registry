@@ -34,7 +34,7 @@ public class ArtifactTypeTest {
     @Test
     public void testAvro() {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
-        ArtifactType avro = ArtifactType.avro;
+        ArtifactType avro = ArtifactType.AVRO;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(avro);
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString));
@@ -45,7 +45,7 @@ public class ArtifactTypeTest {
     @Test
     public void testJson() {
         String jsonString = "{\"name\":\"foobar\"}";
-        ArtifactType json = ArtifactType.json;
+        ArtifactType json = ArtifactType.JSON;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(json);
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString));
@@ -71,7 +71,7 @@ public class ArtifactTypeTest {
                       "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                       "}\n";
 
-        ArtifactType protobuf = ArtifactType.protobuf;
+        ArtifactType protobuf = ArtifactType.PROTOBUFF;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(protobuf);
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));

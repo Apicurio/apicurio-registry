@@ -46,6 +46,7 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -98,7 +99,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             artifactType = getArtifactTypeFromContentType(request);
             if (artifactType == null) {
                 // TODO we need to figure out what type of content is being added by actually analyzing the content itself
-                artifactType = ArtifactType.avro;
+                artifactType = ArtifactType.AVRO;
             }
         }
         return artifactType;
@@ -283,7 +284,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * @see io.apicurio.registry.rest.ArtifactsResource#listArtifactRules(java.lang.String)
      */
     @Override
-    public List<String> listArtifactRules(String artifactId) {
+    public List<RuleType> listArtifactRules(String artifactId) {
         return storage.getArtifactRules(artifactId);
     }
 
@@ -294,7 +295,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public void createArtifactRule(String artifactId, Rule data) {
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
-        storage.createArtifactRule(artifactId, data.getName(), config);
+        storage.createArtifactRule(artifactId, data.getType(), config);
     }
 
     /**
@@ -306,35 +307,35 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactRuleConfig(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String)
      */
     @Override
-    public Rule getArtifactRuleConfig(String rule, String artifactId) {
+    public Rule getArtifactRuleConfig(RuleType rule, String artifactId) {
         RuleConfigurationDto dto = storage.getArtifactRule(artifactId, rule);
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
-        rval.setName(rule);
+        rval.setType(rule);
         return rval;
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.rest.beans.Rule)
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rest.beans.Rule)
      */
     @Override
-    public Rule updateArtifactRuleConfig(String rule, String artifactId, Rule data) {
+    public Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data) {
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(artifactId, rule, dto);
         Rule rval = new Rule();
-        rval.setName(rule);
+        rval.setType(rule);
         rval.setConfig(data.getConfig());
         return rval;
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#deleteArtifactRule(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.ArtifactsResource#deleteArtifactRule(io.apicurio.registry.types.RuleType, java.lang.String)
      */
     @Override
-    public void deleteArtifactRule(String rule, String artifactId) {
+    public void deleteArtifactRule(RuleType rule, String artifactId) {
         storage.deleteArtifactRule(artifactId, rule);
     }
 

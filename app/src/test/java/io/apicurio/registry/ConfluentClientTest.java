@@ -1,10 +1,13 @@
 package io.apicurio.registry;
 
+import io.apicurio.registry.util.H2DatabaseService;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -12,6 +15,18 @@ import java.util.List;
 
 @QuarkusTest
 public class ConfluentClientTest {
+
+    private static H2DatabaseService h2ds = new H2DatabaseService();
+
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        h2ds.start();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        h2ds.stop();
+    }
 
     private SchemaRegistryClient buildClient() {
         return new CachedSchemaRegistryClient("http://localhost:8081/confluent", 3);

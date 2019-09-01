@@ -26,7 +26,10 @@ import static org.hamcrest.Matchers.nullValue;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.apicurio.registry.util.H2DatabaseService;
 import org.hamcrest.CustomMatcher;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
@@ -49,6 +52,18 @@ public class ArtifactsResourceTest {
             "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
             "    }\r\n" + 
             "}";
+
+    private static H2DatabaseService h2ds = new H2DatabaseService();
+
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        h2ds.start();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        h2ds.stop();
+    }
 
     @Test
     public void testCreateArtifact() {

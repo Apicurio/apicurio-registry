@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -71,6 +71,13 @@
         </developer>
     </developers>
 
+    <modules>
+        <module>app</module>
+        <module>storage/jpa</module>
+        <module>distro</module>
+        <module>tests</module>
+    </modules>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -97,6 +104,13 @@
         <!-- Confluent API / client -->
         <confluent.version>5.3.0</confluent.version>
 
+        <!-- Build config -->
+        <quarkus.profile>dev</quarkus.profile>
+
+        <!-- Dependency versions -->
+        <lombok.version>1.18.8</lombok.version>
+        <h2.version>1.4.199</h2.version>
+
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
@@ -105,8 +119,10 @@
         <version.source.plugin>2.4</version.source.plugin>
         <version.surefire.plugin>2.22.1</version.surefire.plugin>
         <version.jar.plugin>3.1.2</version.jar.plugin>
+        <version.properties.plugin>1.0.0</version.properties.plugin>
+        <version.dependency.plugin>3.1.1</version.dependency.plugin>
     </properties>
-    
+
     <dependencyManagement>
         <dependencies>
             <!-- This project -->
@@ -160,12 +176,22 @@
                 <version>${confluent.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>properties-maven-plugin</artifactId>
+                    <version>${version.properties.plugin}</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -213,14 +239,39 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>                <plugin>
+                </plugin>
+                <plugin>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-maven-plugin</artifactId>
                     <version>${quarkus.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${version.dependency.plugin}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>set-system-properties</goal>
+                        </goals>
+                        <configuration>
+                            <properties>
+                                <property>
+                                    <name>quarkus.profile</name>
+                                    <value>${quarkus.profile}</value>
+                                </property>
+                            </properties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -282,18 +333,15 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <modules>
-        <module>app</module>
-        <module>distro</module>
-        <module>tests</module>
-    </modules>
-
-
     <profiles>
         <profile>
             <id>infinispan</id>
             <modules>
-                <module>infinispan</module>
+                <module>app</module>
+                <module>storage/jpa</module>
+                <module>storage/infinispan</module>
+                <module>distro</module>
+                <module>tests</module>
             </modules>
         </profile>
         <profile>

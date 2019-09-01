@@ -17,12 +17,20 @@
 package io.apicurio.registry.storage;
 
 import io.apicurio.registry.types.ArtifactType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
 public class ArtifactVersionMetaDataDto {
 
     private int version;

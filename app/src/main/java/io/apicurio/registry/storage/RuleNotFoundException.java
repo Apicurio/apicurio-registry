@@ -27,10 +27,12 @@ public class RuleNotFoundException extends NotFoundException {
     
     private final RuleType rule;
 
-    /**
-     * Constructor.
-     */
     public RuleNotFoundException(RuleType rule) {
+        this.rule = rule;
+    }
+
+    public RuleNotFoundException(RuleType rule, Throwable cause) {
+        super(cause);
         this.rule = rule;
     }
 

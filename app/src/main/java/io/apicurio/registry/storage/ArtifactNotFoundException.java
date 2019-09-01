@@ -23,7 +23,11 @@ public class ArtifactNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -3614783501078800654L;
     
-    private final String artifactId;
+    private String artifactId;
+
+    public ArtifactNotFoundException(Throwable cause) {
+        super(cause);
+    }
 
     /**
      * Constructor.
@@ -32,8 +36,16 @@ public class ArtifactNotFoundException extends NotFoundException {
         this.artifactId = artifactId;
     }
 
+    public ArtifactNotFoundException(String artifactId, Throwable cause) {
+        super("Artifact with ID '" + artifactId + "' not found.", cause);
+        this.artifactId = artifactId;
+    }
+
     /**
      * @return the artifactId
+     *
+     * This value is informative.
+     * MAY be null.
      */
     public String getArtifactId() {
         return artifactId;

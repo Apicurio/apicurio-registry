@@ -6,6 +6,10 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * WARNING: Ensure backward compatibility when updating the string values,
+ * they may be used in the persistence layer.
+ */
 public enum ArtifactType {
 
     AVRO("AVRO"),

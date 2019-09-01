@@ -40,6 +40,10 @@ public class RegistryStorageException extends StorageException {
         super(reason, cause);
     }
 
+    public RegistryStorageException(String reason) {
+        super(reason);
+    }
+
     /**
      * @see java.lang.Throwable#getMessage()
      */

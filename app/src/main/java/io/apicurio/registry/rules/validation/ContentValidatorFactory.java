@@ -29,7 +29,7 @@ import io.apicurio.registry.types.ArtifactType;
 public class ContentValidatorFactory {
     
     @Inject
-    private OpenApiContentValidator openapiValidator;
+    OpenApiContentValidator openapiValidator;
     
     public ContentValidator createValidator(ArtifactType artifactType) {
         switch (artifactType) {

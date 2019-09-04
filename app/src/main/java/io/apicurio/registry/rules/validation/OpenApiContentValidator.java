@@ -36,18 +36,20 @@ public class OpenApiContentValidator implements ContentValidator {
      */
     @Override
     public void validate(ValidationLevel level, String artifactContent) throws InvalidContentException {
-        Document document;
-        try {
-            document = Library.readDocumentFromJSONString(artifactContent);
-        } catch (Throwable t) {
-            throw new InvalidContentException("Syntax violation for OpenAPI artifact.", t);
+        Document document = null;
+        if (level == ValidationLevel.SYNTAX_ONLY || level == ValidationLevel.FULL) {
+            try {
+                document = Library.readDocumentFromJSONString(artifactContent);
+            } catch (Exception e) {
+                throw new InvalidContentException("Syntax violation for OpenAPI artifact.", e);
+            }
         }
         
         if (level == ValidationLevel.FULL) {
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
                 // TODO should include the details of all the validation problems in the exception
-                throw new InvalidContentException("The OpenAPI artifct is not semantically valid. " + problems.size() + " problems found.");
+                throw new InvalidContentException("The OpenAPI artifact is not semantically valid. " + problems.size() + " problems found.");
             }
         }
     }

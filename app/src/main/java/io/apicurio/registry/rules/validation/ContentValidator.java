@@ -25,6 +25,7 @@ public interface ContentValidator {
     
     /**
      * Called to validate the given content.  
+     * @param level
      * @param artifactContent
      * @throws InvalidContentException
      */

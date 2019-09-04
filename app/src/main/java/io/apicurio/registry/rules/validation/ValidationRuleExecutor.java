@@ -30,7 +30,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 public class ValidationRuleExecutor implements RuleExecutor {
 
     @Inject
-    private ContentValidatorFactory factory;
+    ContentValidatorFactory factory;
     
     /**
      * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)

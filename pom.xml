@@ -1,395 +1,404 @@
 <?xml version="1.0"?>
 <project
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <modelVersion>4.0.0</modelVersion>
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <name>apicurio-registry</name>
+	<groupId>io.apicurio</groupId>
+	<artifactId>apicurio-registry</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>apicurio-registry</name>
 
-    <url>https://www.apicur.io/</url>
-    <description>Open Source API &amp; Schema Registry</description>
+	<url>https://www.apicur.io/</url>
+	<description>Open Source API &amp; Schema Registry</description>
 
-    <organization>
-        <name>Red Hat</name>
-        <url>https://www.redhat.com</url>
-    </organization>
+	<organization>
+		<name>Red Hat</name>
+		<url>https://www.redhat.com</url>
+	</organization>
 
-    <licenses>
-        <license>
-            <name>Apache License Version 2.0</name>
-            <url>https://repository.jboss.org/licenses/apache-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+	<licenses>
+		<license>
+			<name>Apache License Version 2.0</name>
+			<url>https://repository.jboss.org/licenses/apache-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
-    <issueManagement>
-        <system>GitHub</system>
-        <url>https://github.com/apicurio/apicurio-registry/issues</url>
-    </issueManagement>
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/apicurio/apicurio-registry/issues</url>
+	</issueManagement>
 
-    <scm>
-        <connection>scm:git:git@github.com:apicurio/apicurio-registry.git</connection>
-        <developerConnection>scm:git:git@github.com:apicurio/apicurio-registry.git</developerConnection>
-        <url>scm:git:git@github.com:apicurio/apicurio-registry.git</url>
-    </scm>
+	<scm>
+		<connection>scm:git:git@github.com:apicurio/apicurio-registry.git</connection>
+		<developerConnection>scm:git:git@github.com:apicurio/apicurio-registry.git</developerConnection>
+		<url>scm:git:git@github.com:apicurio/apicurio-registry.git</url>
+	</scm>
 
-    <developers>
-        <developer>
-            <name>Eric Wittmann</name>
-            <id>EricWittmann</id>
-            <email>eric.wittmann@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Project Lead</role>
-                <role>Developer</role>
-            </roles>
-            <timezone>-5</timezone>
-        </developer>
-        <developer>
-            <name>Jakub Senko</name>
-            <id>jsenko</id>
-            <email>jsenko@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-        <developer>
-            <name>Aleš Justin</name>
-            <id>alesj</id>
-            <email>ajustin@redhat.com</email>
-            <organization>Red Hat</organization>
-            <roles>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-    </developers>
+	<developers>
+		<developer>
+			<name>Eric Wittmann</name>
+			<id>EricWittmann</id>
+			<email>eric.wittmann@redhat.com</email>
+			<organization>Red Hat</organization>
+			<roles>
+				<role>Project Lead</role>
+				<role>Developer</role>
+			</roles>
+			<timezone>-5</timezone>
+		</developer>
+		<developer>
+			<name>Jakub Senko</name>
+			<id>jsenko</id>
+			<email>jsenko@redhat.com</email>
+			<organization>Red Hat</organization>
+			<roles>
+				<role>Developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<name>Aleš Justin</name>
+			<id>alesj</id>
+			<email>ajustin@redhat.com</email>
+			<organization>Red Hat</organization>
+			<roles>
+				<role>Developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+	</developers>
 
-    <modules>
-        <module>app</module>
-        <module>storage/jpa</module>
-        <module>distro</module>
-        <module>tests</module>
-    </modules>
+	<modules>
+		<module>app</module>
+		<module>storage/jpa</module>
+		<module>distro</module>
+		<module>tests</module>
+	</modules>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
-        <timestamp>${maven.build.timestamp}</timestamp>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+		<timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 
-        <!-- Quarkus Version -->
-        <quarkus.version>0.21.1</quarkus.version>
+		<!-- Quarkus Version -->
+		<quarkus.version>0.21.1</quarkus.version>
 
-        <!-- Jandex -->
-        <jandex.version>1.0.6</jandex.version>
+		<!-- Jandex -->
+		<jandex.version>1.0.6</jandex.version>
 
-        <!-- Schema types -->
-        <avro.version>1.9.0</avro.version>
-        <json-schema-validator.version>1.0.19</json-schema-validator.version>
-        <wire-schema.version>3.0.0-rc01</wire-schema.version>
+		<!-- Schema types -->
+		<avro.version>1.9.0</avro.version>
+		<json-schema-validator.version>1.0.19</json-schema-validator.version>
+		<wire-schema.version>3.0.0-rc01</wire-schema.version>
 
-        <!-- Storage types -->
-        <infinispan.version>9.4.16.Final</infinispan.version>
+		<!-- Storage types -->
+		<infinispan.version>9.4.16.Final</infinispan.version>
 
-        <!-- Confluent API / client -->
-        <confluent.version>5.3.0</confluent.version>
+		<!-- Confluent API / client -->
+		<confluent.version>5.3.0</confluent.version>
 
-        <!-- Build config -->
-        <quarkus.profile>dev</quarkus.profile>
+		<!-- Build config -->
+		<quarkus.profile>dev</quarkus.profile>
 
-        <!-- Dependency versions -->
-        <lombok.version>1.18.8</lombok.version>
-        <h2.version>1.4.199</h2.version>
+		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
+		<apicurio-data-models.version>1.0.12.Final</apicurio-data-models.version>
 
-        <!-- Plugin Versions -->
-        <version.compiler.plugin>3.8.1</version.compiler.plugin>
-        <version.deploy.plugin>2.8.2</version.deploy.plugin>
-        <version.failsafe.plugin>2.22.1</version.failsafe.plugin>
-        <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
-        <version.source.plugin>2.4</version.source.plugin>
-        <version.surefire.plugin>2.22.1</version.surefire.plugin>
-        <version.jar.plugin>3.1.2</version.jar.plugin>
-        <version.properties.plugin>1.0.0</version.properties.plugin>
-        <version.dependency.plugin>3.1.1</version.dependency.plugin>
-    </properties>
+		<!-- Dependency versions -->
+		<lombok.version>1.18.8</lombok.version>
+		<h2.version>1.4.199</h2.version>
 
-    <dependencyManagement>
-        <dependencies>
-            <!-- This project -->
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-app</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-app</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
+		<!-- Plugin Versions -->
+		<version.compiler.plugin>3.8.1</version.compiler.plugin>
+		<version.deploy.plugin>2.8.2</version.deploy.plugin>
+		<version.failsafe.plugin>2.22.1</version.failsafe.plugin>
+		<version.javadoc.plugin>2.10.4</version.javadoc.plugin>
+		<version.source.plugin>2.4</version.source.plugin>
+		<version.surefire.plugin>2.22.1</version.surefire.plugin>
+		<version.jar.plugin>3.1.2</version.jar.plugin>
+		<version.properties.plugin>1.0.0</version.properties.plugin>
+		<version.dependency.plugin>3.1.1</version.dependency.plugin>
+	</properties>
 
-            <!-- Quarkus Dependencies -->
-            <dependency>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-bom</artifactId>
-                <version>${quarkus.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+	<dependencyManagement>
+		<dependencies>
+			<!-- This project -->
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-app</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-app</artifactId>
+				<version>${project.version}</version>
+				<type>test-jar</type>
+			</dependency>
 
-            <!-- Third Party Libraries -->
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro</artifactId>
-                <version>${avro.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.networknt</groupId>
-                <artifactId>json-schema-validator</artifactId>
-                <version>${json-schema-validator.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.squareup.wire</groupId>
-                <artifactId>wire-schema</artifactId>
-                <version>${wire-schema.version}</version>
-            </dependency>
+			<!-- Quarkus Dependencies -->
+			<dependency>
+				<groupId>io.quarkus</groupId>
+				<artifactId>quarkus-bom</artifactId>
+				<version>${quarkus.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
-            <!-- Tests -->
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>kafka-avro-serializer</artifactId>
-                <version>${confluent.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+			<!-- Third Party Libraries -->
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-data-models</artifactId>
+				<version>${apicurio-data-models.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.infinispan</groupId>
+				<artifactId>infinispan-core</artifactId>
+				<version>${infinispan.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.avro</groupId>
+				<artifactId>avro</artifactId>
+				<version>${avro.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.networknt</groupId>
+				<artifactId>json-schema-validator</artifactId>
+				<version>${json-schema-validator.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.squareup.wire</groupId>
+				<artifactId>wire-schema</artifactId>
+				<version>${wire-schema.version}</version>
+			</dependency>
 
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>properties-maven-plugin</artifactId>
-                    <version>${version.properties.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${version.compiler.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>${version.source.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>${version.javadoc.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>${version.failsafe.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${version.surefire.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>${version.deploy.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>${version.jar.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jboss.jandex</groupId>
-                    <artifactId>jandex-maven-plugin</artifactId>
-                    <version>${jandex.version}</version>
-                    <executions>
-                        <execution>
-                            <id>make-index</id>
-                            <goals>
-                                <goal>jandex</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-maven-plugin</artifactId>
-                    <version>${quarkus.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>${version.dependency.plugin}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>properties-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>set-system-properties</goal>
-                        </goals>
-                        <configuration>
-                            <properties>
-                                <property>
-                                    <name>quarkus.profile</name>
-                                    <value>${quarkus.profile}</value>
-                                </property>
-                            </properties>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${maven.compiler.target}</source>
-                    <target>${maven.compiler.target}</target>
-                    <showDeprecation>false</showDeprecation>
-                    <showWarnings>false</showWarnings>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <additionalDependencies>
-                        <additionalDependency>
-                            <groupId>org.jboss.spec.javax.annotation</groupId>
-                            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
-                            <version>1.0.1.Final</version>
-                        </additionalDependency>
-                    </additionalDependencies>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+			<!-- Tests -->
+			<dependency>
+				<groupId>io.confluent</groupId>
+				<artifactId>kafka-avro-serializer</artifactId>
+				<version>${confluent.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <name>Confluent</name>
-            <url>https://packages.confluent.io/maven/</url>
-        </repository>
-    </repositories>
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>properties-maven-plugin</artifactId>
+					<version>${version.properties.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${version.compiler.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<version>${version.source.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>${version.javadoc.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<version>${version.failsafe.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${version.surefire.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>${version.deploy.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>${version.jar.plugin}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.jboss.jandex</groupId>
+					<artifactId>jandex-maven-plugin</artifactId>
+					<version>${jandex.version}</version>
+					<executions>
+						<execution>
+							<id>make-index</id>
+							<goals>
+								<goal>jandex</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>io.quarkus</groupId>
+					<artifactId>quarkus-maven-plugin</artifactId>
+					<version>${quarkus.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>${version.dependency.plugin}</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>properties-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>set-system-properties</goal>
+						</goals>
+						<configuration>
+							<properties>
+								<property>
+									<name>quarkus.profile</name>
+									<value>${quarkus.profile}</value>
+								</property>
+							</properties>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${maven.compiler.target}</source>
+					<target>${maven.compiler.target}</target>
+					<showDeprecation>false</showDeprecation>
+					<showWarnings>false</showWarnings>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<additionalDependencies>
+						<additionalDependency>
+							<groupId>org.jboss.spec.javax.annotation</groupId>
+							<artifactId>jboss-annotations-api_1.2_spec</artifactId>
+							<version>1.0.1.Final</version>
+						</additionalDependency>
+					</additionalDependencies>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
+	<repositories>
+		<repository>
+			<id>confluent</id>
+			<name>Confluent</name>
+			<url>https://packages.confluent.io/maven/</url>
+		</repository>
+	</repositories>
 
-    <profiles>
-        <profile>
-            <id>infinispan</id>
-            <modules>
-                <module>app</module>
-                <module>storage/jpa</module>
-                <module>storage/infinispan</module>
-                <module>distro</module>
-                <module>tests</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>java8</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<profiles>
+		<profile>
+			<id>infinispan</id>
+			<modules>
+				<module>app</module>
+				<module>storage/jpa</module>
+				<module>storage/infinispan</module>
+				<module>distro</module>
+				<module>tests</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>java8</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

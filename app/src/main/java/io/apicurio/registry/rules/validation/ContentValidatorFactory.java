@@ -19,27 +19,34 @@ package io.apicurio.registry.rules.validation;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.apicurio.registry.rules.RuleContext;
-import io.apicurio.registry.rules.RuleExecutor;
-import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
+ * Factory for creating validators for the different supported content types.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class ValidationRuleExecutor implements RuleExecutor {
-
-    @Inject
-    ContentValidatorFactory factory;
+public class ContentValidatorFactory {
     
-    /**
-     * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)
-     */
-    @Override
-    public void execute(RuleContext context) throws RuleViolationException {
-        ValidationLevel level = ValidationLevel.valueOf(context.getConfiguration());
-        ContentValidator validator = factory.createValidator(context.getArtifactType());
-        validator.validate(level, context.getUpdatedContent());
+    @Inject
+    OpenApiContentValidator openapiValidator;
+    
+    public ContentValidator createValidator(ArtifactType artifactType) {
+        switch (artifactType) {
+            case ASYNCAPI:
+                break;
+            case AVRO:
+                break;
+            case JSON:
+                break;
+            case OPENAPI:
+                return openapiValidator;
+            case PROTOBUFF:
+                break;
+            default:
+                break;
+        }
+        throw new UnsupportedOperationException("No content validator available for: " + artifactType);
     }
 
 }

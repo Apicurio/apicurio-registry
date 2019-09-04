@@ -17,6 +17,8 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.ArtifactIdGenerator;
+import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
+import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -35,6 +37,15 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.InternalServerErrorException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -43,34 +54,30 @@ import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
+ *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  */
+@ApplicationScoped
+@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 public class ArtifactsResourceImpl implements ArtifactsResource {
-    
+
     @Inject
     @Current
     RegistryStorage storage;
-    
+
     @Inject
     RulesService rulesService;
 
     @Inject
     ArtifactIdGenerator idGenerator;
-    
+
     @Context
     HttpServletRequest request;
-    
+
     private static final String toString(InputStream stream) {
         try {
             ByteArrayOutputStream result = new ByteArrayOutputStream();
@@ -84,14 +91,14 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
-    
+
     /**
      * Figures out the artifact type in the following order of precedent:
-     * 
-     *  1) The provided X-Registry-ArtifactType header
-     *  2) A hint provided in the Content-Type header
-     *  3) Determined from the content itself
-     * 
+     * <p>
+     * 1) The provided X-Registry-ArtifactType header
+     * 2) A hint provided in the Content-Type header
+     * 3) Determined from the content itself
+     *
      * @param content
      * @param xArtifactType
      * @param request
@@ -110,13 +117,14 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
     /**
      * Tries to figure out the artiact type by analyzing the content-type.
+     *
      * @param request
      */
     private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
         String contentType = request.getHeader("Content-Type");
         // TODO handle protobuf here as well - it's the only one that's not JSON
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
-            String [] split = contentType.split(";");
+            String[] split = contentType.split(";");
             if (split.length > 1) {
                 for (String s : split) {
                     if (s.contains("artifactType=")) {
@@ -135,12 +143,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and storage meta-data.
+     *
      * @param artifactId
      * @param artifactType
      * @param dto
      */
     private static ArtifactMetaData dtoToMetaData(String artifactId, ArtifactType artifactType,
-            ArtifactMetaDataDto dto) {
+                                                  ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
@@ -153,15 +162,16 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         metaData.setVersion(dto.getVersion());
         return metaData;
     }
-    
+
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
+     *
      * @param artifactId
      * @param artifactType
      * @param dto
      */
     private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
-            ArtifactMetaDataDto dto) {
+                                                        ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
@@ -174,12 +184,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
+     *
      * @param artifactId
      * @param artifactType
      * @param dto
      */
     private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
-            ArtifactVersionMetaDataDto dto) {
+                                                        ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
@@ -201,7 +212,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             artifactId = idGenerator.generate();
         }
         String content = toString(data);
-        
+
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.createArtifact(artifactId, artifactType, content);
@@ -319,6 +330,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         storage.deleteArtifactRules(artifactId);
     }
 
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String)
      */
@@ -399,5 +411,4 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
         storage.deleteArtifactVersionMetaData(artifactId, version);
     }
-
 }

@@ -25,4 +25,12 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class OpenApiContentValidator extends ApicurioDataModelContentValidator {
 
+    /**
+     * @see io.apicurio.registry.rules.validation.ApicurioDataModelContentValidator#getDataModelType()
+     */
+    @Override
+    protected String getDataModelType() {
+        return "OpenAPI";
+    }
+    
 }

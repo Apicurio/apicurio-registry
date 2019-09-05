@@ -38,7 +38,7 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
             try {
                 document = Library.readDocumentFromJSONString(artifactContent);
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for OpenAPI artifact.", e);
+                throw new InvalidContentException("Syntax violation for " + getDataModelType() + " artifact.", e);
             }
         }
         
@@ -46,9 +46,14 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
                 // TODO should include the details of all the validation problems in the exception
-                throw new InvalidContentException("The OpenAPI artifact is not semantically valid. " + problems.size() + " problems found.");
+                throw new InvalidContentException("The " + getDataModelType() + " artifact is not semantically valid. " + problems.size() + " problems found.");
             }
         }
     }
+    
+    /**
+     * Returns the type of data model being validated.  Subclasses must implement.
+     */
+    protected abstract String getDataModelType();
 
 }

@@ -14,8 +14,11 @@ import io.quarkus.runtime.StartupEvent;
 import org.apache.kafka.common.TopicPartition;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
+import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Disposes;
@@ -27,6 +30,8 @@ import javax.enterprise.inject.spi.InjectionPoint;
  */
 @ApplicationScoped
 public class KafkaRegistryConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaRegistryConfiguration.class);
 
     public static final String SCHEMA_TOPIC = "schema-topic";
 
@@ -67,7 +72,11 @@ public class KafkaRegistryConfiguration {
         KafkaRegistryStorage storage
     ) {
         // persistent unique group id
-        properties.put("group.id", "TODO_123"); // TODO
+        String groupId = properties.getProperty("group.id");
+        if (groupId == null) {
+            log.warn("No group.id set, creating one ... DEV env only!!");
+            properties.put("group.id", UUID.randomUUID().toString());
+        }
 
         return new DynamicConsumerContainer<>(
             properties,

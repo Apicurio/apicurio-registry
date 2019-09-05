@@ -29,7 +29,7 @@ import javax.inject.Inject;
  * @author Ales Justin
  */
 @ApplicationScoped
-public class KafkaRegistryStorage extends SimpleMapRegistryStorage {
+public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements KafkaRegistryStorageHandle {
 
     @Inject
     Function<ProducerRecord<Reg.UUID, Reg.SchemaValue>, CompletableFuture<RecordMetadata>> schemaProducer;

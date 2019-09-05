@@ -12,10 +12,10 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An async wrapper for kafka producer that is resilient in the event of failures - it recreates the underlying
@@ -79,7 +79,7 @@ public class AsyncProducer<K, V> implements ProducerActions<K, V> {
                 try {
                     log.info("Closing resilient producer.");
                     if (fromCallback) {
-                        producer.close(0L, TimeUnit.MILLISECONDS);
+                        producer.close(Duration.ZERO);
                     } else {
                         producer.close();
                     }

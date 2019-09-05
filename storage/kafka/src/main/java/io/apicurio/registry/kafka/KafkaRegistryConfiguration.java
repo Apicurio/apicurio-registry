@@ -78,7 +78,7 @@ public class KafkaRegistryConfiguration {
     @ApplicationScoped
     public ConsumerActions.DynamicAssignment<Reg.UUID, Reg.SchemaValue> schemaContainer(
         @KafkaProperties("registry.kafka.schema-consumer.") Properties properties,
-        KafkaRegistryStorage storage
+        KafkaRegistryStorageHandle handle
     ) {
         // persistent unique group id
         String groupId = properties.getProperty("group.id");
@@ -91,7 +91,7 @@ public class KafkaRegistryConfiguration {
             properties,
             ProtoSerde.parsedWith(Reg.UUID.parser()),
             ProtoSerde.parsedWith(Reg.SchemaValue.parser()),
-            Oneof2.first(storage::consumeSchemaValue)
+            Oneof2.first(handle::consumeSchemaValue)
         );
     }
 

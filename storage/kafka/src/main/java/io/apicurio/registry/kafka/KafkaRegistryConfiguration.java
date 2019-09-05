@@ -17,6 +17,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
@@ -39,8 +40,16 @@ public class KafkaRegistryConfiguration {
     public Properties properties(InjectionPoint ip) {
         KafkaProperties kp = ip.getAnnotated().getAnnotation(KafkaProperties.class);
         String prefix = (kp != null ? kp.value() : "");
-        Properties properties = new Properties();
         Config config = ConfigProvider.getConfig();
+        Optional<String> po = config.getOptionalValue("quarkus.profile", String.class);
+        if (po.isPresent()) {
+            String profile = po.get();
+            if (profile.length() > 0) {
+                prefix = "%" + profile + "." + prefix;
+            }
+        }
+
+        Properties properties = new Properties();
         for (String key : config.getPropertyNames()) {
             if (key.startsWith(prefix)) {
                 properties.put(key.substring(prefix.length()), config.getValue(key, String.class));

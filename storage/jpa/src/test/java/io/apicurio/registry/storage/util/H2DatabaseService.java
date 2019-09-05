@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.util;
+package io.apicurio.registry.storage.util;
 
+import io.apicurio.registry.util.PropertiesLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -43,11 +46,10 @@ public class H2DatabaseService {
      * @throws Exception
      */
     public void start() throws Exception {
-        log.info("Starting H2 server");
-
         PropertiesLoader properties = new PropertiesLoader();
         String jar = properties.get("h2.jar.file.path");
         String port = properties.get("h2.port");
+        log.info(String.format("Starting H2 server: %s %s", jar, port));
 
         String[] cmdArray = {
                 "java", "-cp", jar, "org.h2.tools.Server",
@@ -55,38 +57,49 @@ public class H2DatabaseService {
                 "-ifNotExists"
         };
 
-        log.debug("H2 > " + Arrays.toString(cmdArray));
+        log.info("H2 > " + Arrays.toString(cmdArray));
 
         process = Runtime.getRuntime().exec(cmdArray);
         InputStream is = process.getInputStream();
+        InputStream err = process.getErrorStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        BufferedReader errReader = new BufferedReader(new InputStreamReader(err));
+        List<String> msgs = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
         Thread t = new Thread(() -> {
             try {
-                String line = null;
+                String line;
+                String errLine;
                 while (process.isAlive()) {
                     line = reader.readLine();
                     if (line != null) {
-                        log.debug("H2 > " + line);
+                        log.info("H2 > " + line);
+                        msgs.add(line);
+                        if (line.contains("TCP server running")) {
+                            log.info("H2 Server started ...");
+                            latch.countDown();
+                            return;
+                        }
                     }
-                    if (line != null && line.contains("TCP server running")) {
-                        latch.countDown();
+                    errLine = errReader.readLine();
+                    if (errLine != null) {
+                        log.error("H2 err > " + errLine);
+                        msgs.add("e: " + errLine);
                     }
                 }
-//                int retCode = process.exitValue();
-//                if (retCode == 0) {
-//                    log.info("H2 Server process exited OK");
-//                } else {
-//                    throw new RuntimeException("H2 Server process exited with error: " + retCode);
-//                }
-                latch.countDown();
+                int exitValue = process.exitValue();
+                if (exitValue == 0) {
+                    log.info("H2 Server process exited OK");
+                } else {
+                    log.error("H2 Server process exited with error: " + exitValue + ", msgs: " + msgs);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        });
+            latch.countDown();
+        }, "H2-thread");
         t.start();
         latch.await();
-        log.info("H2 server started!");
     }
 
     public void stop() {

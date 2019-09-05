@@ -16,6 +16,11 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,12 +30,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.SortedSet;
-
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public abstract class AbstractRegistryStorageSmokeTest {

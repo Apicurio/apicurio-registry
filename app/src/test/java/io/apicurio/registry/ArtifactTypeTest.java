@@ -16,20 +16,19 @@
 
 package io.apicurio.registry;
 
-import java.util.Collections;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter;
 import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapterFactory;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
 
 /**
  * @author Ales Justin
  */
-public class ArtifactTypeTest {
+public class ArtifactTypeTest { // no need to extend TestBase
 
     @Test
     public void testAvro() {

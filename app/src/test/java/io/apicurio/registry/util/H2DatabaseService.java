@@ -73,12 +73,12 @@ public class H2DatabaseService {
                         latch.countDown();
                     }
                 }
-                int retCode = process.exitValue();
-                if (retCode == 0) {
-                    log.info("H2 Server process exited OK");
-                } else {
-                    throw new RuntimeException("H2 Server process exited with error: " + retCode);
-                }
+//                int retCode = process.exitValue();
+//                if (retCode == 0) {
+//                    log.info("H2 Server process exited OK");
+//                } else {
+//                    throw new RuntimeException("H2 Server process exited with error: " + retCode);
+//                }
                 latch.countDown();
             } catch (IOException e) {
                 e.printStackTrace();

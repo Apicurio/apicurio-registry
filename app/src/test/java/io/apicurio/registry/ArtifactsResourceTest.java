@@ -481,7 +481,7 @@ public class ArtifactsResourceTest {
                     .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
                     .body("type", equalTo("OPENAPI"))
                 .extract().body().path("version");
-            System.out.println("Update.  Created version: " + version);
+//            System.out.println("Update.  Created version: " + version);
             versions.add(version);
         }
         
@@ -492,7 +492,7 @@ public class ArtifactsResourceTest {
             }
             
             Integer version = versions.get(idx);
-            System.out.println("Deleting version: " + version);
+//            System.out.println("Deleting version: " + version);
             given()
                 .when()
                     .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
@@ -512,7 +512,7 @@ public class ArtifactsResourceTest {
             } else {
                 expectedCode = 404;
             }
-            System.out.println("Checking version: " + version);
+//            System.out.println("Checking version: " + version);
             given()
                 .when()
                     .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
@@ -689,7 +689,7 @@ public class ArtifactsResourceTest {
                 .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/rules")
             .then()
-                .log().all()
+//                .log().all()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))

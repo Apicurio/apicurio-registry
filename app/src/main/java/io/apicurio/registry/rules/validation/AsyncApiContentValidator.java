@@ -19,18 +19,18 @@ package io.apicurio.registry.rules.validation;
 import javax.enterprise.context.ApplicationScoped;
 
 /**
- * A content validator implementation for the OpenAPI content type.
+ * A content validator implementation for the AsyncAPI content type.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class OpenApiContentValidator extends ApicurioDataModelContentValidator {
+public class AsyncApiContentValidator extends ApicurioDataModelContentValidator {
 
     /**
      * @see io.apicurio.registry.rules.validation.ApicurioDataModelContentValidator#getDataModelType()
      */
     @Override
     protected String getDataModelType() {
-        return "OpenAPI";
+        return "AsyncAPI";
     }
     
 }

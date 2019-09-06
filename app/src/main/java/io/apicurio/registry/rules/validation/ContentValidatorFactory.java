@@ -30,11 +30,13 @@ public class ContentValidatorFactory {
     
     @Inject
     OpenApiContentValidator openapiValidator;
+    @Inject
+    AsyncApiContentValidator asyncValidator;
     
     public ContentValidator createValidator(ArtifactType artifactType) {
         switch (artifactType) {
             case ASYNCAPI:
-                break;
+                return asyncValidator;
             case AVRO:
                 break;
             case JSON:

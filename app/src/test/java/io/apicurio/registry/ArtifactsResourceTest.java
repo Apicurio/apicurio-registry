@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -42,16 +43,7 @@ import io.restassured.http.ContentType;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class ArtifactsResourceTest {
-
-    private static final String EMPTY_API_CONTENT = "{\r\n" + 
-            "    \"openapi\": \"3.0.2\",\r\n" + 
-            "    \"info\": {\r\n" + 
-            "        \"title\": \"Empty API\",\r\n" + 
-            "        \"version\": \"1.0.0\",\r\n" + 
-            "        \"description\": \"An example API design using OpenAPI.\"\r\n" + 
-            "    }\r\n" + 
-            "}";
+public class ArtifactsResourceTest extends AbstractResourceTest {
 
     private static H2DatabaseService h2ds = new H2DatabaseService();
 
@@ -67,20 +59,10 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testCreateArtifact() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact - indicate the type via a header param
-        given()
-            .when()
-                .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
-                .header("X-Registry-ArtifactType", "OPENAPI")
-                .body(artifactContent)
-                .post("/artifacts")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo("testCreateArtifact/EmptyAPI/1"))
-                .body("type", equalTo("OPENAPI"));
+        createArtifact("testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent);
 
         // Create OpenAPI artifact - indicate the type via the content-type
         given()
@@ -119,20 +101,10 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testGetArtifact() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
-        given()
-            .when()
-                .contentType(RestConstants.JSON)
-                .header("X-Registry-ArtifactId", "testGetArtifact/EmptyAPI")
-                .header("X-Registry-ArtifactType", "OPENAPI")
-                .body(artifactContent)
-                .post("/artifacts")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo("testGetArtifact/EmptyAPI"))
-                .body("type", equalTo("OPENAPI"));
+        createArtifact("testGetArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
         
         // Get the artifact content
         given()
@@ -157,8 +129,8 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testUpdateArtifact() {
-        String artifactContent = EMPTY_API_CONTENT;
-        String updatedArtifactContent = EMPTY_API_CONTENT.replace("Empty API", "Empty API (Updated)");
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         
         // Create OpenAPI artifact
         given()
@@ -210,7 +182,7 @@ public class ArtifactsResourceTest {
     
     @Test
     public void testDeleteArtifact() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
         given()
@@ -265,7 +237,7 @@ public class ArtifactsResourceTest {
     @SuppressWarnings("rawtypes")
     @Test
     public void testListArtifactVersions() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
         given()
@@ -330,8 +302,8 @@ public class ArtifactsResourceTest {
     
     @Test
     public void testCreateArtifactVersion() {
-        String artifactContent = EMPTY_API_CONTENT;
-        String updatedArtifactContent = EMPTY_API_CONTENT.replace("Empty API", "Empty API (Updated)");
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         
         // Create OpenAPI artifact
         given()
@@ -383,7 +355,7 @@ public class ArtifactsResourceTest {
     
     @Test
     public void testGetArtifactVersion() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
         given()
@@ -451,7 +423,7 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testDeleteArtifactVersion() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
         given()
@@ -545,7 +517,7 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testArtifactRules() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testArtifactRules/EmptyAPI";
         
         // Create an artifact
@@ -730,7 +702,7 @@ public class ArtifactsResourceTest {
 
     @Test
     public void testArtifactMetaData() {
-        String artifactContent = EMPTY_API_CONTENT;
+        String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
         given()
@@ -797,9 +769,9 @@ public class ArtifactsResourceTest {
     
     @Test
     public void testArtifactVersionMetaData() {
-        String artifactContent = EMPTY_API_CONTENT;
-        String updatedArtifactContent_v2 = EMPTY_API_CONTENT.replace("Empty API", "Empty API (v2)");
-        String updatedArtifactContent_v3 = EMPTY_API_CONTENT.replace("Empty API", "Empty API (v3)");
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent_v2 = artifactContent.replace("Empty API", "Empty API (v2)");
+        String updatedArtifactContent_v3 = artifactContent.replace("Empty API", "Empty API (v3)");
         
         // Create OpenAPI artifact
         given()

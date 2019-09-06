@@ -16,25 +16,17 @@
 
 package io.apicurio.registry.rules.validation;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.AbstractRegistryTest;
 
 /**
  * Tests the AsyncAPI content validator.
  * @author eric.wittmann@gmail.com
  */
-public class AsyncApiContentValidatorTest {
+public class AsyncApiContentValidatorTest extends AbstractRegistryTest {
 
-    private static final String resourceToString(String resourceName)  {
-        InputStream stream = AsyncApiContentValidatorTest.class.getResourceAsStream(resourceName);
-        return new BufferedReader(new InputStreamReader(stream)).lines().collect(Collectors.joining("\n"));
-    }
-    
     @Test
     public void testValidSyntax() throws Exception {
         String content = resourceToString("asyncapi-valid-syntax.json");

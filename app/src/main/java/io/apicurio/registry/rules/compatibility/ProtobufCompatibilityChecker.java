@@ -19,8 +19,6 @@ package io.apicurio.registry.rules.compatibility;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.FieldElement;
 
-import io.apicurio.registry.types.ProtobufFile;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;

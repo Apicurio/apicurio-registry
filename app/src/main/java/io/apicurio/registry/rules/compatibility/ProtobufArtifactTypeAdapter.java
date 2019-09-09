@@ -18,8 +18,6 @@ package io.apicurio.registry.rules.compatibility;
 
 import java.util.List;
 
-import io.apicurio.registry.types.ProtobufFile;
-
 /**
  * @author Ales Justin
  */

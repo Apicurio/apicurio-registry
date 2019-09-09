@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 @QuarkusTest
-public class ConfluentClientTest {
+public class ConfluentClientTest extends AbstractResourceTestBase {
 
     private static H2DatabaseService h2ds = new H2DatabaseService();
 

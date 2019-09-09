@@ -37,7 +37,7 @@ import io.restassured.http.ContentType;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class RulesResourceTest {
+public class RulesResourceTest extends AbstractResourceTestBase {
 
     private static H2DatabaseService h2ds = new H2DatabaseService();
 

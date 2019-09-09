@@ -27,7 +27,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 
 @QuarkusTest
-public class SubjectsResourceTest {
+public class SubjectsResourceTest extends AbstractResourceTestBase {
 
     private static H2DatabaseService h2ds = new H2DatabaseService();
 

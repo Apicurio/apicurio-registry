@@ -16,24 +16,16 @@
 
 package io.apicurio.registry.rules.validation;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.AbstractRegistryTestBase;
 
 /**
  * Tests the OpenAPI content validator.
  * @author eric.wittmann@gmail.com
  */
-public class OpenApiContentValidatorTest {
-
-    private static final String resourceToString(String resourceName)  {
-        InputStream stream = OpenApiContentValidatorTest.class.getResourceAsStream(resourceName);
-        return new BufferedReader(new InputStreamReader(stream)).lines().collect(Collectors.joining("\n"));
-    }
+public class OpenApiContentValidatorTest extends AbstractRegistryTestBase {
     
     @Test
     public void testValidSyntax() throws Exception {

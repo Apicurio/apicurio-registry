@@ -19,6 +19,8 @@ package io.apicurio.registry;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
+import org.junit.jupiter.api.BeforeEach;
+
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -27,6 +29,12 @@ import io.apicurio.registry.types.ArtifactType;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractResourceTest extends AbstractRegistryTest {
+    
+    @BeforeEach
+    void beforeEach() {
+        // Delete all global rules
+        given().when().delete("/rules").then().statusCode(204);        
+    }
     
     /**
      * Called to create an artifact by invoking the appropriate JAX-RS operation.

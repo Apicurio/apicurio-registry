@@ -37,9 +37,13 @@ public class ValidationRuleExecutor implements RuleExecutor {
      */
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
-        ValidationLevel level = ValidationLevel.valueOf(context.getConfiguration());
-        ContentValidator validator = factory.createValidator(context.getArtifactType());
-        validator.validate(level, context.getUpdatedContent());
+        try {
+            ValidationLevel level = ValidationLevel.valueOf(context.getConfiguration());
+            ContentValidator validator = factory.createValidator(context.getArtifactType());
+            validator.validate(level, context.getUpdatedContent());
+        } catch (InvalidContentException e) {
+            throw new RuleViolationException(e.getMessage(), e);
+        }
     }
 
 }

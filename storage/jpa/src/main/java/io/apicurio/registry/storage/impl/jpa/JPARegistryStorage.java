@@ -456,7 +456,7 @@ public class JPARegistryStorage implements RegistryStorage {
             _ensureArtifactExists(artifactId);
 
             int affected = entityManager.createQuery("DELETE FROM Rule r " +
-                    "WHERE r.artifactId = :artifact_id AND r.name = :name", Rule.class)
+                    "WHERE r.artifactId = :artifact_id AND r.name = :name")
                     .setParameter("artifact_id", artifactId)
                     .setParameter("name", rule)
                     .executeUpdate();
@@ -531,7 +531,7 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             // TODO ArtifactVersionNotFoundEx ?
             int affected = entityManager.createQuery("DELETE FROM Artifact a " +
-                    "WHERE a.artifactId = :artifact_id AND a.version = :version", Artifact.class)
+                    "WHERE a.artifactId = :artifact_id AND a.version = :version")
                     .setParameter("artifact_id", artifactId)
                     .setParameter("version", version)
                     .executeUpdate();
@@ -583,7 +583,7 @@ public class JPARegistryStorage implements RegistryStorage {
             _ensureArtifactExists(artifactId);
 
             entityManager.createQuery("DELETE FROM MetaData md " +
-                    "WHERE md.artifactId = :artifact_id AND md.version = :version", MetaData.class)
+                    "WHERE md.artifactId = :artifact_id AND md.version = :version")
                     .setParameter("artifact_id", artifactId)
                     .setParameter("version", version)
                     .executeUpdate();

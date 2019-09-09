@@ -45,7 +45,7 @@ public class RuleContext {
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
-        this.currentContent = Objects.requireNonNull(currentContent);
+        this.currentContent = currentContent; // Current Content will be null when creating an artifact.
         this.updatedContent = Objects.requireNonNull(updatedContent);
     }
     

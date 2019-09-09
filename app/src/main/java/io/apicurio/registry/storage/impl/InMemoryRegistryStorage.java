@@ -28,7 +28,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class InMemoryRegistryStorage extends AbstractMapRegistryStorage {
 
     private AtomicLong counter = new AtomicLong(1);
-
+    
     @Override
     protected long nextGlobalId() {
         return counter.getAndIncrement();

@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * Abstract base class for all registry tests.
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractRegistryTest {
+public abstract class AbstractRegistryTestBase {
 
     /**
      * Loads a resource as a string.  Good e.g. for loading test artifacts.

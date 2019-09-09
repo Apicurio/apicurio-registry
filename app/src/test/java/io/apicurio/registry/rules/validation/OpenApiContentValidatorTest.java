@@ -19,13 +19,13 @@ package io.apicurio.registry.rules.validation;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.AbstractRegistryTest;
+import io.apicurio.registry.AbstractRegistryTestBase;
 
 /**
  * Tests the OpenAPI content validator.
  * @author eric.wittmann@gmail.com
  */
-public class OpenApiContentValidatorTest extends AbstractRegistryTest {
+public class OpenApiContentValidatorTest extends AbstractRegistryTestBase {
     
     @Test
     public void testValidSyntax() throws Exception {

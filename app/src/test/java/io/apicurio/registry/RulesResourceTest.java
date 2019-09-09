@@ -62,9 +62,6 @@ public class RulesResourceTest {
     
     @Test
     public void testGlobalRules() {
-        // Delete all global rules
-        given().when().delete("/rules").then().statusCode(204);        
-
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDATION);

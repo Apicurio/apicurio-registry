@@ -43,7 +43,7 @@ import io.restassured.http.ContentType;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class ArtifactsResourceTest extends AbstractResourceTest {
+public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
     private static H2DatabaseService h2ds = new H2DatabaseService();
 

@@ -28,7 +28,7 @@ import io.apicurio.registry.types.ArtifactType;
  * Abstract base class for all tests that test via the jax-rs layer.
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractResourceTest extends AbstractRegistryTest {
+public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
     
     @BeforeEach
     void beforeEach() {

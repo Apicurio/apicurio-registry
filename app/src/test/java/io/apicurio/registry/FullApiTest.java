@@ -36,7 +36,7 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class FullApiTest extends AbstractResourceTest {
+public class FullApiTest extends AbstractResourceTestBase {
     
     @Test
     public void testGlobalRuleApplication() {

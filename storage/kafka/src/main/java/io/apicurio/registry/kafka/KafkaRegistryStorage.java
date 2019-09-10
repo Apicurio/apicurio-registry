@@ -26,6 +26,7 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RegistryException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -96,7 +97,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         Reg.ActionType type = schemaValue.getType();
         CompletableFuture<Object> cf = cfMap.remove(ProtoUtil.convert(record.key()));
         if (cf == null) {
-            cf = new CompletableFuture<>(); // handle the msg anyway
+            cf = new CompletableFuture<>(); // it's a non-producer instance or handle it anyway (should not happen !?)
         }
         try {
             if (type == Reg.ActionType.CREATE || type == Reg.ActionType.UPDATE) {
@@ -116,9 +117,10 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
                     cf.complete(super.deleteArtifact(schemaValue.getArtifactId()));
                 }
             }
-        } catch (Throwable e) {
+        } catch (RegistryException e) {
             cf.completeExceptionally(e);
         }
+        // all other non-project / non-programmatic exceptions are unexpected, retry?
     }
 
     @Override

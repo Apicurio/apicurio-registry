@@ -28,9 +28,7 @@ public class KafkaServiceInitializer implements ServiceInitializer {
         try (AdminClient client = KafkaAdminClient.create(properties)) {
             ListTopicsResult topics = client.listTopics();
             Set<String> names = topics.names().get();
-            if (names.isEmpty()) {
-                // case: if no topic found.
-            }
+            log.debug("Topics: " + names);
             log.info("Kafka is running ...");
         }
     }

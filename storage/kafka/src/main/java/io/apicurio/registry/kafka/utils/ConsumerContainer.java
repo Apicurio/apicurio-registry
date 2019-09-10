@@ -217,34 +217,37 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
         long delay = MIN_RETRY_DELAY;
         boolean interrupted = false;
         // retry loop
-        while (!stopping) try {
-            recordConsumer.accept(record);
-            // everything alright
-            break;
-        } catch (Exception e) {
-            log.warn("Exception caught while processing {} - retrying in {} ms", formatRecord(record), delay, e);
-            CompletableFuture<Consumer<K, V>> task;
+        while (!stopping) {
             try {
-                while (!stopping && (task = tasks.poll(delay, TimeUnit.MILLISECONDS)) != null) {
-                    task.complete(consumer);
+                recordConsumer.accept(record);
+                // everything alright
+                break;
+            } catch (Exception e) {
+                log.warn("Exception caught while processing {} - retrying in {} ms", formatRecord(record), delay, e);
+                CompletableFuture<Consumer<K, V>> task;
+                try {
+                    while (!stopping && (task = tasks.poll(delay, TimeUnit.MILLISECONDS)) != null) {
+                        task.complete(consumer);
+                    }
+                } catch (InterruptedException ie) {
+                    log.info("Interrupted - keeping retrying");
+                    interrupted = true;
                 }
-            } catch (InterruptedException ie) {
-                log.info("Interrupted - keeping retrying");
-                interrupted = true;
-            }
-            delay = Math.min(delay * 2, MAX_RETRY_DELAY);
-        } catch (Throwable e) {
-            // in case we get Error (OutOfMemoryError or similar) there's no point in continue-ing with retries, but we can't
-            // ignore the error either. So what we're left with is bailing-out and hoping that Kubernetes gives us a fresh start...
-            try {
-                // enclose this in try/finally in case there is another OutOfMemoryError thrown as a consequence of logging the message...
-                log.error("Error caught while processing {} - exiting JVM", formatRecord(record), e);
+                delay = Math.min(delay * 2, MAX_RETRY_DELAY);
+            } catch (Throwable e) {
+                // in case we get Error (OutOfMemoryError or similar) there's no point in continue-ing with retries, but we can't
+                // ignore the error either. So what we're left with is bailing-out and hoping that e.g. Kubernetes gives us a fresh start...
+                // For OOME, we can start the Java app with -XX:+ExitOnOutOfMemoryError
+                try {
+                    // enclose this in try/finally in case there is another OutOfMemoryError thrown as a consequence of logging the message...
+                    log.error("Error caught while processing {} - exiting JVM", formatRecord(record), e);
+                } finally {
+                    System.exit(-1);
+                }
             } finally {
-                System.exit(-1);
-            }
-        } finally {
-            if (interrupted) {
-                Thread.currentThread().interrupt();
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }

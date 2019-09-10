@@ -120,6 +120,7 @@
 		<!-- Dependency versions -->
 		<lombok.version>1.18.8</lombok.version>
 		<h2.version>1.4.199</h2.version>
+		<log4j.version>2.11.1</log4j.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>

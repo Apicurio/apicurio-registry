@@ -14,22 +14,29 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.kafka.utils;
 
-import io.apicurio.registry.types.Current;
-import io.quarkus.test.junit.QuarkusTest;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serializer;
 
-import javax.inject.Inject;
+import java.util.Map;
 
-@QuarkusTest
-public class JPARegistryStorageSmokeTest extends AbstractRegistryStorageSmokeTest {
-
-    @Inject
-    @Current
-    RegistryStorage storage;
+public abstract class SelfSerde<T> implements Serde<T>, Serializer<T>, Deserializer<T> {
 
     @Override
-    RegistryStorage getStorage() {
-        return storage;
+    public void configure(Map<String, ?> configs, boolean isKey) { }
+
+    @Override
+    public void close() { }
+
+    @Override
+    public Serializer<T> serializer() {
+        return this;
+    }
+
+    @Override
+    public Deserializer<T> deserializer() {
+        return this;
     }
 }

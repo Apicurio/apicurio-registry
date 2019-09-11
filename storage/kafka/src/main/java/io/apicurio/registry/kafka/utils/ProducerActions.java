@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.kafka.utils;
 
-import io.apicurio.registry.types.Current;
-import io.quarkus.test.junit.QuarkusTest;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
-import javax.inject.Inject;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
-@QuarkusTest
-public class JPARegistryStorageSmokeTest extends AbstractRegistryStorageSmokeTest {
-
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Override
-    RegistryStorage getStorage() {
-        return storage;
-    }
+/**
+ * @author Ales Justin
+ */
+public interface ProducerActions<K, V> extends Function<ProducerRecord<K, V>, CompletableFuture<RecordMetadata>>, AutoCloseable {
 }

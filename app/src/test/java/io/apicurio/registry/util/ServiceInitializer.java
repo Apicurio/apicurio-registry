@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl;
+package io.apicurio.registry.util;
 
-import java.util.concurrent.atomic.AtomicLong;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Destroyed;
+import javax.enterprise.context.Initialized;
+import javax.enterprise.event.Observes;
 
 /**
+ * Setup storage type's (JPA, Kafka, ...) services.
+ * e.g. database (JPA) or (ZK and Kafka)
+ * <p>
+ * Or simply check if service is already running.
+ *
  * @author Ales Justin
  */
-@ApplicationScoped
-public class InMemoryRegistryStorage extends SimpleMapRegistryStorage {
-
-    private AtomicLong counter = new AtomicLong(1);
-    
-    @Override
-    protected long nextGlobalId() {
-        return counter.getAndIncrement();
-    }
+public interface ServiceInitializer {
+    default void beforeAll(@Observes @Initialized(ApplicationScoped.class) Object event) throws Exception {}
+    default void afterAll(@Observes @Destroyed(ApplicationScoped.class) Object event) {}
 }

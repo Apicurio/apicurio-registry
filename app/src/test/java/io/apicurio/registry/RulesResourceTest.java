@@ -16,40 +16,24 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.ccompat.rest.RestConstants;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
+import org.junit.jupiter.api.Test;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.apicurio.registry.util.H2DatabaseService;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
 public class RulesResourceTest extends AbstractResourceTestBase {
-
-    private static H2DatabaseService h2ds = new H2DatabaseService();
-
-    @BeforeAll
-    public static void beforeAll() throws Exception {
-        h2ds.start();
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        h2ds.stop();
-    }
 
     @Test
     public void testGlobalRulesEndpoint() {

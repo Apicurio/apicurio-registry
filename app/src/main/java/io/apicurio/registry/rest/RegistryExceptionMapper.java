@@ -45,7 +45,10 @@ public class RegistryExceptionMapper implements ExceptionMapper<RegistryExceptio
     
     private static Response toResponse(Throwable t, int code) {
         Error error = toError(t, code);
-        return Response.status(code).type(MediaType.APPLICATION_JSON).entity(error).build();
+        return Response.status(code)
+                       .type(MediaType.APPLICATION_JSON)
+                       .entity(error)
+                       .build();
     }
 
     /**

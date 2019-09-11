@@ -33,6 +33,11 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
         this.version = version;
     }
 
+    public VersionNotFoundException(String artifactId, long version, Throwable cause) {
+        super(artifactId, cause);
+        this.version = version;
+    }
+
     /**
      * @return the version
      */

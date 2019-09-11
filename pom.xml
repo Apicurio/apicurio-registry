@@ -76,7 +76,6 @@
 		<module>common</module>
 		<module>app</module>
 		<module>client</module>
-		<module>storage/jpa</module>
 		<module>distro</module>
 		<module>tests</module>
 	</modules>
@@ -96,10 +95,11 @@
 		<!-- Jandex -->
 		<jandex.version>1.0.6</jandex.version>
 
-		<!-- Schema types -->
-		<avro.version>1.9.0</avro.version>
-		<json-schema-validator.version>1.0.19</json-schema-validator.version>
-		<wire-schema.version>3.0.0-rc01</wire-schema.version>
+        <!-- Schema types -->
+        <avro.version>1.9.0</avro.version>
+        <json-schema-validator.version>1.0.19</json-schema-validator.version>
+        <wire-schema.version>3.0.0-rc01</wire-schema.version>
+        <protobuf.version>3.9.1</protobuf.version>
 
 		<!-- Storage types -->
 		<infinispan.version>9.4.16.Final</infinispan.version>
@@ -117,17 +117,20 @@
 		<lombok.version>1.18.8</lombok.version>
 		<h2.version>1.4.199</h2.version>
 
-		<!-- Plugin Versions -->
-		<version.compiler.plugin>3.8.1</version.compiler.plugin>
-		<version.deploy.plugin>2.8.2</version.deploy.plugin>
-		<version.failsafe.plugin>2.22.1</version.failsafe.plugin>
-		<version.javadoc.plugin>2.10.4</version.javadoc.plugin>
-		<version.source.plugin>2.4</version.source.plugin>
-		<version.surefire.plugin>2.22.1</version.surefire.plugin>
-		<version.jar.plugin>3.1.2</version.jar.plugin>
-		<version.properties.plugin>1.0.0</version.properties.plugin>
-		<version.dependency.plugin>3.1.1</version.dependency.plugin>
-	</properties>
+        <!-- Plugin Versions -->
+        <version.compiler.plugin>3.8.1</version.compiler.plugin>
+        <version.deploy.plugin>2.8.2</version.deploy.plugin>
+        <version.failsafe.plugin>2.22.1</version.failsafe.plugin>
+        <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
+        <version.source.plugin>2.4</version.source.plugin>
+        <version.surefire.plugin>2.22.1</version.surefire.plugin>
+        <version.jar.plugin>3.1.2</version.jar.plugin>
+        <version.properties.plugin>1.0.0</version.properties.plugin>
+        <version.dependency.plugin>3.1.1</version.dependency.plugin>
+        <!-- Proto -->
+        <proto-plugin.version>0.6.1</proto-plugin.version>
+        <os-maven-plugin.version>1.6.1</os-maven-plugin.version>
+    </properties>
 
 	<dependencyManagement>
 		<dependencies>
@@ -163,32 +166,37 @@
 				<scope>import</scope>
 			</dependency>
 
-			<!-- Third Party Libraries -->
+            <!-- Third Party Libraries -->
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-data-models</artifactId>
 				<version>${apicurio-data-models.version}</version>
 			</dependency>
-			<dependency>
-				<groupId>org.infinispan</groupId>
-				<artifactId>infinispan-core</artifactId>
-				<version>${infinispan.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.avro</groupId>
-				<artifactId>avro</artifactId>
-				<version>${avro.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.networknt</groupId>
-				<artifactId>json-schema-validator</artifactId>
-				<version>${json-schema-validator.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.squareup.wire</groupId>
-				<artifactId>wire-schema</artifactId>
-				<version>${wire-schema.version}</version>
-			</dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-schema</artifactId>
+                <version>${wire-schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
 
 			<!-- Tests -->
 			<dependency>
@@ -359,8 +367,25 @@
 			<id>infinispan</id>
 			<modules>
 				<module>app</module>
-				<module>storage/jpa</module>
 				<module>storage/infinispan</module>
+				<module>distro</module>
+				<module>tests</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>jpa</id>
+			<modules>
+				<module>app</module>
+				<module>storage/jpa</module>
+				<module>distro</module>
+				<module>tests</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>kafka</id>
+			<modules>
+				<module>app</module>
+				<module>storage/kafka</module>
 				<module>distro</module>
 				<module>tests</module>
 			</modules>

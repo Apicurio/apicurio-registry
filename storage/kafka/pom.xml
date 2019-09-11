@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
@@ -9,11 +10,11 @@
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
-    
-    <artifactId>apicurio-registry-storage-infinispan</artifactId>
+
+    <artifactId>apicurio-registry-app-kafka</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-storage-infinispan</name>
-    
+    <name>apicurio-registry-app-kafka</name>
+
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -21,8 +22,13 @@
         </dependency>
 
         <dependency>
-            <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-core</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
         </dependency>
 
         <!-- Test Only -->
@@ -52,9 +58,36 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    
+
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${os-maven-plugin.version}</version>
+            </extension>
+        </extensions>
+
         <plugins>
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>${proto-plugin.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <!--<goal>test-compile</goal>-->
+                        </goals>
+                        <configuration>
+                            <protocArtifact>
+                                com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
+                            </protocArtifact>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
@@ -79,7 +112,9 @@
                         <configuration>
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>jar</includeTypes>
-                            <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                            <outputDirectory>
+                                ${project.build.directory}/classes
+                            </outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -94,7 +129,9 @@
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>test-jar</includeTypes>
                             <includeScope>test</includeScope>
-                            <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+                            <outputDirectory>
+                                ${project.build.directory}/test-classes
+                            </outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -106,13 +143,15 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemProperties>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <java.util.logging.manager>
+                            org.jboss.logmanager.LogManager
+                        </java.util.logging.manager>
                     </systemProperties>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-    
+
     <profiles>
         <profile>
             <id>native</id>
@@ -133,7 +172,8 @@
                                     <goal>native-image</goal>
                                 </goals>
                                 <configuration>
-                                    <enableHttpUrlHandler>true</enableHttpUrlHandler>
+                                    <enableHttpUrlHandler>true
+                                    </enableHttpUrlHandler>
                                 </configuration>
                             </execution>
                         </executions>
@@ -149,7 +189,9 @@
                                 </goals>
                                 <configuration>
                                     <systemProperties>
-                                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                                        <native.image.path>
+                                            ${project.build.directory}/${project.build.finalName}-runner
+                                        </native.image.path>
                                     </systemProperties>
                                 </configuration>
                             </execution>

@@ -16,16 +16,15 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.impl.jpa.entity.Rule;
+import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.EntityManager;
-
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.impl.jpa.entity.Rule;
-import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 
 public class RuleConfigMapperUpdater {
 
@@ -60,7 +59,7 @@ public class RuleConfigMapperUpdater {
      * Persist new and update existing metadata entry,
      * do not remove existing ones.
      */
-    public void persistUpdate(EntityManager em, Rule rule) {
+    public RuleConfigMapperUpdater persistUpdate(EntityManager em, Rule rule) {
         Map<String, String> toPersist = new HashMap<>(added);
 
         existing.forEach(e -> {
@@ -82,6 +81,8 @@ public class RuleConfigMapperUpdater {
                 );
             }
         });
+
+        return this;
     }
 
     private Map<String, String> merge() {

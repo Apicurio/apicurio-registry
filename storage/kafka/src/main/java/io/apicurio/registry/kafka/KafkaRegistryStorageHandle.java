@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.kafka;
 
-import io.apicurio.registry.types.Current;
-import io.quarkus.test.junit.QuarkusTest;
+import io.apicurio.registry.kafka.proto.Reg;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import javax.inject.Inject;
-
-@QuarkusTest
-public class JPARegistryStorageSmokeTest extends AbstractRegistryStorageSmokeTest {
-
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Override
-    RegistryStorage getStorage() {
-        return storage;
-    }
+/**
+ * @author Ales Justin
+ */
+public interface KafkaRegistryStorageHandle {
+    void consumeSchemaValue(ConsumerRecord<Reg.UUID, Reg.SchemaValue> record);
 }

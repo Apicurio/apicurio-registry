@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,31 +32,51 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Collections;
 import java.util.SortedSet;
 
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
-
 @QuarkusTest
 public abstract class AbstractRegistryStorageSmokeTest {
 
     //private static Logger log = LoggerFactory.getLogger(AbstractRegistryStorageSmokeTest.class);
 
+    static final String ARTIFACT_ID_1 = "artifactId1";
+    static final String ARTIFACT_ID_2 = "artifactId2";
+    static final String ARTIFACT_ID_3 = "artifactId3";
+
     abstract RegistryStorage getStorage();
+
+    private void delete(String artifactId, boolean rule) {
+        try {
+            if (rule) {
+                getStorage().deleteArtifactRules(artifactId);
+            } else {
+                getStorage().deleteArtifact(artifactId);
+            }
+        } catch (ArtifactNotFoundException ignored) {
+        }
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        getStorage().deleteGlobalRules();
+
+        delete(ARTIFACT_ID_1, false);
+        delete(ARTIFACT_ID_2, false);
+        delete(ARTIFACT_ID_3, false);
+
+        delete(ARTIFACT_ID_1, true);
+        delete(ARTIFACT_ID_2, true);
+        delete(ARTIFACT_ID_3, true);
+    }
 
     @Test
     public void testArtifactsAndMeta() {
-        final String ARTIFACT_ID_1 = "artifactId1";
-        final String ARTIFACT_ID_2 = "artifactId2";
+        int size = getStorage().getArtifactIds().size();
 
-        assertEquals(Collections.emptySet(), getStorage().getArtifactIds());
         // Create 2 version of an artifact and one other artifact
         ArtifactMetaDataDto meta1 = getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, "content1");
         ArtifactMetaDataDto meta2 = getStorage().updateArtifact(ARTIFACT_ID_1, ArtifactType.JSON, "content2");
         getStorage().createArtifact(ARTIFACT_ID_2, ArtifactType.AVRO, "content3");
 
-        assertEquals(2, getStorage().getArtifactIds().size());
+        assertEquals(size + 2, getStorage().getArtifactIds().size());
         assertTrue(getStorage().getArtifactIds().contains(ARTIFACT_ID_1));
 
         StoredArtifact a1 = getStorage().getArtifact(ARTIFACT_ID_1);
@@ -94,28 +120,25 @@ public abstract class AbstractRegistryStorageSmokeTest {
 
     @Test
     public void testRules() {
-        final String ARTIFACT_ID_1 = "artifactId3";
+        getStorage().createArtifact(ARTIFACT_ID_3, ArtifactType.JSON, "content1");
 
-        assertEquals(Collections.emptySet(), getStorage().getArtifactIds());
-        getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, "content1");
-
-        assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_1).size());
+        assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
         assertEquals(0, getStorage().getGlobalRules().size());
 
-        getStorage().createArtifactRule(ARTIFACT_ID_1, RuleType.VALIDATION,
+        getStorage().createArtifactRule(ARTIFACT_ID_3, RuleType.VALIDATION,
                 RuleConfigurationDto.builder().configuration("config").build());
 
         getStorage().createGlobalRule(RuleType.VALIDATION,
                 RuleConfigurationDto.builder().configuration("config").build());
 
-        assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_1).size());
-        assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_1).contains(RuleType.VALIDATION));
+        assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
+        assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDATION));
 
-        assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_1, RuleType.VALIDATION).getConfiguration());
+        assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDATION).getConfiguration());
 
         assertEquals(1, getStorage().getGlobalRules().size());
         assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDATION));
 
-        getStorage().deleteArtifact(ARTIFACT_ID_1);
+        getStorage().deleteArtifact(ARTIFACT_ID_3);
     }
 }

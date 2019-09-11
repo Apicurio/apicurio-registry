@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.kafka.utils;
 
-import io.apicurio.registry.types.Current;
-import io.quarkus.test.junit.QuarkusTest;
+import io.apicurio.registry.kafka.proto.Reg;
 
-import javax.inject.Inject;
+import java.util.UUID;
 
-@QuarkusTest
-public class JPARegistryStorageSmokeTest extends AbstractRegistryStorageSmokeTest {
+/**
+ * @author Ales Justin
+ */
+public class ProtoUtil {
 
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Override
-    RegistryStorage getStorage() {
-        return storage;
+    public static UUID convert(Reg.UUID mpUuid) {
+        return new UUID(mpUuid.getMsb(), mpUuid.getLsb());
     }
+
+    public static Reg.UUID convert(UUID uuid) {
+        return Reg.UUID
+            .newBuilder()
+            .setMsb(uuid.getMostSignificantBits())
+            .setLsb(uuid.getLeastSignificantBits())
+            .build();
+    }
+
 }

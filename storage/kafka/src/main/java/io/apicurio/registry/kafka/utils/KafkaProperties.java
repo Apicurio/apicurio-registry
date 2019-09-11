@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.kafka.utils;
 
-import io.apicurio.registry.types.Current;
-import io.quarkus.test.junit.QuarkusTest;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import javax.inject.Inject;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-@QuarkusTest
-public class JPARegistryStorageSmokeTest extends AbstractRegistryStorageSmokeTest {
-
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Override
-    RegistryStorage getStorage() {
-        return storage;
-    }
+/**
+ * @author Ales Justin
+ */
+@Retention(RUNTIME)
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
+public @interface KafkaProperties {
+    String value() default "";
 }

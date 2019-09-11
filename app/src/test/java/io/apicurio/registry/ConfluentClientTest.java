@@ -19,8 +19,11 @@ package io.apicurio.registry;
 import io.apicurio.registry.util.H2DatabaseService;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,4 +108,24 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     // TODO -- cover all endpoints!
+
+    @Test
+    public void testSerde() throws Exception {
+        SchemaRegistryClient client = buildClient();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        client.register("foo-value", schema);
+
+        KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
+        KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);
+
+        GenericData.Record record = new GenericData.Record(schema);
+        record.put("bar", "somebar");
+
+        byte[] bytes = serializer.serialize("foo", record);
+        GenericData.Record ir = (GenericData.Record) deserializer.deserialize("foo", bytes);
+
+        Assertions.assertEquals("somebar", ir.get("bar").toString());
+    }
+
 }

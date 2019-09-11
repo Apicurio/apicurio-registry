@@ -29,6 +29,8 @@ import io.apicurio.registry.types.ArtifactType;
 public class ContentValidatorFactory {
     
     @Inject
+    AvroContentValidator avroValidator;
+    @Inject
     OpenApiContentValidator openapiValidator;
     @Inject
     AsyncApiContentValidator asyncValidator;
@@ -38,7 +40,7 @@ public class ContentValidatorFactory {
             case ASYNCAPI:
                 return asyncValidator;
             case AVRO:
-                break;
+                return avroValidator;
             case JSON:
                 break;
             case OPENAPI:

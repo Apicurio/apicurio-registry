@@ -45,7 +45,7 @@ public class RegistryClient {
 
     private static class ServiceProxy implements InvocationHandler {
 
-        private final Map<Class, Object> targets = new ConcurrentHashMap<>();
+        private final Map<Class<?>, Object> targets = new ConcurrentHashMap<>();
         private final AtomicBoolean closed = new AtomicBoolean();
 
         private final URI baseUri;

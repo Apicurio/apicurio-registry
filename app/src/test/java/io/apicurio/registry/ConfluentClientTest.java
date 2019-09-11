@@ -101,16 +101,17 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         client.register("foo-value", schema);
 
-        KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
-        KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);
+        try (  KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
+               KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);  ) {
 
-        GenericData.Record record = new GenericData.Record(schema);
-        record.put("bar", "somebar");
-
-        byte[] bytes = serializer.serialize("foo", record);
-        GenericData.Record ir = (GenericData.Record) deserializer.deserialize("foo", bytes);
-
-        Assertions.assertEquals("somebar", ir.get("bar").toString());
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+    
+            byte[] bytes = serializer.serialize("foo", record);
+            GenericData.Record ir = (GenericData.Record) deserializer.deserialize("foo", bytes);
+    
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
     }
 
 }

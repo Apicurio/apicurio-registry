@@ -16,6 +16,12 @@
     <name>apicurio-registry-app</name>
 
     <dependencies>
+        <!-- Project -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-common</artifactId>
+        </dependency>
+
         <!-- Quarkus Dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -63,6 +69,11 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

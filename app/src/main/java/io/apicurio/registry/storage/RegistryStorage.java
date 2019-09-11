@@ -16,12 +16,13 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 
 /**
  * The storage layer for the registry.

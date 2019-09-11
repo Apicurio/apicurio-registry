@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.types;
+package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -32,8 +32,6 @@ import com.squareup.wire.schema.internal.parser.ReservedElement;
 import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
-
-import io.apicurio.registry.rules.compatibility.ProtobufArtifactTypeAdapter;
 
 import java.io.File;
 import java.io.IOException;

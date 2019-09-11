@@ -366,28 +366,19 @@
 		<profile>
 			<id>infinispan</id>
 			<modules>
-				<module>app</module>
 				<module>storage/infinispan</module>
-				<module>distro</module>
-				<module>tests</module>
 			</modules>
 		</profile>
 		<profile>
 			<id>jpa</id>
 			<modules>
-				<module>app</module>
 				<module>storage/jpa</module>
-				<module>distro</module>
-				<module>tests</module>
 			</modules>
 		</profile>
 		<profile>
 			<id>kafka</id>
 			<modules>
-				<module>app</module>
 				<module>storage/kafka</module>
-				<module>distro</module>
-				<module>tests</module>
 			</modules>
 		</profile>
 		<profile>

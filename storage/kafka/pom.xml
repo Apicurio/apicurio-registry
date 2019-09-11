@@ -11,9 +11,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>apicurio-registry-app-kafka</artifactId>
+    <artifactId>apicurio-registry-storage-kafka</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-app-kafka</name>
+    <name>apicurio-registry-storage-kafka</name>
 
     <dependencies>
         <dependency>

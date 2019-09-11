@@ -31,6 +31,8 @@ public class ContentValidatorFactory {
     @Inject
     AvroContentValidator avroValidator;
     @Inject
+    ProtobuffContentValidator protoValidator;
+    @Inject
     OpenApiContentValidator openapiValidator;
     @Inject
     AsyncApiContentValidator asyncValidator;
@@ -46,7 +48,7 @@ public class ContentValidatorFactory {
             case OPENAPI:
                 return openapiValidator;
             case PROTOBUFF:
-                break;
+                return protoValidator;
             default:
                 break;
         }

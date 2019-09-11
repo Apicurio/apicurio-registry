@@ -4,7 +4,7 @@ ENV APP_DIR=app/target
 ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV AB_ENABLED=jmx_exporter
 
-COPY target-${APP_DIR}/lib/* /deployments/lib/
-COPY target-${APP_DIR}/apicurio-registry-*-runner.jar /deployments/app-runner.jar
+COPY ${APP_DIR}/lib/* /deployments/lib/
+COPY ${APP_DIR}/apicurio-registry-*-runner.jar /deployments/app-runner.jar
 
 ENTRYPOINT [ "/deployments/run-java.sh" ]

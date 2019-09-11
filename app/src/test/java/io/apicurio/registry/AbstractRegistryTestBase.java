@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Assertions;
+
 /**
  * Abstract base class for all registry tests.
  * @author eric.wittmann@gmail.com
@@ -33,6 +35,7 @@ public abstract class AbstractRegistryTestBase {
      */
     protected final String resourceToString(String resourceName)  {
         InputStream stream = getClass().getResourceAsStream(resourceName);
+        Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
         return new BufferedReader(new InputStreamReader(stream)).lines().collect(Collectors.joining("\n"));
     }
     

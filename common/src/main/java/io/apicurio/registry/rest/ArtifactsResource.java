@@ -30,13 +30,13 @@ public interface ArtifactsResource {
   /**
    * Creates a new artifact by POSTing the artifact content.  The body of the request should
    * be the raw content of the artifact.  This will typically be in JSON format for *most*
-   * of the supported types, but may be in another format for a few (e.g. Protobuff).
+   * of the supported types, but may be in another format for a few (e.g. *PROTOBUF*).
    *
    * The registry will attempt to figure out what kind of artifact is being added from the
    * following supported list:
    *
    * * Avro (AVRO)
-   * * Protobuff (PROTOBUFF)
+   * * Protobuf (PROTOBUF)
    * * JSON Schema (JSON)
    * * OpenAPI (OPENAPI)
    * * AsyncAPI (ASYNCAPI)
@@ -65,7 +65,7 @@ public interface ArtifactsResource {
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
    * response will depend on what type of artifact it is.  In most cases this will be
-   * `application/json` but for some types it may be different (e.g. *protobuff*).
+   * `application/json` but for some types it may be different (e.g. *PROTOBUF*).
    *
    * This operation may fail for one of the following reasons:
    *
@@ -81,13 +81,13 @@ public interface ArtifactsResource {
   /**
    * Updates an artifact by uploading new content.  The body of the request should
    * be the raw content of the artifact.  This will typically be in JSON format for *most*
-   * of the supported types, but may be in another format for a few (e.g. Protobuff).
+   * of the supported types, but may be in another format for a few (e.g. *PROTOBUF*).
    *
    * The registry will attempt to figure out what kind of artifact is being added from the
    * following supported list:
    *
    * * Avro (AVRO)
-   * * Protobuff (PROTOBUFF)
+   * * Protobuf (PROTOBUF)
    * * JSON Schema (JSON)
    * * OpenAPI (OPENAPI)
    * * AsyncAPI (ASYNCAPI)
@@ -233,13 +233,13 @@ public interface ArtifactsResource {
    *
    * The body of the request should be the raw content of the new artifact version.  This 
    * will typically be in JSON format for *most* of the supported types, but may be in another 
-   * format for a few (e.g. Protobuff).
+   * format for a few (e.g. *PROTOBUF*).
    *
    * The registry will attempt to figure out what kind of artifact is being added from the
    * following supported list:
    *
    * * Avro (AVRO)
-   * * Protobuff (PROTOBUFF)
+   * * Protobuf (PROTOBUF)
    * * JSON Schema (JSON)
    * * OpenAPI (OPENAPI)
    * * AsyncAPI (ASYNCAPI)
@@ -271,7 +271,7 @@ public interface ArtifactsResource {
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the
    * unique `version` number must be provided.  The `Content-Type` of the
    * response will depend on what type of artifact it is.  In most cases this will be
-   * `application/json` but for some types it may be different (e.g. *protobuff*).
+   * `application/json` but for some types it may be different (e.g. *PROTOBUF*).
    *
    * This operation can fail for the following reasons:
    *

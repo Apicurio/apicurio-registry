@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum ArtifactType {
 
     AVRO("AVRO"),
-    PROTOBUFF("PROTOBUFF"),
+    PROTOBUF("PROTOBUF"),
     JSON("JSON"),
     OPENAPI("OPENAPI"),
     ASYNCAPI("ASYNCAPI");

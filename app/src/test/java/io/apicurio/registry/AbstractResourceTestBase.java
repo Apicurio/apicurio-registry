@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 import org.junit.jupiter.api.BeforeEach;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.types.ArtifactType;
 
 /**

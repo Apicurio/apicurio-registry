@@ -70,7 +70,7 @@ public class ArtifactTypeTest { // no need to extend TestBase
                       "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                       "}\n";
 
-        ArtifactType protobuf = ArtifactType.PROTOBUFF;
+        ArtifactType protobuf = ArtifactType.PROTOBUF;
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(protobuf);
 
         Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));

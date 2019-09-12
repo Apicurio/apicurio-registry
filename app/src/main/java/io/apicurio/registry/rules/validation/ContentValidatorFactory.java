@@ -49,7 +49,7 @@ public class ContentValidatorFactory {
                 return jsonValidator;
             case OPENAPI:
                 return openapiValidator;
-            case PROTOBUFF:
+            case PROTOBUF:
                 return protoValidator;
             default:
                 break;

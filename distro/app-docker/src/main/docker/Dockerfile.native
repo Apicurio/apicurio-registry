@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
-ENV APP_PATH app/target/apicurio-registry-app-*-runner
+ENV APP_PATH=app/target/apicurio-registry-app-*-runner
 
 WORKDIR /work/
 

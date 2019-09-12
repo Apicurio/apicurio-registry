@@ -1,19 +1,3 @@
-/*
- * Copyright 2019 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -22,8 +6,10 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-
 import java.io.InputStream;
+import java.lang.Integer;
+import java.lang.Long;
+import java.lang.String;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -71,7 +57,7 @@ public interface ArtifactsResource {
    */
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-yaml"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
   ArtifactMetaData createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
@@ -89,7 +75,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}")
   @GET
-  @Produces({"application/json", "application/x-yaml"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**
@@ -127,7 +113,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}")
   @PUT
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-yaml"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
   ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -277,7 +263,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions")
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-yaml"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
   VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -296,7 +282,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}")
   @GET
-  @Produces({"application/json", "application/x-yaml"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
   Response getArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
@@ -383,8 +369,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/rules")
   @GET
   @Produces("application/json")
-  List<RuleType> listArtifactRules(
-      @PathParam("artifactId") String artifactId);
+  List<RuleType> listArtifactRules(@PathParam("artifactId") String artifactId);
 
   /**
    * Adds a rule to the list of rules that get applied to the artifact when adding new

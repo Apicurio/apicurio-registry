@@ -76,7 +76,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRuleApplicationProtobuf() {
-        ArtifactType artifactType = ArtifactType.PROTOBUFF;
+        ArtifactType artifactType = ArtifactType.PROTOBUF;
         String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
 
         // First, create an artifact without the rule installed.  Should work.

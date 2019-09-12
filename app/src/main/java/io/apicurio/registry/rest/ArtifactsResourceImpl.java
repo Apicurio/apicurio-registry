@@ -215,7 +215,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifact(artifactId);
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUFF) {
+        if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
         }
         return Response.ok(artifact.content, contentType).build();
@@ -276,7 +276,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
         // protobuf - the content-type will be different for protobuf artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUFF) {
+        if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
         }
         Response response = Response.ok(artifact.content, contentType).build();

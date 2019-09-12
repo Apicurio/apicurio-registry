@@ -22,22 +22,22 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractRegistryTestBase;
 
 /**
- * Tests the Protobuff content validator.
+ * Tests the Protobuf content validator.
  * @author eric.wittmann@gmail.com
  */
-public class ProtobuffContentValidatorTest extends AbstractRegistryTestBase {
+public class ProtobufContentValidatorTest extends AbstractRegistryTestBase {
     
     @Test
-    public void testValidProtobuffSchema() throws Exception {
-        String content = resourceToString("protobuff-valid.proto");
-        ProtobuffContentValidator validator = new ProtobuffContentValidator();
+    public void testValidProtobufSchema() throws Exception {
+        String content = resourceToString("protobuf-valid.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
         validator.validate(ValidationLevel.SYNTAX_ONLY, content);
     }
 
     @Test
-    public void testInvalidProtobuffSchema() throws Exception {
-        String content = resourceToString("protobuff-invalid.proto");
-        ProtobuffContentValidator validator = new ProtobuffContentValidator();
+    public void testInvalidProtobufSchema() throws Exception {
+        String content = resourceToString("protobuf-invalid.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidationLevel.SYNTAX_ONLY, content);
         });

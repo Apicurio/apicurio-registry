@@ -16,15 +16,6 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-import org.hamcrest.CustomMatcher;
-import org.junit.jupiter.api.Test;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
@@ -34,6 +25,15 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hamcrest.CustomMatcher;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -51,7 +51,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Create OpenAPI artifact - indicate the type via the content-type
         given()
             .when()
-                .contentType(RestConstants.JSON + "; artifactType=OPENAPI")
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
                 .body(artifactContent)
                 .post("/artifacts")
@@ -63,7 +63,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to create the same artifact ID (should fail)
         given()
             .when()
-                .contentType(RestConstants.JSON + "; artifactType=OPENAPI")
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
                 .body(artifactContent)
                 .post("/artifacts")
@@ -75,7 +75,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to create an artifact with an invalid artifact type
         given()
             .when()
-                .contentType(RestConstants.JSON + "; artifactType=INVALID_ARTIFACT_TYPE")
+                .contentType(CT_JSON + "; artifactType=INVALID_ARTIFACT_TYPE")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/InvalidAPI")
                 .body(artifactContent)
                 .post("/artifacts")
@@ -122,7 +122,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Update OpenAPI artifact
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
                 .body(updatedArtifactContent)
@@ -145,7 +145,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to update an artifact that doesn't exist.
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testUpdateArtifact/MissingAPI")
                 .body(updatedArtifactContent)
@@ -210,7 +210,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             given()
                 .when()
-                    .contentType(RestConstants.JSON)
+                    .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
@@ -265,7 +265,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Create a new version of the artifact
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
                 .body(updatedArtifactContent)
@@ -288,7 +288,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to create a new version of an artifact that doesn't exist.
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testCreateArtifactVersion/MissingAPI")
                 .body(updatedArtifactContent)
@@ -309,7 +309,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             Integer version = given()
                 .when()
-                    .contentType(RestConstants.JSON)
+                    .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
@@ -367,7 +367,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             Integer version = given()
                 .when()
-                    .contentType(RestConstants.JSON)
+                    .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", "OPENAPI")
                     .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
@@ -453,7 +453,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         rule.setConfig("syntax-validation-config");
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
@@ -464,7 +464,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to add the rule again - should get a 409
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
@@ -478,7 +478,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         rule.setConfig("compatibility-config");
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
@@ -514,7 +514,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         rule.setConfig("updated-configuration");
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .put("/artifacts/{artifactId}/rules/COMPATIBILITY")
@@ -541,7 +541,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 //        rule.setConfig("rdne-config");
 //        given()
 //            .when()
-//                .contentType(RestConstants.JSON)
+//                .contentType(CT_JSON)
 //                .body(rule)
 //                .pathParam("artifactId", artifactId)
 //                .put("/artifacts/{artifactId}/rules/RuleDoesNotExist")
@@ -607,7 +607,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         rule.setConfig("syntax-validation-config");
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", "MissingArtifact")
                 .post("/artifacts/{artifactId}/rules")
@@ -651,7 +651,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\"}";
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(metaData)
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                 .put("/artifacts/{artifactId}/meta")
@@ -685,7 +685,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Create a new version of the artifact
         int version2 = given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v2)
@@ -699,7 +699,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Create another new version of the artifact
         int version3 = given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", "OPENAPI")
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v3)
@@ -728,7 +728,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .body(metaData)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version2)

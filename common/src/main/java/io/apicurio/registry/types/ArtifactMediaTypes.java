@@ -14,25 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
+package io.apicurio.registry.types;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
+import javax.ws.rs.core.MediaType;
 
-import org.junit.jupiter.api.Test;
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public final class ArtifactMediaTypes {
 
-import io.quarkus.test.junit.QuarkusTest;
-
-@QuarkusTest
-public class SubjectsResourceTest extends AbstractResourceTestBase {
-
-    @Test    
-    public void testListSubjectsEndpoint() {
-        given()
-            .when().contentType(CT_JSON).get("/confluent/subjects")
-            .then()
-            .statusCode(200)
-            .body(anything());
-    }
-
+    public static final MediaType JSON = MediaType.APPLICATION_JSON_TYPE;
+    public static final MediaType YAML = new MediaType("application", "x-yaml");
+    public static final MediaType PROTO = new MediaType("application", "x-protobuf");
+    
 }

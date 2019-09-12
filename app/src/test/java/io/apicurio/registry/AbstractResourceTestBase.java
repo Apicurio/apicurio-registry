@@ -30,6 +30,10 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
     
+    protected static final String CT_JSON = "application/json";
+    protected static final String CT_PROTO = "application/x-protobuf";
+    protected static final String CT_YAML = "application/x-yaml";
+    
     @BeforeEach
     void beforeEach() {
         // Delete all global rules
@@ -46,7 +50,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) {
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)

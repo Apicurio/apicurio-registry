@@ -31,7 +31,7 @@ public class ContentValidatorFactory {
     @Inject
     AvroContentValidator avroValidator;
     @Inject
-    ProtobuffContentValidator protoValidator;
+    ProtobufContentValidator protoValidator;
     @Inject
     JsonSchemaContentValidator jsonValidator;
     @Inject

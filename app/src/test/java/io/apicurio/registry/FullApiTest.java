@@ -22,12 +22,14 @@ import static org.hamcrest.Matchers.equalTo;
 
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rules.validation.ValidationLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.RestAssured;
+import io.restassured.config.EncoderConfig;
+import io.restassured.http.ContentType;
 
 /** 
  * Tests registry via its jax-rs interface.  This test performs more realistic
@@ -39,28 +41,28 @@ import io.quarkus.test.junit.QuarkusTest;
 public class FullApiTest extends AbstractResourceTestBase {
     
     @Test
-    public void testGlobalRuleApplication() {
+    public void testGlobalRuleApplicationOpenAPI() {
         ArtifactType artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-invalid-syntax.json");
 
         // First, create an artifact without the rule installed.  Should work.
-        createArtifact("testGlobalRuleApplication/API", artifactType, artifactContent);
+        createArtifact("testGlobalRuleApplicationOpenAPI/API", artifactType, artifactContent);
         
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDATION);
         rule.setConfig(ValidationLevel.SYNTAX_ONLY.name());
         given()
-            .when().contentType(RestConstants.JSON).body(rule).post("/rules")
+            .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
             .statusCode(204)
             .body(anything());
 
         // Try to create an artifact that is not valid - now it should fail.
-        String artifactId = "testGlobalRuleApplication/InvalidAPI";
+        String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
         given()
             .when()
-                .contentType(RestConstants.JSON)
+                .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
@@ -69,6 +71,41 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .statusCode(400)
                 .body("code", equalTo(400))
                 .body("message", equalTo("Syntax violation for OpenAPI artifact."));
+
+    }
+
+    @Test
+    public void testGlobalRuleApplicationProtobuf() {
+        ArtifactType artifactType = ArtifactType.PROTOBUFF;
+        String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
+
+        // First, create an artifact without the rule installed.  Should work.
+        createArtifact("testGlobalRuleApplicationProtobuf/API", artifactType, artifactContent);
+        
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDATION);
+        rule.setConfig(ValidationLevel.SYNTAX_ONLY.name());
+        given()
+            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .then()
+            .statusCode(204)
+            .body(anything());
+
+        // Try to create an artifact that is not valid - now it should fail.
+        String artifactId = "testGlobalRuleApplicationProtobuf/InvalidAPI";
+        given()
+            .config(RestAssured.config().encoderConfig(new EncoderConfig().encodeContentTypeAs(CT_PROTO, ContentType.TEXT)))
+            .when()
+                .contentType(CT_PROTO)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(400)
+                .body("code", equalTo(400))
+                .body("message", equalTo("Syntax violation for Protobuf artifact."));
 
     }
 

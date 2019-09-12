@@ -22,16 +22,16 @@ import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 
 /**
- * A content validator implementation for the Protobuff content type.
+ * A content validator implementation for the Protobuf content type.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class ProtobuffContentValidator implements ContentValidator {
+public class ProtobufContentValidator implements ContentValidator {
     
     /**
      * Constructor.
      */
-    public ProtobuffContentValidator() {
+    public ProtobufContentValidator() {
     }
     
     /**
@@ -43,7 +43,7 @@ public class ProtobuffContentValidator implements ContentValidator {
             try {
                 ProtoParser.parse(Location.get(""), artifactContent);
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for Protobuff artifact.", e);
+                throw new InvalidContentException("Syntax violation for Protobuf artifact.", e);
             }
         }
     }

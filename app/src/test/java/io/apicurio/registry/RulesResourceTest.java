@@ -16,18 +16,18 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.Test;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -38,7 +38,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGlobalRulesEndpoint() {
         given()
-            .when().contentType(RestConstants.JSON).get("/rules")
+            .when().contentType(CT_JSON).get("/rules")
             .then()
             .statusCode(200)
             .body(anything());
@@ -51,14 +51,14 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDATION);
         rule.setConfig("syntax-validation-config");
         given()
-            .when().contentType(RestConstants.JSON).body(rule).post("/rules")
+            .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
             .statusCode(204)
             .body(anything());
         
         // Try to add the rule again - should get a 409
         given()
-            .when().contentType(RestConstants.JSON).body(rule).post("/rules")
+            .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
             .statusCode(409)
             .body("code", equalTo(409))
@@ -68,7 +68,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("compatibility-config");
         given()
-            .when().contentType(RestConstants.JSON).body(rule).post("/rules")
+            .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
             .statusCode(204)
             .body(anything());
@@ -96,7 +96,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("updated-configuration");
         given()
-            .when().contentType(RestConstants.JSON).body(rule).put("/rules/COMPATIBILITY")
+            .when().contentType(CT_JSON).body(rule).put("/rules/COMPATIBILITY")
             .then()
             .statusCode(200)
             .contentType(ContentType.JSON)
@@ -116,7 +116,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 //        rule.setType("RuleDoesNotExist");
 //        rule.setConfig("rdne-config");
 //        given()
-//            .when().contentType(RestConstants.JSON).body(rule).put("/rules/RuleDoesNotExist")
+//            .when().contentType(CT_JSON).body(rule).put("/rules/RuleDoesNotExist")
 //            .then()
 //            .statusCode(404)
 //            .contentType(ContentType.JSON)

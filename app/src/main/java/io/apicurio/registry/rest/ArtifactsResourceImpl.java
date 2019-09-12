@@ -44,6 +44,7 @@ import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -211,9 +212,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public Response getLatestArtifact(String artifactId) {
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifact(artifactId);
-        // TODO support protobuf - the content-type will be different for protobuff artifacts
-        return Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
+        MediaType contentType = ArtifactMediaTypes.JSON;
+        if (metaData.getType() == ArtifactType.PROTOBUFF) {
+            contentType = ArtifactMediaTypes.PROTO;
+        }
+        return Response.ok(artifact.content, contentType).build();
     }
 
     /**
@@ -266,9 +271,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
-        // TODO support protobuff - the content-type will be different for protobuff artifacts
-        Response response = Response.ok(artifact.content, MediaType.APPLICATION_JSON_TYPE).build();
+
+        // protobuf - the content-type will be different for protobuf artifacts
+        MediaType contentType = ArtifactMediaTypes.JSON;
+        if (metaData.getType() == ArtifactType.PROTOBUFF) {
+            contentType = ArtifactMediaTypes.PROTO;
+        }
+        Response response = Response.ok(artifact.content, contentType).build();
         return response;
     }
 

@@ -58,7 +58,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/2"))
-                .body("type", equalTo("OPENAPI"));
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Try to create the same artifact ID (should fail)
         given()
@@ -123,14 +123,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
                 .body(updatedArtifactContent)
                 .put("/artifacts/{artifactId}")
             .then()
                 .statusCode(200)
                 .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo("OPENAPI"));
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -146,7 +146,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testUpdateArtifact/MissingAPI")
                 .body(updatedArtifactContent)
                 .put("/artifacts/{artifactId}")
@@ -211,14 +211,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .contentType(CT_JSON)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                     .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
-                    .body("type", equalTo("OPENAPI"));
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()));
         }
         
         // List the artifact versions
@@ -266,14 +266,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
                 .body(updatedArtifactContent)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", equalTo(2))
-                .body("type", equalTo("OPENAPI"));
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Get the artifact content (should be the updated content)
         given()
@@ -289,7 +289,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testCreateArtifactVersion/MissingAPI")
                 .body(updatedArtifactContent)
                 .post("/artifacts/{artifactId}/versions")
@@ -310,14 +310,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             Integer version = given()
                 .when()
                     .contentType(CT_JSON)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testGetArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo("OPENAPI"))
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .extract().body().path("version");
             versions.add(version);
         }
@@ -368,14 +368,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             Integer version = given()
                 .when()
                     .contentType(CT_JSON)
-                    .header("X-Registry-ArtifactType", "OPENAPI")
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                     .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
                     .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
                     .put("/artifacts/{artifactId}")
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo("OPENAPI"))
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .extract().body().path("version");
 //            System.out.println("Update.  Created version: " + version);
             versions.add(version);
@@ -632,7 +632,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("version", anything())
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());
@@ -670,7 +670,32 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("Empty API Name"))
                 .body("description", equalTo("Empty API description."));
         
-        // TODO update the artifact content and then make sure the name/description meta-data is still available
+        // Update the artifact content and then make sure the name/description meta-data is still available
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Verify the artifact meta-data name and description are still set.
+        given()
+            .when()
+                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                .body("version", anything())
+                .body("name", equalTo("Empty API Name"))
+                .body("description", equalTo("Empty API description."));
+        
     }
     
     @Test
@@ -686,28 +711,28 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         int version2 = given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v2)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
             .extract().body().path("version");
 
         // Create another new version of the artifact
         int version3 = given()
             .when()
                 .contentType(CT_JSON)
-                .header("X-Registry-ArtifactType", "OPENAPI")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .body(updatedArtifactContent_v3)
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("version", notNullValue())
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
             .extract().body().path("version");
 
         // Get meta-data for v2
@@ -719,7 +744,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());
@@ -745,7 +770,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version2))
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", equalTo("Updated Name"))
                 .body("description", equalTo("Updated description."));
@@ -759,7 +784,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("version", equalTo(version3))
-                .body("type", equalTo("OPENAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", nullValue())
                 .body("description", nullValue());

@@ -137,6 +137,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
+        long prevVersion = version - 1;
+        
         Map<String, String> contents = new ConcurrentHashMap<>();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         contents.put(MetaDataKeys.CONTENT, content);
@@ -144,10 +146,25 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
         contents.put(MetaDataKeys.CREATED_ON, String.valueOf(System.currentTimeMillis()));
+        contents.put(MetaDataKeys.MODIFIED_ON, String.valueOf(System.currentTimeMillis()));
 //        contents.put(MetaDataKeys.NAME, null);
 //        contents.put(MetaDataKeys.DESCRIPTION, null);
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         // TODO -- createdBy, modifiedBy
+        
+        // Carry over some meta-data from the previous version on an update.
+        if (!create) {
+            Map<String, String> prevContents = v2c.get(prevVersion);
+            if (prevContents != null) {
+                contents.put(MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
+                if (prevContents.containsKey(MetaDataKeys.NAME)) {
+                    contents.put(MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
+                }
+                if (prevContents.containsKey(MetaDataKeys.DESCRIPTION)) {
+                    contents.put(MetaDataKeys.DESCRIPTION, prevContents.get(MetaDataKeys.DESCRIPTION));
+                }
+            }
+        }
 
         // Store in v2c
         Map<String, String> previous = v2c.putIfAbsent(version, contents);

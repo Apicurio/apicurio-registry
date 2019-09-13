@@ -9,9 +9,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>apicurio-registry-distro-app-docker</artifactId>
+    <artifactId>apicurio-registry-distro-docker</artifactId>
     <packaging>pom</packaging>
-    <name>apicurio-registry-distro-app-docker</name>
+    <name>apicurio-registry-distro-docker</name>
 
     <properties>
         <app.dir>app</app.dir>

@@ -20,7 +20,6 @@
     <build>
 
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -33,11 +32,15 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${basedir}/target/docker/target-${app.dir}</outputDirectory>
+                            <outputDirectory>${basedir}/target/docker/app-files</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${basedir}/../../${app.dir}/target</directory>
                                     <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
                                 </resource>
                             </resources>
                         </configuration>
@@ -79,6 +82,9 @@
                                     <build>
                                         <contextDir>${project.build.directory}/docker</contextDir>
                                         <dockerFile>./Dockerfile.jvm</dockerFile>
+                                        <env>
+                                            <APP_URL>app-files/apicurio-*.tar.gz</APP_URL>
+                                        </env>
                                     </build>
                                 </image>
                             </images>

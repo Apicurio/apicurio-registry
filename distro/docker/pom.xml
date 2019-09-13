@@ -125,17 +125,13 @@
                                 <configuration>
                                     <images>
                                         <image>
-                                            <name>apicurio/apicurio-registry:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.jvm</dockerFile>
-                                            </build>
-                                        </image>
-                                        <image>
                                             <name>apicurio/apicurio-registry:${project.version}-native</name>
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.native</dockerFile>
+                                                <env>
+                                                    <APP_URL>app-files/apicurio-*-runner</APP_URL>
+                                                </env>
                                             </build>
                                         </image>
                                     </images>

@@ -20,11 +20,43 @@ enum ActionType {
     DELETE = 4;
 }
 
-message SchemaValue {
+message ArtifactValue {
+    int32 artifactType = 1;
+    fixed64 id = 2;
+    bytes content = 3;
+}
+
+message MetaDataValue {
+    string name = 1;
+    string description = 2;
+}
+
+message RuleValue {
+    enum Type {
+        __NONE = 0;
+        VALIDATION = 1;
+        COMPATIBILITY = 2;
+    }
+    Type type = 1;
+    string configuration = 2;
+}
+
+enum ValueType {
+    __INVALID = 0;
+    // crud
+    ARTIFACT = 1;
+    METADATA = 2;
+    RULE = 3;
+}
+
+message RegistryValue {
     ActionType type = 1;
-    int32 artifactType = 2;
-    string artifactId = 3;
-    fixed64 version = 4;
-    fixed64 id = 5;
-    bytes content = 6;
+    string artifactId = 2;
+    fixed64 version = 3;
+    ValueType vt = 4;
+    oneof value {
+        ArtifactValue artifact = 5;
+        MetaDataValue metadata = 6;
+        RuleValue rule = 7;
+    }
 }

@@ -16,6 +16,13 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,24 +31,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.SortedSet;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.quarkus.test.junit.QuarkusTest;
+import javax.inject.Inject;
 
 @QuarkusTest
-public abstract class AbstractRegistryStorageSmokeTest {
-
-    //private static Logger log = LoggerFactory.getLogger(AbstractRegistryStorageSmokeTest.class);
+public class RegistryStorageSmokeTest {
 
     static final String ARTIFACT_ID_1 = "artifactId1";
     static final String ARTIFACT_ID_2 = "artifactId2";
     static final String ARTIFACT_ID_3 = "artifactId3";
 
-    abstract RegistryStorage getStorage();
+    @Inject
+    @Current
+    private RegistryStorage storage;
+
+    protected RegistryStorage getStorage() {
+        return storage;
+    }
 
     private void delete(String artifactId, boolean rule) {
         try {

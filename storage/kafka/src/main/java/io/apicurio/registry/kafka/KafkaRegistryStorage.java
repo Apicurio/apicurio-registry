@@ -36,10 +36,18 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+<<<<<<< HEAD
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+=======
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.apicurio.registry.kafka.KafkaRegistryConfiguration.SNAPSHOT_TOPIC;
+>>>>>>> Use snapshot-ing to ease-up on Kafka store.
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;

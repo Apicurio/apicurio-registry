@@ -111,7 +111,7 @@
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-		<apicurio-data-models.version>1.0.12.Final</apicurio-data-models.version>
+		<apicurio-data-models.version>1.0.13.Final</apicurio-data-models.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.8</lombok.version>

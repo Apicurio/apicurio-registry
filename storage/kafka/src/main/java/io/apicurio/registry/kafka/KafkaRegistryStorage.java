@@ -36,19 +36,23 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.kafka.KafkaRegistryConfiguration.SNAPSHOT_TOPIC;
-
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -64,6 +68,18 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @ConfigProperty(name = "registry.kafka.snapshot.requests", defaultValue = "1000")
     long snapshotRequests;
 
+    @ConfigProperty(name = "registry.kafka.snapshot.period", defaultValue = "1200") // 2 days
+    long snapshotPeriod; // the time in minutes from the last time we did snapshot
+
+    @ConfigProperty(name = "registry.kafka.snapshot.topic", defaultValue = "snapshot-topic")
+    String snapshotTopic;
+
+    @ConfigProperty(name = "registry.kafka.schedule.period", defaultValue = "1")
+    long schedulePeriod; // schedule check period in minutes
+
+    @ConfigProperty(name = "registry.kafka.registry.topic", defaultValue = "registry-topic")
+    String registryTopic;
+
     @Inject
     ProducerActions<Reg.UUID, Reg.RegistryValue> registryProducer;
 
@@ -72,7 +88,10 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     private volatile long offset = 0;
 
-    private final Map<UUID, CompletableFuture<Object>> cfMap = new ConcurrentHashMap<>();
+    private final Map<UUID, CF<Object>> cfMap = new ConcurrentHashMap<>();
+
+    private ScheduledExecutorService executor;
+    private volatile long lastSnapshotTime;
 
     @Override
     protected long nextGlobalId() {
@@ -81,7 +100,18 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     protected void afterInit() {
-        log.info("Autosnapshot on every {} requests", snapshotRequests);
+        log.info("Autosnapshot on every {} requests, period: {}, scheduled check: {}",
+                 snapshotRequests, snapshotPeriod, schedulePeriod);
+    }
+
+    @Override
+    public String registryTopic() {
+        return registryTopic;
+    }
+
+    @Override
+    public String snapshotTopic() {
+        return snapshotTopic;
     }
 
     @Override
@@ -90,6 +120,43 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         global.putAll(snapshot.getGlobal());
         artifactRules.putAll(snapshot.getArtifactRules());
         globalRules.putAll(snapshot.getGlobalRules());
+    }
+
+    @Override
+    public void start() {
+        executor = new ScheduledThreadPoolExecutor(1);
+        // random delay, so not all nodes start checking at the same time
+        long delay = ThreadLocalRandom.current().nextLong(schedulePeriod * 60);
+        executor.scheduleAtFixedRate(this::check, delay, schedulePeriod, TimeUnit.MINUTES);
+    }
+
+    private void check() {
+        long now = System.currentTimeMillis();
+
+        // first check for any stale CFs -- should not be many
+        Iterator<Map.Entry<UUID, CF<Object>>> iter = cfMap.entrySet().iterator();
+        while (iter.hasNext()) {
+            CF cf = iter.next().getValue();
+            // remove if older then the period we check
+            if (now - cf.getTimestamp() > TimeUnit.MINUTES.toMillis(schedulePeriod)) {
+                iter.remove();
+            }
+        }
+
+        // force snapshot by sending a SNAPSHOT type msg
+        // we should be fine, as there shouldn't be lots of such msgs
+        // plus, we will only apply msg after this snapshot
+        // if it fails, we'll just re-try with snapshot, so no harm
+        if (now - lastSnapshotTime > TimeUnit.MINUTES.toMillis(snapshotPeriod)) {
+            log.info("Forced snapshot: " + get(submitSnapshot(now)));
+        }
+    }
+
+    @Override
+    public void stop() {
+        if (executor != null) {
+            executor.shutdown();
+        }
     }
 
     private Reg.RegistryValue.Builder getRVBuilder(Reg.ValueType vt, Reg.ActionType actionType, String artifactId, long version) {
@@ -143,10 +210,16 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         return submit(rvb.build());
     }
 
+    private <T> CompletableFuture<T> submitSnapshot(long timestamp) {
+        Reg.SnapshotValue.Builder builder = Reg.SnapshotValue.newBuilder().setTimestamp(timestamp);
+        Reg.RegistryValue.Builder rvb = getRVBuilder(Reg.ValueType.SNAPSHOT, Reg.ActionType.CREATE, null, -1).setSnapshot(builder);
+        return submit(rvb.build());
+    }
+
     @SuppressWarnings("unchecked")
     private <T> CompletableFuture<T> submit(Reg.RegistryValue value) {
         UUID reqId = UUID.randomUUID();
-        CompletableFuture<Object> cf = new CompletableFuture<>();
+        CF<Object> cf = new CF<>();
         cfMap.put(reqId, cf);
         return send(reqId, value)
             .whenComplete((r, x) -> {
@@ -157,7 +230,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     private CompletableFuture<?> send(UUID reqId, Reg.RegistryValue value) {
         ProducerRecord<Reg.UUID, Reg.RegistryValue> record = new ProducerRecord<>(
-            KafkaRegistryConfiguration.REGISTRY_TOPIC,
+            registryTopic,
             ProtoUtil.convert(reqId),
             value
         );
@@ -168,9 +241,9 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         this.offset = record.offset();
 
         boolean isProducer = false;
-        CompletableFuture<Object> cf = cfMap.remove(ProtoUtil.convert(record.key()));
+        CF<Object> cf = cfMap.remove(ProtoUtil.convert(record.key()));
         if (cf == null) {
-            cf = new CompletableFuture<>(); // it's a non-producer instance or handle it anyway (should not happen !?)
+            cf = new CF<>(); // it's a non-producer instance or handle it anyway (should not happen !?)
         } else {
             isProducer = true; // since we found the CF, this node produced the msg
         }
@@ -181,77 +254,32 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         String artifactId = ProtoUtil.getNullable(rv.getArtifactId(), s -> !s.isEmpty(), Function.identity());
         long version = rv.getVersion();
         Reg.ValueType vt = rv.getVt();
+        boolean forcedSnapshot = false;
+        long timestamp = System.currentTimeMillis();
 
         try {
             switch (vt) {
                 case ARTIFACT: {
-                    Reg.ArtifactValue artifact = rv.getArtifact();
-                    if (type == Reg.ActionType.CREATE || type == Reg.ActionType.UPDATE) {
-                        String content = artifact.getContent().toString(StandardCharsets.UTF_8);
-                        cf.complete(createOrUpdateArtifact(
-                            artifactId,
-                            ArtifactType.values()[artifact.getArtifactType()],
-                            content,
-                            Reg.ActionType.CREATE == type,
-                            offset));
-                    } else if (type == Reg.ActionType.DELETE) {
-                        if (version >= 0) {
-                            super.deleteArtifactVersion(artifactId, version);
-                            cf.complete(Void.class); // just set something
-                        } else {
-                            cf.complete(super.deleteArtifact(artifactId));
-                        }
-                    }
+                    consumeArtifact(cf, rv, type, artifactId, version);
                     break;
                 }
                 case METADATA: {
-                    Reg.MetaDataValue metaData = rv.getMetadata();
-                    if (type == Reg.ActionType.UPDATE) {
-                        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(metaData.getName(), metaData.getDescription());
-                        if (version >= 0) {
-                            super.updateArtifactVersionMetaData(artifactId, version, emd);
-                        } else {
-                            super.updateArtifactMetaData(artifactId, emd);
-                        }
-                    } else if (type == Reg.ActionType.DELETE) {
-                        super.deleteArtifactVersionMetaData(artifactId, version);
-                    }
-                    cf.complete(Void.class);
+                    consumeMetaData(cf, rv, type, artifactId, version);
                     break;
                 }
                 case RULE: {
-                    Reg.RuleValue rule = rv.getRule();
-                    Reg.RuleValue.Type rtv = rule.getType();
-                    RuleType ruleType = (rtv != null && rtv != Reg.RuleValue.Type.__NONE) ? RuleType.valueOf(rtv.name()) : null;
-                    RuleConfigurationDto rcd = new RuleConfigurationDto(rule.getConfiguration());
-                    if (type == Reg.ActionType.CREATE) {
-                        if (artifactId != null) {
-                            super.createArtifactRule(artifactId, ruleType, rcd);
-                        } else {
-                            super.createGlobalRule(ruleType, rcd);
-                        }
-                    } else if (type == Reg.ActionType.UPDATE) {
-                        if (artifactId != null) {
-                            super.updateArtifactRule(artifactId, ruleType, rcd);
-                        } else {
-                            super.updateGlobalRule(ruleType, rcd);
-                        }
-                    } else if (type == Reg.ActionType.DELETE) {
-                        if (artifactId != null) {
-                            if (ruleType != null) {
-                                super.deleteArtifactRule(artifactId, ruleType);
-                            } else {
-                                super.deleteArtifactRules(artifactId);
-                            }
-                        } else {
-                            if (ruleType != null) {
-                                super.deleteGlobalRule(ruleType);
-                            } else {
-                                super.deleteGlobalRules();
-                            }
-                        }
-                    }
-                    cf.complete(Void.class);
+                    consumeRule(cf, rv, type, artifactId);
+                    break;
+                }
+                case SNAPSHOT: {
+                    Reg.SnapshotValue sv = rv.getSnapshot();
+                    // best try / effort ?
+                    // if we fail, it will be inconsistent -- hence smart period value wrt retention ...
+                    // but if we only set it in "whenComplete"
+                    // then only producer node can have the actual value
+                    lastSnapshotTime = sv.getTimestamp();
+                    timestamp = lastSnapshotTime; // override timestamp
+                    forcedSnapshot = true;
                     break;
                 }
                 default: {
@@ -260,24 +288,101 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
             }
 
             // only handle things on producer, so multiple nodes don't write same snapshots
-            if (isProducer && offset > 0 && (offset % snapshotRequests) == 0) {
-                snapshotProducer.apply(new ProducerRecord<>(
-                    SNAPSHOT_TOPIC,
-                    System.currentTimeMillis(),
-                    new StorageSnapshot(storage, global, artifactRules, globalRules, offset)
-                )).whenComplete((recordMeta, exception) -> {
-                    if (exception != null) {
-                        log.warn("Exception dumping automatic snapshot: ", exception);
-                    } else {
-                        log.info("Dumped automatic market snapshot to {} ({} bytes)", recordMeta, recordMeta.serializedValueSize());
-                    }
-                });
+            if (isProducer && (forcedSnapshot || (offset > 0 && (offset % snapshotRequests) == 0))) {
+                CompletableFuture<RecordMetadata> rcf = makeSnapshot(timestamp);
+                if (forcedSnapshot) {
+                    cf.complete(get(rcf));
+                }
             }
 
         } catch (RegistryException e) {
             cf.completeExceptionally(e);
         }
         // all other non-project / non-programmatic exceptions are unexpected, retry?
+    }
+
+    private CompletableFuture<RecordMetadata> makeSnapshot(long timestamp) {
+        return snapshotProducer.apply(new ProducerRecord<>(
+            snapshotTopic,
+            timestamp,
+            new StorageSnapshot(storage, global, artifactRules, globalRules, offset)
+        )).whenComplete((recordMeta, exception) -> {
+            if (exception != null) {
+                log.warn("Exception dumping automatic snapshot: ", exception);
+            } else {
+                log.info("Dumped automatic snapshot to {} ({} bytes)", recordMeta, recordMeta.serializedValueSize());
+            }
+        });
+    }
+
+    private void consumeRule(CompletableFuture<Object> cf, Reg.RegistryValue rv, Reg.ActionType type, String artifactId) {
+        Reg.RuleValue rule = rv.getRule();
+        Reg.RuleValue.Type rtv = rule.getType();
+        RuleType ruleType = (rtv != null && rtv != Reg.RuleValue.Type.__NONE) ? RuleType.valueOf(rtv.name()) : null;
+        RuleConfigurationDto rcd = new RuleConfigurationDto(rule.getConfiguration());
+        if (type == Reg.ActionType.CREATE) {
+            if (artifactId != null) {
+                super.createArtifactRule(artifactId, ruleType, rcd);
+            } else {
+                super.createGlobalRule(ruleType, rcd);
+            }
+        } else if (type == Reg.ActionType.UPDATE) {
+            if (artifactId != null) {
+                super.updateArtifactRule(artifactId, ruleType, rcd);
+            } else {
+                super.updateGlobalRule(ruleType, rcd);
+            }
+        } else if (type == Reg.ActionType.DELETE) {
+            if (artifactId != null) {
+                if (ruleType != null) {
+                    super.deleteArtifactRule(artifactId, ruleType);
+                } else {
+                    super.deleteArtifactRules(artifactId);
+                }
+            } else {
+                if (ruleType != null) {
+                    super.deleteGlobalRule(ruleType);
+                } else {
+                    super.deleteGlobalRules();
+                }
+            }
+        }
+        cf.complete(Void.class);
+    }
+
+    private void consumeMetaData(CompletableFuture<Object> cf, Reg.RegistryValue rv, Reg.ActionType type, String artifactId, long version) {
+        Reg.MetaDataValue metaData = rv.getMetadata();
+        if (type == Reg.ActionType.UPDATE) {
+            EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(metaData.getName(), metaData.getDescription());
+            if (version >= 0) {
+                super.updateArtifactVersionMetaData(artifactId, version, emd);
+            } else {
+                super.updateArtifactMetaData(artifactId, emd);
+            }
+        } else if (type == Reg.ActionType.DELETE) {
+            super.deleteArtifactVersionMetaData(artifactId, version);
+        }
+        cf.complete(Void.class);
+    }
+
+    private void consumeArtifact(CompletableFuture<Object> cf, Reg.RegistryValue rv, Reg.ActionType type, String artifactId, long version) {
+        Reg.ArtifactValue artifact = rv.getArtifact();
+        if (type == Reg.ActionType.CREATE || type == Reg.ActionType.UPDATE) {
+            String content = artifact.getContent().toString(StandardCharsets.UTF_8);
+            cf.complete(createOrUpdateArtifact(
+                artifactId,
+                ArtifactType.values()[artifact.getArtifactType()],
+                content,
+                Reg.ActionType.CREATE == type,
+                offset));
+        } else if (type == Reg.ActionType.DELETE) {
+            if (version >= 0) {
+                super.deleteArtifactVersion(artifactId, version);
+                cf.complete(Void.class); // just set something
+            } else {
+                cf.complete(super.deleteArtifact(artifactId));
+            }
+        }
     }
 
     @Override
@@ -377,4 +482,15 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         }
     }
 
+    private static class CF<T> extends CompletableFuture<T> {
+        private final long timestamp;
+
+        public CF() {
+            timestamp = System.currentTimeMillis();
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+    }
 }

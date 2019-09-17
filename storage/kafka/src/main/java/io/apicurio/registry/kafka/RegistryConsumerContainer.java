@@ -29,9 +29,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 
-import static io.apicurio.registry.kafka.KafkaRegistryConfiguration.REGISTRY_TOPIC;
-import static io.apicurio.registry.kafka.KafkaRegistryConfiguration.SNAPSHOT_TOPIC;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -73,19 +70,22 @@ public class RegistryConsumerContainer extends ConsumerContainer<Reg.UUID, Reg.R
             offset = Seek.FROM_BEGINNING.offset(0);
         }
 
-        addTopicPartition(new TopicPartition(REGISTRY_TOPIC, 0), offset);
+        addTopicPartition(new TopicPartition(handle.registryTopic(), 0), offset);
+
+        handle.start();
     }
 
     @Override
     public void stop() {
-        removeTopicParition(new TopicPartition(REGISTRY_TOPIC, 0));
+        handle.stop();
+        removeTopicParition(new TopicPartition(handle.registryTopic(), 0));
         super.stop();
     }
 
     // handle / load snapshot
 
     private StorageSnapshot loadSnapshot() {
-        TopicPartition snapshotsTp = new TopicPartition(SNAPSHOT_TOPIC, 0);
+        TopicPartition snapshotsTp = new TopicPartition(handle.snapshotTopic(), 0);
         try (org.apache.kafka.clients.consumer.Consumer<Long, StorageSnapshot> consumer = new KafkaConsumer<>(
             snapshotProperties,
             Serdes.Long().deserializer(),

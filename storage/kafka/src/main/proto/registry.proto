@@ -41,12 +41,17 @@ message RuleValue {
     string configuration = 2;
 }
 
+message SnapshotValue {
+    fixed64 timestamp = 1;
+}
+
 enum ValueType {
     __INVALID = 0;
     // crud
     ARTIFACT = 1;
     METADATA = 2;
     RULE = 3;
+    SNAPSHOT = 4;
 }
 
 message RegistryValue {
@@ -58,5 +63,6 @@ message RegistryValue {
         ArtifactValue artifact = 5;
         MetaDataValue metadata = 6;
         RuleValue rule = 7;
+        SnapshotValue snapshot = 8;
     }
 }

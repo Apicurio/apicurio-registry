@@ -24,7 +24,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * @author Ales Justin
  */
 public interface KafkaRegistryStorageHandle {
+    String registryTopic();
+    String snapshotTopic();
+
     void loadSnapshot(StorageSnapshot snapshot);
 
     void consumeRegistryValue(ConsumerRecord<Reg.UUID, Reg.RegistryValue> record);
+
+    void start();
+
+    void stop();
 }

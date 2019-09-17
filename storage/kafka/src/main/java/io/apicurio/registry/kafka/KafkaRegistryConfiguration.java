@@ -49,9 +49,6 @@ public class KafkaRegistryConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaRegistryConfiguration.class);
 
-    public static final String SNAPSHOT_TOPIC = "snapshot-topic";
-    public static final String REGISTRY_TOPIC = "registry-topic";
-
     @Produces
     public Properties properties(InjectionPoint ip) {
         KafkaProperties kp = ip.getAnnotated().getAnnotation(KafkaProperties.class);

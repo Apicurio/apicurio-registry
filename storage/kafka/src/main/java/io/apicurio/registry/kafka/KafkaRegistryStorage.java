@@ -68,13 +68,13 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @ConfigProperty(name = "registry.kafka.snapshot.requests", defaultValue = "1000")
     long snapshotRequests;
 
-    @ConfigProperty(name = "registry.kafka.snapshot.period", defaultValue = "1200") // 2 days
+    @ConfigProperty(name = "registry.kafka.snapshot.period.minutes", defaultValue = "1200") // 2 days
     long snapshotPeriod; // the time in minutes from the last time we did snapshot
 
     @ConfigProperty(name = "registry.kafka.snapshot.topic", defaultValue = "snapshot-topic")
     String snapshotTopic;
 
-    @ConfigProperty(name = "registry.kafka.schedule.period", defaultValue = "1")
+    @ConfigProperty(name = "registry.kafka.schedule.period.minutes", defaultValue = "1")
     long schedulePeriod; // schedule check period in minutes
 
     @ConfigProperty(name = "registry.kafka.registry.topic", defaultValue = "registry-topic")
@@ -88,7 +88,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     private volatile long offset = 0;
 
-    private final Map<UUID, CF<Object>> cfMap = new ConcurrentHashMap<>();
+    private final Map<UUID, TimedFuture<Object>> outstandingRequests = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService executor;
     private volatile long lastSnapshotTime;
@@ -134,11 +134,11 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         long now = System.currentTimeMillis();
 
         // first check for any stale CFs -- should not be many
-        Iterator<Map.Entry<UUID, CF<Object>>> iter = cfMap.entrySet().iterator();
+        Iterator<Map.Entry<UUID, TimedFuture<Object>>> iter = outstandingRequests.entrySet().iterator();
         while (iter.hasNext()) {
-            CF cf = iter.next().getValue();
+            TimedFuture tf = iter.next().getValue();
             // remove if older then the period we check
-            if (now - cf.getTimestamp() > TimeUnit.MINUTES.toMillis(schedulePeriod)) {
+            if (now - tf.getTimestamp() > TimeUnit.MINUTES.toMillis(schedulePeriod)) {
                 iter.remove();
             }
         }
@@ -147,7 +147,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         // we should be fine, as there shouldn't be lots of such msgs
         // plus, we will only apply msg after this snapshot
         // if it fails, we'll just re-try with snapshot, so no harm
-        if (now - lastSnapshotTime > TimeUnit.MINUTES.toMillis(snapshotPeriod)) {
+        if (lastSnapshotTime > 0 && now - lastSnapshotTime > TimeUnit.MINUTES.toMillis(snapshotPeriod)) {
             log.info("Forced snapshot: " + get(submitSnapshot(now)));
         }
     }
@@ -219,13 +219,13 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @SuppressWarnings("unchecked")
     private <T> CompletableFuture<T> submit(Reg.RegistryValue value) {
         UUID reqId = UUID.randomUUID();
-        CF<Object> cf = new CF<>();
-        cfMap.put(reqId, cf);
+        TimedFuture<Object> tf = new TimedFuture<>();
+        outstandingRequests.put(reqId, tf);
         return send(reqId, value)
             .whenComplete((r, x) -> {
-                if (x != null) cfMap.remove(reqId);
+                if (x != null) outstandingRequests.remove(reqId);
             })
-            .thenCompose(r -> (CompletableFuture<T>) cf);
+            .thenCompose(r -> (CompletableFuture<T>) tf);
     }
 
     private CompletableFuture<?> send(UUID reqId, Reg.RegistryValue value) {
@@ -241,9 +241,9 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         this.offset = record.offset();
 
         boolean isProducer = false;
-        CF<Object> cf = cfMap.remove(ProtoUtil.convert(record.key()));
-        if (cf == null) {
-            cf = new CF<>(); // it's a non-producer instance or handle it anyway (should not happen !?)
+        TimedFuture<Object> tf = outstandingRequests.remove(ProtoUtil.convert(record.key()));
+        if (tf == null) {
+            tf = new TimedFuture<>(); // it's a non-producer instance or handle it anyway (should not happen !?)
         } else {
             isProducer = true; // since we found the CF, this node produced the msg
         }
@@ -260,15 +260,15 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         try {
             switch (vt) {
                 case ARTIFACT: {
-                    consumeArtifact(cf, rv, type, artifactId, version);
+                    consumeArtifact(tf, rv, type, artifactId, version);
                     break;
                 }
                 case METADATA: {
-                    consumeMetaData(cf, rv, type, artifactId, version);
+                    consumeMetaData(tf, rv, type, artifactId, version);
                     break;
                 }
                 case RULE: {
-                    consumeRule(cf, rv, type, artifactId);
+                    consumeRule(tf, rv, type, artifactId);
                     break;
                 }
                 case SNAPSHOT: {
@@ -291,12 +291,19 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
             if (isProducer && (forcedSnapshot || (offset > 0 && (offset % snapshotRequests) == 0))) {
                 CompletableFuture<RecordMetadata> rcf = makeSnapshot(timestamp);
                 if (forcedSnapshot) {
-                    cf.complete(get(rcf));
+                    TimedFuture<Object> tmpTF = tf;
+                    rcf.whenComplete((r, t) -> {
+                        if (t != null) {
+                            tmpTF.completeExceptionally(t);
+                        } else {
+                            tmpTF.complete(r);
+                        }
+                    });
                 }
             }
 
         } catch (RegistryException e) {
-            cf.completeExceptionally(e);
+            tf.completeExceptionally(e);
         }
         // all other non-project / non-programmatic exceptions are unexpected, retry?
     }
@@ -482,10 +489,10 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         }
     }
 
-    private static class CF<T> extends CompletableFuture<T> {
+    private static class TimedFuture<T> extends CompletableFuture<T> {
         private final long timestamp;
 
-        public CF() {
+        public TimedFuture() {
             timestamp = System.currentTimeMillis();
         }
 

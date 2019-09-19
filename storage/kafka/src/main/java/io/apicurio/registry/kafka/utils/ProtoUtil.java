@@ -19,6 +19,8 @@ package io.apicurio.registry.kafka.utils;
 import io.apicurio.registry.kafka.proto.Reg;
 
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * @author Ales Justin
@@ -37,4 +39,7 @@ public class ProtoUtil {
             .build();
     }
 
+    public static <B, R> R getNullable(B b, Predicate<? super B> tester, Function<? super B, ? extends R> getter) {
+        return tester.test(b) ? getter.apply(b) : null;
+    }
 }

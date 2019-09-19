@@ -16,19 +16,6 @@
 
 package io.apicurio.registry.storage.impl;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -45,6 +32,18 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
  * subclasses of this might be an in-memory impl as well as an Infinispan impl.
@@ -52,10 +51,10 @@ import io.apicurio.registry.types.RuleType;
  */
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
-    private Map<String, Map<Long, Map<String, String>>> storage;
-    private Map<Long, Map<String, String>> global;
-    private Map<String, Map<String, String>> artifactRules;
-    private Map<String, String> globalRules;
+    protected Map<String, Map<Long, Map<String, String>>> storage;
+    protected Map<Long, Map<String, String>> global;
+    protected Map<String, Map<String, String>> artifactRules;
+    protected Map<String, String> globalRules;
 
     @PostConstruct
     public void init() {

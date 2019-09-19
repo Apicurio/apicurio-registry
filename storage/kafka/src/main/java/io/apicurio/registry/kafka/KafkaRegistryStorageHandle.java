@@ -17,11 +17,21 @@
 package io.apicurio.registry.kafka;
 
 import io.apicurio.registry.kafka.proto.Reg;
+import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 /**
  * @author Ales Justin
  */
 public interface KafkaRegistryStorageHandle {
-    void consumeSchemaValue(ConsumerRecord<Reg.UUID, Reg.SchemaValue> record);
+    String registryTopic();
+    String snapshotTopic();
+
+    void loadSnapshot(StorageSnapshot snapshot);
+
+    void consumeRegistryValue(ConsumerRecord<Reg.UUID, Reg.RegistryValue> record);
+
+    void start();
+
+    void stop();
 }

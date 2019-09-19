@@ -17,17 +17,16 @@
 package io.apicurio.registry.kafka;
 
 import io.apicurio.registry.kafka.proto.Reg;
+import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
+import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
 import io.apicurio.registry.kafka.utils.AsyncProducer;
 import io.apicurio.registry.kafka.utils.ConsumerActions;
-import io.apicurio.registry.kafka.utils.DynamicConsumerContainer;
 import io.apicurio.registry.kafka.utils.KafkaProperties;
-import io.apicurio.registry.kafka.utils.Oneof2;
 import io.apicurio.registry.kafka.utils.ProducerActions;
 import io.apicurio.registry.kafka.utils.ProtoSerde;
-import io.apicurio.registry.kafka.utils.Seek;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Serdes;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
@@ -49,8 +48,6 @@ import javax.enterprise.inject.spi.InjectionPoint;
 public class KafkaRegistryConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaRegistryConfiguration.class);
-
-    public static final String SCHEMA_TOPIC = "schema-topic";
 
     @Produces
     public Properties properties(InjectionPoint ip) {
@@ -76,48 +73,69 @@ public class KafkaRegistryConfiguration {
 
     @Produces
     @ApplicationScoped
-    public ProducerActions<Reg.UUID, Reg.SchemaValue> schemaProducer(
-        @KafkaProperties("registry.kafka.schema-producer.") Properties properties
+    public ProducerActions<Long, StorageSnapshot> snapshotProducer(
+        @KafkaProperties("registry.kafka.snapshot-producer.") Properties properties
     ) {
         return new AsyncProducer<>(
             properties,
-            ProtoSerde.parsedWith(Reg.UUID.parser()),
-            ProtoSerde.parsedWith(Reg.SchemaValue.parser())
+            Serdes.Long().serializer(),
+            new StorageSnapshotSerde()
         );
     }
 
-    public void stop(@Disposes ProducerActions<String, Reg.SchemaValue> producer) throws Exception {
+    public void stopSnapshotProducer(@Disposes ProducerActions<Long, StorageSnapshot> producer) throws Exception {
         producer.close();
     }
 
     @Produces
     @ApplicationScoped
-    public ConsumerActions.DynamicAssignment<Reg.UUID, Reg.SchemaValue> schemaContainer(
-        @KafkaProperties("registry.kafka.schema-consumer.") Properties properties,
-        KafkaRegistryStorageHandle handle
+    public ProducerActions<Reg.UUID, Reg.RegistryValue> registryProducer(
+        @KafkaProperties("registry.kafka.registry-producer.") Properties properties
     ) {
-        // persistent unique group id
-        String groupId = properties.getProperty("group.id");
-        if (groupId == null) {
-            log.warn("No group.id set, creating one ... DEV env only!!");
-            properties.put("group.id", UUID.randomUUID().toString());
-        }
-
-        return new DynamicConsumerContainer<>(
+        return new AsyncProducer<>(
             properties,
             ProtoSerde.parsedWith(Reg.UUID.parser()),
-            ProtoSerde.parsedWith(Reg.SchemaValue.parser()),
-            Oneof2.first(handle::consumeSchemaValue)
+            ProtoSerde.parsedWith(Reg.RegistryValue.parser())
         );
     }
 
-    public void init(@Observes StartupEvent event, ConsumerActions.DynamicAssignment<Reg.UUID, Reg.SchemaValue> container) {
-        container.start();
-        container.addTopicPartition(new TopicPartition(SCHEMA_TOPIC, 0), Seek.FROM_BEGINNING.offset(0));
+    public void stopRegistryProducer(@Disposes ProducerActions<Reg.UUID, Reg.RegistryValue> producer) throws Exception {
+        producer.close();
     }
 
-    public void destroy(@Observes ShutdownEvent event, ConsumerActions.DynamicAssignment<Reg.UUID, Reg.SchemaValue> container) {
-        container.removeTopicParition(new TopicPartition(SCHEMA_TOPIC, 0));
+    @Produces
+    @ApplicationScoped
+    public ConsumerActions.DynamicAssignment<Reg.UUID, Reg.RegistryValue> registryContainer(
+        @KafkaProperties("registry.kafka.registry-consumer.") Properties registryProperties,
+        @KafkaProperties("registry.kafka.snapshot-consumer.") Properties snapshotProperties,
+        KafkaRegistryStorageHandle handle
+    ) {
+        // persistent unique group id
+        applyGroupId("registry", registryProperties);
+        applyGroupId("snapshot", snapshotProperties);
+
+        return new RegistryConsumerContainer(
+            registryProperties,
+            ProtoSerde.parsedWith(Reg.UUID.parser()),
+            ProtoSerde.parsedWith(Reg.RegistryValue.parser()),
+            handle,
+            snapshotProperties
+        );
+    }
+
+    private static void applyGroupId(String type, Properties properties) {
+        String groupId = properties.getProperty("group.id");
+        if (groupId == null) {
+            log.warn("No group.id set for " + type + " properties, creating one ... DEV env only!!");
+            properties.put("group.id", UUID.randomUUID().toString());
+        }
+    }
+
+    public void init(@Observes StartupEvent event, ConsumerActions.DynamicAssignment<Reg.UUID, Reg.RegistryValue> container) {
+        container.start();
+    }
+
+    public void destroy(@Observes ShutdownEvent event, ConsumerActions.DynamicAssignment<Reg.UUID, Reg.RegistryValue> container) {
         container.stop();
     }
 }

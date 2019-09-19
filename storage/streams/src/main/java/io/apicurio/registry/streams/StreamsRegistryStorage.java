@@ -1,0 +1,420 @@
+package io.apicurio.registry.streams;
+
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.MetaDataKeys;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
+import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
+import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.common.ConcurrentUtil;
+import io.apicurio.registry.utils.kafka.ProducerActions;
+import io.apicurio.registry.utils.kafka.Submitter;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.utils.CloseableIterator;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+/**
+ * @author Ales Justin
+ */
+@ApplicationScoped
+public class StreamsRegistryStorage implements RegistryStorage {
+
+    /* Fake global rules as an artifact */
+    public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
+
+    @Inject
+    StreamsProperties properties;
+
+    @Inject
+    ProducerActions<String, Str.StorageValue> storageProducer;
+
+    @Inject
+    ExtReadOnlyKeyValueStore<String, Str.Data> storageStore;
+
+    @Inject
+    ReadOnlyKeyValueStore<Long, Str.TupleValue> globalIdStore;
+
+    @Inject
+    @Current
+    AsyncBiFunctionService<String, Long, Str.Data> storageFunction;
+
+    private Submitter submitter = new Submitter(this::send);
+
+    private CompletableFuture<RecordMetadata> send(Str.StorageValue value) {
+        ProducerRecord<String, Str.StorageValue> record = new ProducerRecord<>(
+            properties.getStorageTopic(),
+            value.getArtifactId(), // MUST be set
+            value
+        );
+        return storageProducer.apply(record);
+    }
+
+    private static StoredArtifact addContent(Str.ArtifactValue value) {
+        Map<String, String> contents = new HashMap<>(value.getMetadataMap());
+        contents.put(MetaDataKeys.CONTENT, value.getContent().toStringUtf8());
+        return AbstractMapRegistryStorage.toStoredArtifact(contents);
+    }
+
+    private static boolean isValid(Str.ArtifactValue value) {
+        return !value.equals(Str.ArtifactValue.getDefaultInstance());
+    }
+
+    private static boolean isGlobalRules(String artifactId) {
+        return GLOBAL_RULES_ID.equals(artifactId);
+    }
+
+    private Str.ArtifactValue getLastArtifact(String artifactId) {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            int count = data.getArtifactsCount();
+            if (count > 0) {
+                List<Str.ArtifactValue> list = data.getArtifactsList();
+                Str.ArtifactValue value = list.get(count - 1);
+                if (isValid(value)) {
+                    return value;
+                }
+            }
+        }
+        throw new ArtifactNotFoundException(artifactId);
+    }
+
+    private <T> T handleVersion(String artifactId, long version, Handler<T> handler) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            int index = (int) (version - 1);
+            List<Str.ArtifactValue> list = data.getArtifactsList();
+            if (index < list.size()) {
+                Str.ArtifactValue value = list.get(index);
+                if (isValid(value)) {
+                    return handler.handleArtifact(value);
+                } else {
+                    throw new VersionNotFoundException(artifactId, version);
+                }
+            } else {
+                throw new VersionNotFoundException(artifactId, version);
+            }
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    private interface Handler<T> {
+        T handleArtifact(Str.ArtifactValue value);
+    }
+
+    @Override
+    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            if (data.getArtifactsCount() > 0) {
+                throw new ArtifactAlreadyExistsException(artifactId);
+            }
+        }
+
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content);
+        RecordMetadata rmd = ConcurrentUtil.get(submitCF);
+        long offset = rmd.offset();
+        int partition = rmd.partition();
+        CompletionStage<Str.Data> dataCF = storageFunction.apply(artifactId, offset);
+        data = ConcurrentUtil.result(dataCF);
+        Str.ArtifactValue first = data.getArtifacts(0);
+        long globalId = properties.toGlobalId(offset, partition);
+        if (first.getId() != globalId) {
+            // somebody beat us to it ...
+            throw new ArtifactAlreadyExistsException(artifactId);
+        }
+        return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+    }
+
+    @Override
+    public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            if (data.getArtifactsCount() == 0) {
+                throw new ArtifactNotFoundException(artifactId);
+            }
+
+            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null));
+
+            SortedSet<Long> result = new TreeSet<>();
+            List<Str.ArtifactValue> list = data.getArtifactsList();
+            for (int i = 0; i < list.size(); i++) {
+                if (isValid(list.get(i))) {
+                    result.add((long) (i + 1));
+                }
+            }
+            return result;
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return addContent(getLastArtifact(artifactId));
+    }
+
+    @Override
+    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            if (data.getArtifactsCount() == 0) {
+                throw new ArtifactNotFoundException(artifactId);
+            }
+        }
+
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content);
+        RecordMetadata rmd = ConcurrentUtil.get(submitCF);
+        long offset = rmd.offset();
+        int partition = rmd.partition();
+        CompletionStage<Str.Data> dataCF = storageFunction.apply(artifactId, offset);
+        data = ConcurrentUtil.result(dataCF);
+        long globalId = properties.toGlobalId(offset, partition);
+        for (int i = data.getArtifactsCount() - 1; i >=0; i--) {
+            Str.ArtifactValue value = data.getArtifacts(i);
+            if (value.getId() == globalId) {
+                return MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+            }
+        }
+        throw new ArtifactNotFoundException(artifactId);
+    }
+
+    @Override
+    public Set<String> getArtifactIds() {
+        Set<String> ids = new TreeSet<>();
+        try (CloseableIterator<String> iter = storageStore.allKeys()) {
+            while (iter.hasNext()) {
+                ids.add(iter.next());
+            }
+            ids.remove(GLOBAL_RULES_ID);
+            return ids;
+        }
+    }
+
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Map<String, String> content = getLastArtifact(artifactId).getMetadataMap();
+        return MetaDataKeys.toArtifactMetaData(content);
+    }
+
+    @Override
+    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription()));
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            return data.getRulesList().stream().map(v -> RuleType.fromValue(v.getType().name())).collect(Collectors.toList());
+        }
+        if (isGlobalRules(artifactId)) {
+            return Collections.emptyList();
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            Optional<Str.RuleValue> found = data.getRulesList()
+                                                .stream()
+                                                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                                                .findFirst();
+            if (found.isPresent()) {
+                throw new RuleAlreadyExistsException(rule);
+            }
+            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()));
+        } else if (isGlobalRules(artifactId)) {
+            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()));
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, null, null));
+        } else if (!isGlobalRules(artifactId)) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            return data.getRulesList()
+                       .stream()
+                       .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                       .findFirst()
+                       .map(r -> new RuleConfigurationDto(r.getConfiguration()))
+                       .orElseThrow(() -> new RuleNotFoundException(rule));
+        } else if (isGlobalRules(artifactId)) {
+            throw new RuleNotFoundException(rule);
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            data.getRulesList()
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .orElseThrow(() -> new RuleNotFoundException(rule));
+            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, artifactId, rule, config.getConfiguration()));
+        } else if (isGlobalRules(artifactId)) {
+            throw new RuleNotFoundException(rule);
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public void deleteArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            data.getRulesList()
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .orElseThrow(() -> new RuleNotFoundException(rule));
+            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, rule, null));
+        } else if (isGlobalRules(artifactId)) {
+            throw new RuleNotFoundException(rule);
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            SortedSet<Long> result = new TreeSet<>();
+            List<Str.ArtifactValue> list = data.getArtifactsList();
+            for (int i = 0; i < list.size(); i++) {
+                if (isValid(list.get(i))) {
+                    result.add((long) (i + 1));
+                }
+            }
+            return result;
+        } else {
+            throw new ArtifactNotFoundException(artifactId);
+        }
+    }
+
+    @Override
+    public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.TupleValue value = globalIdStore.get(id);
+        if (value == null) {
+            throw new ArtifactNotFoundException("GlobalId: " + id);
+        }
+        return getArtifactVersion(value.getArtifactId(), value.getVersion());
+    }
+
+    @Override
+    public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return handleVersion(artifactId, version, StreamsRegistryStorage::addContent);
+    }
+
+    @Override
+    public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(artifactId, version, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null)));
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return handleVersion(artifactId, version, value -> MetaDataKeys.toArtifactVersionMetaData(value.getMetadataMap()));
+    }
+
+    @Override
+    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(
+            artifactId,
+            version,
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription()))
+        );
+    }
+
+    @Override
+    public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(
+            artifactId,
+            version,
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null))
+        );
+    }
+
+    @Override
+    public List<RuleType> getGlobalRules() throws RegistryStorageException {
+        return getArtifactRules(GLOBAL_RULES_ID);
+    }
+
+    @Override
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
+        createArtifactRule(GLOBAL_RULES_ID, rule, config);
+    }
+
+    @Override
+    public void deleteGlobalRules() throws RegistryStorageException {
+        deleteArtifactRules(GLOBAL_RULES_ID);
+    }
+
+    @Override
+    public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        return getArtifactRule(GLOBAL_RULES_ID, rule);
+    }
+
+    @Override
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
+        updateArtifactRule(GLOBAL_RULES_ID, rule, config);
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        deleteArtifactRule(GLOBAL_RULES_ID, rule);
+    }
+}

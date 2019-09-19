@@ -16,12 +16,17 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.util.ServiceInitializer;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-import org.junit.jupiter.api.BeforeEach;
-
-import io.apicurio.registry.types.ArtifactType;
+import java.util.concurrent.Callable;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -32,11 +37,17 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
-    
+
+    @Inject
+    Instance<ServiceInitializer> initializers;
+
     @BeforeEach
-    void beforeEach() {
+    protected void beforeEach() {
+        // run all initializers::beforeEach
+        initializers.stream().forEach(ServiceInitializer::beforeEach);
+
         // Delete all global rules
-        given().when().delete("/rules").then().statusCode(204);        
+        given().when().delete("/rules").then().statusCode(204);
     }
     
     /**
@@ -59,5 +70,18 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
     }
-    
+
+    protected static <T> T retry(Callable<T> callable) throws Exception {
+        int tries = 5;
+        while (tries > 0) {
+            try {
+                return callable.call();
+            } catch (Throwable t) {
+                Thread.sleep(100L);
+                tries--;
+            }
+        }
+        Assertions.assertTrue(tries > 0, "Failed handle callable: " + callable);
+        throw new IllegalStateException("Should not be here!");
+    }
 }

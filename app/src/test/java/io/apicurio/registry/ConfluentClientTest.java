@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {
@@ -61,8 +62,12 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(client.testCompatibility(subject, schema2));
 
-        schema = client.getById(id2);
-        Assertions.assertNotNull(schema);
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema3 = client.getById(id2);
+            Assertions.assertNotNull(schema3);
+            return schema3;
+        });
 
         Collection<String> subjects = client.getAllSubjects();
         Assertions.assertTrue(subjects.contains(subject));

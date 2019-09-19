@@ -32,4 +32,7 @@ import javax.enterprise.event.Observes;
 public interface ServiceInitializer {
     default void beforeAll(@Observes @Initialized(ApplicationScoped.class) Object event) throws Exception {}
     default void afterAll(@Observes @Destroyed(ApplicationScoped.class) Object event) {}
+
+    default void beforeEach() {};
+    default void afterEach() {};
 }

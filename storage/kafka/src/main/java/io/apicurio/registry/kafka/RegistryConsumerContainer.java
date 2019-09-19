@@ -16,13 +16,14 @@
 
 package io.apicurio.registry.kafka;
 
-import io.apicurio.registry.kafka.proto.Reg;
+import io.apicurio.registry.common.proto.Cmmn;
+import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
-import io.apicurio.registry.kafka.utils.ConsumerActions;
-import io.apicurio.registry.kafka.utils.ConsumerContainer;
-import io.apicurio.registry.kafka.utils.Oneof2;
-import io.apicurio.registry.kafka.utils.Seek;
+import io.apicurio.registry.utils.kafka.ConsumerActions;
+import io.apicurio.registry.utils.kafka.ConsumerContainer;
+import io.apicurio.registry.utils.kafka.Oneof2;
+import io.apicurio.registry.utils.kafka.Seek;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -37,7 +38,7 @@ import java.util.Properties;
 /**
  * @author Ales Justin
  */
-public class RegistryConsumerContainer extends ConsumerContainer<Reg.UUID, Reg.RegistryValue> implements ConsumerActions.DynamicAssignment<Reg.UUID, Reg.RegistryValue> {
+public class RegistryConsumerContainer extends ConsumerContainer<Cmmn.UUID, Str.StorageValue> implements ConsumerActions.DynamicAssignment<Cmmn.UUID, Str.StorageValue> {
 
     private static final long SNAPSHOTS_POLL_TIMEOUT = 15_000; // 15 seconds should be enough
 
@@ -46,12 +47,12 @@ public class RegistryConsumerContainer extends ConsumerContainer<Reg.UUID, Reg.R
 
     public RegistryConsumerContainer(
         Properties consumerProperties,
-        Deserializer<Reg.UUID> keyDeserializer,
-        Deserializer<Reg.RegistryValue> valueDeserializer,
+        Deserializer<Cmmn.UUID> keyDeserializer,
+        Deserializer<Str.StorageValue> valueDeserializer,
         KafkaRegistryStorageHandle handle,
         Properties snapshotProperties
     ) {
-        super(consumerProperties, keyDeserializer, valueDeserializer, Oneof2.first(handle::consumeRegistryValue));
+        super(consumerProperties, keyDeserializer, valueDeserializer, Oneof2.first(handle::consumeStorageValue));
         this.handle = handle;
         this.snapshotProperties = snapshotProperties;
     }

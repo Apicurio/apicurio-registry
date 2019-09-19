@@ -101,7 +101,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     }
 
-    private StoredArtifact toStoredArtifact(Map<String, String> content) {
+    public static StoredArtifact toStoredArtifact(Map<String, String> content) {
         return StoredArtifact.builder()
             .content(content.get(MetaDataKeys.CONTENT))
             .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
@@ -120,7 +120,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         if (artifactId == null) {
             if (!create) {
-                throw new ArtifactNotFoundException(artifactId);
+                throw new ArtifactNotFoundException("Null artifactId!");
             }
             artifactId = UUID.randomUUID().toString();
         }
@@ -282,7 +282,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         // get the rules
         @SuppressWarnings("unchecked")
         Map<String, String> arules = artifactRules.getOrDefault(artifactId, Collections.EMPTY_MAP);
-        return arules.keySet().stream().map(key -> RuleType.fromValue(key)).collect(Collectors.toList());
+        return arules.keySet().stream().map(RuleType::fromValue).collect(Collectors.toList());
     }
     
     /**
@@ -448,7 +448,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         Map<String, String> content = getContentMap(artifactId, version);
         content.remove(MetaDataKeys.NAME);
         content.remove(MetaDataKeys.DESCRIPTION);
-
     }
 
     /**

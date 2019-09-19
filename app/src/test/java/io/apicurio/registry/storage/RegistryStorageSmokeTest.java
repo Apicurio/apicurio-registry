@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -34,7 +35,7 @@ import java.util.SortedSet;
 import javax.inject.Inject;
 
 @QuarkusTest
-public class RegistryStorageSmokeTest {
+public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     static final String ARTIFACT_ID_1 = "artifactId1";
     static final String ARTIFACT_ID_2 = "artifactId2";
@@ -61,6 +62,8 @@ public class RegistryStorageSmokeTest {
 
     @BeforeEach
     public void beforeEach() {
+        super.beforeEach();
+
         getStorage().deleteGlobalRules();
 
         delete(ARTIFACT_ID_1, false);
@@ -73,7 +76,7 @@ public class RegistryStorageSmokeTest {
     }
 
     @Test
-    public void testArtifactsAndMeta() {
+    public void testArtifactsAndMeta() throws Exception {
         int size = getStorage().getArtifactIds().size();
 
         // Create 2 version of an artifact and one other artifact
@@ -102,29 +105,37 @@ public class RegistryStorageSmokeTest {
         // define name in an older version metadata
         getStorage().updateArtifactVersionMetaData(ARTIFACT_ID_1, meta1.getVersion(),
                 EditableArtifactMetaDataDto.builder().name("foo").build());
-        ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(ARTIFACT_ID_1, meta1.getVersion());
-        ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(ARTIFACT_ID_1, meta2.getVersion());
-        assertNotEquals(vmeta1, vmeta2);
-        assertEquals("foo", vmeta1.getName());
-        assertNull(vmeta2.getName());
+
+        // update can be async
+        retry(() -> {
+            ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(ARTIFACT_ID_1, meta1.getVersion());
+            ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(ARTIFACT_ID_1, meta2.getVersion());
+            assertNotEquals(vmeta1, vmeta2);
+            assertEquals("foo", vmeta1.getName());
+            assertNull(vmeta2.getName());
+            return null;
+        });
 
         SortedSet<Long> deleted = getStorage().deleteArtifact(ARTIFACT_ID_1);
         assertEquals(2, deleted.size());
         assertTrue(deleted.contains(a1.getVersion()));
+        // delete can be async
+        retry(() -> {
+            try {
+                getStorage().getArtifactMetaData(ARTIFACT_ID_1);
+                fail();
+            } catch (ArtifactNotFoundException ex) {
+                // ok
+            }
 
-        try {
-            getStorage().getArtifactMetaData(ARTIFACT_ID_1);
-            fail();
-        } catch (ArtifactNotFoundException ex) {
-            // ok
-        }
-
-        deleted = getStorage().deleteArtifact(ARTIFACT_ID_2);
-        assertEquals(1, deleted.size());
+            SortedSet<Long> set = getStorage().deleteArtifact(ARTIFACT_ID_2);
+            assertEquals(1, set.size());
+            return set;
+        });
     }
 
     @Test
-    public void testRules() {
+    public void testRules() throws Exception {
         getStorage().createArtifact(ARTIFACT_ID_3, ArtifactType.JSON, "content1");
 
         assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
@@ -136,13 +147,25 @@ public class RegistryStorageSmokeTest {
         getStorage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("config").build());
 
-        assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
-        assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDITY));
+        // ops can be async
+        int tries = 5;
+        while (tries > 0) {
+            try {
+                assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
+                assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDITY));
 
-        assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
+                assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
 
-        assertEquals(1, getStorage().getGlobalRules().size());
-        assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
+                assertEquals(1, getStorage().getGlobalRules().size());
+                assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
+
+                break;
+            } catch (Throwable t) {
+                tries--;
+                Thread.sleep(100L);
+            }
+        }
+        assertTrue(tries > 0, "Failed to create rules!");
 
         getStorage().deleteArtifact(ARTIFACT_ID_3);
     }

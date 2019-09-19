@@ -26,6 +26,9 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
       - run:
+          name: Build All Variants
+          command: ./mvnw clean package -Pjpa -Pinfinispan -Pkafka -DskipTests
+      - run:
           name: Build & Verify (Standard)
           command: ./mvnw clean test package
       # - run:

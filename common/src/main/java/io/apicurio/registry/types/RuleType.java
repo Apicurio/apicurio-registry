@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum RuleType {
 
-    VALIDATION("VALIDATION"),
+    VALIDITY("VALIDITY"),
     COMPATIBILITY("COMPATIBILITY");
     private final String value;
     private final static Map<String, RuleType> CONSTANTS = new HashMap<String, RuleType>();

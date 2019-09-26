@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.equalTo;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rules.validation.ValidationLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
@@ -50,8 +50,8 @@ public class FullApiTest extends AbstractResourceTestBase {
         
         // Add a global rule
         Rule rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
-        rule.setConfig(ValidationLevel.SYNTAX_ONLY.name());
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
             .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
@@ -84,8 +84,8 @@ public class FullApiTest extends AbstractResourceTestBase {
         
         // Add a global rule
         Rule rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
-        rule.setConfig(ValidationLevel.SYNTAX_ONLY.name());
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
             .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()

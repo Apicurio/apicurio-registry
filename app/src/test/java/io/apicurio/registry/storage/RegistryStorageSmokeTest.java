@@ -130,19 +130,19 @@ public class RegistryStorageSmokeTest {
         assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
         assertEquals(0, getStorage().getGlobalRules().size());
 
-        getStorage().createArtifactRule(ARTIFACT_ID_3, RuleType.VALIDATION,
+        getStorage().createArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("config").build());
 
-        getStorage().createGlobalRule(RuleType.VALIDATION,
+        getStorage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("config").build());
 
         assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
-        assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDATION));
+        assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDITY));
 
-        assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDATION).getConfiguration());
+        assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
 
         assertEquals(1, getStorage().getGlobalRules().size());
-        assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDATION));
+        assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
 
         getStorage().deleteArtifact(ARTIFACT_ID_3);
     }

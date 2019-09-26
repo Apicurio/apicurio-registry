@@ -14,48 +14,51 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.rules.validity.InvalidContentException;
+import io.apicurio.registry.rules.validity.OpenApiContentValidator;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
- * Tests the AsyncAPI content validator.
+ * Tests the OpenAPI content validator.
  * @author eric.wittmann@gmail.com
  */
-public class AsyncApiContentValidatorTest extends AbstractRegistryTestBase {
-
+public class OpenApiContentValidatorTest extends AbstractRegistryTestBase {
+    
     @Test
     public void testValidSyntax() throws Exception {
-        String content = resourceToString("asyncapi-valid-syntax.json");
-        AsyncApiContentValidator validator = new AsyncApiContentValidator();
-        validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+        String content = resourceToString("openapi-valid-syntax.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testValidSemantics() throws Exception {
-        String content = resourceToString("asyncapi-valid-semantics.json");
-        AsyncApiContentValidator validator = new AsyncApiContentValidator();
-        validator.validate(ValidationLevel.FULL, content);
+        String content = resourceToString("openapi-valid-semantics.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content);
     }
 
     @Test
     public void testInvalidSyntax() throws Exception {
-        String content = resourceToString("asyncapi-invalid-syntax.json");
-        AsyncApiContentValidator validator = new AsyncApiContentValidator();
+        String content = resourceToString("openapi-invalid-syntax.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 
     @Test
     public void testInvalidSemantics() throws Exception {
-        String content = resourceToString("asyncapi-invalid-semantics.json");
-        AsyncApiContentValidator validator = new AsyncApiContentValidator();
+        String content = resourceToString("openapi-invalid-semantics.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidationLevel.FULL, content);
+            validator.validate(ValidityLevel.FULL, content);
         });
     }
 

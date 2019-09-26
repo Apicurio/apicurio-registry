@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;

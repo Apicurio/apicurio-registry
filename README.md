@@ -38,7 +38,7 @@ The following parameters are available for executable files:
 
 ### JPA
  - In the *dev* mode, the application expects a H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
- - In the *prod* mode, you have to provide connection configuration to a PostgreSQL server as follows:
+ - In the *prod* mode, you have to provide connection configuration for a PostgreSQL server as follows:
   
 |Option|Command argument|Env. variable|
 |---|---|---|
@@ -55,7 +55,7 @@ To see additional options, visit:
 *TODO*
 
 ### Docker container
-The same options are available for the docker containers, but only in the form of environment variables (The command line parameters are for the `java` executable and at the moment it's not possible to pass them into the image).
+The same options are available for the docker containers, but only in the form of environment variables (The command line parameters are for the `java` executable and at the moment it's not possible to pass them into the container).
 
 ## Examples
 

@@ -107,7 +107,7 @@
 		<!-- Confluent API / client -->
 		<confluent.version>5.3.0</confluent.version>
 
-		<!-- Default Quarkus build profile -->
+		<!-- Default Quarkus configuration profile -->
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
@@ -384,7 +384,7 @@
 		<profile>
 			<id>prod</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
 			<properties>
 				<quarkus.profile>prod</quarkus.profile>

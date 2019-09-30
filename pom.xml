@@ -107,7 +107,7 @@
 		<!-- Confluent API / client -->
 		<confluent.version>5.3.0</confluent.version>
 
-		<!-- Build config -->
+		<!-- Default Quarkus configuration profile -->
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
@@ -380,6 +380,15 @@
 			<modules>
 				<module>storage/kafka</module>
 			</modules>
+		</profile>
+		<profile>
+			<id>prod</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+			<properties>
+				<quarkus.profile>prod</quarkus.profile>
+			</properties>
 		</profile>
 		<profile>
 			<id>release</id>

@@ -16,40 +16,47 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
-import java.util.Optional;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.quarkus.runtime.ShutdownEvent;
-import io.quarkus.runtime.StartupEvent;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import java.util.Optional;
 
 @ApplicationScoped
 public class JPADatabaseManager {
 
     private static Logger log = LoggerFactory.getLogger(JPADatabaseManager.class);
 
-    @ConfigProperty(name = "registry.storage.type")
-    Optional<String> storageType;
+    @ConfigProperty(name = "quarkus.datasource.url")
+    Optional<String> dsUrl;
+
+    @ConfigProperty(name = "quarkus.datasource.username")
+    Optional<String> dsUser;
+
+    @ConfigProperty(name = "quarkus.datasource.password")
+    Optional<String> dsPassword;
 
     void onStart(@Observes StartupEvent event) {
 
-        log.info("JDBC Database Manager is starting...");
+        log.info("JPA storage is starting...");
 
-        if (!storageType.isPresent()) {
-            throw new RegistryStorageException("Could not initialize data storage. " +
-                    "Configuration property 'registry.storage.type' not found.");
+        dsUrl.ifPresent(x -> log.debug("Datasource URL: " + x));
+        dsUrl.orElseThrow(() -> new IllegalStateException("Datasource URL missing!"));
+
+        if (!dsUser.isPresent()) {
+            log.warn("Datasource username is missing.");
         }
-
-        log.info("JDBC storage type: " + storageType.get());
+        if (!dsPassword.isPresent()) {
+            log.warn("Datasource password is missing.");
+        }
     }
 
     void onStop(@Observes ShutdownEvent event) {
-        log.info("JDBC Database Manager is stopping...");
+
+        log.info("JPA storage is stopping...");
     }
 }

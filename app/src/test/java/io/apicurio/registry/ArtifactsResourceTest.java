@@ -81,6 +81,19 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts")
             .then()
                 .statusCode(400);
+
+        // Create OpenAPI artifact - don't provide the artifact type
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/detect")
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo("testCreateArtifact/EmptyAPI/detect"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
     }
 
     @Test

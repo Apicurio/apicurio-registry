@@ -48,6 +48,7 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.ArtifactTypeUtil;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -99,8 +100,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(request);
             if (artifactType == null) {
-                // TODO we need to figure out what type of content is being added by actually analyzing the content itself
-                artifactType = ArtifactType.AVRO;
+                String contentType = request.getContentType();
+                artifactType = ArtifactTypeUtil.discoverType(content, contentType);
             }
         }
         return artifactType;

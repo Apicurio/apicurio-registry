@@ -176,7 +176,7 @@ public interface ArtifactsResource {
   /**
    * Updates the configuration of a single rule for the artifact.  The configuration data
    * is specific to each rule type, so the configuration of the **Compatibility** rule 
-   * will be of a different format than the configuration of the **Validation** rule.
+   * will be of a different format than the configuration of the **Validity** rule.
    *
    * This operation can fail for the following reasons:
    *

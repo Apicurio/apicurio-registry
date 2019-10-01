@@ -48,8 +48,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
     public void testGlobalRules() {
         // Add a global rule
         Rule rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
-        rule.setConfig("syntax-validation-config");
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
         given()
             .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
@@ -62,7 +62,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .then()
             .statusCode(409)
             .body("code", equalTo(409))
-            .body("message", equalTo("A rule named 'VALIDATION' already exists."));
+            .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         
         // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
@@ -79,8 +79,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .then()
             .statusCode(200)
             .contentType(ContentType.JSON)
-            .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
-            .body("[1]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
+            .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
+            .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
             .body("[2]", nullValue());
         
         // Get a single rule by name
@@ -145,7 +145,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .then()
             .statusCode(200)
             .contentType(ContentType.JSON)
-            .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
+            .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
             .body("[1]", nullValue());
 
         // Delete all rules

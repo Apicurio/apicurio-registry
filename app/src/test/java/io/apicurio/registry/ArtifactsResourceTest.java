@@ -462,8 +462,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Add a rule
         Rule rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
-        rule.setConfig("syntax-validation-config");
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
         given()
             .when()
                 .contentType(CT_JSON)
@@ -484,7 +484,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(409)
                 .body("code", equalTo(409))
-                .body("message", equalTo("A rule named 'VALIDATION' already exists."));
+                .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         
         // Add another rule
         rule.setType(RuleType.COMPATIBILITY);
@@ -507,8 +507,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
-                .body("[1]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
+                .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
+                .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                 .body("[2]", nullValue());
         
         // Get a single rule by name
@@ -593,7 +593,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 //                .log().all()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("[0]", anyOf(equalTo("VALIDATION"), equalTo("COMPATIBILITY")))
+                .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                 .body("[1]", nullValue());
 
         // Delete all rules
@@ -616,8 +616,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Add a rule to an artifact that doesn't exist.
         rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
-        rule.setConfig("syntax-validation-config");
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
         given()
             .when()
                 .contentType(CT_JSON)

@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.rules.validity.AvroContentValidator;
+import io.apicurio.registry.rules.validity.InvalidContentException;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
  * Tests the Avro content validator.
@@ -31,7 +34,7 @@ public class AvroContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidAvroSchema() throws Exception {
         String content = resourceToString("avro-valid.json");
         AvroContentValidator validator = new AvroContentValidator();
-        validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
@@ -39,7 +42,7 @@ public class AvroContentValidatorTest extends AbstractRegistryTestBase {
         String content = resourceToString("avro-invalid.json");
         AvroContentValidator validator = new AvroContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 

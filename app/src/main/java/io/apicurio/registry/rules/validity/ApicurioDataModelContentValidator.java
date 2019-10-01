@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import java.util.List;
 
@@ -29,12 +29,12 @@ import io.apicurio.datamodels.core.models.ValidationProblem;
 public abstract class ApicurioDataModelContentValidator implements ContentValidator {
 
     /**
-     * @see io.apicurio.registry.rules.validation.ContentValidator#validate(io.apicurio.registry.rules.validation.ValidationLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
      */
     @Override
-    public void validate(ValidationLevel level, String artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
         Document document = null;
-        if (level == ValidationLevel.SYNTAX_ONLY || level == ValidationLevel.FULL) {
+        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 document = Library.readDocumentFromJSONString(artifactContent);
             } catch (Exception e) {
@@ -42,7 +42,7 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
             }
         }
         
-        if (level == ValidationLevel.FULL) {
+        if (level == ValidityLevel.FULL) {
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
                 // TODO should include the details of all the validation problems in the exception

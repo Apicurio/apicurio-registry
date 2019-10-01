@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -34,11 +34,11 @@ public class AvroContentValidator implements ContentValidator {
     }
     
     /**
-     * @see io.apicurio.registry.rules.validation.ContentValidator#validate(io.apicurio.registry.rules.validation.ValidationLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
      */
     @Override
-    public void validate(ValidationLevel level, String artifactContent) throws InvalidContentException {
-        if (level == ValidationLevel.SYNTAX_ONLY || level == ValidationLevel.FULL) {
+    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
+        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 Schema.Parser parser = new Schema.Parser();
                 parser.parse(artifactContent);

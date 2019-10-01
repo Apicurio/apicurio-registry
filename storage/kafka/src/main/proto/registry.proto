@@ -34,7 +34,7 @@ message MetaDataValue {
 message RuleValue {
     enum Type {
         __NONE = 0;
-        VALIDATION = 1;
+        VALIDITY = 1;
         COMPATIBILITY = 2;
     }
     Type type = 1;

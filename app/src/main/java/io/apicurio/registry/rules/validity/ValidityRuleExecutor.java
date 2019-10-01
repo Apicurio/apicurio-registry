@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -27,7 +27,7 @@ import io.apicurio.registry.rules.RuleViolationException;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class ValidationRuleExecutor implements RuleExecutor {
+public class ValidityRuleExecutor implements RuleExecutor {
 
     @Inject
     ContentValidatorFactory factory;
@@ -38,7 +38,7 @@ public class ValidationRuleExecutor implements RuleExecutor {
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
         try {
-            ValidationLevel level = ValidationLevel.valueOf(context.getConfiguration());
+            ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
             ContentValidator validator = factory.createValidator(context.getArtifactType());
             validator.validate(level, context.getUpdatedContent());
         } catch (InvalidContentException e) {

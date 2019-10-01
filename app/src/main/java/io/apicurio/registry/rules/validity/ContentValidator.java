@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 /**
  * Validates content.  Syntax and semantic validations are possible based on configuration.  An
@@ -29,6 +29,6 @@ public interface ContentValidator {
      * @param artifactContent
      * @throws InvalidContentException
      */
-    public void validate(ValidationLevel level, String artifactContent) throws InvalidContentException;
+    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException;
 
 }

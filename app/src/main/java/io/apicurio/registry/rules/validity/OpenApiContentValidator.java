@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -26,7 +26,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class OpenApiContentValidator extends ApicurioDataModelContentValidator {
 
     /**
-     * @see io.apicurio.registry.rules.validation.ApicurioDataModelContentValidator#getDataModelType()
+     * @see io.apicurio.registry.rules.validity.ApicurioDataModelContentValidator#getDataModelType()
      */
     @Override
     protected String getDataModelType() {

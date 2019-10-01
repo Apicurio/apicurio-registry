@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
+
+import javax.enterprise.context.ApplicationScoped;
 
 /**
- * Indicates what level of validation should be performed by the content validation rule.
+ * A content validator implementation for the AsyncAPI content type.
  * @author eric.wittmann@gmail.com
  */
-public enum ValidationLevel {
+@ApplicationScoped
+public class AsyncApiContentValidator extends ApicurioDataModelContentValidator {
 
-    SYNTAX_ONLY, FULL;
+    /**
+     * @see io.apicurio.registry.rules.validity.ApicurioDataModelContentValidator#getDataModelType()
+     */
+    @Override
+    protected String getDataModelType() {
+        return "AsyncAPI";
+    }
     
 }

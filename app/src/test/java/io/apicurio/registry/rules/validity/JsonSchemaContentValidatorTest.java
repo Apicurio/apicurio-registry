@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validation;
+package io.apicurio.registry.rules.validity;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.rules.validity.InvalidContentException;
+import io.apicurio.registry.rules.validity.JsonSchemaContentValidator;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
  * Tests the JSON Schema content validator.
@@ -31,7 +34,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidJsonSchema() throws Exception {
         String content = resourceToString("jsonschema-valid.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
@@ -39,7 +42,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
         String content = resourceToString("jsonschema-invalid.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidationLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 
@@ -48,7 +51,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
         String content = resourceToString("jsonschema-valid-d7.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidationLevel.FULL, content);
+            validator.validate(ValidityLevel.FULL, content);
         });
     }
 

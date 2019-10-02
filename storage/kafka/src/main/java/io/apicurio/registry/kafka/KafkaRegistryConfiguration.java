@@ -30,8 +30,6 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import org.apache.kafka.common.serialization.Serdes;
 
-import static io.apicurio.registry.utils.kafka.KafkaUtil.applyGroupId;
-
 import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -90,10 +88,6 @@ public class KafkaRegistryConfiguration {
         @KafkaProperties("registry.kafka.snapshot-consumer.") Properties snapshotProperties,
         KafkaRegistryStorageHandle handle
     ) {
-        // persistent unique group id
-        applyGroupId("storage", registryProperties);
-        applyGroupId("snapshot", snapshotProperties);
-
         return new RegistryConsumerContainer(
             registryProperties,
             ProtoSerde.parsedWith(Cmmn.UUID.parser()),

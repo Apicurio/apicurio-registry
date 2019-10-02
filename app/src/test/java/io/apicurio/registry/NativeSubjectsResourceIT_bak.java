@@ -16,10 +16,9 @@
 
 package io.apicurio.registry;
 
-import io.quarkus.test.junit.SubstrateTest;
-
-@SubstrateTest
-public class NativeSubjectsResourceIT extends SubjectsResourceTest {
+//@SubstrateTest
+public class NativeSubjectsResourceIT_bak extends SubjectsResourceTest {
 
     // Execute the same tests but in native mode.
+    // TODO ... not used atm
 }

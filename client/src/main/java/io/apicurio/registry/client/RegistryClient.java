@@ -34,6 +34,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class RegistryClient {
 
+    private RegistryClient() {
+    }
+
     // TODO -- more options?
     public static RegistryService create(String baseUrl) throws Exception {
         return (RegistryService) Proxy.newProxyInstance(

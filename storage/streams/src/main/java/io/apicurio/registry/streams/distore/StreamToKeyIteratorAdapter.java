@@ -1,5 +1,6 @@
 package io.apicurio.registry.streams.distore;
 
+import com.google.protobuf.ByteString;
 import io.apicurio.registry.streams.distore.proto.Key;
 
 import java.util.stream.Stream;
@@ -17,6 +18,7 @@ public class StreamToKeyIteratorAdapter<K> extends AbstractStreamToIteratorAdapt
 
     @Override
     protected K deserialize(Key res) {
-        return kvSerde.deserializeKey(res.toByteArray());
+        ByteString key = res.getKey();
+        return kvSerde.deserializeKey(key.toByteArray());
     }
 }

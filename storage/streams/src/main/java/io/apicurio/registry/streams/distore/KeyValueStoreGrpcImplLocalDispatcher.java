@@ -138,7 +138,7 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
         }
     }
 
-    private <K, V> void drainTo(String storeName, Iterator<K> iter, StreamObserver<io.apicurio.registry.streams.distore.proto.Key> responseObserver) {
+    private <K> void drainTo(String storeName, Iterator<K> iter, StreamObserver<io.apicurio.registry.streams.distore.proto.Key> responseObserver) {
         while (iter.hasNext()) {
             byte[] keyBytes = keyValueSerdes.serializeKey(storeName, iter.next());
             if (keyBytes != null) {

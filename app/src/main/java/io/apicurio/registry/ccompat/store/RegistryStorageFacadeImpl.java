@@ -70,7 +70,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
-            Long version = Long.parseLong(versionString);
+            long version = Long.parseLong(versionString);
             return toSchema(subject, storage.getArtifactVersion(subject, version));
         } catch (NumberFormatException e) {
             // return latest

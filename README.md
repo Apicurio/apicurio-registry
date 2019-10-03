@@ -52,7 +52,65 @@ To see additional options, visit:
     
 ### Kafka
 
-*TODO*
+ - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
+ - In the *prod* mode, you have to provide an environment variable KAFKA_BOOTSTRAP_SERVERS pointing to Kafka brokers
+
+Kafka storage implementation uses the following Kafka API / architecture
+
+ - Storage producer to forward REST API HTTP requests to Kafka broker
+ - Storage consumer to handle previously sent  REST API HTTP requests as Kafka messages
+ - Snapshot producer to send current state's snapshot to Kafka broker
+ - Snapshot consumer for initial (at application start) snapshot handling
+
+We already have sensible defaults for all these things, but they can still be overridden or added by adding appropriate properties to app's configuration. The following property name prefix must be used:
+
+ - Storage producer: registry.kafka.storage-producer.
+ - Storage consumer: registry.kafka.storage-consumer.
+ - Snapshot producer: registry.kafka.snapshot-producer.
+ - Snapshot consumer: registry.kafka.snapshot-consumer.
+
+We then strip away the prefix and use the rest of the property name in instance's Properties.
+
+e.g. registry.kafka.storage-producer.enable.idempotence=true --> enable.idempotence=true
+
+For the actual configuration options check (although best config docs are in the code itself):
+ - [Kafka configuration](https://kafka.apache.org/documentation/)
+
+### Streams
+
+Streams storage implementation goes beyond plain Kafka usage and uses Kafka Streams to handle storage in a distributed and fault-tolerant way.
+
+ - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
+ - In the *prod* mode, you have to provide an environment variable KAFKA_BOOTSTRAP_SERVERS pointing to Kafka brokers and APPLICATION_ID to name your Kafka Streams application
+
+Both modes require 2 topics: storage topic and globalId topic. This is configurable, by default we use storage-topic and global-id-topic names.
+
+Streams storage implementation uses the following Kafka (Streams) API / architecture
+
+ - Storage producer to forward REST API HTTP requests to Kafka broker
+ - Streams input KStream to handle previously sent  REST API HTTP requests as Kafka messages
+ - Streams KStream to handle input's KStream result
+ - Both KStreams use KeyValueStores to keep current storage state
+
+The two KeyValueStores keep the following structure:
+ - storage store: <String, Str.Data> -- where the String is artifactId and Str.Data is whole artifact info: content, metadata, rules, etc
+ - global id store: <Long, Str.Tuple> -- where the Long is unique globalId and Str.Tuple is a <artifactId, version> pair
+ 
+We use global id store to map unique id to <artifactId, version> pair, which also uniquely identifies an artifact.
+The data is distributed among node's stores, where we access those remote stores based on key distribution via gRPC. 
+
+We already have sensible defaults for all these things, but they can still be overridden or added by adding appropriate properties to app's configuration. The following property name prefix must be used:
+
+ - Storage producer: registry.streams.storage-producer.
+ - Streams topology: registry.streams.topology.
+
+We then strip away the prefix and use the rest of the property name in instance's Properties.
+
+e.g. registry.streams.topology.replication.factor=1 --> replication.factor=1
+
+For the actual configuration options check (although best config docs are in the code itself):
+ - [Kafka configuration](https://kafka.apache.org/documentation/)
+ - [Kafka Streams](https://kafka.apache.org/documentation/streams/)
 
 ### Docker container
 The same options are available for the docker containers, but only in the form of environment variables (The command line parameters are for the `java` executable and at the moment it's not possible to pass them into the container).

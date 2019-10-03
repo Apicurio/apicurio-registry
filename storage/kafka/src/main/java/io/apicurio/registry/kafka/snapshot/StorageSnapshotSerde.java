@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.kafka.snapshot;
 
-import io.apicurio.registry.kafka.utils.SelfSerde;
+import io.apicurio.registry.utils.kafka.SelfSerde;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

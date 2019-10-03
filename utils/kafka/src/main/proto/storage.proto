@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package io.apicurio.registry.streams.proto;
+
+option java_package = "io.apicurio.registry.storage.proto";
+
+option java_outer_classname = "Str";
+
+enum ActionType {
+    UNDEFINED = 0;
+    // crud
+    CREATE = 1;
+    READ = 2;
+    UPDATE = 3;
+    DELETE = 4;
+}
+
+enum RuleType {
+    __NONE = 0;
+    VALIDITY = 1;
+    COMPATIBILITY = 2;
+}
+
+message ArtifactRules {
+    repeated RuleValue rules = 1;
+    repeated RuleValue globalRules = 2;
+}
+
+message ArtifactValue {
+    int32 artifactType = 1;
+    fixed64 id = 2;
+    bytes content = 3;
+    ArtifactRules rules = 4;
+    map<string, string> metadata = 5;
+}
+
+message MetaDataValue {
+    string name = 1;
+    string description = 2;
+}
+
+message RuleValue {
+    RuleType type = 1;
+    string configuration = 2;
+}
+
+message SnapshotValue {
+    fixed64 timestamp = 1;
+}
+
+enum ValueType {
+    __INVALID = 0;
+    // crud
+    ARTIFACT = 1;
+    METADATA = 2;
+    RULE = 3;
+    SNAPSHOT = 4;
+}
+
+message StorageValue {
+    ActionType type = 1;
+    string artifactId = 2;
+    fixed64 version = 3;
+    ValueType vt = 4;
+    oneof value {
+        ArtifactValue artifact = 5;
+        MetaDataValue metadata = 6;
+        RuleValue rule = 7;
+        SnapshotValue snapshot = 8;
+    }
+}
+
+message Data {
+    fixed64 lastProcessedOffset = 1;
+    string artifactId = 2;
+    repeated ArtifactValue artifacts = 3;
+    repeated MetaDataValue metadatas = 4;
+    repeated RuleValue rules = 5;
+}
+
+message TupleValue {
+    string artifactId = 1;
+    fixed64 version = 2;
+}

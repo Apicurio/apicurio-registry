@@ -34,7 +34,7 @@ public class SchemasResource extends AbstractResource {
 
     @GET
     @Path("/ids/{id}")
-    public SchemaString getSchema(@PathParam("id") Integer id) throws Exception {
+    public SchemaString getSchema(@PathParam("id") Integer id) {
         String schema = facade.getSchema(id);
         if (schema == null) {
             Errors.schemaNotFound(id);

@@ -104,6 +104,9 @@
 		<!-- Storage types -->
 		<infinispan.version>9.4.16.Final</infinispan.version>
 
+		<!-- gRPC -->
+		<grpc.version>1.23.0</grpc.version>
+
 		<!-- Confluent API / client -->
 		<confluent.version>5.3.0</confluent.version>
 
@@ -148,6 +151,11 @@
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-client</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-utils-kafka</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -197,6 +205,33 @@
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf.version}</version>
             </dependency>
+
+			<!-- gRPC -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-core</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-context</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-protobuf</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-stub</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-netty-shaded</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
 
 			<!-- Tests -->
 			<dependency>
@@ -378,7 +413,15 @@
 		<profile>
 			<id>kafka</id>
 			<modules>
+				<module>utils/kafka</module>
 				<module>storage/kafka</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>streams</id>
+			<modules>
+				<module>utils/kafka</module>
+				<module>storage/streams</module>
 			</modules>
 		</profile>
 		<profile>

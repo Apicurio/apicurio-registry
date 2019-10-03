@@ -21,17 +21,11 @@ enum RuleType {
     COMPATIBILITY = 2;
 }
 
-message ArtifactRules {
-    repeated RuleValue rules = 1;
-    repeated RuleValue globalRules = 2;
-}
-
 message ArtifactValue {
     int32 artifactType = 1;
     fixed64 id = 2;
     bytes content = 3;
-    ArtifactRules rules = 4;
-    map<string, string> metadata = 5;
+    map<string, string> metadata = 4;
 }
 
 message MetaDataValue {

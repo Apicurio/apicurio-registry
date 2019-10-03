@@ -323,17 +323,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             Str.ArtifactValue.Builder avb = Str.ArtifactValue.newBuilder(artifact);
             avb.setId(globalId);
 
-            // set current rule state!
-            Str.ArtifactRules.Builder rb = Str.ArtifactRules.newBuilder();
-            if (builder.getRulesCount() > 0) {
-                rb.addAllRules(builder.getRulesList());
-            }
-
-            // TODO -- read from global rules!!
-            // and set this on rb!!
-
-            avb.setRules(rb);
-
             // +1 on version
             int version = builder.getArtifactsCount() + 1;
 

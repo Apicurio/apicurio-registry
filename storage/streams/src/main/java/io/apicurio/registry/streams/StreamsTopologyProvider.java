@@ -25,12 +25,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 /**
+ * Request --> Storage (topic / store) --> GlobalId (topic / store)
+ *
  * @author Ales Justin
  */
 public class StreamsTopologyProvider implements Supplier<Topology> {
@@ -49,11 +49,23 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
     public Topology get() {
         StreamsBuilder builder = new StreamsBuilder();
 
+        // Simple defaults
+        ImmutableMap<String, String> configuration = ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
+            TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG, "0",
+            TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
+        );
+
+        // Input topic -- storage topic
+        // This is where we handle "http" requests
+        // Key is artifactId -- which is also used for KeyValue store key
         KStream<String, Str.StorageValue> storageRequest = builder.stream(
             properties.getStorageTopic(),
             Consumed.with(Serdes.String(), ProtoSerde.parsedWith(Str.StorageValue.parser()))
         );
 
+        // Data structure holds all artifact information
+        // Global rules are Data as well, with constant artifactId (GLOBAL_RULES variable)
         String storageStoreName = properties.getStorageStoreName();
         StoreBuilder<KeyValueStore<String /* artifactId */, Str.Data>> storageStoreBuilder =
             Stores
@@ -62,14 +74,11 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     Serdes.String(), ProtoSerde.parsedWith(Str.Data.parser())
                 )
                 .withCachingEnabled()
-                .withLoggingEnabled(ImmutableMap.of(
-                    TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-                    TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG, "0",
-                    TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
-                ));
+                .withLoggingEnabled(configuration);
 
         builder.addStateStore(storageStoreBuilder);
 
+        // We transform <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
         KStream<Long, Str.TupleValue> globalRequest =
             storageRequest.transform(
                 () -> new StorageTransformer(properties, dataDispatcher),
@@ -87,14 +96,11 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser())
                 )
                 .withCachingEnabled()
-                .withLoggingEnabled(ImmutableMap.of(
-                    TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-                    TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG, "0",
-                    TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
-                ));
+                .withLoggingEnabled(configuration);
 
         builder.addStateStore(globalIdStoreBuilder);
 
+        // Just handle globalId mapping -- put or delete
         globalRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
 
         return builder.build(properties.getProperties());
@@ -153,11 +159,12 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         public KeyValue<Long, Str.TupleValue> transform(String artifactId, Str.StorageValue value) {
             Str.Data data = store.get(artifactId);
             if (data == null) {
+                // initial value can be "empty" default
                 data = Str.Data.getDefaultInstance();
             }
 
-            // should be unique enough
             long offset = context.offset();
+            // should be unique enough
             long globalId = properties.toGlobalId(offset, context.partition());
 
             data = apply(artifactId, value, data, globalId, offset);
@@ -184,6 +191,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         public void close() {
         }
 
+        // handle StorageValue to build appropriate Data representation
         private Str.Data apply(String artifactId, Str.StorageValue value, Str.Data aggregate, long globalId, long offset) {
             Str.ActionType type = value.getType();
             long version = value.getVersion();

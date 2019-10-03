@@ -17,6 +17,14 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * This is a local implementation of our Data lookup AsyncBiFunctionService.
+ * When the call gets properly dispatched, this is the impl that returns the real result.
+ *
+ * Since data handling is async, we might not have an updated result yet,
+ * when we issue the dispatch request. So this impl registers a CompletableFuture,
+ * and waits for an update. Once the proper update is received, previously registered CompletableFuture is completed.
+ * Resulting in a distributed CompletableFuture callback (via gRPC).
+ *
  * @author Ales Justin
  */
 public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<String, Long, Str.Data> {

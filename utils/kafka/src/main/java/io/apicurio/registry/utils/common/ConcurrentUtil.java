@@ -11,20 +11,23 @@ public class ConcurrentUtil {
 
     public static <T> T get(CompletableFuture<T> cf) {
         boolean interrupted = false;
-        while (true) {
-            try {
-                return cf.get();
-            } catch (InterruptedException e) {
-                interrupted = true;
-            } catch (ExecutionException e) {
-                Throwable t = e.getCause();
-                if (t instanceof RuntimeException) throw (RuntimeException) t;
-                if (t instanceof Error) throw (Error) t;
-                throw new RuntimeException(t);
-            } finally {
-                if (interrupted) {
-                    Thread.currentThread().interrupt();
+        try {
+            while (true) {
+                try {
+                    return cf.get();
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                } catch (ExecutionException e) {
+                    Throwable t = e.getCause();
+                    if (t instanceof RuntimeException)
+                        throw (RuntimeException) t;
+                    if (t instanceof Error) throw (Error) t;
+                    throw new RuntimeException(t);
                 }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
     }

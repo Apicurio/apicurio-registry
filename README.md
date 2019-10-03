@@ -76,6 +76,8 @@ e.g. registry.kafka.storage-producer.enable.idempotence=true --> enable.idempote
 For the actual configuration options check (although best config docs are in the code itself):
  - [Kafka configuration](https://kafka.apache.org/documentation/)
 
+To help setup development / testing environment for the module, see kafka_setup.sh script. You just need to have KAFKA_HOME env variable set, and script does the rest.
+
 ### Streams
 
 Streams storage implementation goes beyond plain Kafka usage and uses Kafka Streams to handle storage in a distributed and fault-tolerant way.
@@ -111,6 +113,8 @@ e.g. registry.streams.topology.replication.factor=1 --> replication.factor=1
 For the actual configuration options check (although best config docs are in the code itself):
  - [Kafka configuration](https://kafka.apache.org/documentation/)
  - [Kafka Streams](https://kafka.apache.org/documentation/streams/)
+
+To help setup development / testing environment for the module, see streams_setup.sh script. You just need to have KAFKA_HOME env variable set, and script does the rest.
 
 ### Docker container
 The same options are available for the docker containers, but only in the form of environment variables (The command line parameters are for the `java` executable and at the moment it's not possible to pass them into the container).

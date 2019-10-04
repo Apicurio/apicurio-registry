@@ -6,11 +6,10 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.Long;
-import java.lang.String;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -58,7 +57,7 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
-  ArtifactMetaData createArtifact(
+  CompletionStage<ArtifactMetaData> createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
 
@@ -114,8 +113,8 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
-  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+  CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
+                                                   @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -264,8 +263,8 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
-  VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+  CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
+                                                         @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the

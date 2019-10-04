@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
@@ -43,9 +44,9 @@ public interface RegistryStorageFacade {
     Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException;;
 
     /**
-     * @return global id
+     * @return global id as future
      */
-    long registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    CompletionStage<Long> registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * @return schema version as long

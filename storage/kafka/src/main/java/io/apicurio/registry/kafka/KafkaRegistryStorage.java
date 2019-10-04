@@ -42,12 +42,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.get;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -56,8 +59,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import static io.apicurio.registry.utils.common.ConcurrentUtil.get;
 
 /**
  * @author Ales Justin
@@ -339,8 +340,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
-    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return get(submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content));
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content);
     }
 
     @Override
@@ -349,8 +350,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
-    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
-        return get(submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content));
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content);
     }
 
     @Override

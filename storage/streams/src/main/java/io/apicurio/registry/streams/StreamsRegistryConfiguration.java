@@ -19,7 +19,7 @@ import io.apicurio.registry.streams.utils.Lifecycle;
 import io.apicurio.registry.streams.utils.LoggingStateRestoreListener;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.common.ConcurrentUtil;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.KafkaProperties;
 import io.apicurio.registry.utils.kafka.KafkaUtil;

@@ -20,9 +20,11 @@ import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.common.ConcurrentUtil;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.CloseableIterator;
@@ -132,7 +134,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             if (data.getArtifactsCount() > 0) {
@@ -141,18 +143,18 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
 
         CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content);
-        RecordMetadata rmd = ConcurrentUtil.get(submitCF);
-        long offset = rmd.offset();
-        int partition = rmd.partition();
-        CompletionStage<Str.Data> dataCF = storageFunction.apply(artifactId, offset);
-        data = ConcurrentUtil.result(dataCF);
-        Str.ArtifactValue first = data.getArtifacts(0);
-        long globalId = properties.toGlobalId(offset, partition);
-        if (first.getId() != globalId) {
-            // somebody beat us to it ...
-            throw new ArtifactAlreadyExistsException(artifactId);
-        }
-        return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+        return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
+                       .thenApply(rd -> {
+                           RecordMetadata rmd = rd.getRmd();
+                           Str.Data d = rd.getData();
+                           Str.ArtifactValue first = d.getArtifacts(0);
+                           long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
+                           if (first.getId() != globalId) {
+                               // somebody beat us to it ...
+                               throw new ArtifactAlreadyExistsException(artifactId);
+                           }
+                           return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+                       });
     }
 
     @Override
@@ -184,7 +186,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             if (data.getArtifactsCount() == 0) {
@@ -193,19 +195,19 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
 
         CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content);
-        RecordMetadata rmd = ConcurrentUtil.get(submitCF);
-        long offset = rmd.offset();
-        int partition = rmd.partition();
-        CompletionStage<Str.Data> dataCF = storageFunction.apply(artifactId, offset);
-        data = ConcurrentUtil.result(dataCF);
-        long globalId = properties.toGlobalId(offset, partition);
-        for (int i = data.getArtifactsCount() - 1; i >=0; i--) {
-            Str.ArtifactValue value = data.getArtifacts(i);
-            if (value.getId() == globalId) {
-                return MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
-            }
-        }
-        throw new ArtifactNotFoundException(artifactId);
+        return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
+                       .thenApply(rd -> {
+                           RecordMetadata rmd = rd.getRmd();
+                           Str.Data d = rd.getData();
+                           long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
+                           for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
+                               Str.ArtifactValue value = d.getArtifacts(i);
+                               if (value.getId() == globalId) {
+                                   return MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+                               }
+                           }
+                           throw new ArtifactNotFoundException(artifactId);
+                       });
     }
 
     @Override
@@ -417,4 +419,12 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         deleteArtifactRule(GLOBAL_RULES_ID, rule);
     }
+
+    @AllArgsConstructor
+    @Getter
+    private static class RecordData {
+        private RecordMetadata rmd;
+        private Str.Data data;
+    }
+
 }

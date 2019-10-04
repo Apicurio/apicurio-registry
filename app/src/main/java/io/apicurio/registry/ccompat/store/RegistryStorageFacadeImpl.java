@@ -30,6 +30,7 @@ import io.apicurio.registry.types.Current;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -94,18 +95,19 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public long registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<Long> registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metadata = null;
         try {
             metadata = storage.getArtifactMetaData(subject);
         } catch (ArtifactNotFoundException ignored) {
         }
+        CompletionStage<ArtifactMetaDataDto> cs;
         if (metadata == null) {
-            metadata = storage.createArtifact(subject, ArtifactType.AVRO, schema);
+            cs = storage.createArtifact(subject, ArtifactType.AVRO, schema);
         } else {
-            metadata = storage.updateArtifact(subject, ArtifactType.AVRO, schema);
+            cs = storage.updateArtifact(subject, ArtifactType.AVRO, schema);
         }
-        return metadata.getGlobalId();
+        return cs.thenApply(ArtifactMetaDataDto::getGlobalId);
     }
 
     @Override

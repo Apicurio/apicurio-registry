@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -165,7 +167,7 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         requireNonNull(artifactId);
         requireNonNull(artifactType);
         requireNonNull(content);
@@ -189,12 +191,12 @@ public class JPARegistryStorage implements RegistryStorage {
                     .update(MetaDataKeys.TYPE, artifactType.value())
                     .persistUpdate(entityManager, artifactId, nextVersion);
 
-            return new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, null)
-                    .update(artifact)
-                    .toArtifactMetaDataDto();
-
+            ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+                .update(MetaDataKeys.TYPE, artifactType.value())
+                .persistUpdate(entityManager, artifactId, null)
+                .update(artifact)
+                .toArtifactMetaDataDto();
+            return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -261,7 +263,7 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(artifactType);
@@ -282,12 +284,12 @@ public class JPARegistryStorage implements RegistryStorage {
                     .update(MetaDataKeys.TYPE, artifactType.value())
                     .persistUpdate(entityManager, artifactId, nextVersion);
 
-            return new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, null)
-                    .update(artifact)
-                    .toArtifactMetaDataDto();
-
+            ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+                .update(MetaDataKeys.TYPE, artifactType.value())
+                .persistUpdate(entityManager, artifactId, null)
+                .update(artifact)
+                .toArtifactMetaDataDto();
+            return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }

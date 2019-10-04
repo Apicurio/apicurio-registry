@@ -18,14 +18,21 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
  */
 @QuarkusTest
-public class RegistryClientTest {
+public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testSmoke() throws Exception {
@@ -34,4 +41,20 @@ public class RegistryClientTest {
         }
     }
 
+    @Test
+    public void testAsyncCRUD() throws Exception {
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            String artifactId = UUID.randomUUID().toString();
+            try {
+                ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
+                CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);
+                ConcurrentUtil.result(csResult);
+                stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes());
+                csResult = service.updateArtifact(artifactId, ArtifactType.JSON, stream);
+                ConcurrentUtil.result(csResult);
+            } finally {
+                service.deleteArtifact(artifactId);
+            }
+        }
+    }
 }

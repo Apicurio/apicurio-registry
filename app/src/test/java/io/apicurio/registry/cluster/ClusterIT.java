@@ -45,7 +45,7 @@ public class ClusterIT {
         RegistryService client2 = RegistryClient.create("http://localhost:8081");
 
         String artifactId = UUID.randomUUID().toString();
-        ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"\"}".getBytes());
+        ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
         client1.createArtifact(ArtifactType.JSON, artifactId, stream);
         try {
             Thread.sleep(1000); // dummy wait

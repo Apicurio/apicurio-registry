@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -193,10 +195,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, ArtifactType, java.lang.String)
      */
     @Override
-    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content)
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
+            return CompletableFuture.completedFuture(amdd);
         } catch (ArtifactNotFoundException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
@@ -231,10 +234,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, ArtifactType, java.lang.String)
      */
     @Override
-    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content)
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content)
             throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            return createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
+            return CompletableFuture.completedFuture(amdd);
         } catch (ArtifactAlreadyExistsException e) {
             throw new RegistryStorageException("Invalid state", e);
         }

@@ -22,6 +22,7 @@ import io.apicurio.registry.types.RuleType;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
 
 
 /**
@@ -40,7 +41,7 @@ public interface RegistryStorage {
      * @throws ArtifactAlreadyExistsException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto createArtifact(String artifactId, ArtifactType artifactType, String content)
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content)
             throws ArtifactAlreadyExistsException, RegistryStorageException;
     
     /**
@@ -69,7 +70,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException;
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Get all artifact ids.

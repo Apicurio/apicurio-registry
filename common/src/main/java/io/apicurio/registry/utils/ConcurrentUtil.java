@@ -1,4 +1,4 @@
-package io.apicurio.registry.utils.common;
+package io.apicurio.registry.utils;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

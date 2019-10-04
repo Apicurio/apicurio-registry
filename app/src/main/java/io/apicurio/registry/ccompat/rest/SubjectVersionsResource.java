@@ -21,6 +21,7 @@ import io.apicurio.registry.ccompat.dto.RegisterSchemaResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -72,11 +73,16 @@ public class SubjectVersionsResource extends AbstractResource {
         @PathParam("subject") String subject,
         @NotNull RegisterSchemaRequest request) throws Exception {
 
-        long id = facade.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
-
-        RegisterSchemaResponse registerSchemaResponse = new RegisterSchemaResponse();
-        registerSchemaResponse.setId(id);
-        response.resume(registerSchemaResponse);
+        CompletionStage<Long> cs = facade.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
+        cs.whenComplete((id, t) -> {
+            if (t != null) {
+                response.resume(t);
+            } else {
+                RegisterSchemaResponse registerSchemaResponse = new RegisterSchemaResponse();
+                registerSchemaResponse.setId(id);
+                response.resume(registerSchemaResponse);
+            }
+        });
     }
 
     @DELETE

@@ -22,8 +22,8 @@ import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.SubstrateTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.equalTo;
 @SubstrateTest
 public class RulesResourceIT extends BaseIT {
 
-    private static final Logger LOGGER = LogManager.getLogger(RulesResourceIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
 
     @Test
     public void testGlobalRules() {

@@ -21,14 +21,14 @@ import io.apicurio.tests.KafkaFacade;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
 public abstract class BaseIT {
 
-    static final Logger LOGGER = LogManager.getLogger(BaseIT.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     static long timeout = 5L;
 
     static Vertx vertx;

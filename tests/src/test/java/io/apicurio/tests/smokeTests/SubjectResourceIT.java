@@ -18,8 +18,10 @@ package io.apicurio.tests.smokeTests;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.quarkus.test.junit.SubstrateTest;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.restassured.response.Response;
+import org.apache.avro.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -28,7 +30,7 @@ import static org.hamcrest.CoreMatchers.anything;
 @SubstrateTest
 public class SubjectResourceIT extends BaseIT {
 
-    private static final Logger LOGGER = LogManager.getLogger(RulesResourceIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
 
     @Test
     void testListSubjectsEndpoint() {
@@ -41,5 +43,36 @@ public class SubjectResourceIT extends BaseIT {
                 .statusCode(200)
                 .body(anything())
                 .log().all();
+    }
+
+    @Test
+    void sendData() {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
+
+        Response response = given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .body(schema.toString())
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+        String schemaId = response.jsonPath().get("id");
+
+        LOGGER.info("Schema was created with ID: {}", schemaId);
+
+        response = given()
+            .when()
+                .contentType(RestConstants.JSON)
+                .get("/artifacts/" + schemaId)
+            .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+
+        LOGGER.info("Received info about schema with ID {} is:\n{}", schemaId, response.jsonPath().get());
     }
 }

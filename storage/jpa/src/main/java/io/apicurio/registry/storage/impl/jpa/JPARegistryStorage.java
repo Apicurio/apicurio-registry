@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -36,15 +38,6 @@ import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -52,8 +45,19 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import static java.util.Objects.requireNonNull;
 
 @ApplicationScoped
+@PersistenceExceptionLivenessApply
+@PersistenceTimeoutReadinessApply
 public class JPARegistryStorage implements RegistryStorage {
 
 //    private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
@@ -89,8 +93,8 @@ public class JPARegistryStorage implements RegistryStorage {
         requireNonNull(rule); // TODO split null artifactId into separate method?
         try {
             TypedQuery<Rule> res = entityManager.createQuery("SELECT r FROM Rule r " +
-                                                             "WHERE r.artifactId " + (artifactId == null ? "IS NULL" : "= :artifact_id") + " AND r.name = :name", Rule.class)
-                                                .setParameter("name", rule);
+                    "WHERE r.artifactId " + (artifactId == null ? "IS NULL" : "= :artifact_id") + " AND r.name = :name", Rule.class)
+                    .setParameter("name", rule);
             if (artifactId != null) {
                 res.setParameter("artifact_id", artifactId);
             }
@@ -112,10 +116,10 @@ public class JPARegistryStorage implements RegistryStorage {
         requireNonNull(artifactId);
         try {
             return entityManager.createQuery("SELECT a FROM Artifact a " +
-                                             "WHERE a.artifactId = :artifact_id AND a.version = :version", Artifact.class)
-                                .setParameter("artifact_id", artifactId)
-                                .setParameter("version", version)
-                                .getSingleResult();
+                    "WHERE a.artifactId = :artifact_id AND a.version = :version", Artifact.class)
+                    .setParameter("artifact_id", artifactId)
+                    .setParameter("version", version)
+                    .getSingleResult();
         } catch (NoResultException ex) {
             throw new VersionNotFoundException(artifactId, version, ex);
         }
@@ -125,12 +129,12 @@ public class JPARegistryStorage implements RegistryStorage {
         requireNonNull(artifactId);
         try {
             return entityManager.createQuery(
-                "SELECT  a FROM Artifact a " +
-                "WHERE a.artifactId = :artifact_id " +
-                "ORDER BY a.version DESC ", Artifact.class)
-                                .setParameter("artifact_id", artifactId)
-                                .setMaxResults(1)
-                                .getSingleResult();
+                    "SELECT  a FROM Artifact a " +
+                            "WHERE a.artifactId = :artifact_id " +
+                            "ORDER BY a.version DESC ", Artifact.class)
+                    .setParameter("artifact_id", artifactId)
+                    .setMaxResults(1)
+                    .getSingleResult();
         } catch (NoResultException ex) {
             throw new ArtifactNotFoundException(artifactId, ex);
         }
@@ -354,9 +358,9 @@ public class JPARegistryStorage implements RegistryStorage {
             _ensureArtifactExists(artifactId);
 
             return entityManager.createQuery("SELECT r.name FROM Rule r " +
-                                             "WHERE r.artifactId = :artifact_id", RuleType.class)
-                                .setParameter("artifact_id", artifactId)
-                                .getResultList();
+                    "WHERE r.artifactId = :artifact_id", RuleType.class)
+                    .setParameter("artifact_id", artifactId)
+                    .getResultList();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -607,8 +611,8 @@ public class JPARegistryStorage implements RegistryStorage {
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         try {
             return entityManager.createQuery("SELECT r.name FROM Rule r " +
-                                             "WHERE r.artifactId IS NULL", RuleType.class)
-                                .getResultList();
+                    "WHERE r.artifactId IS NULL", RuleType.class)
+                    .getResultList();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -685,9 +689,9 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             Rule ruleEntity = _getRule(null, rule);
             new RuleConfigMapperUpdater(_getRuleConfig(ruleEntity))
-                .update(config)
-                .persistUpdate(entityManager, ruleEntity)
-                .toRuleConfigurationDto();
+                    .update(config)
+                    .persistUpdate(entityManager, ruleEntity)
+                    .toRuleConfigurationDto();
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);

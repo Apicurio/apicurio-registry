@@ -18,6 +18,8 @@ package io.apicurio.registry.kafka;
 
 import io.apicurio.registry.common.proto.Cmmn;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -42,8 +44,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.utils.ConcurrentUtil.get;
-
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
@@ -57,13 +59,15 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+
+import static io.apicurio.registry.utils.ConcurrentUtil.get;
 
 /**
  * @author Ales Justin
  */
 @ApplicationScoped
+@PersistenceExceptionLivenessApply
+@PersistenceTimeoutReadinessApply
 public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements KafkaRegistryStorageHandle {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaRegistryStorage.class);

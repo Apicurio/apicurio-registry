@@ -272,5 +272,4 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
-
 }

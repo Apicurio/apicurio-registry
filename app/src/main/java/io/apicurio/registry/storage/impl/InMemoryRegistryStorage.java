@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.storage.impl;
 
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+
 import java.util.concurrent.atomic.AtomicLong;
 import javax.enterprise.context.ApplicationScoped;
 
@@ -23,6 +26,8 @@ import javax.enterprise.context.ApplicationScoped;
  * @author Ales Justin
  */
 @ApplicationScoped
+@PersistenceExceptionLivenessApply
+@PersistenceTimeoutReadinessApply
 public class InMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
     private AtomicLong counter = new AtomicLong(1);

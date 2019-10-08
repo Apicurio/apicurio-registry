@@ -134,6 +134,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
         
         if (!create && v2c.size() == 0) {
+            storage.remove(artifactId); // remove, as we just "computed" empty map
             throw new ArtifactNotFoundException(artifactId);
         }
 
@@ -412,6 +413,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         Map<String, String> removed = v2c.remove(version);
         if (removed == null) {
             throw new VersionNotFoundException(artifactId, version);
+        }
+        if (v2c.isEmpty()) {
+            storage.remove(artifactId); // remove empty map
         }
         removed.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
         // remove from global as well

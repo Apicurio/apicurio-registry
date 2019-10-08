@@ -101,7 +101,7 @@
         <wire-schema.version>3.0.0-rc01</wire-schema.version>
         <protobuf.version>3.9.1</protobuf.version>
 
-		<!-- Storage types -->
+        <!-- Storage types -->
 		<infinispan.version>9.4.16.Final</infinispan.version>
 
 		<!-- gRPC -->

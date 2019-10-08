@@ -1,0 +1,650 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# 5737-H33
+#
+# (C) Copyright IBM Corp. 2019  All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+openapi: 3.0.0
+info:
+  title: "Event Streams Schema Registry"
+  version: "0.0.1"
+components:
+  schemas:
+    SchemaName:
+      description: |-
+        User-provided name for a schema. Not necessarily unique.
+      type: string
+      minLength: 1
+      maxLength: 100
+
+    SchemaDate:
+      description: |-
+        Timestamp for when a schema version.
+
+        When used for an overall schema, this will be the timestamp for when the
+        most recent version was created.
+      type: string
+      format: date-time
+      example: "2019-01-17T11:39:05.386Z"
+
+    SchemaVersion:
+      description: |-
+        Definition of a version of a schema.
+      type: object
+      required:
+        - id
+        - name
+        - date
+        - state
+        - enabled
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          description: |-
+            Server-managed unique ID for the version.
+
+            Guaranteed to be unique within this schema only (different schemas will use
+            the same version IDs).
+          example: 1
+        name:
+          type: string
+          maxLength: 50
+          example: v1.0.0
+          description: |-
+            Client-provided description of a version.
+
+            Enforced to be unique within this schema only (different schemas may use
+            the same version names).
+        date:
+          $ref: '#/components/schemas/SchemaDate'
+        state:
+          $ref: '#/components/schemas/SchemaState'
+        enabled:
+          type: boolean
+          description: |-
+            Set to false if the version of the schema is disabled.
+
+    SchemaState:
+      description: The state of a schema, or an individual version of a schema
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - deprecated
+            - active
+          description: |-
+            If the schema state is 'deprecated', all the schema version states are 'deprecated'.
+        comment:
+          type: string
+          maxLength: 300
+          description: |-
+            User-provided string to explain why a schema is deprecated.
+            Ignored if the state is 'active'.
+            If the schema state is 'deprecated', the schema version state comment will match
+            the schema state comment, unless a specific state comment is set for the schema version.
+          example: |-
+            We want to stop using integer IDs in future, so please use the newer
+            versions of the schema which have switched to string UUID ids.
+
+    SchemaSummary:
+      description: |-
+        A high-level summary of the metadata for an overall schema, used in response
+        payloads.
+      required:
+        - id
+        - name
+        - state
+        - enabled
+      properties:
+        id:
+          type: string
+          description: Lower-case URL-encoded version of the schema name.
+        name:
+          $ref: '#/components/schemas/SchemaName'
+        state:
+          $ref: '#/components/schemas/SchemaState'
+        enabled:
+          type: boolean
+          description: |-
+            Set to false if the schema is disabled. If the schema is disabled, all
+            the schema versions are disabled.
+
+    SchemaListItem:
+      description: |-
+        Summary of the overall schema with the details about most recent version.
+
+        Intended to be useful in responses with lists of schemas without needing to
+        make additional requests for each individual schema.
+      allOf:
+        - $ref: '#/components/schemas/SchemaSummary'
+        - type: object
+          required:
+            - latest
+          properties:
+            latest:
+              $ref: '#/components/schemas/SchemaVersion'
+
+    SchemaInfo:
+      description: |-
+        All metadata available for a single schema, including the metadata for every known version of the schema.
+        It is a combination of SchemaSummary, and all of the schema versions metadata.
+      allOf:
+        - $ref: '#/components/schemas/SchemaSummary'
+        - type: object
+          required:
+            - versions
+          properties:
+            versions:
+              type: array
+              items:
+                $ref: '#/components/schemas/SchemaVersion'
+
+    Schema:
+      description: |-
+        All of the data available for a single version of a single schema, including the Avro schema definition.
+      required:
+        - id
+        - version
+        - name
+        - state
+        - enabled
+        - definition
+      properties:
+        id:
+          type: string
+          description: Lower-case URL-encoded version of the schema name.
+        version:
+          $ref: '#/components/schemas/SchemaVersion'
+        name:
+          $ref: '#/components/schemas/SchemaName'
+        state:
+          $ref: '#/components/schemas/SchemaState'
+        enabled:
+          type: boolean
+          description: |-
+            Set to false if the overall schema is disabled.
+        definition:
+          $ref: '#/components/schemas/SchemaDefinition'
+
+    SchemaDefinition:
+      description: Avro schema definition
+      type: string
+      example: |-
+        {
+          "type": "Record",
+          "name": "People",
+          "fields": [{
+            "name": "id",
+            "type": "int"
+          }, {
+            "name": "name",
+            "type": "string"
+          }, {
+            "name": "salary",
+            "type": "int"
+          }, {
+            "name": "age",
+            "type": "int"
+          }]
+        }
+    NewSchemaVersion:
+      description: |-
+        Request payload for uploading new version of an existing schema.
+      required:
+        - version
+        - definition
+      properties:
+        version:
+          type: string
+          description: The name to give this version of the schema
+          example: v1.0.0
+        definition:
+          $ref: '#/components/schemas/SchemaDefinition'
+        versionid:
+          type: integer
+          minimum: 1
+          description: |-
+            Requested unique ID for the version.
+
+            Must be unique within this schema only (different schemas will use
+            the same version IDs).
+          example: 1
+        versionstate:
+          $ref: '#/components/schemas/SchemaState'
+        versionenabled:
+          type: boolean
+          description: |-
+            Set to false if the version of the schema is disabled.
+
+
+    NewSchema:
+      description: |-
+        Request payload for uploading new schemas.
+        allOf:
+          - $ref: '#/components/schemas/NewSchemaVersion'
+          - type: object
+            required:
+              - name
+            properties:
+              name:
+                $ref: '#/components/schemas/SchemaName'
+              state:
+                $ref: '#/components/schemas/SchemaState'
+              enabled:
+                type: boolean
+                description: |-
+                  Set to false if the schema is disabled. If the schema is disabled, all
+                  the schema versions are disabled.
+
+
+    VersionNumber:
+      description: Used when referring to a schema version in a request.
+      anyOf:
+        - type: integer
+          minimum: 1
+          description: Refers to a specific version
+
+
+    SchemaModificationPatch:
+      description: |-
+        A request payload for use in PATCH requests to modify a schema.
+      type: array
+      items:
+        anyOf:
+          - $ref: '#/components/schemas/StateModification'
+          - $ref: '#/components/schemas/EnabledModification'
+
+    SchemaVersionModificationPatch:
+      description: |-
+        A request payload for use in PATCH requests to modify an individual schema version.
+      type: array
+      items:
+        anyOf:
+          - $ref: '#/components/schemas/StateModification'
+          - $ref: '#/components/schemas/EnabledModification'
+
+
+    StateModification:
+      description: A request to modify the state (enabled/deprecated) of a schema or schema version.
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - replace
+        path:
+          type: string
+          enum:
+            - '/state'
+        value:
+          $ref: '#/components/schemas/SchemaState'
+
+    EnabledModification:
+      description: |-
+        A request to modify the enabled flag for a schema or schema version.
+
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - replace
+        path:
+          type: string
+          enum:
+            - '/enabled'
+        value:
+          type: boolean
+
+
+    Error:
+      description: Response payload for returning an error
+      type: object
+      properties:
+        error_code:
+          type: number
+          description: |-
+            The HTTP status code of the response.
+            Useful when the client is using a framework that doesn't allow direct access to the HTTP response.
+        message:
+          type: string
+      required:
+        - message
+
+
+  responses:
+    Ok:
+      description: Healthy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              ok:
+                type: boolean
+                description: This will only ever be true. If the server is not healthy, an Error will be returned instead.
+            required:
+              - ok
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InvalidSchema:
+      description: Invalid schema definition or request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnauthorizedError:
+      description: API key missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    IdenticalSchemaError:
+      description: |-
+        This is returned when a client request is attempting to provide a new version of an existing schema.
+        It will be returned when either the schema definition is identical to current latest version, or the provided version name is already in use by an existing version of this schema.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    SchemaVersionIDConflictError:
+      description: |-
+        This is returned when a client request is attempting to provide a new version of a schema.
+        It will be returned when the provided version ID is already in use by an existing version of this schema.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Auth-Token
+security:
+  - ApiKeyAuth: []
+paths:
+  /ready:
+    get:
+      summary: Checks if the server is ready to receive requests.
+      description: |-
+        Intended for use with a Kubernetes readiness probe.
+
+        It will verify that the schema data directory is still available, so should
+        fail if there is a problem with the file system.
+      responses:
+        '200':
+          description: Server is running and the schema store is available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Ok'
+        '500':
+          description: Server is running but there is a problem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /live:
+    get:
+      summary: Checks if the server is running.
+      description: |-
+        Intended for use with a Kubernetes liveness probe.
+
+        It doesn't do anything other than return a static OK response, as a verification
+        that the server is reachable and responsive.
+      responses:
+        '200':
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Ok'
+  /api/schemas:
+    post:
+      summary: Create a new schema
+      parameters:
+        - name: verify
+          in: query
+          required: false
+          description: If true, the provided schema definition is validated only, and not stored.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSchema'
+      responses:
+        '201':
+          description: Created. Returned for successful requests when verify=false
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfo'
+        '200':
+          description: Verified. Returned for successful requests when verify=true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaDefinition'
+        '400':
+          $ref: '#/components/responses/InvalidSchema'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    get:
+      summary: List of schemas
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          required: false
+          description: Pagination parameter
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+          required: false
+          description: Pagination parameter
+      responses:
+        '200':
+          description: 'Schemas'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchemaListItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /api/schemas/{schemaid}:
+    parameters:
+      - name: schemaid
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Lower-case URL-encoded version of the schema name.
+    get:
+      summary: Metadata about a single schema
+      responses:
+        '200':
+          description: Schema info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Modify a whole schema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemaModificationPatch'
+      responses:
+        '200':
+          description: Schema modified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete an entire schema
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/schemas/{schemaid}/versions:
+    parameters:
+      - name: schemaid
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Lower-case URL-encoded version of the schema name.
+    post:
+      summary: Upload a new version of an existing schema
+      parameters:
+        - name: verify
+          in: query
+          required: false
+          description: If true, the provided schema definition is validated only, and not stored.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSchemaVersion'
+      responses:
+        '201':
+          description: Created. Returned for successful requests when verify=false
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfo'
+        '200':
+          description: Verified. Returned for successful requests when verify=true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaDefinition'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdenticalSchemaError'
+
+  /api/schemas/{schemaid}/versions/{versionnum}:
+    parameters:
+      - name: schemaid
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Lower-case URL-encoded version of the schema name.
+    get:
+      summary: A single version of a single schema
+      parameters:
+        - name: versionnum
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/VersionNumber'
+      responses:
+        '200':
+          description: 'Schema info'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+            application/vnd.apache.avro+json:
+              schema:
+                $ref: '#/components/schemas/SchemaDefinition'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Modify a single version of a schema
+      parameters:
+        - name: versionnum
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemaVersionModificationPatch'
+      responses:
+        '200':
+          description: Schema modified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a single version of a schema
+      parameters:
+        - name: versionnum
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFound'

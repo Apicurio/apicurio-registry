@@ -78,6 +78,7 @@
 		<module>client</module>
 		<module>distro</module>
 		<module>tests</module>
+		<module>docs</module>
 	</modules>
 
 	<properties>

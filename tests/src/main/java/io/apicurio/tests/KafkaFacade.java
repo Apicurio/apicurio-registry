@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.apicurio.tests;
 
 import io.debezium.kafka.KafkaCluster;
@@ -22,6 +21,8 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Facade class for simulate Kafka cluster
  */
 public class KafkaFacade {
+    static final Logger LOGGER = LoggerFactory.getLogger(KafkaFacade.class);
 
     protected static final int ZOOKEEPER_PORT = 2181;
     protected static final int KAFKA_PORT = 9092;
@@ -122,6 +124,7 @@ public class KafkaFacade {
 
     public void stop() {
         if (kafkaCluster != null) {
+            LOGGER.info("Shutting down Kafka cluster");
             kafkaCluster.shutdown();
             kafkaCluster = null;
             boolean delete = dataDir.delete();
@@ -129,6 +132,7 @@ public class KafkaFacade {
             if (!delete) {
                 dataDir.deleteOnExit();
             }
+            LOGGER.info("Kafka cluster and all related data was deleted");
         }
     }
 }

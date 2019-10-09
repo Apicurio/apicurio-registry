@@ -19,6 +19,7 @@ package io.apicurio.tests.smokeTests;
 import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.tests.BaseIT;
 import io.quarkus.test.junit.SubstrateTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -37,10 +38,10 @@ public class RulesResourceIT extends BaseIT {
 
     @Test
     public void testGlobalRules() {
-        LOGGER.info("Adding rule {} with config {}", RuleType.VALIDATION, "syntax-validation-config");
+        LOGGER.info("Adding rule {} with config {}", RuleType.VALIDITY, "syntax-validation-config");
 
         Rule rule = new Rule();
-        rule.setType(RuleType.VALIDATION);
+        rule.setType(RuleType.VALIDITY);
         rule.setConfig("syntax-validation-config");
 
         given()
@@ -64,7 +65,7 @@ public class RulesResourceIT extends BaseIT {
                 .body(anything())
             .log().all();
 
-        LOGGER.info("Getting 2 rules: {}, {} ", RuleType.VALIDATION, RuleType.COMPATIBILITY);
+        LOGGER.info("Getting 2 rules: {}, {} ", RuleType.VALIDITY, RuleType.COMPATIBILITY);
 
         given()
             .when()

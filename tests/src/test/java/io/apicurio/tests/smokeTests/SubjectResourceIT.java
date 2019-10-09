@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.apicurio.tests.smokeTests;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
-import io.quarkus.test.junit.SubstrateTest;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.HttpUtils;
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
 import org.slf4j.Logger;
@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 
-@SubstrateTest
 public class SubjectResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
@@ -49,21 +48,23 @@ public class SubjectResourceIT extends BaseIT {
     void sendData() {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
 
-        Response response = given()
-            .when()
-                .contentType(RestConstants.JSON)
-                .body(schema.toString())
-                .post("/artifacts")
-            .then()
-                .statusCode(200)
-                .extract()
-                .response();
+//        HttpUtils.createSchema(schema, "/artifacts");
 
-        String schemaId = response.jsonPath().get("id");
+//        Response response = given()
+//            .when()
+//                .contentType(RestConstants.JSON)
+//                .body(schema.toString())
+//                .post("/artifacts")
+//            .then()
+//                .statusCode(200)
+//                .extract()
+//                .response();
+
+        String schemaId = HttpUtils.createSchema(schema.toString()).jsonPath().get("id");
 
         LOGGER.info("Schema was created with ID: {}", schemaId);
 
-        response = given()
+        Response response = given()
             .when()
                 .contentType(RestConstants.JSON)
                 .get("/artifacts/" + schemaId)

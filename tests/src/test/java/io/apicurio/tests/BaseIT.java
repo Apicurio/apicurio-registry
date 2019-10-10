@@ -17,9 +17,13 @@
 package io.apicurio.tests;
 
 import io.apicurio.tests.interfaces.TestSeparator;
+import io.apicurio.tests.utils.HttpUtils;
 import io.apicurio.tests.utils.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +32,11 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeoutException;
 
@@ -71,7 +79,25 @@ public abstract class BaseIT implements TestSeparator, Constants {
         TestUtils.writeFile(logDir + "/registries-stderr.log", registries.getRegistryStdErr());
     }
 
-//    private String schemaResponseToString() {
-//
-//    }
+    public Map<String, String> createMultipleArtifacts(int count) {
+        Map<String, String> idList = new HashMap<>();
+
+        for (int x = 0; x < count; x++) {
+            String name = "myrecord" + x;
+            Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name +"\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+            Response response = HttpUtils.createArtifact(artifact.toString());
+            JsonPath jsonPath = response.jsonPath();
+            LOGGER.info("Created record with name: {} and ID: {}", name, jsonPath.getString("id"));
+            idList.put(name, jsonPath.getString("id"));
+        }
+
+        return idList;
+    }
+
+    public void deleteMultipleArtifacts(Map<String, String> idMap) {
+        for (Map.Entry entry : idMap.entrySet()) {
+            HttpUtils.deleteArtifact(entry.getValue().toString());
+            LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());
+        }
+    }
 }

@@ -26,8 +26,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SmokeIT extends BaseIT {
@@ -42,40 +46,100 @@ public class SmokeIT extends BaseIT {
 
         Response response = HttpUtils.createGlobalRule(rule);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        response = HttpUtils.createSchema(schema.toString());
+        Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        response = HttpUtils.createArtifact(artifact.toString());
         JsonPath jsonPath = response.jsonPath();
-        String schemaId = jsonPath.getString("id");
-        LOGGER.info("Schema with ID {} was created: {}", schemaId, jsonPath.get());
+        String artifactId = jsonPath.getString("id");
+        LOGGER.info("Artifact with ID {} was created: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get("createdOn"), notNullValue());
 
         String wrongSchema = "<type>record</type>\n<name>test</name>";
-        response = HttpUtils.createSchema(wrongSchema, 400);
+        response = HttpUtils.createArtifact(wrongSchema, 400);
         jsonPath = response.jsonPath();
-        LOGGER.info("Invalid schema sent: {}", jsonPath);
+        LOGGER.info("Invalid artifact sent: {}", (Object) jsonPath.get());
+        assertThat(jsonPath.get("message"), is("Syntax violation for Avro artifact."));
 
-        response = HttpUtils.getSchema(schemaId);
+        response = HttpUtils.getArtifact(artifactId);
         jsonPath = response.jsonPath();
-        LOGGER.info("Got info about schema with ID {}: {}", schemaId, jsonPath.get());
+        LOGGER.info("Got info about artifact with ID {}: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get("name"), is("myrecord1"));
 
         Schema updatedSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}");
-        response = HttpUtils.updateSchema(schemaId, updatedSchema.toString());
+        response = HttpUtils.updateArtifact(artifactId, updatedSchema.toString());
         jsonPath = response.jsonPath();
-        LOGGER.info("Schema with ID {} was updated: {}", schemaId, jsonPath.get());
+        LOGGER.info("Schema with ID {} was updated: {}", artifactId, jsonPath.get());
 
-        response = HttpUtils.getSchema(schemaId);
+        response = HttpUtils.getArtifact(artifactId);
         jsonPath = response.jsonPath();
-        LOGGER.info("Got info about schema with ID {}: {}", schemaId, jsonPath.get());
+        LOGGER.info("Got info about artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(HttpUtils.getFieldsFromResponse(jsonPath).get("name"), is("bar"));
 
-        response = HttpUtils.listSchemaVersions(schemaId);
+        response = HttpUtils.listArtifactVersions(artifactId);
         jsonPath = response.jsonPath();
-        LOGGER.info("Available versions of schema with ID {} are: {}", schemaId, jsonPath.get());
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get(), hasItems(1, 2));
 
-        response = HttpUtils.getSchemaSpecificVersion(schemaId, "1");
+        response = HttpUtils.getArtifactSpecificVersion(artifactId, "1");
         jsonPath = response.jsonPath();
-        LOGGER.info("Schema with ID {} and version {}: {}", schemaId, "1", jsonPath.get());
+        LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, "1", jsonPath.get());
         assertThat(HttpUtils.getFieldsFromResponse(jsonPath).get("name"), is("foo"));
+    }
+
+    @Test
+    void createAndDeleteMultipleArtifacts() {
+        LOGGER.info("Creating some artifacts...");
+        Map<String, String> idMap = createMultipleArtifacts(10);
+        LOGGER.info("Created  {} artifacts", idMap.size());
+
+        deleteMultipleArtifacts(idMap);
+
+        for(Map.Entry entry : idMap.entrySet()) {
+            HttpUtils.getArtifact(entry.getValue().toString(), 404);
+        }
+    }
+
+    @Test
+    void deleteArtifactSpecificVersion() {
+        String name = "myrecordx";
+        Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        Response response = HttpUtils.createArtifact(artifact.toString());
+        JsonPath jsonPath = response.jsonPath();
+        String artifactId = jsonPath.getString("id");
+        LOGGER.info("Created record with name: {} and ID: {}", name, artifactId);
+
+        for (int x = 0; x < 9; x++) {
+            artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}");
+            HttpUtils.updateArtifact(artifactId, artifact.toString());
+        }
+
+        response = HttpUtils.listArtifactVersions(artifactId);
+        jsonPath = response.jsonPath();
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get(), hasItems(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+
+        HttpUtils.deleteArtifactVersion(artifactId, "4");
+        LOGGER.info("Version 4 of artifact {} was deleted", artifactId);
+
+        response = HttpUtils.listArtifactVersions(artifactId);
+        jsonPath = response.jsonPath();
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get(), hasItems(1, 2, 3, 5, 6, 7, 8, 9, 10));
+        assertThat(jsonPath.get(), not(hasItems(4)));
+
+        response = HttpUtils.getArtifactSpecificVersion(artifactId, "4", 404);
+        jsonPath = response.jsonPath();
+        assertThat(jsonPath.get("message"), is("No version '4' found for artifact with ID '" + artifactId + "'."));
+
+
+        artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo" + 11 + "\",\"type\":\"string\"}]}");
+        HttpUtils.updateArtifact(artifactId, artifact.toString());
+
+        response = HttpUtils.listArtifactVersions(artifactId);
+        jsonPath = response.jsonPath();
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get(), hasItems(1, 2, 3, 5, 6, 7, 8, 9, 10, 11));
+        assertThat(jsonPath.get(), not(hasItems(4)));
+
     }
 }
 

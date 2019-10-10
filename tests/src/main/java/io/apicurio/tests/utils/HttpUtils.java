@@ -33,48 +33,64 @@ public class HttpUtils {
         // All static methods
     }
 
-    public static Response getSchema(String schemaId) {
-        return getSchema(schemaId, "", 200);
+    public static Response getArtifact(String artifactId) {
+        return getArtifact(artifactId, "", 200);
     }
 
-    public static Response getSchemaSpecificVersion(String schemaId, String version) {
-        return getSchema(schemaId, "versions/" + version, 200);
+    public static Response getArtifact(String artifactId, int returnCode) {
+        return getArtifact(artifactId, "", returnCode);
     }
 
-    public static Response getSchema(String schemaId, String version, int returnCode) {
-        return getRequest(RestConstants.JSON, "/artifacts/" + schemaId + "/" + version, returnCode);
+    public static Response getArtifact(String artifactId, String version, int returnCode) {
+        return getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/" + version, returnCode);
     }
 
-    public static Response listSchemaVersions(String schemaId) {
-        return listSchemaVersions(schemaId, 200);
+    public static Response getArtifactSpecificVersion(String artifactId, String version) {
+        return getArtifactSpecificVersion(artifactId, "versions/" + version, 200);
     }
 
-    public static Response listSchemaVersions(String schemaId, int returnCode) {
-        return getRequest(RestConstants.JSON, "/artifacts/" + schemaId + "/versions", returnCode);
+    public static Response getArtifactSpecificVersion(String artifactId, String version, int returnCode) {
+        return getArtifact(artifactId, "versions/" + version, returnCode);
     }
 
-    public static Response createSchema(String schema) {
-        return createSchema(schema, 200);
+    public static Response listArtifactVersions(String artifactId) {
+        return listArtifactVersions(artifactId, 200);
     }
 
-    public static Response createSchema(String schema, int returnCode) {
-        return postRequest(RestConstants.JSON, schema, "/artifacts", returnCode);
+    public static Response listArtifactVersions(String artifactId, int returnCode) {
+        return getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions", returnCode);
     }
 
-    public static Response updateSchema(String schemaId, String schema) {
-        return updateSchema(schemaId, schema, 200);
+    public static Response createArtifact(String artifact) {
+        return createArtifact(artifact, 200);
     }
 
-    public static Response updateSchema(String schemaId, String schema, int returnCode) {
-        return putRequest(RestConstants.JSON, schema, "/artifacts/" + schemaId, returnCode);
+    public static Response createArtifact(String artifact, int returnCode) {
+        return postRequest(RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
-    public static Response deleteSchema(String schemaId) {
-        return deleteSchema(schemaId, 200);
+    public static Response updateArtifact(String artifactId, String artifact) {
+        return updateArtifact(artifactId, artifact, 200);
     }
 
-    public static Response deleteSchema(String schemaId, int returnCode) {
-        return deleteRequest(RestConstants.JSON, "/artifacts/" + schemaId, returnCode);
+    public static Response updateArtifact(String artifactId, String artifact, int returnCode) {
+        return putRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId, returnCode);
+    }
+
+    public static Response deleteArtifact(String artifactId) {
+        return deleteArtifact(artifactId, 204);
+    }
+
+    public static Response deleteArtifact(String artifactId, int returnCode) {
+        return deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId, returnCode);
+    }
+
+    public static Response deleteArtifactVersion(String artifactId, String version) {
+        return deleteArtifactVersion(artifactId, version, 204);
+    }
+
+    public static Response deleteArtifactVersion(String artifactId, String version, int returnCode) {
+        return deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions/" + version, returnCode);
     }
 
     public static Response createGlobalRule(Rule rule) {
@@ -124,7 +140,7 @@ public class HttpUtils {
         return given()
             .when()
                 .contentType(contentType)
-                .put(endpoint)
+                .delete(endpoint)
             .then()
                 .statusCode(returnCode)
                 .extract()

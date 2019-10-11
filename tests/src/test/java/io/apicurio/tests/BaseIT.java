@@ -32,10 +32,8 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeoutException;
@@ -84,7 +82,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
         for (int x = 0; x < count; x++) {
             String name = "myrecord" + x;
-            Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name +"\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+            Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
             Response response = HttpUtils.createArtifact(artifact.toString());
             JsonPath jsonPath = response.jsonPath();
             LOGGER.info("Created record with name: {} and ID: {}", name, jsonPath.getString("id"));

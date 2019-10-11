@@ -15,6 +15,7 @@
  */
 package io.apicurio.tests.utils;
 
+import io.apicurio.registry.rest.beans.Rule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,5 +100,9 @@ public final class TestUtils {
                 ex.printStackTrace();
             }
         }
+    }
+
+    public static String ruleToString(Rule rule) {
+        return "{\"type\":\"" + rule.getType() + "\",\"config\":\"" + rule.getConfig() + "\"}";
     }
 }

@@ -19,9 +19,11 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.HttpUtils;
+import io.apicurio.tests.utils.TestUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
@@ -34,17 +36,17 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class SmokeIT extends BaseIT {
+class ArtifactsIT extends BaseIT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SmokeIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
     @Test
-    void createAndUpdateSchemas() {
+    void createAndUpdateArtifact() {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
 
-        Response response = HttpUtils.createGlobalRule(rule);
+        Response response = HttpUtils.createGlobalRule(TestUtils.ruleToString(rule));
 
         Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         response = HttpUtils.createArtifact(artifact.toString());
@@ -53,8 +55,8 @@ public class SmokeIT extends BaseIT {
         LOGGER.info("Artifact with ID {} was created: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("createdOn"), notNullValue());
 
-        String wrongSchema = "<type>record</type>\n<name>test</name>";
-        response = HttpUtils.createArtifact(wrongSchema, 400);
+        String invalidArtifact = "<type>record</type>\n<name>test</name>";
+        response = HttpUtils.createArtifact(invalidArtifact, 400);
         jsonPath = response.jsonPath();
         LOGGER.info("Invalid artifact sent: {}", (Object) jsonPath.get());
         assertThat(jsonPath.get("message"), is("Syntax violation for Avro artifact."));
@@ -64,8 +66,8 @@ public class SmokeIT extends BaseIT {
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("name"), is("myrecord1"));
 
-        Schema updatedSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}");
-        response = HttpUtils.updateArtifact(artifactId, updatedSchema.toString());
+        Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}");
+        response = HttpUtils.updateArtifact(artifactId, updatedArtifact.toString());
         jsonPath = response.jsonPath();
         LOGGER.info("Schema with ID {} was updated: {}", artifactId, jsonPath.get());
 
@@ -93,7 +95,7 @@ public class SmokeIT extends BaseIT {
 
         deleteMultipleArtifacts(idMap);
 
-        for(Map.Entry entry : idMap.entrySet()) {
+        for (Map.Entry entry : idMap.entrySet()) {
             HttpUtils.getArtifact(entry.getValue().toString(), 404);
         }
     }
@@ -130,7 +132,6 @@ public class SmokeIT extends BaseIT {
         jsonPath = response.jsonPath();
         assertThat(jsonPath.get("message"), is("No version '4' found for artifact with ID '" + artifactId + "'."));
 
-
         artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo" + 11 + "\",\"type\":\"string\"}]}");
         HttpUtils.updateArtifact(artifactId, artifact.toString());
 
@@ -140,6 +141,43 @@ public class SmokeIT extends BaseIT {
         assertThat(jsonPath.get(), hasItems(1, 2, 3, 5, 6, 7, 8, 9, 10, 11));
         assertThat(jsonPath.get(), not(hasItems(4)));
 
+    }
+
+    @Test
+    void createNonAvroArtifact() {
+        String invalidRule = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
+        Response response = HttpUtils.createArtifact(invalidRule);
+        String artifactId = response.jsonPath().getString("id");
+        LOGGER.info("Created artifact {} with ID {}: {}", "myrecord1", artifactId, response.jsonPath().get());
+
+        response = HttpUtils.getArtifact(artifactId);
+        JsonPath jsonPath = response.jsonPath();
+        LOGGER.info("Got info about artifact with ID {}: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get("type"), is("INVALID"));
+        assertThat(jsonPath.get("config"), is("invalid"));
+    }
+
+    @Test
+    void createArtifactSpecificVersion() {
+        Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        Response response = HttpUtils.createArtifact(artifact.toString());
+        String artifactId = response.jsonPath().getString("id");
+        LOGGER.info("Created artifact {} with ID {}", "myrecord1", artifactId);
+
+        Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        response = HttpUtils.createArtifactNewVersion(artifactId, updatedArtifact.toString(), 200);
+        JsonPath jsonPath = response.jsonPath();
+        LOGGER.info("Schema with ID {} was updated: {}", artifactId, jsonPath.get());
+
+        response = HttpUtils.listArtifactVersions(artifactId);
+        jsonPath = response.jsonPath();
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, jsonPath.get());
+        assertThat(jsonPath.get(), hasItems(1, 2));
+    }
+
+    @AfterEach
+    void deleteRules() {
+        HttpUtils.deleteAllGlobalRules();
     }
 }
 

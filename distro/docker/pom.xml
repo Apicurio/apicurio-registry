@@ -16,6 +16,8 @@
     <properties>
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
         <docker.jpa.file>app-files/apicurio-registry-storage-jpa-${project.version}-all.tar.gz</docker.jpa.file>
+        <docker.kafka.file>app-files/apicurio-registry-storage-kafka-${project.version}-all.tar.gz</docker.kafka.file>
+        <docker.streams.file>app-files/apicurio-registry-storage-streams-${project.version}-all.tar.gz</docker.streams.file>
     </properties>
 
     <build>
@@ -45,6 +47,22 @@
                                 </resource>
                                 <resource>
                                     <directory>${basedir}/../../storage/jpa/target</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${basedir}/../../storage/kafka/target</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${basedir}/../../storage/streams/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -147,7 +165,6 @@
             </build>
         </profile>
 
-
         <profile>
             <id>jpa</id>
             <dependencies>
@@ -160,7 +177,6 @@
             </dependencies>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
@@ -186,7 +202,88 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
 
+        <profile>
+            <id>kafka</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-storage-kafka</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <version>0.30.0</version>
+                        <executions>
+                            <execution>
+                                <id>docker-build</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <images>
+                                        <image>
+                                            <name>apicurio/apicurio-registry-kafka:${project.version}</name>
+                                            <build>
+                                                <contextDir>${project.build.directory}/docker</contextDir>
+                                                <dockerFile>./Dockerfile.kafka.jvm</dockerFile>
+                                            </build>
+                                        </image>
+                                    </images>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>streams</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-storage-streams</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <version>0.30.0</version>
+                        <executions>
+                            <execution>
+                                <id>docker-build</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <images>
+                                        <image>
+                                            <name>apicurio/apicurio-registry-streams:${project.version}</name>
+                                            <build>
+                                                <contextDir>${project.build.directory}/docker</contextDir>
+                                                <dockerFile>./Dockerfile.streams.jvm</dockerFile>
+                                            </build>
+                                        </image>
+                                    </images>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

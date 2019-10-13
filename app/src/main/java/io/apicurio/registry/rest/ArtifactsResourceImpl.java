@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.ArtifactIdGenerator;
+import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;

@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
-
-import java.util.UUID;
-
-import javax.enterprise.context.ApplicationScoped;
+package io.apicurio.registry.util;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
-public class ArtifactIdGenerator {
+public interface ArtifactIdGenerator {
 
-    public String generate() {
-        return UUID.randomUUID().toString();
-    }
-    
+    String generate();
+
 }

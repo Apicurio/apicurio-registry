@@ -109,6 +109,9 @@
                                     <build>
                                         <contextDir>${project.build.directory}/docker</contextDir>
                                         <dockerFile>./Dockerfile.jvm</dockerFile>
+                                        <tags combine.children="append">
+                                            <tag>latest</tag>
+                                        </tags>
                                     </build>
                                 </image>
                             </images>
@@ -153,6 +156,9 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.native</dockerFile>
+                                                <tags combine.children="append">
+                                                    <tag>latest</tag>
+                                                </tags>
                                             </build>
                                         </image>
                                     </images>
@@ -195,6 +201,9 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.jpa.jvm</dockerFile>
+                                                <tags combine.children="append">
+                                                    <tag>latest</tag>
+                                                </tags>
                                             </build>
                                         </image>
                                     </images>
@@ -236,6 +245,9 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.kafka.jvm</dockerFile>
+                                                <tags combine.children="append">
+                                                    <tag>latest</tag>
+                                                </tags>
                                             </build>
                                         </image>
                                     </images>
@@ -277,6 +289,9 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.streams.jvm</dockerFile>
+                                                <tags combine.children="append">
+                                                    <tag>latest</tag>
+                                                </tags>
                                             </build>
                                         </image>
                                     </images>

@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
+package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.RulesResource;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
-    void reset();
+public class FindBySchemaIdStrategy<T> implements IdStrategy<T> {
+    @Override
+    public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
+        ArtifactMetaData amd = service.getArtifactMetaData(artifactId, toStream(schema));
+        return amd.getGlobalId();
+    }
 }

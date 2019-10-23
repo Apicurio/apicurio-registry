@@ -19,9 +19,11 @@ package io.apicurio.registry;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -49,6 +51,17 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
                 CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);
                 ConcurrentUtil.result(csResult);
+
+                EditableMetaData emd = new EditableMetaData();
+                emd.setName("myname");
+                service.updateArtifactMetaData(artifactId, emd);
+                retry(() -> {
+                    ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
+                    Assertions.assertNotNull(artifactMetaData);
+                    Assertions.assertEquals("myname", artifactMetaData.getName());
+                   return null;
+                });
+
                 stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes());
                 csResult = service.updateArtifact(artifactId, ArtifactType.JSON, stream);
                 ConcurrentUtil.result(csResult);

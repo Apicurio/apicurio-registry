@@ -29,13 +29,14 @@ import java.util.concurrent.Future;
 public class RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
 
-    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.0.0-SNAPSHOT-runner.jar";
+    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.1.0-SNAPSHOT-runner.jar";
     public static final String DEFAULT_REGISTRY_PORT = "8080";
     public static final String DEFAULT_REGISTRY_URL = "localhost";
 
     public static final String REGISTRY_JAR_PATH = System.getenv().getOrDefault("REGISTRY_JAR_PATH", DEFAULT_REGISTRY_JAR_PATH);
     public static final String REGISTRY_PORT = System.getenv().getOrDefault("REGISTRY_PORT", DEFAULT_REGISTRY_PORT);
     public static final String REGISTRY_URL = System.getenv().getOrDefault("REGISTRY_URL", DEFAULT_REGISTRY_URL);
+    public static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "");
 
     private Exec executor = new Exec();
 

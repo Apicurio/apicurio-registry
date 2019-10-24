@@ -16,9 +16,13 @@
 
 package io.apicurio.tests;
 
+import io.apicurio.registry.client.RegistryClient;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.tests.interfaces.TestSeparator;
-import io.apicurio.tests.utils.HttpUtils;
-import io.apicurio.tests.utils.TestUtils;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.apicurio.tests.utils.subUtils.TestUtils;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.path.json.JsonPath;
@@ -36,16 +40,18 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.concurrent.TimeoutException;
 
 public abstract class BaseIT implements TestSeparator, Constants {
-    static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     private static KafkaFacade kafkaCluster = new KafkaFacade();
     private static RegistryFacade registries = new RegistryFacade();
 
+    protected static SchemaRegistryClient confluentService;
+    protected static RegistryService apicurioService;
+
     @BeforeAll
-    static void beforeAll() throws TimeoutException {
+    static void beforeAll() throws Exception {
         kafkaCluster.start();
 
         registries.start();
@@ -54,6 +60,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
         RestAssured.baseURI = "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT;
         LOGGER.info("Registry app is running on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         RestAssured.defaultParser = Parser.JSON;
+        confluentService = new CachedSchemaRegistryClient("http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/confluent", 3);
+        apicurioService = RegistryClient.create("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
     }
 
     @AfterAll
@@ -78,23 +86,23 @@ public abstract class BaseIT implements TestSeparator, Constants {
     }
 
     public Map<String, String> createMultipleArtifacts(int count) {
-        Map<String, String> idList = new HashMap<>();
+        Map<String, String> idMap = new HashMap<>();
 
         for (int x = 0; x < count; x++) {
             String name = "myrecord" + x;
             Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-            Response response = HttpUtils.createArtifact(artifact.toString());
+            Response response = ArtifactUtils.createArtifact(artifact.toString());
             JsonPath jsonPath = response.jsonPath();
             LOGGER.info("Created record with name: {} and ID: {}", name, jsonPath.getString("id"));
-            idList.put(name, jsonPath.getString("id"));
+            idMap.put(name, jsonPath.getString("id"));
         }
 
-        return idList;
+        return idMap;
     }
 
     public void deleteMultipleArtifacts(Map<String, String> idMap) {
         for (Map.Entry entry : idMap.entrySet()) {
-            HttpUtils.deleteArtifact(entry.getValue().toString());
+            ArtifactUtils.deleteArtifact(entry.getValue().toString());
             LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());
         }
     }

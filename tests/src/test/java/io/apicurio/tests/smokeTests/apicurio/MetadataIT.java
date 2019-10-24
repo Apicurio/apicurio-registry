@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.smokeTests;
+package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.HttpUtils;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
@@ -37,49 +37,48 @@ class MetadataIT extends BaseIT {
     @Test
     void getAndUpdateMetadataOfArtifact() {
         Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        Response response = HttpUtils.createArtifact(artifact.toString());
+        Response response = ArtifactUtils.createArtifact(artifact.toString());
         String artifactId = response.jsonPath().getString("id");
         LOGGER.info("Created artifact {} with ID {}", "myrecord1", artifactId);
 
-        response = HttpUtils.getArtifactMetadata(artifactId);
+        response = ArtifactUtils.getArtifactMetadata(artifactId);
         JsonPath jsonPath = response.jsonPath();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("version"), is(1));
         assertThat(jsonPath.get("type"), is("AVRO"));
 
         String metadata = "{\"name\": \"Artifact Name\",\"description\": \"The description of the artifact.\"}";
-        HttpUtils.updateArtifactMetadata(artifactId, metadata);
+        ArtifactUtils.updateArtifactMetadata(artifactId, metadata);
 
-        response = HttpUtils.getArtifactMetadata(artifactId);
+        response = ArtifactUtils.getArtifactMetadata(artifactId);
         jsonPath = response.jsonPath();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("version"), is(1));
         assertThat(jsonPath.get("type"), is("AVRO"));
         assertThat(jsonPath.get("name"), is("Artifact Name"));
         assertThat(jsonPath.get("description"), is("The description of the artifact."));
-
     }
 
     @Test
     void getAndUpdateMetadataOfArtifactSpecificVersion() {
         Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        Response response = HttpUtils.createArtifact(artifact.toString());
+        Response response = ArtifactUtils.createArtifact(artifact.toString());
         String artifactId = response.jsonPath().getString("id");
         LOGGER.info("Created artifact {} with ID {}", "myrecord1", artifactId);
 
         Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        HttpUtils.updateArtifact(artifactId, updatedArtifact.toString());
+        ArtifactUtils.updateArtifact(artifactId, updatedArtifact.toString());
 
-        response = HttpUtils.getArtifactVersionMetadata(artifactId, "2");
+        response = ArtifactUtils.getArtifactVersionMetadata(artifactId, "2");
         JsonPath jsonPath = response.jsonPath();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("version"), is(2));
         assertThat(jsonPath.get("type"), is("AVRO"));
 
         String metadata = "{\"name\": \"Artifact Name\",\"description\": \"The description of the artifact.\"}";
-        HttpUtils.updateArtifactMetadata(artifactId, metadata);
+        ArtifactUtils.updateArtifactMetadata(artifactId, metadata);
 
-        response = HttpUtils.getArtifactMetadata(artifactId);
+        response = ArtifactUtils.getArtifactMetadata(artifactId);
         jsonPath = response.jsonPath();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("version"), is(2));
@@ -88,8 +87,8 @@ class MetadataIT extends BaseIT {
         assertThat(jsonPath.get("description"), is("The description of the artifact."));
         assertThat(jsonPath.get("modifiedOn"),  notNullValue());
 
-        HttpUtils.deleteArtifactVersionMetadata(artifactId, "2");
-        response = HttpUtils.getArtifactVersionMetadata(artifactId, "2");
+        ArtifactUtils.deleteArtifactVersionMetadata(artifactId, "2");
+        response = ArtifactUtils.getArtifactVersionMetadata(artifactId, "2");
         jsonPath = response.jsonPath();
         LOGGER.info("Got metadata of artifact with ID {} version 2: {}", artifactId, jsonPath.get());
         assertThat(jsonPath.get("version"), is(2));

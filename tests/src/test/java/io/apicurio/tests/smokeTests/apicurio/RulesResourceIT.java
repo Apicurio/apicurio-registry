@@ -18,7 +18,6 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;

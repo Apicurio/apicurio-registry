@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 
-public class RegistryFacade {
+public class  RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
 
     public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.0.2-SNAPSHOT-runner.jar";

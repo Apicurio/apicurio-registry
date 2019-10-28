@@ -65,6 +65,12 @@ public abstract class AbstractKafkaSerDe<T> {
         return client;
     }
 
+    public void reset() {
+        if (client != null) {
+            client.reset();
+        }
+    }
+
     public void close() {
         if (client != null) {
             try {

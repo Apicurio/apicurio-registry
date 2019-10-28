@@ -373,6 +373,19 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         return dtoToMetaData(dto.getId(), dto.getType(), dto);
     }
 
+    @Override
+    public Response getArtifact(long id) {
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(id);
+        StoredArtifact artifact = storage.getArtifactVersion(id);
+
+        // protobuf - the content-type will be different for protobuf artifacts
+        MediaType contentType = ArtifactMediaTypes.JSON;
+        if (metaData.getType() == ArtifactType.PROTOBUF) {
+            contentType = ArtifactMediaTypes.PROTO;
+        }
+        return Response.ok(artifact.content, contentType).build();
+    }
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactMetaData(java.lang.String, io.apicurio.registry.rest.beans.EditableMetaData)
      */

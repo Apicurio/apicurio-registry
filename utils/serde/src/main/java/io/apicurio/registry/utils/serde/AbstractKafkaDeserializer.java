@@ -17,7 +17,6 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -61,8 +60,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
 
         ByteBuffer buffer = getByteBuffer(data);
         long id = buffer.getLong();
-        ArtifactMetaData amd = getClient().getArtifactMetaData(id);
-        Response artifactResponse = getClient().getArtifactVersion(amd.getVersion(), amd.getId());
+        Response artifactResponse = getClient().getArtifact(id);
         Response.StatusType statusInfo = artifactResponse.getStatusInfo();
         if (statusInfo.getStatusCode() != 200) {
             throw new IllegalStateException(String.format(

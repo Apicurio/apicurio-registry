@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -80,7 +81,10 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             "test-myrecord3",
             new ByteArrayInputStream(schema.toString().getBytes())
         );
-        ConcurrentUtil.result(csa);
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        // wait for global id store to populate (in case of Kafka / Streams)
+        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaData(amd.getGlobalId()));
+        Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -129,6 +133,15 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 record.put("bar", "somebar");
 
                 byte[] bytes = serializer.serialize("foo", record);
+
+                // some impl details ...
+                service.reset(); // clear any cache
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                buffer.get(); // magic byte
+                long id = buffer.getLong(); // id
+                ArtifactMetaData amd = retry(() -> service.getArtifactMetaData(id));
+                Assertions.assertNotNull(amd); // wait for global id to populate
+
                 GenericData.Record ir = deserializer.deserialize("foo", bytes);
 
                 Assertions.assertEquals("somebar", ir.get("bar").toString());

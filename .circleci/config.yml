@@ -30,7 +30,10 @@ jobs:
           command: ./mvnw clean package -Pjpa -Pinfinispan -Pkafka -DskipTests
       - run:
           name: Build & Verify (Standard)
-          command: ./mvnw clean test package
+          command: ./mvnw test package install
+      - run:
+          name: Run QE Tests
+          command: ./mvnw verify -Ptests -pl tests -Dmaven.javadoc.skip=true
       # - run:
       #     name: Install GraalVM
       #     command: curl https://github.com/oracle/graal/releases/download/vm-19.1.1/graalvm-ce-linux-amd64-19.1.1.tar.gz -O -J -L && tar xfz graalvm-ce-linux-amd64-19.1.1.tar.gz && mv graalvm-ce-19.1.1 .graalvm && rm graalvm-ce-linux-amd64-19.1.1.tar.gz

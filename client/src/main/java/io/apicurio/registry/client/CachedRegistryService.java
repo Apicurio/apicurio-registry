@@ -16,14 +16,6 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collections;
@@ -34,9 +26,18 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
 import javax.enterprise.inject.Vetoed;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -87,22 +88,28 @@ class CachedRegistryService implements RegistryService {
         }
         return map.lastEntry().getValue();
     }
-
+    
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
+     */
     @Override
-    public ArtifactMetaData getArtifactMetaData(String artifactId, InputStream data) {
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         String content = IoUtil.toString(data);
         Map<String, ArtifactMetaData> map = cmds.computeIfAbsent(artifactId, id -> new TreeMap<>());
         return map.computeIfAbsent(content, c -> {
             InputStream copy = new ByteArrayInputStream(content.getBytes());
-            ArtifactMetaData amd = getDelegate().getArtifactMetaData(artifactId, copy);
+            ArtifactMetaData amd = getDelegate().getArtifactMetaDataByContent(artifactId, copy);
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;
         });
     }
-
+    
+    /**
+     * @see io.apicurio.registry.rest.IdsResource#getArtifactMetaDataByGlobalId(long)
+     */
     @Override
-    public ArtifactMetaData getArtifactMetaData(long id) {
-        return globalAMD.computeIfAbsent(id, getDelegate()::getArtifactMetaData);
+    public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
+        return globalAMD.computeIfAbsent(globalId, getDelegate()::getArtifactMetaDataByGlobalId);
     }
 
     @Override
@@ -167,9 +174,12 @@ class CachedRegistryService implements RegistryService {
         return getDelegate().getArtifactVersion(version, artifactId);
     }
 
+    /**
+     * @see io.apicurio.registry.rest.IdsResource#getArtifactByGlobalId(long)
+     */
     @Override
-    public Response getArtifact(long id) {
-        return getDelegate().getArtifact(id);
+    public Response getArtifactByGlobalId(long globalId) {
+        return getDelegate().getArtifactByGlobalId(globalId);
     }
 
     // ---- Auto reset

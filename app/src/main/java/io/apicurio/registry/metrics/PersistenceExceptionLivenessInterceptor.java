@@ -1,5 +1,13 @@
 package io.apicurio.registry.metrics;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.inject.Inject;
+import javax.interceptor.AroundInvoke;
+import javax.interceptor.Interceptor;
+import javax.interceptor.InvocationContext;
+
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -7,15 +15,6 @@ import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.interceptor.AroundInvoke;
-import javax.interceptor.Interceptor;
-import javax.interceptor.InvocationContext;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Fail liveness check if the number of exceptions thrown by storage is too high.
@@ -26,7 +25,7 @@ import java.util.Set;
 @PersistenceExceptionLivenessApply
 public class PersistenceExceptionLivenessInterceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
+//    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
 
     private static final Set<Class<? extends Exception>> IGNORED = new HashSet<>();
 

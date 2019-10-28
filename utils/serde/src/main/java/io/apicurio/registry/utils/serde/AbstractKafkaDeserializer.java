@@ -60,7 +60,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
 
         ByteBuffer buffer = getByteBuffer(data);
         long id = buffer.getLong();
-        Response artifactResponse = getClient().getArtifact(id);
+        Response artifactResponse = getClient().getArtifactByGlobalId(id);
         Response.StatusType statusInfo = artifactResponse.getStatusInfo();
         if (statusInfo.getStatusCode() != 200) {
             throw new IllegalStateException(String.format(

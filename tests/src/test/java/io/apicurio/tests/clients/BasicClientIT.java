@@ -59,10 +59,10 @@ public class BasicClientIT extends BaseIT {
 //        assertThat(schema.toString(), is(newSchema.toString()));
 //        assertThat(confluentService.getVersion(SUBJECT_NAME, schema), is(confluentService.getVersion(SUBJECT_NAME, newSchema)));
 
-        final Consumer<Long, GenericRecord> consumer = AvroConsumer.createConsumer();
+        final Consumer<Long, GenericRecord> consumer = AvroKafka.createConsumer();
         consumer.subscribe(Collections.singletonList(topicName));
 
-        Producer<Object, Object> producer = AvroProducer.createProducer();
+        Producer<Object, Object> producer = AvroKafka.createProducer();
 
         ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, avroRecord);
         producer.send(producedRecord);

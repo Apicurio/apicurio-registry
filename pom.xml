@@ -78,7 +78,6 @@
 		<module>client</module>
 		<module>utils/serde</module>
 		<module>distro</module>
-		<module>tests</module>
 		<module>docs</module>
 	</modules>
 
@@ -440,6 +439,15 @@
 				<quarkus.profile>prod</quarkus.profile>
 			</properties>
 		</profile>
+        <profile>
+            <id>tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>tests</module>
+            </modules>
+        </profile>
 		<profile>
 			<id>release</id>
 			<build>

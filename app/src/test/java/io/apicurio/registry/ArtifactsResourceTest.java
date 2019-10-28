@@ -69,7 +69,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts")
             .then()
                 .statusCode(409)
-                .body("code", equalTo(409))
+                .body("error_code", equalTo(409))
                 .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/2' already exists."));
 
         // Try to create an artifact with an invalid artifact type
@@ -120,7 +120,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .get("/artifacts/{artifactId}")
             .then()
                 .statusCode(404)
-                .body("code", equalTo(404))
+                .body("error_code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testGetArtifact/MissingAPI' was found."));
     }
 
@@ -199,7 +199,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .get("/artifacts/{artifactId}")
             .then()
                 .statusCode(404)
-                .body("code", equalTo(404))
+                .body("error_code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
     
         // Try to delete an artifact that doesn't exist.
@@ -483,7 +483,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/rules")
             .then()
                 .statusCode(409)
-                .body("code", equalTo(409))
+                .body("error_code", equalTo(409))
                 .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         
         // Add another rule
@@ -561,7 +561,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 //            .then()
 //                .statusCode(404)
 //                .contentType(ContentType.JSON)
-//                .body("code", equalTo(404))
+//                .body("error_code", equalTo(404))
 //                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
 
         // Delete a rule
@@ -581,7 +581,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
-                .body("code", equalTo(404))
+                .body("error_code", equalTo(404))
                 .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
 
         // Get the list of rules (should be 1 of them)
@@ -657,7 +657,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .get("/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(404)
-                .body("code", equalTo(404))
+                .body("error_code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
         
         // Update the artifact meta-data

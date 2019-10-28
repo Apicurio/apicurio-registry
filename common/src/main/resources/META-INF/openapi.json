@@ -73,6 +73,109 @@
                 "summary": "Update artifact metadata",
                 "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
             },
+            "post": {
+                "requestBody": {
+                    "description": "The content of an artifact version.",
+                    "content": {
+                        "application/json": {
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "application/x-protobuf": {
+                            "examples": {
+                                "Protobuf Example": {
+                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                }
+                            }
+                        },
+                        "application/x-protobuffer": {
+                            "examples": {
+                                "Protobuffer Example": {
+                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        },
+                        "description": "The metadata of the artifact version matching the provided content."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactMetaDataByContent",
+                "summary": "Gets artifact metadata by content",
+                "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
             "parameters": [
                 {
                     "name": "artifactId",
@@ -216,14 +319,19 @@
                                     }
                                 }
                             },
-                            "application/x-yaml": {
-
-                            },
                             "application/x-protobuf": {
-
+                                "examples": {
+                                    "Protobuf Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
                             },
                             "application/x-protobuffer": {
-
+                                "examples": {
+                                    "Protobuffer Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
                             }
                         },
                         "description": "The content of the artifact version."
@@ -801,14 +909,19 @@
                                     }
                                 }
                             },
-                            "application/x-yaml": {
-
-                            },
                             "application/x-protobuf": {
-
+                                "examples": {
+                                    "Protobuf Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
                             },
                             "application/x-protobuffer": {
-
+                                "examples": {
+                                    "Protobuffer Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
                             }
                         },
                         "description": "The most recent version of the artifact."
@@ -1151,6 +1264,105 @@
                     "required": true
                 }
             ]
+        },
+        "/ids/{globalId}": {
+            "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "OpenAPI Example": {
+                                        "value": {
+                                            "openapi": "3.0.2",
+                                            "info": {
+                                                "title": "Empty API",
+                                                "version": "1.0.0",
+                                                "description": "An example API design using OpenAPI."
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "application/x-protobuf": {
+                                "examples": {
+                                    "Protobuf Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
+                            },
+                            "application/x-protobuffer": {
+                                "examples": {
+                                    "Protobuffer Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The content of the artifact version."
+                    }
+                },
+                "operationId": "getArtifactByGlobalId",
+                "summary": "Get artifact by global ID",
+                "description": "Gets the content for an artifact version in the registry using its globally unique\nidentifier.\n\nThis operation may fail for one of the following reasons:\n\n* No artifact version with this `globalId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "globalId",
+                    "description": "Global identifier for an artifact version.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/ids/{globalId}/meta": {
+            "summary": "Access an artifact verison's metadata using its globally unique identifier.",
+            "get": {
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        },
+                        "description": "The artifact's metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactMetaDataByGlobalId",
+                "summary": "Get global artifact metadata",
+                "description": "Gets the metadata for an artifact version in the registry using its globally unique\nidentifier.  The returned metadata will include both generated (read-only) and editable\nmetadata (such as name and description).\n\nThis operation may fail for one of the following reasons:\n\n* No artifact version with this `globalId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "globalId",
+                    "description": "Global identifier for an artifact version.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         }
     },
     "components": {
@@ -1179,7 +1391,8 @@
                     "createdOn",
                     "createdBy",
                     "version",
-                    "type"
+                    "type",
+                    "globalId"
                 ],
                 "type": "object",
                 "properties": {
@@ -1203,6 +1416,11 @@
                     "type": {
                         "$ref": "#/components/schemas/ArtifactType",
                         "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
                     }
                 },
                 "example": {
@@ -1211,7 +1429,8 @@
                     "name": "Artifact Name",
                     "description": "The description of the artifact",
                     "createdBy": "user1",
-                    "createdOn": "2019-05-17T12:00:00Z"
+                    "createdOn": "2019-05-17T12:00:00Z",
+                    "globalId": 183282932983
                 }
             },
             "ArtifactMetaData": {
@@ -1224,7 +1443,8 @@
                     "modifiedBy",
                     "modifiedOn",
                     "version",
-                    "type"
+                    "type",
+                    "globalId"
                 ],
                 "type": "object",
                 "properties": {
@@ -1260,6 +1480,11 @@
                     "type": {
                         "$ref": "#/components/schemas/ArtifactType",
                         "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
                     }
                 },
                 "example": {
@@ -1271,7 +1496,8 @@
                     "createdBy": "user1",
                     "createdOn": "2019-03-22T12:51:19Z",
                     "modifiedBy": "user2",
-                    "modifiedOn": "2019-07-19T15:09:00Z"
+                    "modifiedOn": "2019-07-19T15:09:00Z",
+                    "globalId": 12984719247
                 }
             },
             "Rule": {
@@ -1299,12 +1525,12 @@
                 "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
                 "type": "object",
                 "properties": {
+                    "message": {
+                        "type": "string"
+                    },
                     "error_code": {
                         "format": "int32",
                         "type": "integer"
-                    },
-                    "message": {
-                        "type": "string"
                     }
                 },
                 "example": {

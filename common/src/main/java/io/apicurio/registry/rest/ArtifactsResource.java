@@ -6,8 +6,10 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-
 import java.io.InputStream;
+import java.lang.Integer;
+import java.lang.Long;
+import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import javax.ws.rs.Consumes;
@@ -19,7 +21,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 /**
@@ -42,32 +43,6 @@ public interface ArtifactsResource {
   ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId);
 
   /**
-   * Gets the metadata for an artifact that matches data content in the registry.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{artifactId}/meta")
-  @POST
-  @Produces("application/json")
-  ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId, InputStream data);
-
-  /**
-   * Gets the metadata for an artifact in the registry.  The returned metadata will include
-   * both generated (read-only) and editable metadata (such as name and description).
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `id` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @GET
-  @Produces("application/json")
-  ArtifactMetaData getArtifactMetaData(@QueryParam("id") long id);
-
-  /**
    * Updates the editable parts of the artifact's metadata.  Not all metadata fields can
    * be updated.  For example, `createdOn` and `createdBy` are both read-only properties.
    *
@@ -80,6 +55,25 @@ public interface ArtifactsResource {
   @PUT
   @Consumes("application/json")
   void updateArtifactMetaData(@PathParam("artifactId") String artifactId, EditableMetaData data);
+
+  /**
+   * Gets the metadata for an artifact that matches the raw content.  Searches the registry
+   * for a version of the given artifact matching the content provided in the body of the
+   * POST.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * No artifact version matching the provided content exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/meta")
+  @POST
+  @Produces("application/json")
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  VersionMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
+      InputStream data);
 
   /**
    * Returns information about a single rule configured for an artifact.  This is useful
@@ -151,7 +145,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   Response getArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
@@ -300,8 +294,8 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   CompletionStage<ArtifactMetaData> createArtifact(
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType artifactType,
-      @HeaderParam("X-Registry-ArtifactId") String artifactId, InputStream data);
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
@@ -316,7 +310,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**

@@ -74,8 +74,4 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         int start = buffer.position() + buffer.arrayOffset();
         return readData(schema, buffer, start, length);
     }
-
-    @Override
-    public void close() {
-    }
 }

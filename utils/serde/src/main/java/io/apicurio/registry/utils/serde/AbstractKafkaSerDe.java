@@ -64,4 +64,13 @@ public abstract class AbstractKafkaSerDe<T> {
     protected RegistryService getClient() {
         return client;
     }
+
+    public void close() {
+        if (client != null) {
+            try {
+                client.close();
+            } catch (Exception ignored) {
+            }
+        }
+    }
 }

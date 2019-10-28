@@ -17,11 +17,12 @@
 package io.apicurio.registry.client;
 
 import io.apicurio.registry.rest.ArtifactsResource;
+import io.apicurio.registry.rest.IdsResource;
 import io.apicurio.registry.rest.RulesResource;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
+public interface RegistryService extends ArtifactsResource, IdsResource, RulesResource, AutoCloseable {
     void reset();
 }

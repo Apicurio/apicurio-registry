@@ -16,6 +16,22 @@
 
 package io.apicurio.registry.rest;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -36,22 +52,8 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -106,7 +108,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
         String contentType = request.getHeader("Content-Type");
-        // TODO handle protobuf here as well - it's the only one that's not JSON
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
             String[] split = contentType.split(";");
             if (split.length > 1) {
@@ -122,68 +123,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
                 }
             }
         }
+        if (contentType != null && contentType.contains("x-proto")) {
+            return ArtifactType.PROTOBUF;
+        }
         return null;
-    }
-
-    /**
-     * Creates a jax-rs meta-data entity from the id, type, and storage meta-data.
-     *
-     * @param artifactId
-     * @param artifactType
-     * @param dto
-     */
-    private static ArtifactMetaData dtoToMetaData(String artifactId, ArtifactType artifactType,
-                                                  ArtifactMetaDataDto dto) {
-        ArtifactMetaData metaData = new ArtifactMetaData();
-        metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
-        metaData.setDescription(dto.getDescription());
-        metaData.setId(artifactId);
-        metaData.setModifiedBy(dto.getModifiedBy());
-        metaData.setModifiedOn(dto.getModifiedOn());
-        metaData.setName(dto.getName());
-        metaData.setType(artifactType);
-        metaData.setVersion(dto.getVersion());
-        metaData.setGlobalId(dto.getGlobalId());
-        return metaData;
-    }
-
-    /**
-     * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
-     *
-     * @param artifactId
-     * @param artifactType
-     * @param dto
-     */
-    private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
-                                                        ArtifactMetaDataDto dto) {
-        VersionMetaData metaData = new VersionMetaData();
-        metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
-        metaData.setDescription(dto.getDescription());
-        metaData.setName(dto.getName());
-        metaData.setType(artifactType);
-        metaData.setVersion(dto.getVersion());
-        return metaData;
-    }
-
-    /**
-     * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
-     *
-     * @param artifactId
-     * @param artifactType
-     * @param dto
-     */
-    private static VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
-                                                        ArtifactVersionMetaDataDto dto) {
-        VersionMetaData metaData = new VersionMetaData();
-        metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
-        metaData.setDescription(dto.getDescription());
-        metaData.setName(dto.getName());
-        metaData.setType(artifactType);
-        metaData.setVersion(dto.getVersion());
-        return metaData;
     }
 
     /**
@@ -203,7 +146,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.createArtifact(artifactId, artifactType, content);
         String finalArtifactId = artifactId;
-        return csDto.thenApply(dto -> dtoToMetaData(finalArtifactId, artifactType, dto));
+        return csDto.thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
     }
 
     /**
@@ -231,7 +174,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
-        return csDto.thenApply(dto -> dtoToMetaData(artifactId, artifactType, dto));
+        return csDto.thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -264,7 +207,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
-        return csDto.thenApply(dto -> dtoToVersionMetaData(artifactId, artifactType, dto));
+        return csDto.thenApply(dto -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -357,33 +300,17 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
-        return dtoToMetaData(artifactId, dto.getType(), dto);
+        return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
-
+    
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
+     */
     @Override
-    public ArtifactMetaData getArtifactMetaData(String artifactId, InputStream data) {
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         String content = IoUtil.toString(data);
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
-        return dtoToMetaData(artifactId, dto.getType(), dto);
-    }
-
-    @Override
-    public ArtifactMetaData getArtifactMetaData(long id) {
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(id);
-        return dtoToMetaData(dto.getId(), dto.getType(), dto);
-    }
-
-    @Override
-    public Response getArtifact(long id) {
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(id);
-        StoredArtifact artifact = storage.getArtifactVersion(id);
-
-        // protobuf - the content-type will be different for protobuf artifacts
-        MediaType contentType = ArtifactMediaTypes.JSON;
-        if (metaData.getType() == ArtifactType.PROTOBUF) {
-            contentType = ArtifactMediaTypes.PROTO;
-        }
-        return Response.ok(artifact.content, contentType).build();
+        return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -403,7 +330,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, version);
-        return dtoToVersionMetaData(artifactId, dto.getType(), dto);
+        return DtoUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**

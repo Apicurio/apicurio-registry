@@ -15,22 +15,22 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "code",
+    "error_code",
     "message"
 })
 public class Error {
 
-    @JsonProperty("code")
+    @JsonProperty("error_code")
     private Integer code;
     @JsonProperty("message")
     private String message;
 
-    @JsonProperty("code")
+    @JsonProperty("error_code")
     public Integer getCode() {
         return code;
     }
 
-    @JsonProperty("code")
+    @JsonProperty("error_code")
     public void setCode(Integer code) {
         this.code = code;
     }

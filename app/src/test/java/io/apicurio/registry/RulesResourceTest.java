@@ -61,7 +61,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .when().contentType(CT_JSON).body(rule).post("/rules")
             .then()
             .statusCode(409)
-            .body("code", equalTo(409))
+            .body("error_code", equalTo(409))
             .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         
         // Add another global rule
@@ -120,7 +120,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 //            .then()
 //            .statusCode(404)
 //            .contentType(ContentType.JSON)
-//            .body("code", equalTo(404))
+//            .body("error_code", equalTo(404))
 //            .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
 
         // Delete a rule
@@ -136,7 +136,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .then()
             .statusCode(404)
             .contentType(ContentType.JSON)
-            .body("code", equalTo(404))
+            .body("error_code", equalTo(404))
             .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
 
         // Get the list of rules (should be 1 of them)

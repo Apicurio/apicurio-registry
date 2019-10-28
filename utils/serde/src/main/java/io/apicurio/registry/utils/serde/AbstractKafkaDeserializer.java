@@ -29,6 +29,8 @@ import javax.ws.rs.core.Response;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T> implements Deserializer<U> {
+    public AbstractKafkaDeserializer() {
+    }
 
     public AbstractKafkaDeserializer(RegistryService client) {
         super(client);
@@ -36,6 +38,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
+        configure(configs);
     }
 
     private ByteBuffer getByteBuffer(byte[] payload) {

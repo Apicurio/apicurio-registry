@@ -22,7 +22,7 @@ import com.google.protobuf.Message;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.IdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,11 +32,14 @@ import java.io.UncheckedIOException;
  * @author Ales Justin
  */
 public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<byte[], U> {
+    public ProtobufKafkaSerializer() {
+    }
+
     public ProtobufKafkaSerializer(RegistryService client) {
         super(client);
     }
 
-    public ProtobufKafkaSerializer(RegistryService client, ArtifactIdStrategy<byte[]> artifactIdStrategy, IdStrategy<byte[]> idStrategy) {
+    public ProtobufKafkaSerializer(RegistryService client, ArtifactIdStrategy<byte[]> artifactIdStrategy, GlobalIdStrategy<byte[]> idStrategy) {
         super(client, artifactIdStrategy, idStrategy);
     }
 

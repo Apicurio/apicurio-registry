@@ -63,9 +63,24 @@ public interface ArtifactsResource {
    * * No artifact with this `id` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    */
+  @Path("/meta/byid")
   @GET
   @Produces("application/json")
   ArtifactMetaData getArtifactMetaData(@QueryParam("id") long id);
+
+  /**
+   * Returns the artifact by global id in its raw form.  The `Content-Type` of the
+   * response will depend on the artifact type.  In most cases, this will be `application/json`,
+   * but for some types it may be different (for example, `PROTOBUF`).
+   * <p>
+   * This operation may fail for one of the following reasons:
+   * <p>
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @GET
+  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
+  Response getArtifact(@QueryParam("id") long id);
 
   /**
    * Updates the editable parts of the artifact's metadata.  Not all metadata fields can

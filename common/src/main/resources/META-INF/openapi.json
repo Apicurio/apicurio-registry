@@ -1299,7 +1299,7 @@
                 "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
                 "type": "object",
                 "properties": {
-                    "code": {
+                    "error_code": {
                         "format": "int32",
                         "type": "integer"
                     },
@@ -1308,7 +1308,7 @@
                     }
                 },
                 "example": {
-                    "code": 12345,
+                    "error_code": 12345,
                     "message": "An error occurred somewhere."
                 }
             },

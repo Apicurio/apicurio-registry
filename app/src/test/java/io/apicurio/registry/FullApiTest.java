@@ -69,7 +69,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .post("/artifacts")
             .then()
                 .statusCode(400)
-                .body("code", equalTo(400))
+                .body("error_code", equalTo(400))
                 .body("message", equalTo("Syntax violation for OpenAPI artifact."));
 
     }
@@ -104,7 +104,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .post("/artifacts")
             .then()
                 .statusCode(400)
-                .body("code", equalTo(400))
+                .body("error_code", equalTo(400))
                 .body("message", equalTo("Syntax violation for Protobuf artifact."));
 
     }

@@ -102,7 +102,7 @@ class CachedRegistryService implements RegistryService {
 
     @Override
     public ArtifactMetaData getArtifactMetaData(long id) {
-        return globalAMD.computeIfAbsent(id, delegate::getArtifactMetaData);
+        return globalAMD.computeIfAbsent(id, getDelegate()::getArtifactMetaData);
     }
 
     @Override
@@ -165,6 +165,11 @@ class CachedRegistryService implements RegistryService {
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
         return getDelegate().getArtifactVersion(version, artifactId);
+    }
+
+    @Override
+    public Response getArtifact(long id) {
+        return getDelegate().getArtifact(id);
     }
 
     // ---- Auto reset

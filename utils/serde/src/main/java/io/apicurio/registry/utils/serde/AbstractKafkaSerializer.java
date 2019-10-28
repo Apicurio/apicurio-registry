@@ -36,8 +36,8 @@ import java.util.function.Consumer;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T> implements Serializer<U> {
-    public static final String REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id.class";
-    public static final String REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id.class";
+    public static final String REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
+    public static final String REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
 
     private ArtifactIdStrategy<T> artifactIdStrategy;
     private GlobalIdStrategy<T> globalIdStrategy;
@@ -45,6 +45,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
     private boolean key; // do we handle key or value with this ser/de?
 
     public AbstractKafkaSerializer() {
+        this(null);
     }
 
     public AbstractKafkaSerializer(RegistryService client) {

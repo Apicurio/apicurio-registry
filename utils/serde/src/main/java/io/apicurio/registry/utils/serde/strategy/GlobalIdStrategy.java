@@ -23,13 +23,13 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 /**
- * A {@link IdStrategy} is used by the Kafka serializer/deserializer
+ * A {@link GlobalIdStrategy} is used by the Kafka serializer/deserializer
  * to find global id for given schema in the registry.
  * The default is {@link FindBySchemaIdStrategy}.
  *
  * @author Ales Justin
  */
-public interface IdStrategy<T> {
+public interface GlobalIdStrategy<T> {
     /**
      * For a given topic and message, returns the artifact id under which the
      * schema should be registered in the registry.

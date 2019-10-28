@@ -150,8 +150,4 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
             throw new UncheckedIOException(e);
         }
     }
-
-    @Override
-    public void close() {
-    }
 }

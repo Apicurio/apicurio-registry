@@ -20,7 +20,7 @@ import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.IdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -30,15 +30,22 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T> implements Serializer<U> {
+    public static final String REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id.class";
+    public static final String REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id.class";
+
     private ArtifactIdStrategy<T> artifactIdStrategy;
-    private IdStrategy<T> idStrategy;
+    private GlobalIdStrategy<T> globalIdStrategy;
 
     private boolean key; // do we handle key or value with this ser/de?
+
+    public AbstractKafkaSerializer() {
+    }
 
     public AbstractKafkaSerializer(RegistryService client) {
         this(client, new TopicIdStrategy<>(), new FindBySchemaIdStrategy<>());
@@ -47,11 +54,11 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
     public AbstractKafkaSerializer(
         RegistryService client,
         ArtifactIdStrategy<T> artifactIdStrategy,
-        IdStrategy<T> idStrategy
+        GlobalIdStrategy<T> globalIdStrategy
     ) {
         super(client);
         setArtifactIdStrategy(artifactIdStrategy);
-        setIdStrategy(idStrategy);
+        setGlobalIdStrategy(globalIdStrategy);
     }
 
     public AbstractKafkaSerializer<T, U> setKey(boolean key) {
@@ -64,14 +71,57 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         return this;
     }
 
-    public AbstractKafkaSerializer<T, U> setIdStrategy(IdStrategy<T> idStrategy) {
-        this.idStrategy = Objects.requireNonNull(idStrategy);
+    public AbstractKafkaSerializer<T, U> setGlobalIdStrategy(GlobalIdStrategy<T> globalIdStrategy) {
+        this.globalIdStrategy = Objects.requireNonNull(globalIdStrategy);
         return this;
     }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
+        configure(configs);
+
+        Object ais = configs.get(REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM);
+        instantiate(ArtifactIdStrategy.class, ais, this::setArtifactIdStrategy);
+
+        Object gis = configs.get(REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
+        instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
+
         key = isKey;
+    }
+
+    private <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
+        if (value != null) {
+            if (type.isInstance(value)) {
+                setter.accept(type.cast(value));
+            } else if (value instanceof Class && type.isAssignableFrom((Class<?>) value)) {
+                //noinspection unchecked
+                setter.accept(instantiate((Class<V>) value));
+            } else if (value instanceof String) {
+                Class<V> clazz = loadClass(type, (String) value);
+                setter.accept(instantiate(clazz));
+            } else {
+                throw new IllegalArgumentException(String.format("Cannot handle configuration [%s]: %s", key, value));
+            }
+        }
+    }
+
+    // can we overridden if needed; e.g. to use different classloader
+
+    protected <V> Class<V> loadClass(Class<V> type, String className) {
+        try {
+            //noinspection unchecked
+            return (Class<V>) type.getClassLoader().loadClass(className);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    protected <V> V instantiate(Class<V> clazz) {
+        try {
+            return clazz.newInstance();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     protected abstract T toSchema(U data);
@@ -89,7 +139,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         try {
             T schema = toSchema(data);
             String artifactId = artifactIdStrategy.artifactId(topic, key, schema);
-            long id = idStrategy.findId(getClient(), artifactId, artifactType(), schema);
+            long id = globalIdStrategy.findId(getClient(), artifactId, artifactType(), schema);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             out.write(MAGIC_BYTE);
             out.write(ByteBuffer.allocate(idSize).putLong(id).array());

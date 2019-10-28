@@ -29,7 +29,7 @@ import javax.ws.rs.core.Response;
 /**
  * @author Ales Justin
  */
-public class AutoRegisterIdStrategy<T> implements IdStrategy<T> {
+public class AutoRegisterIdStrategy<T> implements GlobalIdStrategy<T> {
 
     private <R> R unwrap(CompletionStage<R> cs) {
         return ConcurrentUtil.result(cs);

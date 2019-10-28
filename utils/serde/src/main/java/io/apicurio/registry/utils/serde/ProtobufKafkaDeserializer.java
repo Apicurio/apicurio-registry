@@ -29,6 +29,9 @@ import javax.ws.rs.core.Response;
  * @author Ales Justin
  */
 public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[], DynamicMessage> {
+    public ProtobufKafkaDeserializer() {
+    }
+
     public ProtobufKafkaDeserializer(RegistryService client) {
         super(client);
     }
@@ -37,6 +40,8 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
     protected byte[] toSchema(Response response) {
         return response.readEntity(byte[].class);
     }
+
+    // TODO -- work-in-progress, do not use yet !!!
 
     @Override
     protected DynamicMessage readData(byte[] schema, ByteBuffer buffer, int start, int length) {

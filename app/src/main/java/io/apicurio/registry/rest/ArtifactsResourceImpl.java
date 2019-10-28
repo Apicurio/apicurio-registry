@@ -370,9 +370,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
     @Override
     public ArtifactMetaData getArtifactMetaData(long id) {
-        if (id <= 0) {
-            throw new IllegalArgumentException("Non-positive id: " + id);
-        }
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(id);
         return dtoToMetaData(dto.getId(), dto.getType(), dto);
     }

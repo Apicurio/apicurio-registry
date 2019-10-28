@@ -19,7 +19,7 @@ package io.apicurio.registry.utils.serde;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.IdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.BinaryEncoder;
@@ -28,10 +28,8 @@ import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * @author Ales Justin
@@ -39,11 +37,14 @@ import java.io.InputStream;
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     private final EncoderFactory encoderFactory = EncoderFactory.get();
 
+    public AvroKafkaSerializer() {
+    }
+
     public AvroKafkaSerializer(RegistryService client) {
         super(client);
     }
 
-    public AvroKafkaSerializer(RegistryService client, ArtifactIdStrategy<Schema> artifactIdStrategy, IdStrategy<Schema> idStrategy) {
+    public AvroKafkaSerializer(RegistryService client, ArtifactIdStrategy<Schema> artifactIdStrategy, GlobalIdStrategy<Schema> idStrategy) {
         super(client, artifactIdStrategy, idStrategy);
     }
 

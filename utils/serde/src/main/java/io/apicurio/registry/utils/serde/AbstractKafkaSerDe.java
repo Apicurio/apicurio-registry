@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.utils.serde;
 
+import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+
+import java.util.Map;
 
 /**
  * Common class for both serializer and deserializer.
@@ -24,15 +27,38 @@ import io.apicurio.registry.client.RegistryService;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerDe<T> {
-    public static final String AUTO_REGISTER_SCHEMA_CONFIG_PARAM = "apicurio.kafka.serde.autoRegisterSchema";
+    public static final String REGISTER_URL_CONFIG_PARAM = "apicurio.registry.url";
+    public static final String REGISTER_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
 
     protected static final byte MAGIC_BYTE = 0x0;
     protected static final int idSize = 8;
 
-    private final RegistryService client;
+    private RegistryService client;
+
+    public AbstractKafkaSerDe() {
+    }
 
     public AbstractKafkaSerDe(RegistryService client) {
         this.client = client;
+    }
+
+    protected void configure(Map<String, ?> configs) {
+        if (client == null) {
+            String baseUrl = (String) configs.get(REGISTER_URL_CONFIG_PARAM);
+            if (baseUrl == null) {
+                throw new IllegalArgumentException("Missing registry base url, set " + REGISTER_URL_CONFIG_PARAM);
+            }
+            try {
+                String cached = (String) configs.get(REGISTER_CACHED_CONFIG_PARAM);
+                if (Boolean.parseBoolean(cached)) {
+                    client = RegistryClient.cached(baseUrl);
+                } else {
+                    client = RegistryClient.create(baseUrl);
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     protected RegistryService getClient() {

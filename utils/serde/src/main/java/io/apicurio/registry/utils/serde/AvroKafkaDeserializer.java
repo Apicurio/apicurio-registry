@@ -34,6 +34,9 @@ import javax.ws.rs.core.Response;
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
 
+    public AvroKafkaDeserializer() {
+    }
+
     public AvroKafkaDeserializer(RegistryService client) {
         super(client);
     }

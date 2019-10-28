@@ -86,10 +86,14 @@ public class ArtifactMetaData {
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
-
+    /**
+     * 
+     * (Required)
+     * 
+     */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private long globalId;
+    private Integer globalId;
 
     @JsonProperty("name")
     public String getName() {
@@ -251,13 +255,24 @@ public class ArtifactMetaData {
         this.type = type;
     }
 
+    /**
+     * 
+     * (Required)
+     * 
+     */
     @JsonProperty("globalId")
-    public long getGlobalId() {
+    public Integer getGlobalId() {
         return globalId;
     }
 
+    /**
+     * 
+     * (Required)
+     * 
+     */
     @JsonProperty("globalId")
-    public void setGlobalId(long globalId) {
+    public void setGlobalId(Integer globalId) {
         this.globalId = globalId;
     }
+
 }

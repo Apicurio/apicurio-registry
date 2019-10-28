@@ -15,25 +15,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "error_code",
-    "message"
+    "message",
+    "error_code"
 })
 public class Error {
 
-    @JsonProperty("error_code")
-    private Integer code;
     @JsonProperty("message")
     private String message;
-
     @JsonProperty("error_code")
-    public Integer getCode() {
-        return code;
-    }
-
-    @JsonProperty("error_code")
-    public void setCode(Integer code) {
-        this.code = code;
-    }
+    private Integer errorCode;
 
     @JsonProperty("message")
     public String getMessage() {
@@ -43,6 +33,16 @@ public class Error {
     @JsonProperty("message")
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    @JsonProperty("error_code")
+    public Integer getErrorCode() {
+        return errorCode;
+    }
+
+    @JsonProperty("error_code")
+    public void setErrorCode(Integer errorCode) {
+        this.errorCode = errorCode;
     }
 
 }

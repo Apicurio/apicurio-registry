@@ -82,6 +82,11 @@
             <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-serde</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
+package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.RulesResource;
+import org.apache.avro.Schema;
+import org.apache.kafka.common.errors.SerializationException;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
-    void reset();
+public class RecordIdStrategy implements ArtifactIdStrategy<Schema> {
+    @Override
+    public String artifactId(String topic, boolean isKey, Schema schema) {
+        if (schema != null && schema.getType() == Schema.Type.RECORD) {
+            return schema.getFullName();
+        }
+        throw new SerializationException("The message key must only be an Avro record schema!");
+    }
 }

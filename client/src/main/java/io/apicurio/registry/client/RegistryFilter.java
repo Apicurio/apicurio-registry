@@ -34,7 +34,6 @@ public class RegistryFilter implements ClientRequestFilter, ClientResponseFilter
 
     @Override // request filter
     public void filter(ClientRequestContext context) {
-        log.warning(context.getUri().toString());
     }
 
     @Override

@@ -17,6 +17,7 @@
 package io.apicurio.registry.client;
 
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.jboss.resteasy.microprofile.client.ExceptionMapping;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -26,8 +27,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 /**
  * @author Ales Justin
@@ -44,6 +48,30 @@ public class RegistryClient {
             new Class[]{RegistryService.class},
             new ServiceProxy(new URI(baseUrl))
         );
+    }
+
+    public static RegistryService cached(String baseUrl) throws Exception {
+        return cached(create(baseUrl));
+    }
+
+    public static RegistryService cached(RegistryService delegate) {
+        return new CachedRegistryService(delegate);
+    }
+
+    // RestEasy wraps CompletionStage exceptions in some weird HandlerException
+    private static Throwable unwrap(Method method, Throwable t) {
+        if (t instanceof CompletionException) {
+            t = t.getCause();
+        }
+        if (t instanceof ExceptionMapping.HandlerException) {
+            ExceptionMapping.HandlerException he = (ExceptionMapping.HandlerException) t;
+            try {
+                he.mapException(method);
+            } catch (Exception e) {
+                return e;
+            }
+        }
+        return t;
     }
 
     private static class ServiceProxy implements InvocationHandler {
@@ -63,16 +91,20 @@ public class RegistryClient {
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             try {
                 String methodName = method.getName();
-                if ((args == null || args.length == 0) && "close".equals(methodName)) {
-                    if (closed.compareAndSet(false, true)) {
-                        targets.values().forEach(o -> {
-                            try {
-                                ((Closeable) o).close();
-                            } catch (IOException ignore) {
-                            }
-                        });
+                if ((args == null || args.length == 0)) {
+                    if ("close".equals(methodName)) {
+                        if (closed.compareAndSet(false, true)) {
+                            targets.values().forEach(o -> {
+                                try {
+                                    ((Closeable) o).close();
+                                } catch (IOException ignore) {
+                                }
+                            });
+                        }
+                    } else if ("reset".equals(methodName)) {
+                        // do nothing
                     }
-                    return null; // close() is void
+                    return null; // close/reset are void
                 }
 
                 if (closed.get()) {
@@ -84,9 +116,17 @@ public class RegistryClient {
                                                                                              .baseUri(baseUri)
                                                                                              .register(filter)
                                                                                              .build(targetClass));
-                return method.invoke(target, args);
+                Object result = method.invoke(target, args);
+                if (result instanceof CompletionStage) {
+                    CompletionStage cs = (CompletionStage) result;
+                    //noinspection unchecked
+                    return cs.exceptionally((Function<Throwable, Object>) t -> {
+                        throw new CompletionException(unwrap(method, t));
+                    });
+                }
+                return result;
             } catch (InvocationTargetException e) {
-                throw e.getCause(); // unwrap
+                throw unwrap(method, e.getCause()); // unwrap
             }
         }
     }

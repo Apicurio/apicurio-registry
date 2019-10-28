@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
-
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.RulesResource;
+package io.apicurio.registry.utils.serde.strategy;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
-    void reset();
+public class TopicIdStrategy<T> implements ArtifactIdStrategy<T> {
+    @Override
+    public String artifactId(String topic, boolean isKey, T schema) {
+        return String.format("%s-%s", topic, isKey ? "key" : "value");
+    }
 }

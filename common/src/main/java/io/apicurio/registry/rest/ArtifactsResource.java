@@ -6,10 +6,8 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.Long;
-import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import javax.ws.rs.Consumes;
@@ -21,6 +19,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 /**
@@ -41,6 +40,32 @@ public interface ArtifactsResource {
   @GET
   @Produces("application/json")
   ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId);
+
+  /**
+   * Gets the metadata for an artifact that matches data content in the registry.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/meta")
+  @POST
+  @Produces("application/json")
+  ArtifactMetaData getArtifactMetaData(@PathParam("artifactId") String artifactId, InputStream data);
+
+  /**
+   * Gets the metadata for an artifact in the registry.  The returned metadata will include
+   * both generated (read-only) and editable metadata (such as name and description).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `id` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @GET
+  @Produces("application/json")
+  ArtifactMetaData getArtifactMetaData(@QueryParam("id") long id);
 
   /**
    * Updates the editable parts of the artifact's metadata.  Not all metadata fields can
@@ -275,8 +300,8 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   CompletionStage<ArtifactMetaData> createArtifact(
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType artifactType,
+      @HeaderParam("X-Registry-ArtifactId") String artifactId, InputStream data);
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the

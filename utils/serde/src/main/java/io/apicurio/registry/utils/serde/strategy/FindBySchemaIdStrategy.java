@@ -26,7 +26,7 @@ import io.apicurio.registry.types.ArtifactType;
 public class FindBySchemaIdStrategy<T> implements GlobalIdStrategy<T> {
     @Override
     public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
-        ArtifactMetaData amd = service.getArtifactMetaData(artifactId, toStream(schema));
+        ArtifactMetaData amd = service.getArtifactMetaDataByContent(artifactId, toStream(schema));
         return amd.getGlobalId();
     }
 }

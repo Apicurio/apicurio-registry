@@ -16,8 +16,24 @@
 
 package io.apicurio.registry;
 
+import java.io.ByteArrayInputStream;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletionStage;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -36,20 +52,6 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
@@ -66,7 +68,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
             GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
             Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
-            Assertions.assertNotNull(service.getArtifactMetaData(amd.getGlobalId()));
+            Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         }
     }
 
@@ -83,7 +85,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         );
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaData(amd.getGlobalId()));
+        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
@@ -139,7 +141,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 ByteBuffer buffer = ByteBuffer.wrap(bytes);
                 buffer.get(); // magic byte
                 long id = buffer.getLong(); // id
-                ArtifactMetaData amd = retry(() -> service.getArtifactMetaData(id));
+                ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
                 Assertions.assertNotNull(amd); // wait for global id to populate
 
                 GenericData.Record ir = deserializer.deserialize("foo", bytes);

@@ -1,15 +1,13 @@
 package io.apicurio.registry.metrics;
 
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
 
 /**
  * Fail liveness check if the number of exceptions thrown by storage is too high.
@@ -21,7 +19,7 @@ import javax.enterprise.inject.Default;
 @Default
 public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck {
 
-    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessCheck.class);
+//    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessCheck.class);
 
     /**
      * Maximum number of exceptions raised by storage implementation,

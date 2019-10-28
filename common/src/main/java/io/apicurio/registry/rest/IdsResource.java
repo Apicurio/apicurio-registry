@@ -1,11 +1,12 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.beans.VersionMetaData;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -41,5 +42,5 @@ public interface IdsResource {
   @Path("/{globalId}/meta")
   @GET
   @Produces("application/json")
-  VersionMetaData getArtifactMetaDataByGlobalId(@PathParam("globalId") long globalId);
+  ArtifactMetaData getArtifactMetaDataByGlobalId(@PathParam("globalId") long globalId);
 }

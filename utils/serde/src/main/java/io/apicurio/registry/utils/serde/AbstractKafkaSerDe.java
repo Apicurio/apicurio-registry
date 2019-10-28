@@ -14,14 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
+package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.RulesResource;
+import io.apicurio.registry.client.RegistryService;
 
 /**
+ * Common class for both serializer and deserializer.
+ *
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
-    void reset();
+public abstract class AbstractKafkaSerDe<T> {
+    public static final String AUTO_REGISTER_SCHEMA_CONFIG_PARAM = "apicurio.kafka.serde.autoRegisterSchema";
+
+    protected static final byte MAGIC_BYTE = 0x0;
+    protected static final int idSize = 8;
+
+    private final RegistryService client;
+
+    public AbstractKafkaSerDe(RegistryService client) {
+        this.client = client;
+    }
+
+    protected RegistryService getClient() {
+        return client;
+    }
 }

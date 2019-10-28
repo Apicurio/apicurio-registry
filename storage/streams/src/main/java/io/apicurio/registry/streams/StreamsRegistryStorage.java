@@ -229,6 +229,31 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            for (int i = data.getArtifactsCount() - 1; i >= 0; i--){
+                Str.ArtifactValue artifact = data.getArtifacts(i);
+                if (isValid(artifact)) {
+                    if (content.equals(artifact.getContent().toStringUtf8())) {
+                        return MetaDataKeys.toArtifactMetaData(artifact.getMetadataMap());
+                    }
+                }
+            }
+        }
+        throw new ArtifactNotFoundException(artifactId);
+    }
+
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        Str.TupleValue tuple = globalIdStore.get(id);
+        if (tuple == null) {
+            throw new ArtifactNotFoundException("GlobalId: " + id);
+        }
+        return handleVersion(tuple.getArtifactId(), tuple.getVersion(), value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
+    }
+
+    @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {

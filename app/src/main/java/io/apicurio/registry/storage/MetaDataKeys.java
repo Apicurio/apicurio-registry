@@ -81,4 +81,8 @@ public class MetaDataKeys {
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         return dto;
     }
+
+    public static String toContent(Map<String, String> cMap) {
+        return cMap.get(CONTENT);
+    }
 }

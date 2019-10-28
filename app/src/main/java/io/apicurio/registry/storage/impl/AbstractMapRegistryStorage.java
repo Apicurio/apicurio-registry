@@ -261,6 +261,26 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return MetaDataKeys.toArtifactMetaData(content);
     }
 
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+        Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);
+        for (Map<String, String> cMap : map.values()) {
+            if (content.equals(MetaDataKeys.toContent(cMap))) {
+                return MetaDataKeys.toArtifactMetaData(cMap);
+            }
+        }
+        throw new ArtifactNotFoundException(artifactId);
+    }
+
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        Map<String, String> content = global.get(id);
+        if (content == null) {
+            throw new ArtifactNotFoundException("Global id: " + id);
+        }
+        return MetaDataKeys.toArtifactMetaData(content);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
      */

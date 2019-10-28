@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
+package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.RulesResource;
+import org.apache.avro.Schema;
+import org.apache.kafka.common.errors.SerializationException;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, RulesResource, AutoCloseable {
-    void reset();
+public class TopicRecordIdStrategy extends RecordIdStrategy {
+    @Override
+    public String artifactId(String topic, boolean isKey, Schema schema) {
+        return topic + "-" + super.artifactId(topic, isKey, schema);
+    }
 }

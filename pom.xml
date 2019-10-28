@@ -76,6 +76,7 @@
 		<module>common</module>
 		<module>app</module>
 		<module>client</module>
+		<module>utils/serde</module>
 		<module>distro</module>
 		<module>tests</module>
 		<module>docs</module>
@@ -157,6 +158,11 @@
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-utils-kafka</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-utils-serde</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

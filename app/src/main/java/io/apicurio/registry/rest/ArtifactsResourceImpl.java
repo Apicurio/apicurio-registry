@@ -16,6 +16,22 @@
 
 package io.apicurio.registry.rest;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import io.apicurio.registry.ArtifactIdGenerator;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -36,24 +52,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -77,20 +76,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
 
     @Context
     HttpServletRequest request;
-
-    private static final String toString(InputStream stream) {
-        try {
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = stream.read(buffer)) != -1) {
-                result.write(buffer, 0, length);
-            }
-            return result.toString(StandardCharsets.UTF_8.name());
-        } catch (Exception e) {
-            throw new InternalServerErrorException(e.getMessage());
-        }
-    }
 
     /**
      * Figures out the artifact type in the following order of precedent:
@@ -160,6 +145,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
+        metaData.setGlobalId(dto.getGlobalId());
         return metaData;
     }
 
@@ -211,9 +197,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (artifactId == null || artifactId.trim().isEmpty()) {
             artifactId = idGenerator.generate();
         }
-        String content = toString(data);
+        String content = IoUtil.toString(data);
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.createArtifact(artifactId, artifactType, content);
         String finalArtifactId = artifactId;
@@ -240,8 +227,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
-        String content = toString(data);
+        String content = IoUtil.toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
         return csDto.thenApply(dto -> dtoToMetaData(artifactId, artifactType, dto));
@@ -272,8 +260,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
-        String content = toString(data);
+        String content = IoUtil.toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
         return csDto.thenApply(dto -> dtoToVersionMetaData(artifactId, artifactType, dto));
@@ -292,8 +281,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
         }
-        Response response = Response.ok(artifact.content, contentType).build();
-        return response;
+        return Response.ok(artifact.content, contentType).build();
     }
 
     /**
@@ -371,6 +359,22 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
         return dtoToMetaData(artifactId, dto.getType(), dto);
+    }
+
+    @Override
+    public ArtifactMetaData getArtifactMetaData(String artifactId, InputStream data) {
+        String content = IoUtil.toString(data);
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
+        return dtoToMetaData(artifactId, dto.getType(), dto);
+    }
+
+    @Override
+    public ArtifactMetaData getArtifactMetaData(long id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Non-positive id: " + id);
+        }
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(id);
+        return dtoToMetaData(dto.getId(), dto.getType(), dto);
     }
 
     /**

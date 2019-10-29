@@ -16,24 +16,8 @@
 
 package io.apicurio.registry;
 
-import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletionStage;
-
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -52,6 +36,20 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
@@ -92,9 +90,9 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaSerDe.REGISTER_URL_CONFIG_PARAM, "http://localhost:8081");
-        config.put(AbstractKafkaSerializer.REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
-        config.put(AbstractKafkaSerializer.REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM, new FindLatestIdStrategy<>());
+        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081");
+        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
+        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, new FindLatestIdStrategy<>());
         Serializer<GenericData.Record> serializer = (Serializer<GenericData.Record>) getClass().getClassLoader()
                                                                                                .loadClass(AvroKafkaSerializer.class.getName())
                                                                                                .newInstance();
@@ -109,15 +107,15 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record = deserializer.deserialize("test", bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(AbstractKafkaSerializer.REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class);
-        config.put(AbstractKafkaSerializer.REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class);
+        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class);
+        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class);
         serializer.configure(config, true);
         bytes = serializer.serialize("test", record);
         record = deserializer.deserialize("test", bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(AbstractKafkaSerializer.REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class.getName());
-        config.put(AbstractKafkaSerializer.REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName());
+        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class.getName());
+        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName());
         serializer.configure(config, true);
         bytes = serializer.serialize("test", record);
         record = deserializer.deserialize("test", bytes);

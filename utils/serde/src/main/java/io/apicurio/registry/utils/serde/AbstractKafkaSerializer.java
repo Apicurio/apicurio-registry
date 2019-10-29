@@ -36,8 +36,8 @@ import java.util.function.Consumer;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T> implements Serializer<U> {
-    public static final String REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
-    public static final String REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
+    public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
+    public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
 
     private ArtifactIdStrategy<T> artifactIdStrategy;
     private GlobalIdStrategy<T> globalIdStrategy;
@@ -81,10 +81,10 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
     public void configure(Map<String, ?> configs, boolean isKey) {
         configure(configs);
 
-        Object ais = configs.get(REGISTER_ARTIFACT_ID_STRATEGY_CONFIG_PARAM);
+        Object ais = configs.get(REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM);
         instantiate(ArtifactIdStrategy.class, ais, this::setArtifactIdStrategy);
 
-        Object gis = configs.get(REGISTER_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
+        Object gis = configs.get(REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
 
         key = isKey;
@@ -106,7 +106,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         }
     }
 
-    // can we overridden if needed; e.g. to use different classloader
+    // can be overridden if needed; e.g. to use different classloader
 
     protected <V> Class<V> loadClass(Class<V> type, String className) {
         try {
@@ -116,6 +116,8 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
             throw new IllegalArgumentException(e);
         }
     }
+
+    // can be overridden if needed; e.g. to use different instantiation mechanism
 
     protected <V> V instantiate(Class<V> clazz) {
         try {

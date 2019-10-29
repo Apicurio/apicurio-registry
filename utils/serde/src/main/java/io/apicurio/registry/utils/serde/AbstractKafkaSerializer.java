@@ -26,6 +26,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -131,7 +132,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
 
     protected abstract ArtifactType artifactType();
 
-    protected abstract void serializeData(T schema, U data, ByteArrayOutputStream out) throws IOException;
+    protected abstract void serializeData(T schema, U data, OutputStream out) throws IOException;
 
     @Override
     public byte[] serialize(String topic, U data) {

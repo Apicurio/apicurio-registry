@@ -27,8 +27,8 @@ import java.util.Map;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerDe<T> {
-    public static final String REGISTER_URL_CONFIG_PARAM = "apicurio.registry.url";
-    public static final String REGISTER_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
+    public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
+    public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
 
     protected static final byte MAGIC_BYTE = 0x0;
     protected static final int idSize = 8;
@@ -44,12 +44,12 @@ public abstract class AbstractKafkaSerDe<T> {
 
     protected void configure(Map<String, ?> configs) {
         if (client == null) {
-            String baseUrl = (String) configs.get(REGISTER_URL_CONFIG_PARAM);
+            String baseUrl = (String) configs.get(REGISTRY_URL_CONFIG_PARAM);
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + REGISTER_URL_CONFIG_PARAM);
+                throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
             }
             try {
-                String cached = (String) configs.get(REGISTER_CACHED_CONFIG_PARAM);
+                String cached = (String) configs.get(REGISTRY_CACHED_CONFIG_PARAM);
                 if (Boolean.parseBoolean(cached)) {
                     client = RegistryClient.cached(baseUrl);
                 } else {
@@ -63,6 +63,12 @@ public abstract class AbstractKafkaSerDe<T> {
 
     protected RegistryService getClient() {
         return client;
+    }
+
+    public void reset() {
+        if (client != null) {
+            client.reset();
+        }
     }
 
     public void close() {

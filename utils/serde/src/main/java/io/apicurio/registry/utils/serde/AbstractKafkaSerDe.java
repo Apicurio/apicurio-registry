@@ -49,8 +49,8 @@ public abstract class AbstractKafkaSerDe<T> {
                 throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
             }
             try {
-                String cached = (String) configs.get(REGISTRY_CACHED_CONFIG_PARAM);
-                if (Boolean.parseBoolean(cached)) {
+                Object cached = configs.get(REGISTRY_CACHED_CONFIG_PARAM);
+                if (isTrue(cached)) {
                     client = RegistryClient.cached(baseUrl);
                 } else {
                     client = RegistryClient.create(baseUrl);
@@ -59,6 +59,19 @@ public abstract class AbstractKafkaSerDe<T> {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    protected static boolean isTrue(Object cached) {
+        if (cached == null) {
+            return false;
+        }
+        if (cached instanceof Boolean) {
+            return (Boolean) cached;
+        }
+        if (cached instanceof String) {
+            return Boolean.parseBoolean((String) cached);
+        }
+        return false;
     }
 
     protected RegistryService getClient() {

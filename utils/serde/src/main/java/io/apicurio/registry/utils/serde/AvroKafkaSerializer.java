@@ -28,8 +28,8 @@ import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * @author Ales Justin
@@ -59,7 +59,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     }
 
     @Override
-    protected void serializeData(Schema schema, U data, ByteArrayOutputStream out) throws IOException {
+    protected void serializeData(Schema schema, U data, OutputStream out) throws IOException {
         BinaryEncoder encoder = encoderFactory.directBinaryEncoder(out, null);
         DatumWriter<Object> writer;
         if (data instanceof SpecificRecord) {

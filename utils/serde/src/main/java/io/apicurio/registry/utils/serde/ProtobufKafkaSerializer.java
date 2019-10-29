@@ -26,6 +26,7 @@ import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 /**
@@ -62,7 +63,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     }
 
     @Override
-    protected void serializeData(byte[] schema, U data, ByteArrayOutputStream out) throws IOException {
+    protected void serializeData(byte[] schema, U data, OutputStream out) throws IOException {
         data.writeTo(out);
     }
 }

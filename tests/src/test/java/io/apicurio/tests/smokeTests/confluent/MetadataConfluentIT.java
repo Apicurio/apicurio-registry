@@ -20,15 +20,18 @@ import io.apicurio.tests.BaseIT;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.avro.Schema;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+@Tag(SMOKE)
 public class MetadataConfluentIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);

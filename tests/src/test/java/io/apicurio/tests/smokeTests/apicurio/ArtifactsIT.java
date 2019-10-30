@@ -23,6 +23,7 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
@@ -33,11 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 
+@Tag(SMOKE)
 class ArtifactsIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);

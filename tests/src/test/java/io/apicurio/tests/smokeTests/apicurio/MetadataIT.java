@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +32,13 @@ import java.io.ByteArrayInputStream;
 import java.util.Date;
 import java.util.concurrent.CompletionStage;
 
+import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
+@Tag(SMOKE)
 class MetadataIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);

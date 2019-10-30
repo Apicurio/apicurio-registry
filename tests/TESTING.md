@@ -11,16 +11,16 @@
 ## Before test execution
 Before your first run, you have to build native image of apicurio-registry-app. For build you can use the following command:
 
-```./mvnw clean package -Pnative```
+```./mvnw clean install```
 
 ## Run tests
 For run all tests in `tests` package you can use the following command:
 
-```./mvnw verify -Ptests -pl tests -Dmaven.javadoc.skip=true```
+```./mvnw verify -pl tests -Pall -Dmaven.javadoc.skip=true```
 
 If you want to run only specific tests, you can specify it by `-Dit.test` maven option.
 
 When you want to execute tests from InteliJ you need to specify native-image path to your configuration
-
+-
 ```edit configuration -> template -> junit -> VMoptions (append with path to your native image)```
 

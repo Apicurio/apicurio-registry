@@ -29,6 +29,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +60,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-//        kafkaCluster.start();
-
         if (!RegistryFacade.REGISTRY_URL.equals(RegistryFacade.DEFAULT_REGISTRY_URL) || RegistryFacade.EXTERNAL_REGISTRY.equals("")) {
             registries.start();
         } else {
@@ -76,9 +75,9 @@ public abstract class BaseIT implements TestSeparator, Constants {
     }
 
     @AfterAll
-    static void afterAll(TestInfo info) {
-//        kafkaCluster.stop();
+    static void afterAll(TestInfo info) throws InterruptedException {
         registries.stop();
+        Thread.sleep(3000);
         storeRegistryLog(info.getTestClass().get().getCanonicalName());
     }
 

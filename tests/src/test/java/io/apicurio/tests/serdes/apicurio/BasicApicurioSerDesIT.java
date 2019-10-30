@@ -21,6 +21,7 @@ import io.apicurio.tests.serdes.KafkaClients;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
@@ -30,8 +31,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static io.apicurio.tests.Constants.CLUSTER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicApicurioSerDesIT.class);
 

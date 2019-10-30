@@ -30,7 +30,7 @@ jobs:
           command: ./mvnw clean install -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests
       - run:
           name: Verify (Standard)
-          command: ./mvnw -Pjpa test
+          command: ./mvnw -Pjpa test package
       - run:
           name: Run QE Tests
           command: ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true

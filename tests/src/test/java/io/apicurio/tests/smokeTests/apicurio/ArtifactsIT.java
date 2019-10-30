@@ -21,7 +21,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;

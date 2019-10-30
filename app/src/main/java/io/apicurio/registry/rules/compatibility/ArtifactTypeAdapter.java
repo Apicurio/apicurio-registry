@@ -22,5 +22,16 @@ import java.util.List;
  * @author Ales Justin
  */
 public interface ArtifactTypeAdapter {
+    /**
+     * Canonicalize schema, if possible.
+     * By default we return same schema.
+     *
+     * @param schema the schema to canonicalize
+     * @return canonicalized schema, if possible
+     */
+    default String toCanonical(String schema) {
+        return schema;
+    }
+
     boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema);
 }

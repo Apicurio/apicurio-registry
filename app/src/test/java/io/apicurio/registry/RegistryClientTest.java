@@ -44,6 +44,24 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testAvroCanonical() throws Exception {
+        String artifactId = UUID.randomUUID().toString();
+        // same schemas, but diff canonically
+        String schema1 = "{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"foo\",\"type\":\"int\"}, {\"name\":\"bar\",\"type\":\"string\"}]}";
+        String schema2 = "{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}, {\"name\":\"foo\",\"type\":\"int\"}]}";
+
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            ByteArrayInputStream baos = new ByteArrayInputStream(schema1.getBytes());
+            CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.AVRO, artifactId, baos);
+            ArtifactMetaData amd1 = ConcurrentUtil.result(csResult);
+
+            baos = new ByteArrayInputStream(schema2.getBytes());
+            ArtifactMetaData amd2 = service.getArtifactMetaDataByContent(ArtifactType.AVRO, artifactId, baos);
+            Assertions.assertEquals(amd1.getGlobalId(), amd2.getGlobalId());
+        }
+    }
+
+    @Test
     public void testAsyncCRUD() throws Exception {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             String artifactId = UUID.randomUUID().toString();

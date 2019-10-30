@@ -16,22 +16,6 @@
 
 package io.apicurio.registry.rest;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -40,6 +24,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapterFactory;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
@@ -54,6 +39,21 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -129,6 +129,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         return null;
     }
 
+    private static String toCanonical(ArtifactType artifactType, String content) {
+        return ArtifactTypeAdapterFactory.toAdapter(artifactType).toCanonical(content);
+    }
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, java.io.InputStream)
      */
@@ -142,7 +146,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         String content = IoUtil.toString(data);
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
+        content = toCanonical(artifactType, content);
+
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.createArtifact(artifactId, artifactType, content);
         String finalArtifactId = artifactId;
@@ -171,7 +176,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         Objects.requireNonNull(artifactId);
         String content = IoUtil.toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
+        content = toCanonical(artifactType, content);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
         return csDto.thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
@@ -204,7 +209,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         Objects.requireNonNull(artifactId);
         String content = IoUtil.toString(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
+        content = toCanonical(artifactType, content);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
         return csDto.thenApply(dto -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, dto));
@@ -304,11 +309,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
     
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(ArtifactType, java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
+    public ArtifactMetaData getArtifactMetaDataByContent(ArtifactType xRegistryArtifactType, String artifactId, InputStream data) {
         String content = IoUtil.toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        content = toCanonical(artifactType, content);
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }

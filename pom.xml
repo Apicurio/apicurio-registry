@@ -79,6 +79,7 @@
 		<module>utils/serde</module>
 		<module>distro</module>
 		<module>docs</module>
+		<module>tests</module>
 	</modules>
 
 	<properties>

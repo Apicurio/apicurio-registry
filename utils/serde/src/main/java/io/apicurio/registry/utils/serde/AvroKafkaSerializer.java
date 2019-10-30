@@ -34,7 +34,7 @@ import java.io.OutputStream;
 /**
  * @author Ales Justin
  */
-public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
+public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, AvroKafkaSerializer<U>> {
     private final EncoderFactory encoderFactory = EncoderFactory.get();
 
     public AvroKafkaSerializer() {

@@ -26,7 +26,7 @@ import java.util.Map;
  *
  * @author Ales Justin
  */
-public abstract class AbstractKafkaSerDe<T> {
+public abstract class AbstractKafkaSerDe {
     public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
     public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
 

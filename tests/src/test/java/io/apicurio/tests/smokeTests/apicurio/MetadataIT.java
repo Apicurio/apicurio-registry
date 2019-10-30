@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
-import java.util.Date;
 import java.util.concurrent.CompletionStage;
 
 import static io.apicurio.tests.Constants.SMOKE;

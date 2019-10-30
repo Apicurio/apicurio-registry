@@ -56,8 +56,8 @@ class MetadataIT extends BaseIT {
         ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
 
-        assertThat(artifactMetaData.getCreatedOn().toString(), is(new Date().toString()));
-        assertThat(artifactMetaData.getModifiedOn().toString(), is(new Date().toString()));
+        assertThat(artifactMetaData.getCreatedOn().toString(), notNullValue());
+        assertThat(artifactMetaData.getModifiedOn().toString(), notNullValue());
         assertThat(artifactMetaData.getId(), is("artifactUpdateAndMetadataId"));
         assertThat(artifactMetaData.getVersion(), is(1));
         assertThat(artifactMetaData.getType().value(), is("AVRO"));

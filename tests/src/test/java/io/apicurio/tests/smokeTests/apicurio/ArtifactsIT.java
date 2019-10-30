@@ -162,7 +162,8 @@ class ArtifactsIT extends BaseIT {
     void createNonAvroArtifact() {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes());
         String artifactId = "artifactWithNonAvroFormatId";
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, artifactData);
         ConcurrentUtil.result(csResult);
 
         LOGGER.info("Created artifact {} with content {}", artifactId, artifactData.toString());

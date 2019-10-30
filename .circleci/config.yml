@@ -27,10 +27,10 @@ jobs:
           key: v1-dependencies-{{ checksum "pom.xml" }}
       - run:
           name: Build All Variants
-          command: ./mvnw clean package -Pjpa -Pinfinispan -Pkafka -DskipTests
+          command: ./mvnw clean install -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests
       - run:
-          name: Build & Verify (Standard)
-          command: ./mvnw test package install
+          name: Verify (Standard)
+          command: ./mvnw -Pjpa test
       - run:
           name: Run QE Tests
           command: ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true

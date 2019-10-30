@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 /**
  * @author Ales Justin
  */
-public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T> implements Serializer<U> {
+public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSerializer> extends AbstractKafkaSerDe implements Serializer<U> {
     public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
     public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
 
@@ -63,19 +63,24 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         setGlobalIdStrategy(globalIdStrategy);
     }
 
-    public AbstractKafkaSerializer<T, U> setKey(boolean key) {
+    protected S self() {
+        //noinspection unchecked
+        return (S) this;
+    }
+
+    public S setKey(boolean key) {
         this.key = key;
-        return this;
+        return self();
     }
 
-    public AbstractKafkaSerializer<T, U> setArtifactIdStrategy(ArtifactIdStrategy<T> artifactIdStrategy) {
+    public S setArtifactIdStrategy(ArtifactIdStrategy<T> artifactIdStrategy) {
         this.artifactIdStrategy = Objects.requireNonNull(artifactIdStrategy);
-        return this;
+        return self();
     }
 
-    public AbstractKafkaSerializer<T, U> setGlobalIdStrategy(GlobalIdStrategy<T> globalIdStrategy) {
+    public S setGlobalIdStrategy(GlobalIdStrategy<T> globalIdStrategy) {
         this.globalIdStrategy = Objects.requireNonNull(globalIdStrategy);
-        return this;
+        return self();
     }
 
     @Override

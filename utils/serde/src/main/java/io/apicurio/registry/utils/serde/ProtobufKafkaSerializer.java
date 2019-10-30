@@ -32,7 +32,7 @@ import java.io.UncheckedIOException;
 /**
  * @author Ales Justin
  */
-public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<byte[], U> {
+public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<byte[], U, ProtobufKafkaSerializer<U>> {
     public ProtobufKafkaSerializer() {
     }
 

@@ -28,6 +28,6 @@ public class RecordIdStrategy implements ArtifactIdStrategy<Schema> {
         if (schema != null && schema.getType() == Schema.Type.RECORD) {
             return schema.getFullName();
         }
-        throw new SerializationException("The message key must only be an Avro record schema!");
+        throw new SerializationException("The message must only be an Avro record schema!");
     }
 }

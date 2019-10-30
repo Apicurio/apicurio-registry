@@ -28,7 +28,7 @@ import javax.ws.rs.core.Response;
 /**
  * @author Ales Justin
  */
-public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T> implements Deserializer<U> {
+public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe implements Deserializer<U> {
     private final Map<Long, T> schemas = new ConcurrentHashMap<>();
 
     public AbstractKafkaDeserializer() {

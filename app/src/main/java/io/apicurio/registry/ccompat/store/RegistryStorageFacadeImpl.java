@@ -89,8 +89,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException {
-        // TODO -- use content param!
-        StoredArtifact storedArtifact = storage.getArtifact(subject);
+        // TODO -- handle deleted?
+        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, schema);
+        StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
         return toSchema(subject, storedArtifact);
     }
 

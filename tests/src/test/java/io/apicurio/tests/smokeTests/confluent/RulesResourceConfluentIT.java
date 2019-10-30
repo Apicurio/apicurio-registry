@@ -20,12 +20,16 @@ import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.avro.Schema;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import static io.apicurio.tests.Constants.SMOKE;
+
+@Tag(SMOKE)
 public class RulesResourceConfluentIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);

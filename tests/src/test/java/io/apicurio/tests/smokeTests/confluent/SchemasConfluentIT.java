@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +30,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 
+import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@Tag(SMOKE)
 public class SchemasConfluentIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);

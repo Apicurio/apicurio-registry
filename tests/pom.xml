@@ -13,10 +13,9 @@
     <artifactId>apicurio-registry-tests</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-tests</name>
-    <modules>
-    </modules>
 
     <properties>
+        <skipTests>true</skipTests>
         <!--native-image has to be build before running system tests-->
         <test.app.name>../app/target/apicurio-registry-app-${project.version}-runner</test.app.name>
         <debezium.version>0.10.0.Final</debezium.version>
@@ -85,6 +84,12 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.slf4j</groupId>
+                    <artifactId>slf4j-jboss-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
@@ -205,7 +210,31 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>all</id>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>smoke</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>smoke</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>cluster</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>cluster</groups>
+            </properties>
+        </profile>
+    </profiles>
 </project>

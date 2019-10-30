@@ -23,8 +23,13 @@ import java.time.Duration;
 public interface Constants {
     long POLL_INTERVAL = Duration.ofSeconds(1).toMillis();
     long TIMEOUT_FOR_REGISTRY_START_UP = Duration.ofSeconds(15).toMillis();
+
     /**
-     * Tag for Smoke tests
+     * Tag for tests, which are testing basic functionality
      */
     String SMOKE = "smoke";
+    /**
+     * Tag for tests, which are working with the cluster (integration of kafka with registries)
+     */
+    String CLUSTER = "cluster";
 }

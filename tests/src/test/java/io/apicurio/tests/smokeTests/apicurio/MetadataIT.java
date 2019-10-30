@@ -16,85 +16,122 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.restassured.path.json.JsonPath;
-import io.restassured.response.Response;
-import org.apache.avro.Schema;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
+import java.io.ByteArrayInputStream;
+import java.util.Date;
+import java.util.concurrent.CompletionStage;
+
+import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
+@Tag(SMOKE)
 class MetadataIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
     @Test
     void getAndUpdateMetadataOfArtifact() {
-        Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        Response response = ArtifactUtils.createArtifact(artifact.toString());
-        String artifactId = response.jsonPath().getString("id");
-        LOGGER.info("Created artifact {} with ID {}", "myrecord1", artifactId);
+        String artifactId = "artifactUpdateAndMetadataId";
+        String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        response = ArtifactUtils.getArtifactMetadata(artifactId);
-        JsonPath jsonPath = response.jsonPath();
-        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
-        assertThat(jsonPath.get("version"), is(1));
-        assertThat(jsonPath.get("type"), is("AVRO"));
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+        ConcurrentUtil.result(csResult);
+        LOGGER.info("Artifact with Id:{} was created:{}", artifactId, artifactDefinition);
 
-        String metadata = "{\"name\": \"Artifact Name\",\"description\": \"The description of the artifact.\"}";
-        ArtifactUtils.updateArtifactMetadata(artifactId, metadata);
+        ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
 
-        response = ArtifactUtils.getArtifactMetadata(artifactId);
-        jsonPath = response.jsonPath();
-        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
-        assertThat(jsonPath.get("version"), is(1));
-        assertThat(jsonPath.get("type"), is("AVRO"));
-        assertThat(jsonPath.get("name"), is("Artifact Name"));
-        assertThat(jsonPath.get("description"), is("The description of the artifact."));
+        assertThat(artifactMetaData.getCreatedOn().toString(), is(new Date().toString()));
+        assertThat(artifactMetaData.getModifiedOn().toString(), is(new Date().toString()));
+        assertThat(artifactMetaData.getId(), is("artifactUpdateAndMetadataId"));
+        assertThat(artifactMetaData.getVersion(), is(1));
+        assertThat(artifactMetaData.getType().value(), is("AVRO"));
+
+        EditableMetaData emd = new EditableMetaData();
+
+        emd.setName("Artifact Updated Name");
+        emd.setDescription("The description of the artifact.");
+
+        apicurioService.updateArtifactMetaData(artifactId, emd);
+
+        artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
+
+        assertThat(artifactMetaData.getId(), is("artifactUpdateAndMetadataId"));
+        assertThat(artifactMetaData.getVersion(), is(1));
+        assertThat(artifactMetaData.getType().value(), is("AVRO"));
+        assertThat(artifactMetaData.getDescription(), is("The description of the artifact."));
+        assertThat(artifactMetaData.getName(), is("Artifact Updated Name"));
     }
 
     @Test
     void getAndUpdateMetadataOfArtifactSpecificVersion() {
-        Schema artifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        Response response = ArtifactUtils.createArtifact(artifact.toString());
-        String artifactId = response.jsonPath().getString("id");
-        LOGGER.info("Created artifact {} with ID {}", "myrecord1", artifactId);
+        String artifactId = "artifactUpdateMetadataOfArtifactSpecificVersionId";
+        String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        ArtifactUtils.updateArtifact(artifactId, updatedArtifact.toString());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+        ConcurrentUtil.result(csResult);
+        LOGGER.info("Artifact with Id:{} was created:{}", artifactId, artifactDefinition);
 
-        response = ArtifactUtils.getArtifactVersionMetadata(artifactId, "2");
-        JsonPath jsonPath = response.jsonPath();
-        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
-        assertThat(jsonPath.get("version"), is(2));
-        assertThat(jsonPath.get("type"), is("AVRO"));
+        String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
+        ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes());
 
-        String metadata = "{\"name\": \"Artifact Name\",\"description\": \"The description of the artifact.\"}";
-        ArtifactUtils.updateArtifactMetadata(artifactId, metadata);
+        csResult = apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactUpdateData);
+        ConcurrentUtil.result(csResult);
+        LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, artifactUpdateDefinition);
 
-        response = ArtifactUtils.getArtifactMetadata(artifactId);
-        jsonPath = response.jsonPath();
-        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, jsonPath.get());
-        assertThat(jsonPath.get("version"), is(2));
-        assertThat(jsonPath.get("type"), is("AVRO"));
-        assertThat(jsonPath.get("name"), is("Artifact Name"));
-        assertThat(jsonPath.get("description"), is("The description of the artifact."));
-        assertThat(jsonPath.get("modifiedOn"),  notNullValue());
+        VersionMetaData versionMetaData = apicurioService.getArtifactVersionMetaData(2, artifactId);
 
-        ArtifactUtils.deleteArtifactVersionMetadata(artifactId, "2");
-        response = ArtifactUtils.getArtifactVersionMetadata(artifactId, "2");
-        jsonPath = response.jsonPath();
-        LOGGER.info("Got metadata of artifact with ID {} version 2: {}", artifactId, jsonPath.get());
-        assertThat(jsonPath.get("version"), is(2));
-        assertThat(jsonPath.get("type"), is("AVRO"));
-        assertThat(jsonPath.get("name"), nullValue());
-        assertThat(jsonPath.get("description"),  nullValue());
-        assertThat(jsonPath.get("modifiedOn"),  nullValue());
+        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData.toString());
+
+        assertThat(versionMetaData.getVersion(), is(2));
+        assertThat(versionMetaData.getType().value(), is("AVRO"));
+
+        EditableMetaData emd = new EditableMetaData();
+
+        emd.setName("Artifact Updated Name");
+        emd.setDescription("The description of the artifact.");
+
+        apicurioService.updateArtifactVersionMetaData(2, artifactId, emd);
+
+        ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+        LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
+        assertThat(artifactMetaData.getVersion(), is(2));
+        assertThat(artifactMetaData.getType().value(), is("AVRO"));
+        assertThat(artifactMetaData.getName(), is("Artifact Updated Name"));
+        assertThat(artifactMetaData.getDescription(), is("The description of the artifact."));
+        assertThat(artifactMetaData.getModifiedOn(),  notNullValue());
+
+        apicurioService.deleteArtifactVersion(2, artifactId);
+
+        try {
+            apicurioService.getArtifactVersionMetaData(2, artifactId);
+        } catch (WebApplicationException e) {
+            assertThat("{\"message\":\"No version '2' found for artifact with ID 'artifactUpdateMetadataOfArtifactSpecificVersionId'.\",\"error_code\":404}", is(e.getResponse().readEntity(String.class)));
+        }
+
+        versionMetaData = apicurioService.getArtifactVersionMetaData(1, artifactId);
+
+        LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData.toString());
+        assertThat(versionMetaData.getVersion(), is(1));
+        assertThat(versionMetaData.getType().value(), is("AVRO"));
+        assertThat(versionMetaData.getName(), nullValue());
+        assertThat(versionMetaData.getDescription(),  nullValue());
     }
 }

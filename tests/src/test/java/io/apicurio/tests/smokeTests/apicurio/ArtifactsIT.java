@@ -216,7 +216,7 @@ class ArtifactsIT extends BaseIT {
 
     @AfterEach
     void deleteRules() {
-        GlobalRuleUtils.deleteAllGlobalRules();
+        apicurioService.deleteAllGlobalRules();
     }
 }
 

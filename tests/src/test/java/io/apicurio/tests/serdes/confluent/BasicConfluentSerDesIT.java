@@ -47,7 +47,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordconfluent1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -57,7 +57,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     @Test
     void testAvroConfluentSerDesFail(TestInfo testInfo) throws IOException, RestClientException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String subjectName = "myrecord2";
+        String subjectName = "myrecordconfluent2";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -70,7 +70,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     @Test
     void testAvroConfluentSerDesWrongStrategyTopic(TestInfo testInfo) throws IOException, RestClientException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String subjectName = "myrecor3";
+        String subjectName = "myrecordconfluent3";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -87,7 +87,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordconfluent4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
@@ -96,7 +96,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     @Test
     void testEvolveAvroConfluent(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String recordName = "myrecord5";
+        String recordName = "myrecordconfluent5";
         String subjectName = topicName + "-" + recordName;
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
@@ -130,7 +130,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
         String topicName1 = "topic-" + testInfo.getTestMethod().get().getName() + "-1";
         String topicName2 = "topic-" + testInfo.getTestMethod().get().getName() + "-2";
         String topicName3 = "topic-" + testInfo.getTestMethod().get().getName() + "-3";
-        String subjectName = "myrecord6";
+        String subjectName = "myrecordconfluent6";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);

@@ -45,7 +45,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordapicurio1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
         createArtifactViaApicurioClient(schema, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesTopicStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -55,7 +55,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     @Test
     void testAvroApicurioSerDesFail(TestInfo testInfo) {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String subjectName = "myrecord1";
+        String subjectName = "myrecordapicurio2";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -68,7 +68,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     @Test
     void testAvroApicurioSerDesWrongStrategyTopic(TestInfo testInfo) {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String subjectName = "myrecord2";
+        String subjectName = "myrecordapicurio3";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -85,7 +85,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordapicurio4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
         createArtifactViaApicurioClient(schema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
@@ -94,7 +94,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     @Test
     void testEvolveAvroApicurio(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
-        String recordName = "myrecord4";
+        String recordName = "myrecordapicurio5";
         String subjectName = topicName + "-" + recordName;
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
@@ -128,7 +128,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         String topicName1 = "topic-" + testInfo.getTestMethod().get().getName() + "-1";
         String topicName2 = "topic-" + testInfo.getTestMethod().get().getName() + "-2";
         String topicName3 = "topic-" + testInfo.getTestMethod().get().getName() + "-3";
-        String subjectName = "myrecord5";
+        String subjectName = "myrecordapicurio6";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);

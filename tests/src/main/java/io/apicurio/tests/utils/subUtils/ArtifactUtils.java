@@ -17,12 +17,18 @@
 package io.apicurio.tests.utils.subUtils;
 
 import io.apicurio.registry.ccompat.rest.RestConstants;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
+import java.util.concurrent.CompletionStage;
 
 import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
 import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
@@ -66,6 +72,11 @@ public class ArtifactUtils {
         return  BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
+    public static ArtifactMetaData createArtifact(RegistryService apicurioService, String artifactId, ByteArrayInputStream artifactData) {
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+        return ConcurrentUtil.result(csResult);
+    }
+
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {
         return BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId + "/versions", returnCode);
     }
@@ -76,6 +87,11 @@ public class ArtifactUtils {
 
     public static Response updateArtifact(String artifactId, String artifact, int returnCode) {
         return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId, returnCode);
+    }
+
+    public static ArtifactMetaData updateArtifact(RegistryService apicurioService, String artifactId, ByteArrayInputStream artifactData) {
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
+        return ConcurrentUtil.result(csResult);
     }
 
     public static Response deleteArtifact(String artifactId) {

@@ -17,10 +17,9 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -32,7 +31,6 @@ import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -57,8 +55,8 @@ class ArtifactsIT extends BaseIT {
         String artifactId = "createAndUpdateArtifactId1";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
 
@@ -70,15 +68,14 @@ class ArtifactsIT extends BaseIT {
 
         try {
             LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-            csResult = apicurioService.createArtifact(ArtifactType.AVRO, invalidArtifactId, artifactData);
-            ConcurrentUtil.result(csResult);
+            ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"Syntax violation for Avro artifact.\",\"error_code\":400}", is(e.getResponse().readEntity(String.class)));
         }
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes());
-        csResult = apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
-        ConcurrentUtil.result(csResult);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
         response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
 
@@ -117,8 +114,8 @@ class ArtifactsIT extends BaseIT {
     void deleteArtifactSpecificVersion() {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
         String artifactId = "deleteArtifactSpecificVersionId";
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
 
@@ -127,7 +124,8 @@ class ArtifactsIT extends BaseIT {
         for (int x = 0; x < 9; x++) {
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
             artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
-            apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
+            metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+            LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         }
 
         List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId);
@@ -151,7 +149,8 @@ class ArtifactsIT extends BaseIT {
         }
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes());
-        apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
         artifactVersions = apicurioService.listArtifactVersions(artifactId);
 
@@ -166,10 +165,8 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes());
         String artifactId = "artifactWithNonAvroFormatId";
 
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
-
-        LOGGER.info("Created artifact {} with content {}", artifactId, artifactData.toString());
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
 
@@ -182,15 +179,12 @@ class ArtifactsIT extends BaseIT {
     void createArtifactSpecificVersion() {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
         String artifactId = "createArtifactSpecificVersionId";
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
-
-        LOGGER.info("Created artifact {} with content {}", artifactId, artifactData.toString());
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes());
-        apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
-
-        LOGGER.info("Artifact with ID {} was updated: {}", artifactId, artifactData.toString());
+        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
         List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId);
 
@@ -202,16 +196,13 @@ class ArtifactsIT extends BaseIT {
     void testDuplicatedArtifact() {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
         String artifactId = "duplicateArtifactId";
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
-
-        LOGGER.info("Created artifact {} with content {}", artifactId, artifactData.toString());
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
 
         try {
-            csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-            ConcurrentUtil.result(csResult);
+            metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"An artifact with ID 'duplicateArtifactId' already exists.\",\"error_code\":409}", is(e.getResponse().readEntity(String.class)));
         }

@@ -19,9 +19,8 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -29,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
-import java.util.concurrent.CompletionStage;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -48,9 +46,8 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
-        LOGGER.info("Artifact with Id:{} was created:{}", artifactId, artifactDefinition);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
@@ -84,16 +81,14 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-        ConcurrentUtil.result(csResult);
-        LOGGER.info("Artifact with Id:{} was created:{}", artifactId, artifactDefinition);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes());
 
-        csResult = apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactUpdateData);
-        ConcurrentUtil.result(csResult);
-        LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, artifactUpdateDefinition);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactUpdateData);
+        LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
         VersionMetaData versionMetaData = apicurioService.getArtifactVersionMetaData(2, artifactId);
 

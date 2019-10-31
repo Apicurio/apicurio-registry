@@ -9,7 +9,7 @@
 * ``Native image -> apicurio-registry-app-1.0.0-SNAPSHOT-runner`` !without suffix .jar!
 
 ## Before test execution
-Before your first run, you have to build native image of apicurio-registry-app. For build you can use the following command:
+Before your first run, you have to build jar of apicurio-registry-app. For build you can use the following command:
 
 ```./mvnw clean install```
 
@@ -19,6 +19,8 @@ For run all tests in `tests` package you can use the following command:
 ```./mvnw verify -pl tests -Pall -Dmaven.javadoc.skip=true```
 
 If you want to run only specific tests, you can specify it by `-Dit.test` maven option.
+
+If you want to run only specific tag, you case run `smoke` or `cluster` profiles.
 
 When you want to execute tests from InteliJ you need to specify native-image path to your configuration
 -

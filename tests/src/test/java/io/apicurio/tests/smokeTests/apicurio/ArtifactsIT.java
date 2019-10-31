@@ -17,7 +17,9 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.vertx.core.json.JsonObject;
@@ -31,6 +33,7 @@ import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -165,7 +168,9 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes());
         String artifactId = "artifactWithNonAvroFormatId";
 
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, artifactData);
+        ArtifactMetaData metaData = ConcurrentUtil.result(csResult);
+
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));

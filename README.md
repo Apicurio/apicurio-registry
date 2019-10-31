@@ -49,11 +49,11 @@ The following parameters are available for executable files:
 To see additional options, visit:
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
  - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
-    
+
 ### Kafka
 
  - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
- - In the *prod* mode, you have to provide an environment variable KAFKA_BOOTSTRAP_SERVERS pointing to Kafka brokers
+ - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers
 
 Kafka storage implementation uses the following Kafka API / architecture
 
@@ -83,7 +83,7 @@ To help setup development / testing environment for the module, see kafka_setup.
 Streams storage implementation goes beyond plain Kafka usage and uses Kafka Streams to handle storage in a distributed and fault-tolerant way.
 
  - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
- - In the *prod* mode, you have to provide an environment variable KAFKA_BOOTSTRAP_SERVERS pointing to Kafka brokers and APPLICATION_ID to name your Kafka Streams application
+ - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers and `APPLICATION_ID` to name your Kafka Streams application
 
 Both modes require 2 topics: storage topic and globalId topic. This is configurable, by default we use storage-topic and global-id-topic names.
 

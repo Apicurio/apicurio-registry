@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: apicurio-registry
+  name: apicurio-registry-jpa
 message: |-
-  Congratulations on deploying Apicurio Registry into OpenShift!
+  Congratulations on deploying Apicurio Registry (JPA Storage) into OpenShift!
   
   All components have been deployed and configured.
 
@@ -18,7 +18,7 @@ objects:
       - name: latest
         from:
           kind: DockerImage
-          name: apicurio/apicurio-registry:latest
+          name: apicurio/apicurio-registry-jpa:latest
         importPolicy:
           scheduled: true
 # Services for the components
@@ -27,16 +27,16 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
-    name: apicurio-registry
+      app: apicurio-registry-jpa
+      template: apicurio-registry-jpa
+    name: apicurio-registry-jpa
   spec:
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
     selector:
-      app: apicurio-registry
+      app: apicurio-registry-jpa
     sessionAffinity: None
     type: ClusterIP
   status:
@@ -48,14 +48,14 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
-    name: apicurio-registry
+      app: apicurio-registry-jpa
+      template: apicurio-registry-jpa
+    name: apicurio-registry-jpa
   spec:
     replicas: 1
     selector:
-      app: apicurio-registry
-      deploymentconfig: apicurio-registry
+      app: apicurio-registry-jpa
+      deploymentconfig: apicurio-registry-jpa
     strategy:
       type: Recreate
       recreateParams:
@@ -66,18 +66,25 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          app: apicurio-registry
-          deploymentconfig: apicurio-registry
-          template: apicurio-registry
+          app: apicurio-registry-jpa
+          deploymentconfig: apicurio-registry-jpa
+          template: apicurio-registry-jpa
       spec:
         replicas: 1
         containers:
         - image: registry:latest
           imagePullPolicy: Always
-          name: apicurio-registry
+          name: apicurio-registry-jpa
           ports:
           - containerPort: 8080
             protocol: TCP
+          env:
+          - name: QUARKUS_DATASOURCE_URL
+            value: ${QUARKUS_DATASOURCE_URL}
+          - name: QUARKUS_DATASOURCE_USERNAME
+            value: ${QUARKUS_DATASOURCE_USERNAME}
+          - name: QUARKUS_DATASOURCE_PASSWORD
+            value: ${QUARKUS_DATASOURCE_PASSWORD}
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}
@@ -87,7 +94,7 @@ objects:
               memory: ${REGISTRY_MEM_REQUEST}
           livenessProbe:
             httpGet:
-              path: /rules
+              path: /health/live
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 5
@@ -97,7 +104,7 @@ objects:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /rules
+              path: /health/ready
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 5
@@ -115,7 +122,7 @@ objects:
       imageChangeParams:
         automatic: true
         containerNames:
-          - apicurio-registry
+          - apicurio-registry-jpa
         from:
           kind: ImageStreamTag
           name: 'registry:latest'
@@ -124,16 +131,16 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: apicurio-registry
+    name: apicurio-registry-jpa
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
+      app: apicurio-registry-jpa
+      template: apicurio-registry-jpa
   spec:
     host: ${REGISTRY_ROUTE}
     to:
       kind: Service
-      name: apicurio-registry
+      name: apicurio-registry-jpa
       weight: 100
     tls:
       termination: edge
@@ -152,8 +159,8 @@ parameters:
   value: 1300Mi
   required: true
 - name: REGISTRY_MEM_REQUEST
-  displayName: Registry Memory Request
-  description: Registry Pods Memory Request
+  displayName: Registry Memory Requests
+  description: Registry Pods Memory Requests
   value: 600Mi
   required: true
 - name: REGISTRY_CPU_LIMIT
@@ -162,7 +169,19 @@ parameters:
   value: '1'
   required: true
 - name: REGISTRY_CPU_REQUEST
-  displayName: Registry CPU Request
-  description: Registry Pods CPU Request
+  displayName: Registry CPU Requests
+  description: Registry Pods CPU Requests
   value: 100m
   required: true
+- name: QUARKUS_DATASOURCE_URL
+  displayName: Datasource URL
+  description: Postgresql Datasource URL
+  required: true
+- name: QUARKUS_DATASOURCE_USERNAME
+  displayName: Datasource Username
+  description: Datasource Username
+  required: false
+- name: QUARKUS_DATASOURCE_PASSWORD
+  displayName: Datasource Password
+  description: Datasource Password
+  required: false

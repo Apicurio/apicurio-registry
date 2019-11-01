@@ -79,6 +79,8 @@ objects:
           - containerPort: 8080
             protocol: TCP
           env:
+          - name: QUARKUS_PROFILE
+            value: prod
           - name: KAFKA_BOOTSTRAP_SERVERS
             value: ${KAFKA_BOOTSTRAP_SERVERS}
           - name: APPLICATION_ID

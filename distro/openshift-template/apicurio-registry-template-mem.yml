@@ -81,6 +81,9 @@ objects:
           ports:
           - containerPort: 8080
             protocol: TCP
+          env:
+          - name: QUARKUS_PROFILE
+            value: prod
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}

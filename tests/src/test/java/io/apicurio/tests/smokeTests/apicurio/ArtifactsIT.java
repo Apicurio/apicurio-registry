@@ -71,7 +71,7 @@ class ArtifactsIT extends BaseIT {
 
         try {
             LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-            ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+            ArtifactUtils.createArtifact(apicurioService, invalidArtifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"Syntax violation for Avro artifact.\",\"error_code\":400}", is(e.getResponse().readEntity(String.class)));
         }

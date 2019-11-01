@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -53,7 +54,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = new KafkaFacade();
-    private static RegistryFacade registries = new RegistryFacade();
+    private static RegistryFacade registry = new RegistryFacade();
 
     protected static SchemaRegistryClient confluentService;
     protected static RegistryService apicurioService;
@@ -61,7 +62,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
     @BeforeAll
     static void beforeAll() throws Exception {
         if (!RegistryFacade.REGISTRY_URL.equals(RegistryFacade.DEFAULT_REGISTRY_URL) || RegistryFacade.EXTERNAL_REGISTRY.equals("")) {
-            registries.start();
+            registry.start();
         } else {
             LOGGER.info("Going to use already running registries on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         }
@@ -76,7 +77,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     @AfterAll
     static void afterAll(TestInfo info) throws InterruptedException {
-        registries.stop();
+        registry.stop();
         Thread.sleep(3000);
         storeRegistryLog(info.getTestClass().get().getCanonicalName());
     }
@@ -91,8 +92,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
             logDir.mkdirs();
         }
 
-        TestUtils.writeFile(logDir + "/registries-stdout.log", registries.getRegistryStdOut());
-        TestUtils.writeFile(logDir + "/registries-stderr.log", registries.getRegistryStdErr());
+        TestUtils.writeFile(logDir + "/registries-stdout.log", registry.getRegistryStdOut());
+        TestUtils.writeFile(logDir + "/registries-stderr.log", registry.getRegistryStdErr());
     }
 
     protected Map<String, String> createMultipleArtifacts(int count) {
@@ -123,7 +124,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         }
     }
 
-    public void createArtifactViaApicurioClient(Schema schema, String artifactName) {
+    public void createArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
         CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
                 ArtifactType.AVRO,
                 artifactName,
@@ -134,12 +135,16 @@ public abstract class BaseIT implements TestSeparator, Constants {
         editableMetaData.setName(artifactName);
         apicurioService.updateArtifactMetaData(artifactName, editableMetaData);
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(metadata.getName(), is(artifactName));
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                LOGGER.info("Checking that created schema is equal to the get schema");
+                assertThat(metadata.getName(), is(artifactName));
+                return true;
+            });
     }
 
-    public void updateArtifactViaApicurioClient(Schema schema, String artifactName) {
+    public void updateArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
         CompletionStage<ArtifactMetaData> csa = apicurioService.updateArtifact(
                 artifactName,
                 ArtifactType.AVRO,
@@ -150,9 +155,13 @@ public abstract class BaseIT implements TestSeparator, Constants {
         editableMetaData.setName(artifactName);
         apicurioService.updateArtifactMetaData(artifactName, editableMetaData);
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(metadata.getName(), is(artifactName));
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                LOGGER.info("Checking that created schema is equal to the get schema");
+                assertThat(metadata.getName(), is(artifactName));
+                return true;
+            });
     }
 
     public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {

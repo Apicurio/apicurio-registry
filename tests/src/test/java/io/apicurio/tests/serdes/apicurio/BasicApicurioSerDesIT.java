@@ -53,7 +53,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroApicurioSerDesFail(TestInfo testInfo) {
+    void testAvroApicurioSerDesFail(TestInfo testInfo) throws TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = "myrecordapicurio2";
         String schemaKey = "key1";
@@ -66,7 +66,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroApicurioSerDesWrongStrategyTopic(TestInfo testInfo) {
+    void testAvroApicurioSerDesWrongStrategyTopic(TestInfo testInfo) throws TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = "myrecordapicurio3";
         String schemaKey = "key1";
@@ -79,7 +79,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroApicurioSerDesWrongStrategyRecord(TestInfo testInfo) {
+    void testAvroApicurioSerDesWrongStrategyRecord(TestInfo testInfo) throws TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = topicName + "-value";
         String schemaKey = "key1";

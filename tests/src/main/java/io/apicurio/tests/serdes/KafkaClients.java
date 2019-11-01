@@ -98,58 +98,63 @@ public class KafkaClients {
         return new KafkaConsumer<>(props);
     }
 
-    public static CompletableFuture<Boolean> produceAvroConfluentMessagesTopicStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroConfluentMessagesTopicStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), KafkaAvroSerializer.class.getName(), TopicNameStrategy.class.getName(), schemaKeys);
     }
 
-    public static CompletableFuture<Boolean> produceAvroConfluentMessagesRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroConfluentMessagesRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), KafkaAvroSerializer.class.getName(), RecordNameStrategy.class.getName(), schemaKeys);
     }
 
-    public static CompletableFuture<Boolean> produceAvroConfluentMessagesTopicRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroConfluentMessagesTopicRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), KafkaAvroSerializer.class.getName(), TopicRecordNameStrategy.class.getName(), schemaKeys);
     }
 
-    public static CompletableFuture<Boolean> produceAvroApicurioMessagesTopicStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroApicurioMessagesTopicStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), AvroKafkaSerializer.class.getName(), TopicIdStrategy.class.getName(), schemaKeys);
     }
 
-    public static CompletableFuture<Boolean> produceAvroApicurioMessagesRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroApicurioMessagesRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), AvroKafkaSerializer.class.getName(), RecordIdStrategy.class.getName(), schemaKeys);
     }
 
-    public static CompletableFuture<Boolean> produceAvroApicurioMessagesTopicRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceAvroApicurioMessagesTopicRecordStrategy(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), AvroKafkaSerializer.class.getName(), TopicRecordIdStrategy.class.getName(), schemaKeys);
     }
 
     // TODO create protobuf tests when it's ready
-    public static CompletableFuture<Boolean> produceProtobufMessages(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
+    public static CompletableFuture<Integer> produceProtobufMessages(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), ProtobufKafkaSerializer.class.getName(), TopicIdStrategy.class.getName(), schemaKeys);
     }
 
-    private static CompletableFuture<Boolean> produceMessages(String topicName, String subjectName, Schema schema, int messageCount, String keySerializer, String valueSerializer, String artifactIdStrategy, String... schemaKeys) {
-        CompletableFuture<Boolean> resultPromise = CompletableFuture.supplyAsync(() -> {
+    private static CompletableFuture<Integer> produceMessages(String topicName, String subjectName, Schema schema, int messageCount, String keySerializer, String valueSerializer, String artifactIdStrategy, String... schemaKeys) {
+        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             Producer<Object, Object> producer = KafkaClients.createProducer(keySerializer, valueSerializer, topicName, artifactIdStrategy);
 
             int producedMessages = 0;
 
-            while (producedMessages < messageCount) {
-                GenericRecord record = new GenericData.Record(schema);
-                String message = "value-" + producedMessages;
-                for (String schemaKey : schemaKeys) {
-                    record.put(schemaKey, message);
-                }
-                LOGGER.info("Sending message {} to topic {}", record, topicName);
+            try {
+                while (producedMessages < messageCount) {
+                    GenericRecord record = new GenericData.Record(schema);
+                    String message = "value-" + producedMessages;
+                    for (String schemaKey : schemaKeys) {
+                        record.put(schemaKey, message);
+                    }
+                    LOGGER.info("Sending message {} to topic {}", record, topicName);
 
-                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, record);
-                producer.send(producedRecord);
-                producedMessages++;
+                    ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, record);
+                    producer.send(producedRecord);
+                    producedMessages++;
+                }
+
+                LOGGER.info("Produced {} messages", producedMessages);
+
+            } finally {
+                producer.flush();
+                producer.close();
             }
 
-            LOGGER.info("Produced {} messages", producedMessages);
-            producer.flush();
-            producer.close();
-            return producedMessages == messageCount;
+            return producedMessages;
         });
 
         try {
@@ -161,40 +166,44 @@ public class KafkaClients {
         return resultPromise;
     }
 
-    public static CompletableFuture<Boolean> consumeAvroConfluentMessages(String topicName,  int messageCount) {
+    public static CompletableFuture<Integer> consumeAvroConfluentMessages(String topicName,  int messageCount) {
         return consumeMessages(topicName, messageCount, StringDeserializer.class.getName(), KafkaAvroDeserializer.class.getName());
     }
 
-    public static CompletableFuture<Boolean> consumeAvroApicurioMessages(String topicName,  int messageCount) {
+    public static CompletableFuture<Integer> consumeAvroApicurioMessages(String topicName,  int messageCount) {
         return consumeMessages(topicName, messageCount, StringDeserializer.class.getName(), AvroKafkaDeserializer.class.getName());
     }
 
-    public static CompletableFuture<Boolean> consumeProtobufMessages(String topicName,  int messageCount) {
+    public static CompletableFuture<Integer> consumeProtobufMessages(String topicName,  int messageCount) {
         return consumeMessages(topicName, messageCount, StringDeserializer.class.getName(), ProtobufKafkaDeserializer.class.getName());
     }    
 
-    private static CompletableFuture<Boolean> consumeMessages(String topicName, int messageCount, String keyDeserializer, String valueDeserializer) {
-        CompletableFuture<Boolean> resultPromise = CompletableFuture.supplyAsync(() -> {
+    private static CompletableFuture<Integer> consumeMessages(String topicName, int messageCount, String keyDeserializer, String valueDeserializer) {
+        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             final Consumer<Long, GenericRecord> consumer = KafkaClients.createConsumer(keyDeserializer, valueDeserializer, topicName);
             consumer.subscribe(Collections.singletonList(topicName));
 
             AtomicInteger consumedMessages = new AtomicInteger();
 
-            while (consumedMessages.get() < messageCount) {
+            try {
+                while (consumedMessages.get() < messageCount) {
 
-                final ConsumerRecords<Long, GenericRecord> records = consumer.poll(Duration.ofSeconds(1));
-                if (records.count() == 0) {
-                    LOGGER.info("None found");
-                } else records.forEach(record -> {
-                    consumedMessages.getAndIncrement();
-                    LOGGER.info("{} {} {} {}", record.topic(),
-                            record.partition(), record.offset(), record.value());
-                });
+                    final ConsumerRecords<Long, GenericRecord> records = consumer.poll(Duration.ofSeconds(1));
+                    if (records.count() == 0) {
+                        LOGGER.info("None found");
+                    } else records.forEach(record -> {
+                        consumedMessages.getAndIncrement();
+                        LOGGER.info("{} {} {} {}", record.topic(),
+                                record.partition(), record.offset(), record.value());
+                    });
+                }
+
+                LOGGER.info("Consumed {} messages", consumedMessages.get());
+            } finally {
+                consumer.close();
             }
 
-            LOGGER.info("Consumed {} messages", consumedMessages.get());
-            consumer.close();
-            return consumedMessages.get() == messageCount;
+            return consumedMessages.get();
         });
 
         try {

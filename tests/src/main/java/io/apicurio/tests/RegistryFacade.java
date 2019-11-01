@@ -84,10 +84,10 @@ public class RegistryFacade {
 
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(REGISTRY_URL, Integer.parseInt(REGISTRY_PORT)), 5_000);
-            LOGGER.info("Client is able to connect to the selenium hub");
+            LOGGER.info("Client is able to connect to Registry instance");
             return  true;
         } catch (IOException ex) {
-            LOGGER.warn("Cannot connect to hub: {}", ex.getMessage());
+            LOGGER.warn("Cannot connect to Registry instance: {}", ex.getMessage());
             return false; // Either timeout or unreachable or failed DNS lookup.
         }
     }

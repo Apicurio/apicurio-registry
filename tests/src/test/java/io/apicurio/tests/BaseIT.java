@@ -19,14 +19,17 @@ package io.apicurio.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.interfaces.TestSeparator;
 import io.apicurio.tests.utils.subUtils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,27 +38,34 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeoutException;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public abstract class BaseIT implements TestSeparator, Constants {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
-    private static KafkaFacade kafkaCluster = new KafkaFacade();
-    private static RegistryFacade registries = new RegistryFacade();
+    protected static KafkaFacade kafkaCluster = new KafkaFacade();
+    private static RegistryFacade registry = new RegistryFacade();
 
     protected static SchemaRegistryClient confluentService;
     protected static RegistryService apicurioService;
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        kafkaCluster.start();
-
-        registries.start();
+        if (!RegistryFacade.REGISTRY_URL.equals(RegistryFacade.DEFAULT_REGISTRY_URL) || RegistryFacade.EXTERNAL_REGISTRY.equals("")) {
+            registry.start();
+        } else {
+            LOGGER.info("Going to use already running registries on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
+        }
         TestUtils.waitFor("Cannot connect to registries on " + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + " in timeout!",
                 Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, RegistryFacade::isReachable);
         RestAssured.baseURI = "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT;
@@ -66,9 +76,9 @@ public abstract class BaseIT implements TestSeparator, Constants {
     }
 
     @AfterAll
-    static void afterAll(TestInfo info) {
-        kafkaCluster.stop();
-        registries.stop();
+    static void afterAll(TestInfo info) throws InterruptedException {
+        registry.stop();
+        Thread.sleep(3000);
         storeRegistryLog(info.getTestClass().get().getCanonicalName());
     }
 
@@ -82,8 +92,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
             logDir.mkdirs();
         }
 
-        TestUtils.writeFile(logDir + "/registries-stdout.log", registries.getRegistryStdOut());
-        TestUtils.writeFile(logDir + "/registries-stderr.log", registries.getRegistryStdErr());
+        TestUtils.writeFile(logDir + "/registries-stdout.log", registry.getRegistryStdOut());
+        TestUtils.writeFile(logDir + "/registries-stderr.log", registry.getRegistryStdErr());
     }
 
     protected Map<String, String> createMultipleArtifacts(int count) {
@@ -112,5 +122,61 @@ public abstract class BaseIT implements TestSeparator, Constants {
             apicurioService.deleteArtifact(entry.getValue().toString());
             LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());
         }
+    }
+
+    public void createArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
+        CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
+                ArtifactType.AVRO,
+                artifactName,
+                new ByteArrayInputStream(schema.toString().getBytes())
+        );
+        ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);
+        EditableMetaData editableMetaData = new EditableMetaData();
+        editableMetaData.setName(artifactName);
+        apicurioService.updateArtifactMetaData(artifactName, editableMetaData);
+        // wait for global id store to populate (in case of Kafka / Streams)
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                LOGGER.info("Checking that created schema is equal to the get schema");
+                assertThat(metadata.getName(), is(artifactName));
+                return true;
+            });
+    }
+
+    public void updateArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
+        CompletionStage<ArtifactMetaData> csa = apicurioService.updateArtifact(
+                artifactName,
+                ArtifactType.AVRO,
+                new ByteArrayInputStream(schema.toString().getBytes())
+        );
+        ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);
+        EditableMetaData editableMetaData = new EditableMetaData();
+        editableMetaData.setName(artifactName);
+        apicurioService.updateArtifactMetaData(artifactName, editableMetaData);
+        // wait for global id store to populate (in case of Kafka / Streams)
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                ArtifactMetaData metadata = apicurioService.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                LOGGER.info("Checking that created schema is equal to the get schema");
+                assertThat(metadata.getName(), is(artifactName));
+                return true;
+            });
+    }
+
+    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
+        int idOfSchema = confluentService.register(artifactName, schema);
+        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+        LOGGER.info("Checking that created schema is equal to the get schema");
+        assertThat(schema.toString(), is(newSchema.toString()));
+        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+    }
+
+    public void updateArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
+        int idOfSchema = confluentService.register(artifactName, schema);
+        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+        LOGGER.info("Checking that created schema is equal to the get schema");
+        assertThat(schema.toString(), is(newSchema.toString()));
+        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
     }
 }

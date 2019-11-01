@@ -1,7 +1,7 @@
 package io.apicurio.registry.utils.kafka;
 
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +25,7 @@ public class KafkaUtil {
 
     public static Properties properties(KafkaProperties kp) {
         String prefix = (kp != null ? kp.value() : "");
-        Config config = ConfigProvider.getConfig();
+        Config config = ConfigProviderResolver.instance().getConfig();
         Optional<String> po = config.getOptionalValue("quarkus.profile", String.class);
         if (po.isPresent()) {
             String profile = po.get();

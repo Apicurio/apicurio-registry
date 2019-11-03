@@ -1,0 +1,21 @@
+// Metadata created by nebel
+//
+
+[id="installing-the-registry"]
+= Installing Apicurio Registry
+
+Apicurio Registry provides a variety of storage implementations...
+
+// The following include statements pull in the sub-assemblies and the module files that comprise the assembly. Include any combination of concept, procedure, or reference modules required to cover the user story.
+
+// \include::../../assemblies/CATEGORY/as_sub-assembly-id.adoc[leveloffset=+1]
+// [leveloffset=+1] ensures that when a module starts with a level-1 heading (= Heading), the heading will be interpreted as a level-2 heading (== Heading) in the assembly.
+
+// \include::../../modules/CATEGORY/TYPE_use-module-id-here.adoc[leveloffset=+1]
+// Where TYPE_ can be one of p_, c_, or r_ for 'procedure', 'concept', or 'reference'
+
+//INCLUDES
+include::../../modules/getting-started/p_installing-registry-in-memory-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-jpa-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]

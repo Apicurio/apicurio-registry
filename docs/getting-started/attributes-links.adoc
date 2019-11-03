@@ -1,0 +1,1 @@
+../shared/attributes-links.adoc

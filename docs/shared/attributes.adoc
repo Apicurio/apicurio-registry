@@ -1,0 +1,46 @@
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+:toc:
+:toclevels: 4
+:numbered:
+
+// Branding
+:prodname: Apicurio Registry
+:prodnamefull: Apicurio Registry
+:productpkg: red_hat_servreg
+
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:  
+:ndash: –
+
+// Other product names
+:streams: Red Hat AMQ Streams
+:broker: Red Hat AMQ Broker
+:amq: Apache ActiveMQ
+:camel: Apache Camel
+:cxf: Apache CXF
+:3scalefull: Red Hat 3scale API Management
+:3scaleshort: 3scale
+
+// Toggle downstream content "on"
+// The 'red-hat-registry' attribute is used to conditionalize content from the Apicurio upstream project.
+// * Downstream-only content is introduced by ifdef::red-hat-registry[]
+// * Upstream-only content is introduced by ifndef::red-hat-registry[]
+
+:red-hat-registry:
+:reg: ®
+:reldate: December 2019
+:trade: ™
+:previousVersion: 
+:version: 1.0
+
+//Include attributes for deep linking
+//include::attributes-links.adoc[]
+
+// Download URLs
+:download-url-xxx: 

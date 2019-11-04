@@ -34,14 +34,15 @@ objects:
       template: apicurio-registry-mem
     name: apicurio-registry-mem
   spec:
+    selector:
+      app: apicurio-registry-mem
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
-    selector:
-      app: apicurio-registry-mem
+      nodePort: 32222
     sessionAffinity: None
-    type: ClusterIP
+    type: NodePort
   status:
     loadBalancer: {}
 # Registry Deployment Configuration

@@ -31,14 +31,15 @@ objects:
       template: apicurio-registry-streams
     name: apicurio-registry-streams
   spec:
+    selector:
+      app: apicurio-registry-streams
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
-    selector:
-      app: apicurio-registry-streams
+      nodePort: 32222
     sessionAffinity: None
-    type: ClusterIP
+    type: NodePort
   status:
     loadBalancer: {}
 # Registry Deployment Configuration

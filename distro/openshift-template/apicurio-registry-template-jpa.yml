@@ -31,14 +31,15 @@ objects:
       template: apicurio-registry-jpa
     name: apicurio-registry-jpa
   spec:
+    selector:
+      app: apicurio-registry-jpa
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
-    selector:
-      app: apicurio-registry-jpa
+      nodePort: 32222
     sessionAffinity: None
-    type: ClusterIP
+    type: NodePort
   status:
     loadBalancer: {}
 # Registry Deployment Configuration

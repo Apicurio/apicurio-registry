@@ -19,7 +19,10 @@ package io.apicurio.registry.utils.serde;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 
+import static io.apicurio.registry.utils.serde.util.Utils.isTrue;
+
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Common class for both serializer and deserializer.
@@ -61,17 +64,41 @@ public abstract class AbstractKafkaSerDe {
         }
     }
 
-    protected static boolean isTrue(Object cached) {
-        if (cached == null) {
-            return false;
+    protected <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
+        if (value != null) {
+            if (type.isInstance(value)) {
+                setter.accept(type.cast(value));
+            } else if (value instanceof Class && type.isAssignableFrom((Class<?>) value)) {
+                //noinspection unchecked
+                setter.accept(instantiate((Class<V>) value));
+            } else if (value instanceof String) {
+                Class<V> clazz = loadClass(type, (String) value);
+                setter.accept(instantiate(clazz));
+            } else {
+                throw new IllegalArgumentException(String.format("Cannot handle configuration [%s]: %s", type.getName(), value));
+            }
         }
-        if (cached instanceof Boolean) {
-            return (Boolean) cached;
+    }
+
+    // can be overridden if needed; e.g. to use different classloader
+
+    protected <V> Class<V> loadClass(Class<V> type, String className) {
+        try {
+            //noinspection unchecked
+            return (Class<V>) type.getClassLoader().loadClass(className);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
         }
-        if (cached instanceof String) {
-            return Boolean.parseBoolean((String) cached);
+    }
+
+    // can be overridden if needed; e.g. to use different instantiation mechanism
+
+    protected <V> V instantiate(Class<V> clazz) {
+        try {
+            return clazz.newInstance();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
         }
-        return false;
     }
 
     protected RegistryService getClient() {

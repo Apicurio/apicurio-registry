@@ -31,14 +31,15 @@ objects:
       template: apicurio-registry-kafka
     name: apicurio-registry-kafka
   spec:
+    selector:
+      app: apicurio-registry-kafka
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
-    selector:
-      app: apicurio-registry-kafka
+      nodePort: 32222
+    type: NodePort
     sessionAffinity: None
-    type: ClusterIP
   status:
     loadBalancer: {}
 # Registry Deployment Configuration

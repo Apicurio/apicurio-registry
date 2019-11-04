@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.serde;
+package io.apicurio.registry.utils.serde.avro;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericContainer;
+import org.apache.avro.reflect.ReflectData;
+import org.apache.kafka.common.errors.SerializationException;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import java.util.Map;
  * @author Confluent Inc.
  * @author Ales Justin
  */
-class AvroSchemaUtils {
+public class AvroSchemaUtils {
 
     private static final Map<String, Schema> primitiveSchemas;
 
@@ -50,16 +51,21 @@ class AvroSchemaUtils {
         return parser.parse(schemaString);
     }
 
-    static Schema copyOf(Schema schema) {
-        return parse(schema.toString());
-    }
-
-    static Schema parse(String schema) {
+    public static Schema parse(String schema) {
         return new Schema.Parser().parse(schema);
     }
 
-    static Map<String, Schema> getPrimitiveSchemas() {
-        return Collections.unmodifiableMap(primitiveSchemas);
+    public static boolean isPrimitive(Schema schema) {
+        return primitiveSchemas.containsValue(schema);
+    }
+
+    static Schema getReflectSchema(Object object) {
+        Class<?> clazz = (object instanceof Class) ? (Class) object : object.getClass();
+        Schema schema = ReflectData.get().getSchema(clazz);
+        if (schema == null) {
+            throw new SerializationException("No schema for class: " + clazz.getName());
+        }
+        return schema;
     }
 
     static Schema getSchema(Object object) {
@@ -84,7 +90,7 @@ class AvroSchemaUtils {
         } else {
             throw new IllegalArgumentException(
                 "Unsupported Avro type. Supported types are null, Boolean, Integer, Long, "
-                + "Float, Double, String, byte[] and GenericContainer");
+                + "Float, Double, String, byte[], ReflectData and GenericContainer");
         }
     }
 }

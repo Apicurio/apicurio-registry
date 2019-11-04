@@ -17,15 +17,19 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
+import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
+import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.specific.SpecificDatumReader;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
 
 /**
@@ -33,22 +37,36 @@ import javax.ws.rs.core.Response;
  */
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
+    private AvroDatumProvider<U> avroDatumProvider;
 
     public AvroKafkaDeserializer() {
+        this(null);
     }
 
     public AvroKafkaDeserializer(RegistryService client) {
-        super(client);
+        this(client, new DefaultAvroDatumProvider<>());
     }
 
-    private DatumReader getDatumReader(Schema schema) {
-        boolean writerSchemaIsPrimitive = AvroSchemaUtils.getPrimitiveSchemas().containsValue(schema);
-        // do not use SpecificDatumReader if schema is a primitive
-        if (writerSchemaIsPrimitive) {
-            return new GenericDatumReader(schema);
-        } else {
-            return new SpecificDatumReader(schema);
-        }
+    public AvroKafkaDeserializer(RegistryService client, AvroDatumProvider<U> avroDatumProvider) {
+        super(client);
+        setAvroDatumProvider(avroDatumProvider);
+    }
+
+    public AvroKafkaDeserializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
+        this.avroDatumProvider = Objects.requireNonNull(avroDatumProvider);
+        return this;
+    }
+
+    @Override
+    public void configure(Map<String, ?> configs, boolean isKey) {
+        super.configure(configs, isKey);
+
+        Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
+        //noinspection unchecked
+        Consumer<AvroDatumProvider> consumer =
+            ((Consumer<AvroDatumProvider>) avroDatumProvider -> avroDatumProvider.configure(configs))
+                .andThen(this::setAvroDatumProvider);
+        instantiate(AvroDatumProvider.class, adp, consumer);
     }
 
     @Override
@@ -59,9 +77,8 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     @Override
     protected U readData(Schema schema, ByteBuffer buffer, int start, int length) {
         try {
-            DatumReader reader = getDatumReader(schema);
-            //noinspection unchecked
-            return (U) reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
+            DatumReader<U> reader = avroDatumProvider.createDatumReader(schema);
+            return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

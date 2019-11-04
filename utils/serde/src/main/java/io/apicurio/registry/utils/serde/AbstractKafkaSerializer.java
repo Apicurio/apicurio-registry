@@ -31,7 +31,6 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * @author Ales Justin
@@ -94,43 +93,6 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
 
         key = isKey;
-    }
-
-    private <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
-        if (value != null) {
-            if (type.isInstance(value)) {
-                setter.accept(type.cast(value));
-            } else if (value instanceof Class && type.isAssignableFrom((Class<?>) value)) {
-                //noinspection unchecked
-                setter.accept(instantiate((Class<V>) value));
-            } else if (value instanceof String) {
-                Class<V> clazz = loadClass(type, (String) value);
-                setter.accept(instantiate(clazz));
-            } else {
-                throw new IllegalArgumentException(String.format("Cannot handle configuration [%s]: %s", key, value));
-            }
-        }
-    }
-
-    // can be overridden if needed; e.g. to use different classloader
-
-    protected <V> Class<V> loadClass(Class<V> type, String className) {
-        try {
-            //noinspection unchecked
-            return (Class<V>) type.getClassLoader().loadClass(className);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    // can be overridden if needed; e.g. to use different instantiation mechanism
-
-    protected <V> V instantiate(Class<V> clazz) {
-        try {
-            return clazz.newInstance();
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
-        }
     }
 
     protected abstract T toSchema(U data);

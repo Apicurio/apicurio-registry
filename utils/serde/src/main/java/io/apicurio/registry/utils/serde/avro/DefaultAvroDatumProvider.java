@@ -34,12 +34,26 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Ales Justin
  */
 public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
-    private boolean useSpecificAvroReader;
+    private Boolean useSpecificAvroReader;
     private Map<String, Schema> schemas = new ConcurrentHashMap<>();
+
+    public DefaultAvroDatumProvider() {
+    }
+
+    public DefaultAvroDatumProvider(boolean useSpecificAvroReader) {
+        this.useSpecificAvroReader = useSpecificAvroReader;
+    }
+
+    public DefaultAvroDatumProvider<T> setUseSpecificAvroReader(boolean useSpecificAvroReader) {
+        this.useSpecificAvroReader = useSpecificAvroReader;
+        return this;
+    }
 
     @Override
     public void configure(Map<String, ?> configs) {
-        useSpecificAvroReader = Utils.isTrue(configs.get(REGISTRY_USE_SPECIFIC_AVRO_READER_CONFIG_PARAM));
+        if (useSpecificAvroReader == null) {
+            useSpecificAvroReader = Utils.isTrue(configs.get(REGISTRY_USE_SPECIFIC_AVRO_READER_CONFIG_PARAM));
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -75,13 +89,13 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
 
     @Override
     public DatumReader<T> createDatumReader(Schema schema) {
-        boolean writerSchemaIsPrimitive = AvroSchemaUtils.isPrimitive(schema);
         // do not use SpecificDatumReader if schema is a primitive
-        if (useSpecificAvroReader && !writerSchemaIsPrimitive) {
-            return new SpecificDatumReader<>(schema, getReaderSchema(schema));
-        } else {
-            return new GenericDatumReader<>(schema);
+        if ((useSpecificAvroReader != null && useSpecificAvroReader)) {
+            if (AvroSchemaUtils.isPrimitive(schema) == false) {
+                return new SpecificDatumReader<>(schema, getReaderSchema(schema));
+            }
         }
+        return new GenericDatumReader<>(schema);
     }
 
     @Override

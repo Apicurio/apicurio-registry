@@ -119,7 +119,7 @@
 		<apicurio-data-models.version>1.0.14.Final</apicurio-data-models.version>
 
 		<!-- Dependency versions -->
-		<lombok.version>1.18.8</lombok.version>
+		<lombok.version>1.18.10</lombok.version>
 		<h2.version>1.4.199</h2.version>
 
         <!-- Plugin Versions -->

@@ -134,7 +134,7 @@
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
-        <os-maven-plugin.version>1.6.1</os-maven-plugin.version>
+        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
     </properties>
 
 	<dependencyManagement>

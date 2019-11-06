@@ -132,6 +132,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
         String topicName3 = "topic-" + testInfo.getTestMethod().get().getName() + "-3";
         String subjectName = "myrecordconfluent6";
         String schemaKey = "key1";
+
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);
         kafkaCluster.createTopic(topicName3, 1, 1);

@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
@@ -73,6 +74,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
         RestAssured.defaultParser = Parser.JSON;
         confluentService = new CachedSchemaRegistryClient("http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/confluent", 3);
         apicurioService = RegistryClient.create("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+
+        clearAllConfluentSubjects();
     }
 
     @AfterAll
@@ -178,5 +181,13 @@ public abstract class BaseIT implements TestSeparator, Constants {
         LOGGER.info("Checking that created schema is equal to the get schema");
         assertThat(schema.toString(), is(newSchema.toString()));
         assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+    }
+
+    private static void clearAllConfluentSubjects() throws IOException, RestClientException {
+        List<String> confluentSubjects = (List<String>) confluentService.getAllSubjects();
+        for (String confluentSubject : confluentSubjects) {
+            LOGGER.info("Deleting confluent schema {}", confluentSubject);
+            confluentService.deleteSubject(confluentSubject);
+        }
     }
 }

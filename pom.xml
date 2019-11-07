@@ -129,7 +129,7 @@
         <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
         <version.source.plugin>3.2.0</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
-        <version.jar.plugin>3.1.2</version.jar.plugin>
+        <version.jar.plugin>3.2.0</version.jar.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
         <!-- Proto -->

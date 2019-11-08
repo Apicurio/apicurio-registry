@@ -1,29 +1,46 @@
 // Metadata created by nebel
-//
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-jpa-storage"]
 = Installing Apicurio Registry with JPA storage
-// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-This paragraph is the procedure module introduction: a short description of the procedure.
+This section explains how to install and run Apicurio Registry with Java Persistence API storage from a container image. This storage option is suitable for production environments.
 
 .Prerequisites
-
-* A bulleted list of conditions that must be satisfied before the user starts following this assembly.
-* You can also link to other modules or assemblies the user must follow before starting this assembly.
-* Delete the section title and bullets if the assembly has no prerequisites.
+* Ensure that you can connect to the container repository: 
+https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+* You must already have a PostgreSQL database server running. You can supply the database connection configuration for the PostgreSQL server when starting the container image.
 
 .Procedure
+. Get the Apicurio Registry container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry-jpa
+----
+. Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables: 
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 \   
+-e "QUARKUS_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "QUARKUS_DATASOURCE_USERNAME=apicurio-registry" \
+-e "QUARKUS_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry-jpa:latest
+----
 
-. Start each step with an active verb.
-
-. Include one command or action per step.
-
-. Use an unnumbered bullet (*) if the procedure includes only one step.
+. Send a test request using the Apicurio Registry REST API. For example, enter the following curl command to create a simple artifact:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' http://localhost:8080/artifacts 
+----
+. Verify that the response includes the expected JSON body. For example:
++
+[source,bash]
+----
+{"createdOn":1571757704485,"modifiedOn":1571757704485,"id":"448bc6fe-bbf6-41c9-ba35-1a96a0d198bf","version":1,"type":"AVRO"}
+----
 
 .Additional resources
-
-* A bulleted list of links to other material closely related to the contents of the procedure module.
-* For more details on writing procedure modules, see the link:https://github.com/redhat-documentation/modular-docs#modular-documentation-reference-guide[Modular Documentation Reference Guide].
-* Use a consistent system for file names, IDs, and titles. For tips, see _Anchor Names and File Names_ in link:https://github.com/redhat-documentation/modular-docs#modular-documentation-reference-guide[Modular Documentation Reference Guide].
+• For detailed information, see the link:files/index.html[Apicurio Registry REST API documentation].

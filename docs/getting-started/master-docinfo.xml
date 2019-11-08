@@ -2,7 +2,7 @@
 <productnumber>{version}</productnumber>
 <subtitle>{prodname}</subtitle>
 <abstract>
-    <para>This guide introduces {prodname} and explains how to install it and set up your storage environment.</para>
+    <para>This guide introduces {prodname} and explains how to install it in your storage environment.</para>
 </abstract>
 <authorgroup>
   <org>

@@ -7,3 +7,4 @@
 
 //INCLUDES
 include::../../modules/getting-started/c_intro-to-registry.adoc[leveloffset=+1]
+include::../../modules/getting-started/c_registry_rules.adoc[leveloffset=+1]

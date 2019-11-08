@@ -1,0 +1,43 @@
+// Metadata created by nebel
+
+[id="registry-rules"]
+
+= Rules for registry content
+You can configure rules for each artifact added to the registry to govern content evolution. All rules configured for an artifact must pass before a new version can be uploaded. 
+
+The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
+
+* Invalid syntax for a given artifact type
+* Valid syntax but semantics violate company standards
+* New content makes breaking changes compared with the current version
+
+== When rules are applied
+Rules are applied only when content is added to the registry. This includes the following REST operations:
+
+* Creating an artifact
+* Updating an artifact
+* Creating an artifact version
+
+If a rule is violated, Apicurio Registry will return an HTTP error. The response body will include the violated rule and a message showing what went wrong.
+
+NOTE: If no rules are configured for an artifact, the set of global rules will be applied.  This means that the global rules are always applied when a new artifact is created.  
+
+== How rules work
+Every rule is simply a name and some optional configuration. The storage layer maintains a list of the rules for each artifact, as well as a list of global rules. Each rule in the list consists of a name and set of configuration properties (for example, `Map<String,String>`).
+    
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation will return true or false depending on whether it passes. If not, the rule will report the reason why in an HTTP error response.
+
+Some rules may not use the previous version of the content. For example, compatibility rules will use previous versions, but validity (syntax or semantic) rules most likely will not.
+
+== Supported rule types
+You can specify the following rule types to govern content evolution in the registry: 
+
+[%header,cols=2*] 
+|===
+|Type
+|Description
+|`VALIDITY`
+| Validate the data before adding it to the registry. The validation can be syntax only or syntax and semantic (FULL validation). 
+|`COMPATIBILITY` 
+|Ensure that artifacts are backwards/forwards compatible with other versions.
+|===

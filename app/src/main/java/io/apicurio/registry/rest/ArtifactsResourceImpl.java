@@ -129,6 +129,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         return null;
     }
 
+    @Override
+    public void testCompatibility(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+        Objects.requireNonNull(artifactId);
+        String content = IoUtil.toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- canonical content!!
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
+    }
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, java.io.InputStream)
      */

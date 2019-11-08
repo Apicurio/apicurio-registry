@@ -90,7 +90,7 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
     @Override
     public DatumReader<T> createDatumReader(Schema schema) {
         // do not use SpecificDatumReader if schema is a primitive
-        if ((useSpecificAvroReader != null && useSpecificAvroReader)) {
+        if (useSpecificAvroReader != null && useSpecificAvroReader) {
             if (AvroSchemaUtils.isPrimitive(schema) == false) {
                 return new SpecificDatumReader<>(schema, getReaderSchema(schema));
             }

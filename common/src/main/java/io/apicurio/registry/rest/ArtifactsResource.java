@@ -28,6 +28,19 @@ import io.apicurio.registry.types.RuleType;
 @Path("/artifacts")
 public interface ArtifactsResource {
   /**
+   * Test if artifact is compatible with previous versions.
+   *
+   * If the test content violates one of the rules configured for the artifact you'll receive a HTTP error `400`.
+   * If all is OK, HTTP 200 code is returned.
+   */
+  @Path("/{artifactId}/test")
+  @PUT
+  @Consumes("application/json")
+  void testCompatibility(@PathParam("artifactId") String artifactId,
+                         @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+                         InputStream content);
+
+  /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include
    * both generated (read-only) and editable metadata (such as name and description).
    *

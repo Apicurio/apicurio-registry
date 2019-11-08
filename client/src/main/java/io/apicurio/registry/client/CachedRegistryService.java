@@ -182,6 +182,12 @@ class CachedRegistryService implements RegistryService {
         return getDelegate().getArtifactByGlobalId(globalId);
     }
 
+    @Override
+    public void testCompatibility(String artifactId, ArtifactType xRegistryArtifactType, InputStream content) {
+        // no sense in caching this
+        getDelegate().testCompatibility(artifactId, xRegistryArtifactType, content);
+    }
+
     // ---- Auto reset
 
     @Override

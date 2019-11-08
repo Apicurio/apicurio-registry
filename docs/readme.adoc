@@ -2,7 +2,7 @@
 
 The Apicurio Registry `docs` directory is organized for delivering flexible content, which is a framework for putting together exactly the content you need and making it easier to reuse the same content in multiple places. 
 
-Apicurio Registry user doc is organized into the following documents. The following table lists the `apicurio-registry/docs` directories that contain the content for each document.  
+Apicurio Registry user content is organized into the following documents in the `apicurio-registry/docs` directory
 
 [options="header"]
 [cols="1,2,3"]
@@ -20,7 +20,7 @@ Apicurio Registry user doc is organized into the following documents. The follow
 |===
 
 
-For each document, the `master.adoc` file includes the relevant assemblies and modules. 
+For each document, the `master.adoc` file includes the relevant assemblies and modules: 
 
 * Assemblies are files that introduce a subject and 
 include two or more modules, which provide the content.

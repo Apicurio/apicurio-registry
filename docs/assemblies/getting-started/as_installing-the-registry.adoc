@@ -16,7 +16,7 @@ Apicurio Registry is a datastore for event schemas and API designs. This topic e
 * You must have Docker installed and the Docker daemon running.
 
 .Additional resources
-* For details on building from source, see https://github.com/Apicurio/apicurio-registry
+* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
 include::../../modules/getting-started/p_installing-registry-in-memory-storage.adoc[leveloffset=+1]

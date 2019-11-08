@@ -60,6 +60,11 @@ Apicurio Registry provides the following container images for each storage optio
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 == Apicurio Registry REST API
-The Apicurio Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. 
+The Apicurio Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, metadata, and so on. 
 
 For detailed information, see the link:files/index.html[Apicurio Registry REST API documentation].
+
+== Apicurio Registry demo
+For a demo of Avro serialization/deserialization based on Apache Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[Apicurio Registry Demo].
+
+This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages.

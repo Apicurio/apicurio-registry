@@ -43,4 +43,4 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-• For detailed information, see the link:files/index.html[Apicurio Registry REST API documentation].
+• For more REST API sample requests, see the link:files/index.html[Apicurio Registry REST API documentation].

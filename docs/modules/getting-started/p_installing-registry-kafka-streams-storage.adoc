@@ -14,8 +14,9 @@ The Kafka Streams storage implementation uses the following architecture:
 * Each `KStream` uses a `KeyValueStore` to keep the current storage state
 
 .Prerequisites
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
-* You must already have a Kafka broker running. You can specify your Kafka system configuration when starting the container image. 
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka.
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka v2.2.x system. 
+* You must already have a Kafka broker running and set up your Kafka topics.
 
 .Procedure
 . Get the Apicurio Registry container image:
@@ -26,7 +27,6 @@ $ docker pull apicurio/apicurio-registry-kafka-streams
 ----
 . Run the container image and specify the following environment variables for your Kafka system: 
 +
-** `KAFKA_HOME`  - The location of your Kafka system.
 ** `KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s).
 ** `APPLICATION_ID` - The name of your Kafka Streams application.
 +
@@ -34,11 +34,7 @@ For example:
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 \   
--e "KAFKA_HOME=opt/kafka" \
--e "KAFKA_BOOTSTRAP_SERVERS=kafka-broker1" \ 
--e "APPLICATION_ID=my-kafka-streams-app"
-apicurio/apicurio-registry-kafka-streams:latest
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -e "APPLICATION_ID=my-kafka-streams-app" --link apicurio/apicurio-registry-kafka-streams:latest
 ----
 
 . Send a test request using the Apicurio Registry REST API. For example, enter the following curl command to create a simple artifact:
@@ -55,5 +51,6 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-* For detailed information, see the link:files/index.html[Apicurio Registry REST API documentation].
-* For more details on Kafka, see the link:https://kafka.apache.org/documentation/[Apache Kafka documentation].
+* For more REST API sample requests, see the link:files/index.html[Apicurio Registry REST API documentation].
+* For a demo based on Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[Apicurio Registry Demo].
+* For more details on Kafka Streams, see the link:https://kafka.apache.org/documentation/streams//[Apache Kafka Streams documentation].

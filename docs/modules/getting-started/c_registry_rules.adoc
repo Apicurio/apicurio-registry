@@ -3,7 +3,7 @@
 [id="registry-rules"]
 
 = Rules for registry content
-You can configure rules for each artifact added to the registry to govern content evolution. All rules configured for an artifact must pass before a new version can be uploaded. 
+You can configure rules for each artifact added to the registry to govern content evolution. All rules configured for an artifact must pass before a new version can be uploaded to the registry. 
 
 The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
 
@@ -18,16 +18,18 @@ Rules are applied only when content is added to the registry. This includes the 
 * Updating an artifact
 * Creating an artifact version
 
-If a rule is violated, Apicurio Registry will return an HTTP error. The response body will include the violated rule and a message showing what went wrong.
+If a rule is violated, {prodname} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of global rules will be applied.  This means that the global rules are always applied when a new artifact is created.  
+NOTE: If no rules are configured for an artifact, the set of global rules is applied. This means that the global rules are always applied when a new artifact is created.  
 
 == How rules work
-Every rule is simply a name and some optional configuration. The storage layer maintains a list of the rules for each artifact, as well as a list of global rules. Each rule in the list consists of a name and set of configuration properties (for example, `Map<String,String>`).
-    
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation will return true or false depending on whether it passes. If not, the rule will report the reason why in an HTTP error response.
+Every rule is simply a name and some optional configuration. The storage layer maintains the list of rules for each artifact and the list of global rules. 
 
-Some rules may not use the previous version of the content. For example, compatibility rules will use previous versions, but validity (syntax or semantic) rules most likely will not.
+Each rule in the list consists of a name and set of configuration properties, which are specific to the rule implementation. For example, a validation rule with a `Map<String,String>`, or a compatibility rule with a single property of `BACKWARD` for compatibility with existing versions.
+    
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the rule report the reason why in an HTTP error response.
+
+Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules mostly do not.
 
 == Supported rule types
 You can specify the following rule types to govern content evolution in the registry: 
@@ -37,7 +39,15 @@ You can specify the following rule types to govern content evolution in the regi
 |Type
 |Description
 |`VALIDITY`
-| Validate the data before adding it to the registry. The validation can be syntax only or syntax and semantic (FULL validation). 
-|`COMPATIBILITY` 
-|Ensure that artifacts are backwards/forwards compatible with other versions.
+| Validates the data before adding it to the registry. The validation can be syntax only or syntax and semantic (`FULL` validation).
+|`COMPATIBILITY`
+a| Ensures that newly added artifacts are compatible with previously added versions. Includes the following:
+
+* `BACKWARD`: Clients using the new artifact can read data written using the latest artifact. 
+* `BACKWARD_TRANSITIVE`: Clients using the new artifact can read data written using all previously added artifacts.
+* `FORWARD`: Clients using the latest artifact can read data written using the new artifact.
+* `FORWARD_TRANSITIVE`: Clients using all previously added artifacts can read data written using the new artifact.
+* `FULL`: The new artifact is forward and backward compatible with the latest artifact.
+* `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
+* `NONE`: Compatibility checks are disabled.
 |===

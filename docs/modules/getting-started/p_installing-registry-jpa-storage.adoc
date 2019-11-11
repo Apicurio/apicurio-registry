@@ -2,17 +2,24 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-jpa-storage"]
-= Installing Apicurio Registry with JPA storage
+= Installing {prodname} with JPA storage
 
-This section explains how to install and run Apicurio Registry with Java Persistence API storage from a container image. This storage option is suitable for production environments.
+This section explains how to install and run {prodname} with Java Persistence API storage from a container image. This storage option is suitable for production environments.
 
 .Prerequisites
-* Ensure that you can connect to the container repository: 
-https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
-* You must already have a PostgreSQL database server running. You can supply the database connection configuration for the PostgreSQL server when starting the container image.
+
+* You must already have a PostgreSQL database server installed and running. For example: 
++
+[source,bash]
+----
+$ postgres -D /usr/local/pgsql/data
+----
++
+For more details, see https://www.postgresql.org/docs/12/server-start.html
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
 
 .Procedure
-. Get the Apicurio Registry container image:
+. Get the {prodname} container image:
 +
 [source,bash]
 ----
@@ -29,7 +36,7 @@ $ docker run -it -p 8080:8080 \
 apicurio/apicurio-registry-jpa:latest
 ----
 
-. Send a test request using the Apicurio Registry REST API. For example, enter the following curl command to create a simple artifact:
+. Send a test request using the {prodname} REST API. For example, enter the following curl command to create a simple artifact:
 +
 [source,bash]
 ----
@@ -43,4 +50,4 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-• For more REST API sample requests, see the link:files/index.html[Apicurio Registry REST API documentation].
+• For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].

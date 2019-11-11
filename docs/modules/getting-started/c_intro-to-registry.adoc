@@ -1,14 +1,25 @@
 // Metadata created by nebel
 
 [id="intro-to-registry"]
-= Apicurio Registry overview
+= {prodname} overview
 
-Apicurio Registry is a datastore for standard event schemas and API designs. It enables developers to share and manage the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry at runtime without needing to redeploy. 
+{prodname} is a datastore for standard event schemas and API designs. It enables developers to share and manage the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry at runtime without needing to redeploy. 
 
-Apicurio Registry also enables developers to create rules to govern how the registry content can evolve over time. For example, this includes rules for content validation and version compatibility.
+{prodname} also enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.
+
+ifdef::rh-service-registry[]
+
+[IMPORTANT]
+====
+{prodnamefull} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+
+endif::[]
 
 == Supported artifact types
-The supported artifact format types that the registry can store are:
+{prodname} supports the following artifact types:
 
 [%header,cols=2*] 
 |===
@@ -27,7 +38,7 @@ The supported artifact format types that the registry can store are:
 |===
 
 == Storage implementations
-Apicurio Registry provides the following pluggable storage options: 
+{prodname} provides the following pluggable storage options: 
 
 * In-memory 
 * Java Persistence API 
@@ -39,8 +50,9 @@ NOTE: The in-memory storage option is suitable for a development environment onl
 For more details, see https://github.com/Apicurio/apicurio-registry. 
 
 == Container images
-Apicurio Registry provides the following container images for each storage option: 
+{prodname} provides the following container images for the available storage options: 
 
+ifdef::apicurio-registry[]
 [%header,cols=2*] 
 |===
 |Storage option
@@ -54,17 +66,36 @@ Apicurio Registry provides the following container images for each storage optio
 |Apache Kafka Streams
 |https://hub.docker.com/r/apicurio/apicurio-registry-streams
 |===
+endif::[]
+
+ifdef::rh-service-registry[]
+[%header,cols=2*] 
+|===
+|Storage option
+|Container Image
+|Apache Kafka
+|https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry
+|===
+endif::[]
 
 .Additional resources
 
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
-== Apicurio Registry REST API
-The Apicurio Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, metadata, and so on. 
+== {prodname} REST API
+The {prodname} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
 
-For detailed information, see the link:files/index.html[Apicurio Registry REST API documentation].
+* Schema and API artifacts
+* Versions 
+* Metadata
+* Global rules
+* Artifact rules 
 
-== Apicurio Registry demo
-For a demo of Avro serialization/deserialization based on Apache Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[Apicurio Registry Demo].
+For detailed information, see the link:files/index.html[{prodname} REST API documentation].
 
-This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages.
+== {prodname} demo
+{prodname} provides a demo of Avro serialization/deserialization based on Apache Kafka Streams storage. 
+
+This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
+
+For more details, see the link:https://github.com/alesj/registry-demo[{prodname} Demo].

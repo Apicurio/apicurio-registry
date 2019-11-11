@@ -2,7 +2,7 @@
 //
 
 [id="intro-to-the-registry"]
-= Introduction to Apicurio Registry
+= Introduction to {prodname}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 //INCLUDES

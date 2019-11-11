@@ -2,24 +2,27 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-kafka-storage"]
-= Installing Apicurio Registry with Apache Kafka storage
+= Installing {prodname} with Apache Kafka storage
 
-This topic explains how to install and run Apicurio Registry with Apache Kafka storage from a container image. This storage option is suitable for production environments. 
-
-The Kafka storage implementation uses the following architecture:
-
-* Storage producer to forward HTTP requests from the Apicurio Registry REST API to the Kafka broker
-* Storage consumer to handle previously sent HTTP requests from the REST API as Kafka messages
-* Snapshot producer to send the current state's snapshot to the Kafka broker
-* Snapshot consumer for initial snapshot handling at application start
+This topic explains how to install and run {prodname} with Apache Kafka storage from a container image. This storage option is suitable for production environments. 
 
 .Prerequisites
+
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka v2.2.x or v2.3 system. 
+* You must already have your Kafka broker running. For example: 
++
+[source,bash]
+----
+$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
+----
++ 
+For more details, see https://kafka.apache.org/quickstart. 
 * Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
-* Ensure that `KAFKA_HOME` is set to the location of your Kafka v2.2.x system. 
-* You must already have a Kafka broker running and set up your Kafka topics.
+
 
 .Procedure
-. Get the Apicurio Registry container image:
+. Get the {prodname} container image:
 +
 [source,bash]
 ----
@@ -36,7 +39,7 @@ For example:
 $ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -link apicurio/apicurio-registry-kafka:latest
 ----
 
-. Send a test request using the Apicurio Registry REST API. For example, enter the following curl command to create a simple artifact:
+. Send a test request using the {prodname} REST API. For example, enter the following curl command to create a simple artifact:
 +
 [source,bash]
 ----
@@ -50,6 +53,6 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-* For more REST API sample requests, see the link:files/index.html[Apicurio Registry REST API documentation].
-* For a demo based on Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[Apicurio Registry Demo].
+* For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].
+* For a demo based on Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[{prodname} Demo].
 * For more details on Kafka, see the link:https://kafka.apache.org/documentation/[Apache Kafka documentation].

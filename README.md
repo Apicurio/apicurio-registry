@@ -17,7 +17,7 @@ Apicurio Registry supports 3 persistence implementations:
  
 If you enable one, a separate set of artifacts is produced with the persistence implementation available.
 
-Additionaly, there are 2 main configuration profiles:
+Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
  - *prod* - for production environment.
 

@@ -86,7 +86,25 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
-    
+
+    /**
+     * Gets the metadata of the version that matches content, or 404
+     * @param artifactId
+     * @param content
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as
+     * name and description, but also generated meta-data such as "modifedOn" and "versionId".
+     * @param id
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException;
+
     /**
      * Updates the stored meta-data for an artifact by ID.  Only the client-editable meta-data can be updated.  Client
      * editable meta-data includes e.g. name and description. TODO what if set to null?

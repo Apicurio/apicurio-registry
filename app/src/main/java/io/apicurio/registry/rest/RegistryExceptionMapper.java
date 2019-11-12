@@ -16,6 +16,22 @@
 
 package io.apicurio.registry.rest;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -26,20 +42,6 @@ import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.net.HttpURLConnection.*;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -50,9 +52,9 @@ import static java.net.HttpURLConnection.*;
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
+//    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
 
-    private static final Map<Class, Integer> CODE_MAP = new HashMap<>();
+    private static final Map<Class<?>, Integer> CODE_MAP = new HashMap<>();
 
     @Inject
     ResponseErrorLivenessCheck liveness;
@@ -87,7 +89,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     private static Error toError(Throwable t, int code) {
         Error error = new Error();
-        error.setCode(code);
+        error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
         // TODO also return a full stack trace as "detail"?
         return error;

@@ -40,7 +40,7 @@ public class ArtifactVersionMetaDataDto {
     private String createdBy;
     private Date createdOn;
     private ArtifactType type;
-    
+
     /**
      * Constructor.
      */
@@ -144,5 +144,4 @@ public class ArtifactVersionMetaDataDto {
     public void setVersion(int version) {
         this.version = version;
     }
-
 }

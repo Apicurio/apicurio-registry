@@ -7,7 +7,7 @@
 
 	<groupId>io.apicurio</groupId>
 	<artifactId>apicurio-registry</artifactId>
-	<version>1.1.0-SNAPSHOT</version>
+	<version>1.0.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>apicurio-registry</name>
 
@@ -76,6 +76,7 @@
 		<module>common</module>
 		<module>app</module>
 		<module>client</module>
+		<module>utils/serde</module>
 		<module>distro</module>
 		<module>tests</module>
 		<module>docs</module>
@@ -91,22 +92,22 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 
 		<!-- Quarkus Version -->
-		<quarkus.version>0.21.2</quarkus.version>
+		<quarkus.version>0.26.1</quarkus.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.6</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.9.0</avro.version>
-        <json-schema-validator.version>1.0.19</json-schema-validator.version>
-        <wire-schema.version>3.0.0-rc01</wire-schema.version>
-        <protobuf.version>3.9.1</protobuf.version>
+		<avro.version>1.9.1</avro.version>
+        <json-schema-validator.version>1.0.26</json-schema-validator.version>
+        <wire-schema.version>3.0.1</wire-schema.version>
+        <protobuf.version>3.10.0</protobuf.version>
 
         <!-- Storage types -->
-		<infinispan.version>9.4.16.Final</infinispan.version>
+		<infinispan.version>10.0.1.Final</infinispan.version>
 
 		<!-- gRPC -->
-		<grpc.version>1.23.0</grpc.version>
+		<grpc.version>1.25.0</grpc.version>
 
 		<!-- Confluent API / client -->
 		<confluent.version>5.3.0</confluent.version>
@@ -115,25 +116,25 @@
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-		<apicurio-data-models.version>1.0.14.Final</apicurio-data-models.version>
+		<apicurio-data-models.version>1.0.16.Final</apicurio-data-models.version>
 
 		<!-- Dependency versions -->
-		<lombok.version>1.18.8</lombok.version>
+		<lombok.version>1.18.10</lombok.version>
 		<h2.version>1.4.199</h2.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
-        <version.failsafe.plugin>2.22.1</version.failsafe.plugin>
+        <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
-        <version.source.plugin>2.4</version.source.plugin>
-        <version.surefire.plugin>2.22.1</version.surefire.plugin>
-        <version.jar.plugin>3.1.2</version.jar.plugin>
+        <version.source.plugin>3.2.0</version.source.plugin>
+        <version.surefire.plugin>2.22.2</version.surefire.plugin>
+        <version.jar.plugin>3.2.0</version.jar.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
-        <os-maven-plugin.version>1.6.1</os-maven-plugin.version>
+        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
     </properties>
 
 	<dependencyManagement>
@@ -157,6 +158,11 @@
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-utils-kafka</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-utils-serde</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -186,6 +192,11 @@
                 <artifactId>infinispan-core</artifactId>
                 <version>${infinispan.version}</version>
             </dependency>
+			<dependency>
+				<groupId>org.infinispan</groupId>
+				<artifactId>infinispan-commons</artifactId>
+				<version>${infinispan.version}</version>
+			</dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>

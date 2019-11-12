@@ -25,7 +25,8 @@ import io.apicurio.registry.types.ArtifactType;
     "modifiedOn",
     "id",
     "version",
-    "type"
+    "type",
+    "globalId"
 })
 public class ArtifactMetaData {
 
@@ -85,6 +86,14 @@ public class ArtifactMetaData {
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("globalId")
+    @JsonPropertyDescription("")
+    private Long globalId;
 
     @JsonProperty("name")
     public String getName() {
@@ -244,6 +253,26 @@ public class ArtifactMetaData {
     @JsonProperty("type")
     public void setType(ArtifactType type) {
         this.type = type;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("globalId")
+    public Long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("globalId")
+    public void setGlobalId(Long globalId) {
+        this.globalId = globalId;
     }
 
 }

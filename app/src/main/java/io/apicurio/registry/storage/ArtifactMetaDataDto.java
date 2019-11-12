@@ -43,7 +43,7 @@ public class ArtifactMetaDataDto {
     private int version;
     private long globalId; // TODO which? global ID points to a specific artifact version
     private ArtifactType type;
-    
+
     /**
      * Constructor.
      */
@@ -189,5 +189,4 @@ public class ArtifactMetaDataDto {
     public void setGlobalId(long globalId) {
         this.globalId = globalId;
     }
-
 }

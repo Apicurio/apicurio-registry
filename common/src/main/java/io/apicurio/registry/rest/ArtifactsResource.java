@@ -1,17 +1,9 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.Long;
-import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -22,6 +14,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -55,6 +54,25 @@ public interface ArtifactsResource {
   @PUT
   @Consumes("application/json")
   void updateArtifactMetaData(@PathParam("artifactId") String artifactId, EditableMetaData data);
+
+  /**
+   * Gets the metadata for an artifact that matches the raw content.  Searches the registry
+   * for a version of the given artifact matching the content provided in the body of the
+   * POST.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * No artifact version matching the provided content exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/meta")
+  @POST
+  @Produces("application/json")
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
+      InputStream data);
 
   /**
    * Returns information about a single rule configured for an artifact.  This is useful
@@ -126,7 +144,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   Response getArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
@@ -291,7 +309,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-yaml", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**

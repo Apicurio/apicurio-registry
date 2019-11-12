@@ -36,10 +36,10 @@ For example:
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -link apicurio/apicurio-registry-kafka:latest
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafka:latest
 ----
 
-. Send a test request using the {prodname} REST API. For example, enter the following curl command to create a simple artifact:
+. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
 +
 [source,bash]
 ----

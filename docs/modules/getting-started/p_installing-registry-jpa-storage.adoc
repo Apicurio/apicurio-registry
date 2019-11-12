@@ -36,7 +36,7 @@ $ docker run -it -p 8080:8080 \
 apicurio/apicurio-registry-jpa:latest
 ----
 
-. Send a test request using the {prodname} REST API. For example, enter the following curl command to create a simple artifact:
+. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
 +
 [source,bash]
 ----

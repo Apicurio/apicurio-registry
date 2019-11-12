@@ -17,7 +17,7 @@ ifdef::rh-service-registry[]
 endif::[]
  
 .Prerequisites
-* * xref:intro-to-registry[]
+* xref:intro-to-registry[]
 * You must have Docker installed and the Docker daemon running.
 
 .Additional resources

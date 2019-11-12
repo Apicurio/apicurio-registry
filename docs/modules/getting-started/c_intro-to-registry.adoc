@@ -98,4 +98,4 @@ For detailed information, see the link:files/index.html[{prodname} REST API docu
 
 This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
 
-For more details, see the link:https://github.com/alesj/registry-demo[{prodname} Demo].
+For more details, see the link:https://github.com/alesj/registry-demo[{prodname} demo].

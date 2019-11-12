@@ -17,16 +17,6 @@ $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
 ----
 + 
 For more details, see https://kafka.apache.org/quickstart. 
-* You must have already set up your Kafka topics. For example:
-+
-[source,bash]
-----
-./kafka-topics.sh --zookeeper localhost --create --topic storage-topic --partitions 1 --replication-factor 1  --config cleanup.policy=compact
-./kafka-topics.sh --zookeeper localhost --create --topic global-id-topic --partitions 1 --replication-factor 1 --config cleanup.policy=compact
-./kafka-topics.sh --zookeeper localhost --create --topic input-topic --partitions 1 --replication-factor 1  --config cleanup.policy=compact
-./kafka-topics.sh --zookeeper localhost --create --topic logx-topic --partitions 1 --replication-factor 1 --config cleanup.policy=compact
-./kafka-topics.sh --zookeeper localhost --create --topic dbx-topic --partitions 1 --replication-factor 1 --config cleanup.policy=compact
-----
 * Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-streams.
 
 .Procedure
@@ -45,10 +35,10 @@ For example:
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -e "APPLICATION_ID=my-kafka-streams-app" --link apicurio/apicurio-registry-kafka-streams:latest
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -e "APPLICATION_ID=my-kafka-streams-app" apicurio/apicurio-registry-kafka-streams:latest
 ----
 
-. Send a test request using the {prodname} REST API. For example, enter the following curl command to create a simple artifact:
+. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
 +
 [source,bash]
 ----

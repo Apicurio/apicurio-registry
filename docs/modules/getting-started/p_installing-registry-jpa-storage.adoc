@@ -1,0 +1,53 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-jpa-storage"]
+= Installing {prodname} with JPA storage
+
+This section explains how to install and run {prodname} with Java Persistence API storage from a container image. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* You must already have a PostgreSQL database server installed and running. For example: 
++
+[source,bash]
+----
+$ postgres -D /usr/local/pgsql/data
+----
++
+For more details, see https://www.postgresql.org/docs/12/server-start.html
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+
+.Procedure
+. Get the {prodname} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry-jpa
+----
+. Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables: 
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 \   
+-e "QUARKUS_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "QUARKUS_DATASOURCE_USERNAME=apicurio-registry" \
+-e "QUARKUS_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry-jpa:latest
+----
+
+. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' http://localhost:8080/artifacts 
+----
+. Verify that the response includes the expected JSON body. For example:
++
+[source,bash]
+----
+{"createdOn":1571757704485,"modifiedOn":1571757704485,"id":"448bc6fe-bbf6-41c9-ba35-1a96a0d198bf","version":1,"type":"AVRO"}
+----
+
+.Additional resources
+• For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].

@@ -1,0 +1,101 @@
+// Metadata created by nebel
+
+[id="intro-to-registry"]
+= {prodname} overview
+
+{prodname} is a datastore for standard event schemas and API designs. It enables developers to share and manage the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry at runtime without needing to redeploy. 
+
+{prodname} also enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.
+
+ifdef::rh-service-registry[]
+
+[IMPORTANT]
+====
+{prodnamefull} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+
+endif::[]
+
+== Supported artifact types
+{prodname} supports the following artifact types:
+
+[%header,cols=2*] 
+|===
+|Type
+|Description
+|`AVRO`
+|Apache Avro schema
+|`PROTOBUF`
+|Google protocol buffers schema 
+|`JSON`
+|JSON Schema
+|`OPENAPI`
+|OpenAPI specification
+|`ASYNCAPI`
+|AsyncAPI specification
+|===
+
+== Storage implementations
+{prodname} provides the following pluggable storage options: 
+
+* In-memory 
+* Java Persistence API 
+* Apache Kafka 
+* Apache Kafka Streams
+
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when using this storage implementation. All other storage options are suitable for development and production environments.
+
+For more details, see https://github.com/Apicurio/apicurio-registry. 
+
+== Container images
+{prodname} provides the following container images for the available storage options: 
+
+ifdef::apicurio-registry[]
+[%header,cols=2*] 
+|===
+|Storage option
+|Container Image
+|In-memory
+|https://hub.docker.com/r/apicurio/apicurio-registry-mem
+|Java Persistence API  
+|https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+|Apache Kafka
+|https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
+|Apache Kafka Streams
+|https://hub.docker.com/r/apicurio/apicurio-registry-streams
+|===
+endif::[]
+
+ifdef::rh-service-registry[]
+[%header,cols=2*] 
+|===
+|Storage option
+|Container Image
+|Apache Kafka
+|https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry
+|===
+endif::[]
+
+.Additional resources
+
+* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+
+== {prodname} REST API
+The {prodname} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
+
+* Schema and API artifacts
+* Versions 
+* Metadata
+* Global rules
+* Artifact rules 
+
+For detailed information, see the link:files/index.html[{prodname} REST API documentation].
+
+== {prodname} demo
+{prodname} provides a demo of Avro serialization/deserialization based on Apache Kafka Streams storage. 
+
+This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
+
+For more details, see the link:https://github.com/alesj/registry-demo[{prodname} demo].

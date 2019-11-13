@@ -120,7 +120,6 @@
 		<apicurio-data-models.version>1.0.14.Final</apicurio-data-models.version>
 
 		<!-- Dependency versions -->
-		<junit.version>5.5.2</junit.version>
 		<lombok.version>1.18.10</lombok.version>
 		<h2.version>1.4.199</h2.version>
 
@@ -255,12 +254,6 @@
 			</dependency>
 
 			<!-- Tests -->
-			<dependency>
-				<groupId>org.junit.jupiter</groupId>
-				<artifactId>junit-jupiter-api</artifactId>
-				<version>${junit.version}</version>
-				<scope>test</scope>
-			</dependency>
 			<dependency>
 				<groupId>io.confluent</groupId>
 				<artifactId>kafka-avro-serializer</artifactId>

@@ -22,8 +22,9 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.net.HttpURLConnection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import javax.ws.rs.core.Response;
@@ -34,13 +35,34 @@ import javax.ws.rs.core.Response;
 public abstract class ContentRegistryMojo extends AbstractRegistryMojo {
 
     @Parameter(required = true)
-    Map<String, File> ids = new HashMap<>();
+    Map<String, File> ids = new LinkedHashMap<>();
 
     @Parameter
     ArtifactType artifactType;
 
     @Parameter
-    Map<String, ArtifactType> artifactTypes = new HashMap<>();
+    Map<String, ArtifactType> artifactTypes = new LinkedHashMap<>();
+
+    protected ArtifactType getArtifactType(String key) {
+        return artifactTypes.getOrDefault(key, artifactType);
+    }
+
+    protected Map<String, StreamHandle> loadArtifacts(Map<String, File> artifacts) {
+        Map<String, StreamHandle> results = new LinkedHashMap<>();
+        for (Map.Entry<String, File> kvp : artifacts.entrySet()) {
+            results.put(kvp.getKey(), () -> {
+                getLog().debug(
+                    String.format(
+                        "Loading artifact for id [%s] from %s.",
+                        kvp.getKey(),
+                        kvp.getValue()
+                    )
+                );
+                return new FileInputStream(kvp.getValue());
+            });
+        }
+        return results;
+    }
 
     protected <R> R unwrap(CompletionStage<R> cs) {
         return ConcurrentUtil.result(cs);

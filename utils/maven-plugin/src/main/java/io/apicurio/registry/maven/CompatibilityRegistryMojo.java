@@ -21,7 +21,7 @@ import io.apicurio.registry.types.ArtifactType;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 
-import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
@@ -38,19 +38,21 @@ public class CompatibilityRegistryMojo extends ContentRegistryMojo {
     protected void executeInternal() throws MojoExecutionException {
         validate();
 
-        Map<String, byte[]> artifacts = loadArtifacts(ids);
+        Map<String, StreamHandle> artifacts = loadArtifacts(ids);
         compatibility = new LinkedHashMap<>();
 
         int errors = 0;
-        for (Map.Entry<String, byte[]> kvp : artifacts.entrySet()) {
+        for (Map.Entry<String, StreamHandle> kvp : artifacts.entrySet()) {
             try {
-                ArtifactType at = artifactTypes.getOrDefault(kvp.getKey(), artifactType);
+                ArtifactType at = getArtifactType(kvp.getKey());
 
                 if (getLog().isDebugEnabled()) {
                     getLog().debug(String.format("Testing artifact [%s]: '%s'", at, kvp.getKey()));
                 }
 
-                getClient().testCompatibility(kvp.getKey(), at, new ByteArrayInputStream(kvp.getValue()));
+                try (InputStream stream = kvp.getValue().stream()) {
+                    getClient().testCompatibility(kvp.getKey(), at, stream);
+                }
                 getLog().info(String.format("Artifact '%s' is compatible.", kvp.getKey()));
                 compatibility.put(kvp.getKey(), Boolean.TRUE);
             } catch (WebApplicationException e) {

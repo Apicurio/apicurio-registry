@@ -22,11 +22,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,63 +37,58 @@ import javax.ws.rs.core.Response;
 @Mojo(name = "download")
 public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
-    @Parameter(defaultValue = ".avsc")
-    String artifactExtension;
     @Parameter(required = true)
     List<String> ids = new ArrayList<>();
+
+    @Parameter(defaultValue = ".avsc")
+    String artifactExtension;
+
+    @Parameter
+    Map<String, String> artifactExtensions = new LinkedHashMap<>();
+
     @Parameter(required = true)
     File outputDirectory;
 
-    Map<String, byte[]> downloadSchemas(Collection<String> ids) throws MojoExecutionException {
-        Map<String, byte[]> results = new LinkedHashMap<>();
-
-        for (String id : ids) {
-            try {
-                getLog().info(String.format("Downloading latest content for %s.", id));
-                Response response = getClient().getLatestArtifact(id);
-                results.put(id, response.readEntity(byte[].class));
-            } catch (Exception ex) {
-                throw new MojoExecutionException(
-                    String.format("Exception thrown while downloading content for %s.", id),
-                    ex
-                );
-            }
-        }
-
-        return results;
-    }
+    @Parameter
+    boolean replaceExisting = true;
 
     @Override
     protected void executeInternal() throws MojoExecutionException {
         try {
-            getLog().debug(String.format("Checking if '%s' exists and is not a directory.", this.outputDirectory));
+            getLog().debug(String.format("Checking if '%s' exists and is not a directory.", outputDirectory));
             if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
                 throw new IllegalStateException("outputDirectory must be a directory");
             }
-            getLog().debug(String.format("Checking if outputDirectory('%s') exists.", this.outputDirectory));
+            getLog().debug(String.format("Checking if outputDirectory('%s') exists.", outputDirectory));
             if (!outputDirectory.isDirectory()) {
-                getLog().debug(String.format("Creating outputDirectory('%s').", this.outputDirectory));
+                getLog().debug(String.format("Creating outputDirectory('%s').", outputDirectory));
                 if (!outputDirectory.mkdirs()) {
-                    throw new IllegalStateException("Could not create output directory " + this.outputDirectory);
+                    throw new IllegalStateException("Could not create output directory " + outputDirectory);
                 }
             }
         } catch (Exception ex) {
             throw new MojoExecutionException("Exception thrown while creating outputDirectory", ex);
         }
 
-        Map<String, byte[]> artifacts = downloadSchemas(ids);
-        for (Map.Entry<String, byte[]> kvp : artifacts.entrySet()) {
-            String fileName = String.format("%s%s", kvp.getKey(), artifactExtension);
-            File outputFile = new File(this.outputDirectory, fileName);
+        for (String id : ids) {
+            String ext = artifactExtensions.getOrDefault(id, artifactExtension);
+            String fileName = String.format("%s%s", id, ext);
+            File outputFile = new File(outputDirectory, fileName);
 
-            getLog().info(String.format("Writing artifact for id [%s] to %s.", kvp.getKey(), outputFile));
+            getLog().info(String.format("Writing artifact for id [%s] to %s.", id, outputFile));
 
-            try (OutputStream writer = new FileOutputStream(outputFile)) {
-                writer.write(kvp.getValue());
-            } catch (IOException ex) {
+            try {
+                Response response = getClient().getLatestArtifact(id);
+                try (InputStream stream = response.readEntity(InputStream.class)) {
+                    if (replaceExisting) {
+                        Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    } else {
+                        Files.copy(stream, outputFile.toPath());
+                    }
+                }
+            } catch (Exception ex) {
                 throw new MojoExecutionException(
-                    String.format("Exception thrown while writing subject('%s') schema to %s", kvp.getKey(),
-                                  outputFile),
+                    String.format("Exception thrown while writing artifact [%s] to %s", id, outputFile),
                     ex
                 );
             }

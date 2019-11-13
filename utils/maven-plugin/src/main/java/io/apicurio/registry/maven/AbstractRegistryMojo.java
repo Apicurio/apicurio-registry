@@ -19,17 +19,10 @@ package io.apicurio.registry.maven;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.IoUtil;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * @author Ales Justin
@@ -67,32 +60,4 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException;
-
-    protected Map<String, byte[]> loadArtifacts(Map<String, File> artifacts) {
-        int errorCount = 0;
-        Map<String, byte[]> results = new LinkedHashMap<>();
-
-        for (Map.Entry<String, File> kvp : artifacts.entrySet()) {
-            getLog().debug(
-                String.format(
-                    "Loading artifact for id [%s] from %s.",
-                    kvp.getKey(),
-                    kvp.getValue()
-                )
-            );
-
-            try (FileInputStream inputStream = new FileInputStream(kvp.getValue())) {
-                results.put(kvp.getKey(), IoUtil.toBytes(inputStream));
-            } catch (IOException ex) {
-                getLog().error("Exception while loading " + kvp.getValue(), ex);
-                errorCount++;
-            }
-        }
-
-        if (errorCount > 0) {
-            throw new IllegalStateException("One or more artifacts could not be loaded.");
-        }
-
-        return results;
-    }
 }

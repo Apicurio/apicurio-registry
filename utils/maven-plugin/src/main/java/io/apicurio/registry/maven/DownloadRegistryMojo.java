@@ -40,6 +40,9 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     @Parameter(required = true)
     List<String> ids = new ArrayList<>();
 
+    @Parameter
+    Map<String, Integer> versions = new LinkedHashMap<>();
+
     @Parameter(defaultValue = ".avsc")
     String artifactExtension;
 
@@ -78,7 +81,10 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
 
             try {
-                Response response = getClient().getLatestArtifact(id);
+                Integer version = versions.get(id);
+                Response response = (version != null) ?
+                                    getClient().getArtifactVersion(version, id) :
+                                    getClient().getLatestArtifact(id);
                 try (InputStream stream = response.readEntity(InputStream.class)) {
                     if (replaceExisting) {
                         Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);

@@ -27,9 +27,9 @@ Every rule is simply a name and some optional configuration. The storage layer m
 
 Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule with a `Map<String,String>`, or a compatibility rule with a single property of `BACKWARD` for compatibility with existing versions.
     
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the rule report the reason why in an HTTP error response.
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the registry will report the reason why in an HTTP error response.
 
-Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules mostly do not.
+Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules do not.
 
 == Supported rule types
 You can specify the following rule types to govern content evolution in the registry: 
@@ -39,9 +39,12 @@ You can specify the following rule types to govern content evolution in the regi
 |Type
 |Description
 |`VALIDITY`
-| Validates the data before adding it to the registry. The validation can be syntax only or syntax and semantic (`FULL`).
+a| Validates the data before adding it to the registry. Includes the following values:
+
+* `FULL`: The validation can be both syntax and semantic.
+* `SYNTAX_ONLY`: The validation can be syntax only.
 |`COMPATIBILITY`
-a| Ensures that newly added artifacts are compatible with previously added versions. Includes the following:
+a| Ensures that newly added artifacts are compatible with previously added versions. Includes the following values:
 
 * `FULL`: The new artifact is forward and backward compatible with the latest artifact.
 * `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.

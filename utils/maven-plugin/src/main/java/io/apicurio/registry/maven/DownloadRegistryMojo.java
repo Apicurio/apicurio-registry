@@ -75,7 +75,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             String fileName = String.format("%s%s", id, ext);
             File outputFile = new File(outputDirectory, fileName);
 
-            getLog().info(String.format("Writing artifact for id [%s] to %s.", id, outputFile));
+            getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
 
             try {
                 Response response = getClient().getLatestArtifact(id);
@@ -88,7 +88,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(
-                    String.format("Exception thrown while writing artifact [%s] to %s", id, outputFile),
+                    String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
                     ex
                 );
             }

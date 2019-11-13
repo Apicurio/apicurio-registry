@@ -35,7 +35,7 @@ import javax.ws.rs.core.Response;
 public abstract class ContentRegistryMojo extends AbstractRegistryMojo {
 
     @Parameter(required = true)
-    Map<String, File> ids = new LinkedHashMap<>();
+    Map<String, File> artifacts = new LinkedHashMap<>();
 
     @Parameter
     ArtifactType artifactType;
@@ -47,7 +47,7 @@ public abstract class ContentRegistryMojo extends AbstractRegistryMojo {
         return artifactTypes.getOrDefault(key, artifactType);
     }
 
-    protected Map<String, StreamHandle> loadArtifacts(Map<String, File> artifacts) {
+    protected Map<String, StreamHandle> prepareArtifacts() {
         Map<String, StreamHandle> results = new LinkedHashMap<>();
         for (Map.Entry<String, File> kvp : artifacts.entrySet()) {
             results.put(kvp.getKey(), () -> {

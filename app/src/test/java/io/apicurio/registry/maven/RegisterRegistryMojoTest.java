@@ -66,7 +66,7 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
             expectedVersions.put(valueSubject, version);
         }
 
-        mojo.ids = idToFile;
+        mojo.artifacts = idToFile;
         mojo.artifactType = ArtifactType.AVRO;
         mojo.execute();
 

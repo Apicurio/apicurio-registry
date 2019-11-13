@@ -83,7 +83,7 @@ public class CompatibilityRegistryMojoTest extends RegistryMojoTestBase {
         File file = new File(tempDirectory, artifactId + ".avsc");
         writeContent(file, schema2.toString().getBytes());
 
-        mojo.ids = Collections.singletonMap(artifactId, file);
+        mojo.artifacts = Collections.singletonMap(artifactId, file);
         mojo.artifactType = ArtifactType.AVRO;
         mojo.execute();
 

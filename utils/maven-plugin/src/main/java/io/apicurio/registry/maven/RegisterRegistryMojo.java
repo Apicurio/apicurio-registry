@@ -63,11 +63,10 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
     protected void executeInternal() throws MojoExecutionException {
         validate();
 
-        Map<String, StreamHandle> artifacts = loadArtifacts(ids);
         artifactVersions = new LinkedHashMap<>();
 
         int errors = 0;
-        for (Map.Entry<String, StreamHandle> kvp : artifacts.entrySet()) {
+        for (Map.Entry<String, StreamHandle> kvp : prepareArtifacts().entrySet()) {
             try {
                 ArtifactType at = getArtifactType(kvp.getKey());
 

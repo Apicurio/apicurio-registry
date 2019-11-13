@@ -45,7 +45,7 @@ endif::[]
 * Apache Kafka 
 * Apache Kafka Streams
 
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when using this storage implementation. All other storage options are suitable for development and production environments.
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting this storage implementation. All other storage options are suitable for development and production environments.
 
 For more details, see https://github.com/Apicurio/apicurio-registry. 
 

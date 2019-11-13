@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2018 Confluent Inc. (adapted from their Mojo)
  * Copyright 2019 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

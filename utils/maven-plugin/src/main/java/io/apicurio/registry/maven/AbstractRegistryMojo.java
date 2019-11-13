@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2018 Confluent Inc. (adapted from their Mojo)
  * Copyright 2019 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,9 +43,9 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     protected RegistryService getClient() {
         if (client == null) {
-            this.client = RegistryClient.cached(registryUrl);
+            client = RegistryClient.cached(registryUrl);
         }
-        return this.client;
+        return client;
     }
 
     protected void setClient(RegistryService client) {

@@ -50,4 +50,9 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-• For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].
+* For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].
+* For details on installing on OpenShift, see the following:
+** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[Apicurio registry OpenShift template]
+** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v4.x]
+** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v3.x]
+* For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].

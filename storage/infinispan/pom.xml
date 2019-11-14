@@ -60,6 +60,12 @@
             <artifactId>apicurio-registry-utils-serde</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <type>maven-plugin</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
     <build>

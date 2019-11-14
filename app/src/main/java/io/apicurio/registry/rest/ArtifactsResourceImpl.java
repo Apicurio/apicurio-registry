@@ -16,22 +16,6 @@
 
 package io.apicurio.registry.rest;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -54,6 +38,21 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -127,6 +126,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             return ArtifactType.PROTOBUF;
         }
         return null;
+    }
+
+    @Override
+    public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+        Objects.requireNonNull(artifactId);
+        String content = IoUtil.toString(data);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        // TODO -- canonical content!!
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
     /**

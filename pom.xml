@@ -76,6 +76,7 @@
 		<module>common</module>
 		<module>app</module>
 		<module>client</module>
+		<module>utils/maven-plugin</module>
 		<module>utils/serde</module>
 		<module>distro</module>
 		<module>tests</module>
@@ -164,6 +165,13 @@
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-utils-serde</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-maven-plugin</artifactId>
+				<scope>test</scope>
+				<version>${project.version}</version>
+				<type>maven-plugin</type>
 			</dependency>
 			<dependency>
 				<groupId>io.apicurio</groupId>

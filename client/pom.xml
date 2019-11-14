@@ -25,5 +25,26 @@
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-client-microprofile</artifactId>
         </dependency>
+
+        <!-- Add exclusions, so users don't have to -->
+
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.microprofile.config</groupId>
+            <artifactId>microprofile-config-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Make sure we have JSON support -->
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jackson2-provider</artifactId>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 </project>

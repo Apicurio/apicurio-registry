@@ -30,11 +30,16 @@ import java.util.concurrent.CompletionStage;
 import javax.ws.rs.WebApplicationException;
 
 /**
+ * Register artifacts against registry.
+ *
  * @author Ales Justin
  */
 @Mojo(name = "register")
 public class RegisterRegistryMojo extends ContentRegistryMojo {
 
+    /**
+     * Artifact versions / results of registry.
+     */
     Map<String, Integer> artifactVersions;
 
     public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) throws IOException {

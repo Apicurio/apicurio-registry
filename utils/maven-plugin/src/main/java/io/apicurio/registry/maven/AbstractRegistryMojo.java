@@ -25,10 +25,17 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
+ * Base class for all Registry Mojo's.
+ * It handles RegistryService's (aka client) lifecycle.
+ *
  * @author Ales Justin
  */
 public abstract class AbstractRegistryMojo extends AbstractMojo {
 
+    /**
+     * The registry's url.
+     * e.g. http://localhost:8080
+     */
     @Parameter(required = true)
     String registryUrl;
 

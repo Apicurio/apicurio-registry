@@ -16,6 +16,14 @@
 
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collections;
@@ -26,18 +34,9 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import javax.enterprise.inject.Vetoed;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
-
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -183,9 +182,9 @@ class CachedRegistryService implements RegistryService {
     }
 
     @Override
-    public void testCompatibility(String artifactId, ArtifactType xRegistryArtifactType, InputStream content) {
+    public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream content) {
         // no sense in caching this
-        getDelegate().testCompatibility(artifactId, xRegistryArtifactType, content);
+        getDelegate().testUpdateArtifact(artifactId, xRegistryArtifactType, content);
     }
 
     // ---- Auto reset

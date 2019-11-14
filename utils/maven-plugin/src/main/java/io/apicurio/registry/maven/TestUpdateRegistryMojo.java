@@ -27,18 +27,24 @@ import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 
 /**
+ * Test artifact against current artifact rules,
+ * if an update is possible / valid.
+ *
  * @author Ales Justin
  */
-@Mojo(name = "compatibility")
-public class CompatibilityRegistryMojo extends ContentRegistryMojo {
+@Mojo(name = "test-update")
+public class TestUpdateRegistryMojo extends ContentRegistryMojo {
 
-    Map<String, Boolean> compatibility;
+    /**
+     * Map of test results
+     */
+    Map<String, Boolean> results;
 
     @Override
     protected void executeInternal() throws MojoExecutionException {
         validate();
 
-        compatibility = new LinkedHashMap<>();
+        results = new LinkedHashMap<>();
 
         int errors = 0;
         for (Map.Entry<String, StreamHandle> kvp : prepareArtifacts().entrySet()) {
@@ -50,13 +56,13 @@ public class CompatibilityRegistryMojo extends ContentRegistryMojo {
                 }
 
                 try (InputStream stream = kvp.getValue().stream()) {
-                    getClient().testCompatibility(kvp.getKey(), at, stream);
+                    getClient().testUpdateArtifact(kvp.getKey(), at, stream);
                 }
-                getLog().info(String.format("Artifact '%s' is compatible.", kvp.getKey()));
-                compatibility.put(kvp.getKey(), Boolean.TRUE);
+                getLog().info(String.format("Artifact '%s' can be updated.", kvp.getKey()));
+                results.put(kvp.getKey(), Boolean.TRUE);
             } catch (WebApplicationException e) {
                 if (isBadRequest(e.getResponse())) {
-                    compatibility.put(kvp.getKey(), Boolean.FALSE);
+                    results.put(kvp.getKey(), Boolean.FALSE);
                 } else {
                     errors++;
                     getLog().error(

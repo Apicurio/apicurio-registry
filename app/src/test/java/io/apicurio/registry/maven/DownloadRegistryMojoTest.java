@@ -57,7 +57,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
             cs.toCompletableFuture().get();
         }
 
-        mojo.ids = Collections.singletonList(artifactId);
+        mojo.ids = Collections.singleton(artifactId);
         mojo.artifactExtension = ".avsc";
         mojo.outputDirectory = tempDirectory;
         mojo.execute();

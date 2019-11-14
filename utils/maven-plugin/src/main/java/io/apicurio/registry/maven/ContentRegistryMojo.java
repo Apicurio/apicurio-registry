@@ -30,19 +30,39 @@ import java.util.concurrent.CompletionStage;
 import javax.ws.rs.core.Response;
 
 /**
+ * Base class for Mojo's that handle content.
+ *
  * @author Ales Justin
  */
 public abstract class ContentRegistryMojo extends AbstractRegistryMojo {
 
+    /**
+     * Map of <artifactId, path-to-artifact-file>,
+     * this artifacts then get used in the mojo.
+     */
     @Parameter(required = true)
     Map<String, File> artifacts = new LinkedHashMap<>();
 
+    /**
+     * Default artifact type, if per-artifact artifact type is not set.
+     */
     @Parameter
     ArtifactType artifactType;
 
+    /**
+     * Map of <artifactId, artifact type>,
+     * aka map artifact ids with their artifact types.
+     */
     @Parameter
     Map<String, ArtifactType> artifactTypes = new LinkedHashMap<>();
 
+    /**
+     * Get artifact type for artifact id.
+     * If no explicit mapping is found, default artifact type is returned.
+     *
+     * @param key the artifact id
+     * @return artifact type, can be null
+     */
     protected ArtifactType getArtifactType(String key) {
         return artifactTypes.getOrDefault(key, artifactType);
     }

@@ -25,30 +25,51 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.ws.rs.core.Response;
 
 /**
+ * Download artifacts.
+ *
  * @author Ales Justin
  */
 @Mojo(name = "download")
 public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
+    /**
+     * Set of artifact ids to download.
+     */
     @Parameter(required = true)
-    List<String> ids = new ArrayList<>();
+    Set<String> ids = new LinkedHashSet<>();
 
+    /**
+     * Map of <artifact-id, artifact-version>.
+     * If such mapping exists, particular version will be downloaded,
+     * instead of default latest one.
+     */
     @Parameter
     Map<String, Integer> versions = new LinkedHashMap<>();
 
+    /**
+     * Default artifact file extension to use when writing the artifact to file-system.
+     */
     @Parameter(defaultValue = ".avsc")
     String artifactExtension;
 
+    /**
+     * Map of <artifact-id, artifact extension>,
+     * aka mapping of explicit artifact extension,
+     * if no such extension exists, default one is used.
+     */
     @Parameter
     Map<String, String> artifactExtensions = new LinkedHashMap<>();
 
+    /**
+     * Output directory, where artifacts get written.
+     */
     @Parameter(required = true)
     File outputDirectory;
 

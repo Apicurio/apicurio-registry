@@ -39,12 +39,12 @@ import java.util.concurrent.CompletionStage;
  * @author Ales Justin
  */
 @QuarkusTest
-public class CompatibilityRegistryMojoTest extends RegistryMojoTestBase {
-    CompatibilityRegistryMojo mojo;
+public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
+    TestUpdateRegistryMojo mojo;
 
     @BeforeEach
     public void createMojo() {
-        this.mojo = new CompatibilityRegistryMojo();
+        this.mojo = new TestUpdateRegistryMojo();
         this.mojo.registryUrl = "http://localhost:8081";
     }
 
@@ -87,7 +87,7 @@ public class CompatibilityRegistryMojoTest extends RegistryMojoTestBase {
         mojo.artifactType = ArtifactType.AVRO;
         mojo.execute();
 
-        Assertions.assertTrue(mojo.compatibility.get(artifactId));
+        Assertions.assertTrue(mojo.results.get(artifactId));
     }
 
 }

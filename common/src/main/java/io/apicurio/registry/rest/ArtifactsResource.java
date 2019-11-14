@@ -1,9 +1,15 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -15,20 +21,14 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
 @Path("/artifacts")
 public interface ArtifactsResource {
   /**
-   * Test if artifact is compatible with previous versions.
+   * Test if artifact is valid with previous versions,
+   * and as such can be updated.
    *
    * If the test content violates one of the rules configured for the artifact you'll receive a HTTP error `400`.
    * If all is OK, HTTP 200 code is returned.
@@ -36,9 +36,9 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/test")
   @PUT
   @Consumes("application/json")
-  void testCompatibility(@PathParam("artifactId") String artifactId,
-                         @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-                         InputStream content);
+  void testUpdateArtifact(@PathParam("artifactId") String artifactId,
+                          @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+                          InputStream content);
 
   /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include

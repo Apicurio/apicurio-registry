@@ -1,0 +1,10 @@
+// Metadata created by nebel
+//
+
+[id="intro-to-the-registry"]
+= Introduction to {prodname}
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+//INCLUDES
+include::../../modules/getting-started/c_intro-to-registry.adoc[leveloffset=+1]
+include::../../modules/getting-started/c_registry_rules.adoc[leveloffset=+1]

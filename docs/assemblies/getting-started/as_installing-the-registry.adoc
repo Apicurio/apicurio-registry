@@ -1,0 +1,36 @@
+// Metadata created by nebel
+
+[id="installing-the-registry"]
+= Installing {prodname}
+
+{prodname} is a datastore for event schemas and API designs. This topic explains how to install and run {prodname} container images for the following storage options:
+
+ifdef::apicurio-registry[]
+* In-memory
+* Java Persistence API
+* Apache Kafka
+* Apache Kafka Streams
+endif::[]
+ 
+ifdef::rh-service-registry[]
+* Apache Kafka
+endif::[]
+ 
+.Prerequisites
+* xref:intro-to-registry[]
+* You must have Docker installed and the Docker daemon running.
+
+.Additional resources
+* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+
+//INCLUDES
+ifdef::apicurio-registry[]
+include::../../modules/getting-started/p_installing-registry-in-memory-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-jpa-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/p_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
+endif::[]
+
+ifdef::rh-service-registry[]
+include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
+endif::[]

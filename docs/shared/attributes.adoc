@@ -1,0 +1,41 @@
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+:toc:
+:toclevels: 4
+:numbered:
+
+// Branding
+:apicurio-registry:
+:prodname: Apicurio Registry
+:prodnamefull: Apicurio Registry
+:version: 1.0
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:  
+:ndash: –
+
+//Include attributes for deep linking
+include::attributes-links.adoc[]
+
+// Download URLs
+:download-url-xxx: 
+
+// Toggle downstream content "on"
+// The following attributes are used to conditionalize content from the Apicurio upstream project.
+// * Upstream-only content is tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content is tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+//:rh-service-registry:
+//:prodname: Service Registry
+//:prodnamefull: Red Hat Service Registry
+//:reg: ®
+//:reldate: December 2019
+//:trade: ™
+//:previousVersion: 
+//:version: 1.0
+//:productpkg: red_hat_servreg

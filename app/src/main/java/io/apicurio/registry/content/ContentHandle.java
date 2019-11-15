@@ -24,7 +24,7 @@ import java.io.InputStream;
 public interface ContentHandle {
 
     static ContentHandle create(InputStream stream) {
-        return new LazyContentHandle(stream);
+        return new StreamContentHandle(stream);
     }
 
     static ContentHandle create(byte[] bytes) {

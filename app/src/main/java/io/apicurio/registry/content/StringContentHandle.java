@@ -16,28 +16,23 @@
 
 package io.apicurio.registry.content;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
  * @author Ales Justin
  */
 class StringContentHandle extends AbstractContentHandle {
-    private final String content;
 
     StringContentHandle(String content) {
         this.content = content;
     }
 
     @Override
-    public InputStream stream() {
-        return new ByteArrayInputStream(bytes());
-    }
-
-    @Override
     public byte[] bytes() {
-        return content.getBytes(StandardCharsets.UTF_8);
+        if (bytes == null) {
+            bytes = content.getBytes(StandardCharsets.UTF_8);
+        }
+        return bytes;
     }
 
     @Override

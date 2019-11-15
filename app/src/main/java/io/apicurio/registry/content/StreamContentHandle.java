@@ -27,13 +27,10 @@ import java.nio.charset.StandardCharsets;
 /**
  * @author Ales Justin
  */
-class LazyContentHandle extends AbstractContentHandle {
+class StreamContentHandle extends AbstractContentHandle {
     private InputStream stream;
 
-    private byte[] bytes;
-    private String content;
-
-    LazyContentHandle(InputStream stream) {
+    StreamContentHandle(InputStream stream) {
         this.stream = stream;
     }
 

@@ -3,6 +3,7 @@ package io.apicurio.registry.utils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
@@ -35,6 +36,17 @@ public class IoUtil {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public static long copy(InputStream input, OutputStream output) throws IOException {
+        final byte[] buffer = new byte[8192];
+        int n;
+        long count = 0;
+        while ((n = input.read(buffer)) != -1) {
+            output.write(buffer, 0, n);
+            count += n;
+        }
+        return count;
     }
 
 }

@@ -16,24 +16,15 @@
 
 package io.apicurio.registry.content;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
  * @author Ales Justin
  */
 class BytesContentHandle extends AbstractContentHandle {
-    private final byte[] bytes;
-    private String content;
 
     BytesContentHandle(byte[] bytes) {
         this.bytes = bytes;
-    }
-
-    @Override
-    public InputStream stream() {
-        return new ByteArrayInputStream(bytes());
     }
 
     @Override

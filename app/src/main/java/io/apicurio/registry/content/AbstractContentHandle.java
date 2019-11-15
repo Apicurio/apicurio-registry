@@ -16,12 +16,23 @@
 
 package io.apicurio.registry.content;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 
 /**
  * @author Ales Justin
  */
 abstract class AbstractContentHandle implements ContentHandle {
+
+    protected byte[] bytes;
+    protected String content;
+
+    @Override
+    public InputStream stream() {
+        return new ByteArrayInputStream(bytes());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -93,7 +93,7 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 
 		<!-- Quarkus Version -->
-		<quarkus.version>0.26.1</quarkus.version>
+		<quarkus.version>0.28.1</quarkus.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.6</jandex.version>

@@ -16,13 +16,10 @@
 
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.ContentHandle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.rules.validity.InvalidContentException;
-import io.apicurio.registry.rules.validity.ProtobufContentValidator;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
  * Tests the Protobuf content validator.
@@ -32,14 +29,14 @@ public class ProtobufContentValidatorTest extends AbstractRegistryTestBase {
     
     @Test
     public void testValidProtobufSchema() throws Exception {
-        String content = resourceToString("protobuf-valid.proto");
+        ContentHandle content = resourceToContentHandle("protobuf-valid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testInvalidProtobufSchema() throws Exception {
-        String content = resourceToString("protobuf-invalid.proto");
+        ContentHandle content = resourceToContentHandle("protobuf-invalid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);

@@ -16,13 +16,10 @@
 
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.ContentHandle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.rules.validity.AsyncApiContentValidator;
-import io.apicurio.registry.rules.validity.InvalidContentException;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
  * Tests the AsyncAPI content validator.
@@ -32,21 +29,21 @@ public class AsyncApiContentValidatorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testValidSyntax() throws Exception {
-        String content = resourceToString("asyncapi-valid-syntax.json");
+        ContentHandle content = resourceToContentHandle("asyncapi-valid-syntax.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testValidSemantics() throws Exception {
-        String content = resourceToString("asyncapi-valid-semantics.json");
+        ContentHandle content = resourceToContentHandle("asyncapi-valid-semantics.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         validator.validate(ValidityLevel.FULL, content);
     }
 
     @Test
     public void testInvalidSyntax() throws Exception {
-        String content = resourceToString("asyncapi-invalid-syntax.json");
+        ContentHandle content = resourceToContentHandle("asyncapi-invalid-syntax.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
@@ -55,7 +52,7 @@ public class AsyncApiContentValidatorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testInvalidSemantics() throws Exception {
-        String content = resourceToString("asyncapi-invalid-semantics.json");
+        ContentHandle content = resourceToContentHandle("asyncapi-invalid-semantics.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.FULL, content);

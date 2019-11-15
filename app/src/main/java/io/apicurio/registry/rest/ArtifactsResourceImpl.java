@@ -32,12 +32,12 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
-import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -88,7 +88,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * @param xArtifactType
      * @param request
      */
-    private static final ArtifactType determineArtifactType(String content, ArtifactType xArtifactType, HttpServletRequest request) {
+    private static final ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, HttpServletRequest request) {
         ArtifactType artifactType = xArtifactType;
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(request);
@@ -131,9 +131,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
-        String content = IoUtil.toString(data);
+        ContentHandle content = ContentHandle.create(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
@@ -147,7 +146,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (artifactId == null || artifactId.trim().isEmpty()) {
             artifactId = idGenerator.generate();
         }
-        String content = IoUtil.toString(data);
+        ContentHandle content = ContentHandle.create(data);
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         // TODO -- canonical content!!
@@ -177,7 +176,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
-        String content = IoUtil.toString(data);
+        ContentHandle content = ContentHandle.create(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
@@ -210,7 +209,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
-        String content = IoUtil.toString(data);
+        ContentHandle content = ContentHandle.create(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
@@ -316,7 +315,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      */
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
-        String content = IoUtil.toString(data);
+        ContentHandle content = ContentHandle.create(data);
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }

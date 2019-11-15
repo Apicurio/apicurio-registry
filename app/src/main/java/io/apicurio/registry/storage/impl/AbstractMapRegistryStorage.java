@@ -30,6 +30,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
@@ -105,10 +106,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {
         return StoredArtifact.builder()
-            .content(content.get(MetaDataKeys.CONTENT))
-            .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
-            .id(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
-            .build();
+                             .content(ContentHandle.create(content.get(MetaDataKeys.CONTENT)))
+                             .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
+                             .id(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
+                             .build();
     }
 
     protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
@@ -118,7 +119,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
     }
 
-    protected ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, String content, boolean create, long globalId)
+    protected ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content, boolean create, long globalId)
             throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         if (artifactId == null) {
             if (!create) {
@@ -143,7 +144,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         
         Map<String, String> contents = new ConcurrentHashMap<>();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
-        contents.put(MetaDataKeys.CONTENT, content);
+        contents.put(MetaDataKeys.CONTENT, content.content());
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
@@ -193,10 +194,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, ArtifactType, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, ArtifactType, ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content)
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
         try {
             ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
@@ -232,10 +233,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, ArtifactType, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, ArtifactType, ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content)
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
         try {
             ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
@@ -263,10 +264,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);
         for (Map<String, String> cMap : map.values()) {
-            if (content.equals(MetaDataKeys.toContent(cMap))) {
+            if (content.content().equals(MetaDataKeys.toContent(cMap))) {
                 return MetaDataKeys.toArtifactMetaData(cMap);
             }
         }

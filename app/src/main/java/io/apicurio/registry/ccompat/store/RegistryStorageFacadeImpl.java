@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             subject,
             storedArtifact.version.intValue(),
             storedArtifact.id.intValue(),
-            storedArtifact.content
+            storedArtifact.content.content()
         );
     }
 
@@ -65,7 +66,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public String getSchema(Integer id) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersion(id).content;
+        return storage.getArtifactVersion(id).content.content();
     }
 
     @Override
@@ -90,7 +91,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException {
         // TODO -- handle deleted?
-        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, schema);
+        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema));
         StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
         return toSchema(subject, storedArtifact);
     }
@@ -104,9 +105,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
         CompletionStage<ArtifactMetaDataDto> cs;
         if (metadata == null) {
-            cs = storage.createArtifact(subject, ArtifactType.AVRO, schema);
+            cs = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
         } else {
-            cs = storage.updateArtifact(subject, ArtifactType.AVRO, schema);
+            cs = storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
         }
         return cs.thenApply(ArtifactMetaDataDto::getGlobalId);
     }

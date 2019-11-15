@@ -20,8 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
-
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -47,14 +47,14 @@ public final class ArtifactTypeUtil {
      * @param content
      * @param contentType
      */
-    public static ArtifactType discoverType(String content, String contentType) {
+    public static ArtifactType discoverType(ContentHandle content, String contentType) {
         boolean triedProto = false;
         
         // If the content-type suggest it's protobuf, try that first.
         if (contentType == null || contentType.toLowerCase().contains("proto")) {
             try {
                 triedProto = true;
-                ProtoParser.parse(Location.get(""), content);
+                ProtoParser.parse(Location.get(""), content.content());
                 return ArtifactType.PROTOBUF;
             } catch (Exception e) {
                 // Doesn't seem to be protobuf.
@@ -63,7 +63,7 @@ public final class ArtifactTypeUtil {
         
         // Try the various JSON formatted types
         try {
-            JsonNode tree = mapper.readTree(content);
+            JsonNode tree = mapper.readTree(content.content());
             
             // OpenAPI
             if (tree.has("openapi") || tree.has("swagger")) {
@@ -86,7 +86,7 @@ public final class ArtifactTypeUtil {
         // Try protobuf (only if we haven't already)
         if (!triedProto) {
             try {
-                ProtoParser.parse(Location.get(""), content);
+                ProtoParser.parse(Location.get(""), content.content());
                 return ArtifactType.PROTOBUF;
             } catch (Exception e) {
                 // Doesn't seem to be protobuf

@@ -5,7 +5,6 @@ import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -36,13 +35,13 @@ public class Submitter {
         return builder;
     }
 
-    public <T> CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, String content) {
+    public <T> CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
         }
         if (content != null) {
-            builder.setContent(ByteString.copyFrom(content, StandardCharsets.UTF_8));
+            builder.setContent(ByteString.copyFrom(content));
         }
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.ARTIFACT, actionType, artifactId, version).setArtifact(builder);

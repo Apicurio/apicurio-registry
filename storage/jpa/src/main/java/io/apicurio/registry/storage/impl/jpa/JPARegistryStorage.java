@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import io.apicurio.registry.storage.impl.jpa.entity.Rule;
 import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RuleType;
 
 import static java.util.Objects.requireNonNull;
@@ -196,7 +197,7 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         requireNonNull(artifactId);
         requireNonNull(artifactType);
         requireNonNull(content);
@@ -209,10 +210,10 @@ public class JPARegistryStorage implements RegistryStorage {
             }
 
             Artifact artifact = Artifact.builder()
-                    .artifactId(artifactId)
-                    .version(nextVersion)
-                    .content(content)
-                    .build();
+                                        .artifactId(artifactId)
+                                        .version(nextVersion)
+                                        .content(content.content())
+                                        .build();
 
             entityManager.persist(artifact);
 
@@ -292,7 +293,7 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(artifactType);
@@ -302,10 +303,10 @@ public class JPARegistryStorage implements RegistryStorage {
             long nextVersion = _getNextArtifactVersion(artifactId);
 
             Artifact artifact = Artifact.builder()
-                    .artifactId(artifactId)
-                    .version(nextVersion)
-                    .content(content)
-                    .build();
+                                        .artifactId(artifactId)
+                                        .version(nextVersion)
+                                        .content(content.content())
+                                        .build();
 
             entityManager.persist(artifact);
 
@@ -358,11 +359,11 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId, content);
+            Artifact artifact = _getArtifact(artifactId, content.content());
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
                 .update(artifact)

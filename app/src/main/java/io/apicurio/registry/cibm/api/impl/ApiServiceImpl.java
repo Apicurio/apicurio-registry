@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 
@@ -89,7 +90,7 @@ public class ApiServiceImpl implements ApiService {
             artifactId = idGenerator.generate();
         }
 
-        String content = schema.getDefinition();
+        ContentHandle content = ContentHandle.create(schema.getDefinition());
 
         if (verify) {
             rulesService.applyRules(artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE);
@@ -134,7 +135,7 @@ public class ApiServiceImpl implements ApiService {
 
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion schema, boolean verify)
     throws ArtifactNotFoundException {
-        String body = schema.getDefinition();
+        ContentHandle body = ContentHandle.create(schema.getDefinition());
         if (verify) {
             rulesService.applyRules(schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE);
             response.resume(Response.ok().entity(body).build());
@@ -166,7 +167,7 @@ public class ApiServiceImpl implements ApiService {
         Schema schema = new Schema();
         schema.setId(schemaid);
         schema.setEnabled(true);
-        schema.setDefinition(artifact.content);
+        schema.setDefinition(artifact.content.content());
         SchemaVersion version = new SchemaVersion();
         version.setId(artifact.version.intValue());
         schema.setVersion(version);

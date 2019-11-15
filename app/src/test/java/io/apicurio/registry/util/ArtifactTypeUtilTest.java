@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.util;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -28,63 +28,63 @@ import io.apicurio.registry.types.ArtifactType;
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(java.lang.String, java.lang.String)}.
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_JSON() {
-        String content = resourceToString("json-schema.json");
+        ContentHandle content = resourceToContentHandle("json-schema.json");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.JSON, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(java.lang.String, java.lang.String)}.
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Avro() {
-        String content = resourceToString("avro.json");
+        ContentHandle content = resourceToContentHandle("avro.json");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.AVRO, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(java.lang.String, java.lang.String)}.
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_Proto() {
-        String content = resourceToString("protobuf.proto");
+        ContentHandle content = resourceToContentHandle("protobuf.proto");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
 
-        content = resourceToString("protobuf.proto");
+        content = resourceToContentHandle("protobuf.proto");
         type = ArtifactTypeUtil.discoverType(content, "application/x-protobuf");
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(java.lang.String, java.lang.String)}.
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_OpenApi() {
-        String content = resourceToString("openapi.json");
+        ContentHandle content = resourceToContentHandle("openapi.json");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
 
-        content = resourceToString("swagger.json");
+        content = resourceToContentHandle("swagger.json");
         type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
 
-        content = resourceToString("swagger.json");
+        content = resourceToContentHandle("swagger.json");
         type = ArtifactTypeUtil.discoverType(content, "application/json");
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(java.lang.String, java.lang.String)}.
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
     void testDiscoverType_AsyncApi() {
-        String content = resourceToString("asyncapi.json");
+        ContentHandle content = resourceToContentHandle("asyncapi.json");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.ASYNCAPI, type);
     }

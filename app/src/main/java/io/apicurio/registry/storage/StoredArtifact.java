@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.content.ContentHandle;
 import lombok.Builder;
 import lombok.Value;
 
@@ -25,7 +26,7 @@ import lombok.Value;
 @Value
 @Builder
 public class StoredArtifact {
-    public String content;
+    public ContentHandle content;
     public Long version;
     public Long id; // TODO Which ID is this?
 }

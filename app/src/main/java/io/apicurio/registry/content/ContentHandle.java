@@ -14,22 +14,30 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.jpa;
+package io.apicurio.registry.content;
 
-import javax.enterprise.context.Dependent;
+import java.io.InputStream;
 
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
-import io.apicurio.registry.content.ContentHandle;
+/**
+ * @author Ales Justin
+ */
+public interface ContentHandle {
 
-@Dependent
-public class JPAEntityMapper {
-
-    public StoredArtifact toStoredArtifact(Artifact artifact) {
-        return StoredArtifact.builder()
-                .id(artifact.getGlobalId())
-                .version(artifact.getVersion())
-                .content(ContentHandle.create(artifact.getContent()))
-                .build();
+    static ContentHandle create(InputStream stream) {
+        return new LazyContentHandle(stream);
     }
+
+    static ContentHandle create(byte[] bytes) {
+        return new BytesContentHandle(bytes);
+    }
+
+    static ContentHandle create(String content) {
+        return new StringContentHandle(content);
+    }
+
+    InputStream stream();
+
+    byte[] bytes();
+
+    String content();
 }

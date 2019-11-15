@@ -16,11 +16,22 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.content.ContentHandle;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
  */
 public interface ArtifactTypeAdapter {
-    boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema);
+    default boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+        return isCompatibleWith(
+            compatibilityLevel,
+            existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
+            proposedArtifact.content()
+        );
+    }
+
+    boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);
 }

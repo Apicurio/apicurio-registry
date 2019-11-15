@@ -14,22 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.jpa;
+package io.apicurio.registry.content;
 
-import javax.enterprise.context.Dependent;
+import java.util.Arrays;
 
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
-import io.apicurio.registry.content.ContentHandle;
+/**
+ * @author Ales Justin
+ */
+abstract class AbstractContentHandle implements ContentHandle {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ContentHandle)) return false;
+        ContentHandle that = (ContentHandle) o;
+        return Arrays.equals(bytes(), that.bytes());
+    }
 
-@Dependent
-public class JPAEntityMapper {
-
-    public StoredArtifact toStoredArtifact(Artifact artifact) {
-        return StoredArtifact.builder()
-                .id(artifact.getGlobalId())
-                .version(artifact.getVersion())
-                .content(ContentHandle.create(artifact.getContent()))
-                .build();
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bytes());
     }
 }

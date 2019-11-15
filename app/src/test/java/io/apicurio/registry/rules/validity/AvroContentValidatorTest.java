@@ -16,13 +16,10 @@
 
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.ContentHandle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.rules.validity.AvroContentValidator;
-import io.apicurio.registry.rules.validity.InvalidContentException;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 
 /**
  * Tests the Avro content validator.
@@ -32,14 +29,14 @@ public class AvroContentValidatorTest extends AbstractRegistryTestBase {
     
     @Test
     public void testValidAvroSchema() throws Exception {
-        String content = resourceToString("avro-valid.json");
+        ContentHandle content = resourceToContentHandle("avro-valid.json");
         AvroContentValidator validator = new AvroContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testInvalidAvroSchema() throws Exception {
-        String content = resourceToString("avro-invalid.json");
+        ContentHandle content = resourceToContentHandle("avro-invalid.json");
         AvroContentValidator validator = new AvroContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);

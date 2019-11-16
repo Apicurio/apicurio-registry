@@ -1,5 +1,6 @@
 package io.apicurio.registry.streams;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -18,7 +19,6 @@ import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -41,6 +41,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -110,7 +111,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
         throw new ArtifactNotFoundException(artifactId);
     }
 
-    private <T> T handleVersion(String artifactId, long version, Handler<T> handler) throws ArtifactNotFoundException, RegistryStorageException {
+    private <T> T handleVersion(String artifactId, long version, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             int index = (int) (version - 1);
@@ -118,7 +119,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             if (index < list.size()) {
                 Str.ArtifactValue value = list.get(index);
                 if (isValid(value)) {
-                    return handler.handleArtifact(value);
+                    return handler.apply(value);
                 } else {
                     throw new VersionNotFoundException(artifactId, version);
                 }
@@ -128,10 +129,6 @@ public class StreamsRegistryStorage implements RegistryStorage {
         } else {
             throw new ArtifactNotFoundException(artifactId);
         }
-    }
-
-    private interface Handler<T> {
-        T handleArtifact(Str.ArtifactValue value);
     }
 
     @Override

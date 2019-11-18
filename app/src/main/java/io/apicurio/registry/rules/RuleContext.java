@@ -16,21 +16,23 @@
 
 package io.apicurio.registry.rules;
 
-import java.util.Objects;
-
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
+
+import java.util.Objects;
 
 /**
  * Contains all of the information needed by a rule executor, including the rule-specific
  * configuration, current & updated content, and any other meta-data needed.
+ *
  * @author Ales Justin
  */
 public class RuleContext {
     private final String artifactId;
     private final ArtifactType artifactType;
     private final String configuration;
-    private final String currentContent;
-    private final String updatedContent;
+    private final ContentHandle currentContent;
+    private final ContentHandle updatedContent;
 
     /**
      * Constructor.
@@ -41,7 +43,7 @@ public class RuleContext {
      * @param updatedContent
      */
     public RuleContext(String artifactId, ArtifactType artifactType, String configuration,
-            String currentContent, String updatedContent) {
+                       ContentHandle currentContent, ContentHandle updatedContent) {
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
@@ -73,14 +75,14 @@ public class RuleContext {
     /**
      * @return the currentContent
      */
-    public String getCurrentContent() {
+    public ContentHandle getCurrentContent() {
         return currentContent;
     }
     
     /**
      * @return the updatedContent
      */
-    public String getUpdatedContent() {
+    public ContentHandle getUpdatedContent() {
         return updatedContent;
     }
 }

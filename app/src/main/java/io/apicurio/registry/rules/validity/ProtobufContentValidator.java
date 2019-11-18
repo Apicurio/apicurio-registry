@@ -16,10 +16,11 @@
 
 package io.apicurio.registry.rules.validity;
 
-import javax.enterprise.context.ApplicationScoped;
-
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
+import io.apicurio.registry.content.ContentHandle;
+
+import javax.enterprise.context.ApplicationScoped;
 
 /**
  * A content validator implementation for the Protobuf content type.
@@ -35,13 +36,13 @@ public class ProtobufContentValidator implements ContentValidator {
     }
     
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                ProtoParser.parse(Location.get(""), artifactContent);
+                ProtoParser.parse(Location.get(""), artifactContent.content());
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for Protobuf artifact.", e);
             }

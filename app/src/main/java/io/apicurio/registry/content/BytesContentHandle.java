@@ -14,22 +14,29 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.jpa;
+package io.apicurio.registry.content;
 
-import javax.enterprise.context.Dependent;
+import java.nio.charset.StandardCharsets;
 
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
-import io.apicurio.registry.content.ContentHandle;
+/**
+ * @author Ales Justin
+ */
+class BytesContentHandle extends AbstractContentHandle {
 
-@Dependent
-public class JPAEntityMapper {
+    BytesContentHandle(byte[] bytes) {
+        this.bytes = bytes;
+    }
 
-    public StoredArtifact toStoredArtifact(Artifact artifact) {
-        return StoredArtifact.builder()
-                .id(artifact.getGlobalId())
-                .version(artifact.getVersion())
-                .content(ContentHandle.create(artifact.getContent()))
-                .build();
+    @Override
+    public byte[] bytes() {
+        return bytes;
+    }
+
+    @Override
+    public String content() {
+        if (content == null) {
+            content = new String(bytes(), StandardCharsets.UTF_8);
+        }
+        return content;
     }
 }

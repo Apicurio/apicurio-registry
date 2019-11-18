@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -44,9 +45,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import java.nio.charset.StandardCharsets;
+import static io.apicurio.registry.utils.ConcurrentUtil.get;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
@@ -59,8 +59,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import static io.apicurio.registry.utils.ConcurrentUtil.get;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -326,11 +326,11 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     private void consumeArtifact(CompletableFuture<Object> cf, Str.StorageValue rv, Str.ActionType type, String artifactId, long version) {
         Str.ArtifactValue artifact = rv.getArtifact();
         if (type == Str.ActionType.CREATE || type == Str.ActionType.UPDATE) {
-            String content = artifact.getContent().toString(StandardCharsets.UTF_8);
+            byte[] content = artifact.getContent().toByteArray();
             cf.complete(createOrUpdateArtifact(
                 artifactId,
                 ArtifactType.values()[artifact.getArtifactType()],
-                content,
+                ContentHandle.create(content),
                 Str.ActionType.CREATE == type,
                 offset));
         } else if (type == Str.ActionType.DELETE) {
@@ -344,8 +344,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content);
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content.bytes());
     }
 
     @Override
@@ -354,8 +354,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
-        return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content);
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content.bytes());
     }
 
     @Override

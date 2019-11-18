@@ -16,11 +16,12 @@
 
 package io.apicurio.registry.rules.validity;
 
-import java.util.List;
-
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.ValidationProblem;
+import io.apicurio.registry.content.ContentHandle;
+
+import java.util.List;
 
 /**
  * A content validator implementation for the OpenAPI and AsyncAPI content types.
@@ -29,14 +30,14 @@ import io.apicurio.datamodels.core.models.ValidationProblem;
 public abstract class ApicurioDataModelContentValidator implements ContentValidator {
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         Document document = null;
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                document = Library.readDocumentFromJSONString(artifactContent);
+                document = Library.readDocumentFromJSONString(artifactContent.content());
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for " + getDataModelType() + " artifact.", e);
             }

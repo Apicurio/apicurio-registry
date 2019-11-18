@@ -18,6 +18,7 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -81,9 +82,9 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         int size = getStorage().getArtifactIds().size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, "content1"));
-        ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(ARTIFACT_ID_1, ArtifactType.JSON, "content2"));
-        ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_2, ArtifactType.AVRO, "content3"));
+        ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content1")));
+        ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content2")));
+        ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_2, ArtifactType.AVRO, ContentHandle.create("content3")));
 
         assertEquals(size + 2, getStorage().getArtifactIds().size());
         assertTrue(getStorage().getArtifactIds().contains(ARTIFACT_ID_1));
@@ -137,7 +138,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testRules() throws Exception {
-        ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_3, ArtifactType.JSON, "content1"));
+        ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_3, ArtifactType.JSON, ContentHandle.create("content1")));
 
         assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
         assertEquals(0, getStorage().getGlobalRules().size());

@@ -16,9 +16,10 @@
 
 package io.apicurio.registry.rules.validity;
 
-import javax.enterprise.context.ApplicationScoped;
-
+import io.apicurio.registry.content.ContentHandle;
 import org.apache.avro.Schema;
+
+import javax.enterprise.context.ApplicationScoped;
 
 /**
  * A content validator implementation for the Avro content type.
@@ -34,14 +35,14 @@ public class AvroContentValidator implements ContentValidator {
     }
     
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 Schema.Parser parser = new Schema.Parser();
-                parser.parse(artifactContent);
+                parser.parse(artifactContent.content());
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for Avro artifact.", e);
             }

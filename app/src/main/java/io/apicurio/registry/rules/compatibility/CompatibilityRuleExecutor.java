@@ -16,18 +16,18 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import java.util.Collections;
-
-import javax.enterprise.context.ApplicationScoped;
-
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
+
+import java.util.Collections;
+import javax.enterprise.context.ApplicationScoped;
 
 /**
  * Rule executor for the "Compatibility" rule.  The Compatibility Rule is responsible
  * for ensuring that the updated content does not violate the configured compatibility
  * level.  Levels include e.g. Backward compatibility.
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
@@ -40,10 +40,13 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
     public void execute(RuleContext context) throws RuleViolationException {
         CompatibilityLevel level = CompatibilityLevel.valueOf(context.getConfiguration());
         ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(context.getArtifactType());
-        if (!adapter.isCompatibleWith(level, Collections.singletonList(context.getCurrentContent()),
-                context.getUpdatedContent())) {
+        if (!adapter.isCompatibleWith(
+            level,
+            Collections.singletonList(context.getCurrentContent()),
+            context.getUpdatedContent())
+        ) {
             throw new RuleViolationException(String.format("Incompatible artifact: %s [%s]",
-                    context.getArtifactId(), context.getArtifactType()));
+                                                           context.getArtifactId(), context.getArtifactType()));
         }
     }
 

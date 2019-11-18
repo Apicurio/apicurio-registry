@@ -23,6 +23,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RuleType;
 
 import javax.inject.Inject;
@@ -60,8 +61,8 @@ public class CompatibilityResource extends AbstractResource {
         // TODO - headers, level?
         boolean isCompatible = true;
         try {
-            rules.applyRule(subject, ArtifactType.AVRO, request.getSchema(), RuleType.COMPATIBILITY, 
-                    CompatibilityLevel.BACKWARD_TRANSITIVE.name(), RuleApplicationType.UPDATE);
+            rules.applyRule(subject, ArtifactType.AVRO, ContentHandle.create(request.getSchema()),
+                            RuleType.COMPATIBILITY, CompatibilityLevel.BACKWARD_TRANSITIVE.name(), RuleApplicationType.UPDATE);
         } catch (RuleViolationException e) {
             isCompatible = false;
         }

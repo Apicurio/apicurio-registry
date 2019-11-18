@@ -16,11 +16,12 @@
 
 package io.apicurio.registry.rules.validity;
 
-import javax.enterprise.context.ApplicationScoped;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchemaFactory;
+import io.apicurio.registry.content.ContentHandle;
+
+import javax.enterprise.context.ApplicationScoped;
 
 /**
  * A content validator implementation for the JsonSchema content type.
@@ -38,13 +39,13 @@ public class JsonSchemaContentValidator implements ContentValidator {
     }
     
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, java.lang.String)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, String artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                JsonNode node = objectMapper.readTree(artifactContent);
+                JsonNode node = objectMapper.readTree(artifactContent.bytes());
                 if (level == ValidityLevel.FULL) {
                     JsonSchemaFactory factory = JsonSchemaFactory.getInstance();
                     factory.getSchema(node);

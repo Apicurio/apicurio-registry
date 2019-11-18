@@ -1,5 +1,6 @@
 package io.apicurio.registry.streams;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -40,6 +41,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -109,7 +111,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
         throw new ArtifactNotFoundException(artifactId);
     }
 
-    private <T> T handleVersion(String artifactId, long version, Handler<T> handler) throws ArtifactNotFoundException, RegistryStorageException {
+    private <T> T handleVersion(String artifactId, long version, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             int index = (int) (version - 1);
@@ -117,7 +119,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             if (index < list.size()) {
                 Str.ArtifactValue value = list.get(index);
                 if (isValid(value)) {
-                    return handler.handleArtifact(value);
+                    return handler.apply(value);
                 } else {
                     throw new VersionNotFoundException(artifactId, version);
                 }
@@ -129,12 +131,8 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
     }
 
-    private interface Handler<T> {
-        T handleArtifact(Str.ArtifactValue value);
-    }
-
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             if (data.getArtifactsCount() > 0) {
@@ -142,7 +140,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content);
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content.bytes());
         return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
                        .thenApply(rd -> {
                            RecordMetadata rmd = rd.getRmd();
@@ -186,7 +184,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             if (data.getArtifactsCount() == 0) {
@@ -194,7 +192,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content);
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content.bytes());
         return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
                        .thenApply(rd -> {
                            RecordMetadata rmd = rd.getRmd();
@@ -229,13 +227,13 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, String content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--){
                 Str.ArtifactValue artifact = data.getArtifacts(i);
                 if (isValid(artifact)) {
-                    if (content.equals(artifact.getContent().toStringUtf8())) {
+                    if (content.content().equals(artifact.getContent().toStringUtf8())) {
                         return MetaDataKeys.toArtifactMetaData(artifact.getMetadataMap());
                     }
                 }

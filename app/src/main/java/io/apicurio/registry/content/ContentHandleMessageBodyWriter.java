@@ -38,9 +38,6 @@ import javax.ws.rs.ext.Provider;
 public class ContentHandleMessageBodyWriter implements MessageBodyWriter<ContentHandle> {
     @Override
     public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        if (type == StringContentHandle.class) {
-            return (mediaType.equals(MediaType.APPLICATION_JSON_TYPE) == false);
-        }
         return ContentHandle.class.isAssignableFrom(type);
     }
 

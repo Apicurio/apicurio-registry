@@ -194,15 +194,15 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
                 byte[] bytes = serializer.serialize("foo", record);
                 DynamicMessage dm = deserializer.deserialize("foo", bytes);
-                Descriptors.Descriptor descriptor = TestCmmn.UUID.getDescriptor();
+                Descriptors.Descriptor descriptor = dm.getDescriptorForType();
 
                 Descriptors.FieldDescriptor lsb = descriptor.findFieldByName("lsb");
                 Assertions.assertNotNull(lsb);
-                Assertions.assertEquals(2, dm.getField(lsb));
+                Assertions.assertEquals(2L, dm.getField(lsb));
 
                 Descriptors.FieldDescriptor msb = descriptor.findFieldByName("msb");
                 Assertions.assertNotNull(msb);
-                Assertions.assertEquals(1, dm.getField(msb));
+                Assertions.assertEquals(1L, dm.getField(msb));
             }
 
         }

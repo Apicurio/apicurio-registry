@@ -184,7 +184,6 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Disabled("proto is not really schema registry friendly ...")
     public void testProto() throws Exception {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());

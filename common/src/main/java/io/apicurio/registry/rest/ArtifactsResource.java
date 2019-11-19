@@ -6,8 +6,10 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-
 import java.io.InputStream;
+import java.lang.Integer;
+import java.lang.Long;
+import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import javax.ws.rs.Consumes;
@@ -26,20 +28,6 @@ import javax.ws.rs.core.Response;
  */
 @Path("/artifacts")
 public interface ArtifactsResource {
-  /**
-   * Test if artifact is valid with previous versions,
-   * and as such can be updated.
-   *
-   * If the test content violates one of the rules configured for the artifact you'll receive a HTTP error `400`.
-   * If all is OK, HTTP 200 code is returned.
-   */
-  @Path("/{artifactId}/test")
-  @PUT
-  @Consumes("application/json")
-  void testUpdateArtifact(@PathParam("artifactId") String artifactId,
-                          @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-                          InputStream content);
-
   /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include
    * both generated (read-only) and editable metadata (such as name and description).
@@ -284,6 +272,7 @@ public interface ArtifactsResource {
    *
    * * Avro (`AVRO`)
    * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
@@ -299,6 +288,7 @@ public interface ArtifactsResource {
    * This operation may fail for one of the following reasons:
    *
    * * An invalid `ArtifactType` was indicated (HTTP error `400`)
+   * * The content violates one of the configured global rules (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -335,6 +325,7 @@ public interface ArtifactsResource {
    *
    * * Avro (`AVRO`)
    * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
@@ -350,7 +341,7 @@ public interface ArtifactsResource {
    * The update could fail for a number of reasons including:
    *
    * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `400`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
    * * The provided artifact type is not recognized (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
@@ -403,6 +394,7 @@ public interface ArtifactsResource {
    *
    * * Avro (`AVRO`)
    * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
@@ -420,6 +412,7 @@ public interface ArtifactsResource {
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
    */
@@ -429,4 +422,46 @@ public interface ArtifactsResource {
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+
+  /**
+   * Tests whether an update to the artifact's content *would* succeed for the provided content.
+   * Ultimately, this will apply any rules configured for the artifact against the given content
+   * to determine whether the rules would pass or fail, but without actually updating the artifact
+   * content.
+   *
+   * The body of the request should be the raw content of the artifact.  This will typically be 
+   * in JSON format for *most* of the supported types, but may be in another format for a few 
+   * (for example, `PROTOBUF`).
+   *
+   * The registry will attempt to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (`AVRO`)
+   * * Protobuf (`PROTOBUF`)
+   * * JSON Schema (`JSON`)
+   * * OpenAPI (`OPENAPI`)
+   * * AsyncAPI (`ASYNCAPI`)
+   *
+   * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
+   * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
+   * `Content-Type`.  For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
+   *
+   * The update could fail for a number of reasons including:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * The provided artifact type is not recognized (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   * When successful, this operation simply returns a *No Content* response.
+   */
+  @Path("/{artifactId}/test")
+  @PUT
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  void testUpdateArtifact(@PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-ArtifactType") String xRegistryArtifactType, InputStream data);
 }

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -36,11 +37,11 @@ import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import io.apicurio.registry.storage.impl.jpa.entity.Rule;
 import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RuleType;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -141,7 +142,7 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
-    private Artifact _getArtifact(String artifactId, String content) {
+    private Artifact _getArtifact(String artifactId, byte[] content) {
         requireNonNull(artifactId);
         requireNonNull(content);
         List<Artifact> list = entityManager.createQuery(
@@ -151,7 +152,7 @@ public class JPARegistryStorage implements RegistryStorage {
                                            .setParameter("artifact_id", artifactId)
                                            .getResultList();
         for (Artifact artifact : list) {
-            if (content.equals(artifact.getContent())) {
+            if (Arrays.equals(content, artifact.getContent())) {
                 return artifact;
             }
         }
@@ -212,7 +213,7 @@ public class JPARegistryStorage implements RegistryStorage {
             Artifact artifact = Artifact.builder()
                                         .artifactId(artifactId)
                                         .version(nextVersion)
-                                        .content(content.content())
+                                        .content(content.bytes())
                                         .build();
 
             entityManager.persist(artifact);
@@ -305,7 +306,7 @@ public class JPARegistryStorage implements RegistryStorage {
             Artifact artifact = Artifact.builder()
                                         .artifactId(artifactId)
                                         .version(nextVersion)
-                                        .content(content.content())
+                                        .content(content.bytes())
                                         .build();
 
             entityManager.persist(artifact);
@@ -363,7 +364,7 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId, content.content());
+            Artifact artifact = _getArtifact(artifactId, content.bytes());
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
                 .update(artifact)

@@ -45,7 +45,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -144,18 +143,23 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 byte[] bytes = serializer.serialize("foo", record);
 
                 // some impl details ...
-                service.reset(); // clear any cache
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                buffer.get(); // magic byte
-                long id = buffer.getLong(); // id
-                ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
-                Assertions.assertNotNull(amd); // wait for global id to populate
+                waitForSchema(service, bytes);
 
                 GenericData.Record ir = deserializer.deserialize("foo", bytes);
 
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }
+    }
+
+    // some impl details ...
+    private static void waitForSchema(RegistryService service, byte[] bytes) throws Exception {
+        service.reset(); // clear any cache
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.get(); // magic byte
+        long id = buffer.getLong(); // id
+        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
+        Assertions.assertNotNull(amd); // wait for global id to populate
     }
 
     @Test
@@ -168,13 +172,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 Tester tester = new Tester("Apicurio");
                 byte[] bytes = serializer.serialize("tester", tester);
 
-                // some impl details ...
-                service.reset(); // clear any cache
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                buffer.get(); // magic byte
-                long id = buffer.getLong(); // id
-                ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
-                Assertions.assertNotNull(amd); // wait for global id to populate
+                waitForSchema(service, bytes);
 
                 tester = deserializer.deserialize("tester", bytes);
 
@@ -192,6 +190,9 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
 
                 byte[] bytes = serializer.serialize("foo", record);
+
+                waitForSchema(service, bytes);
+
                 DynamicMessage dm = deserializer.deserialize("foo", bytes);
                 Descriptors.Descriptor descriptor = dm.getDescriptorForType();
 

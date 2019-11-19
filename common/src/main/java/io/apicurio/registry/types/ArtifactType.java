@@ -10,6 +10,7 @@ public enum ArtifactType {
 
     AVRO("AVRO"),
     PROTOBUF("PROTOBUF"),
+    PROTOBUF_FD("PROTOBUF_FD"),
     JSON("JSON"),
     OPENAPI("OPENAPI"),
     ASYNCAPI("ASYNCAPI");

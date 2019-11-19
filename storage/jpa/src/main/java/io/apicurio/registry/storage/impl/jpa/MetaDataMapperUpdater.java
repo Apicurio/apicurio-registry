@@ -16,6 +16,13 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.MetaDataKeys;
+import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
+import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
+
 import static io.apicurio.registry.storage.MetaDataKeys.ARTIFACT_ID;
 import static io.apicurio.registry.storage.MetaDataKeys.CONTENT;
 import static io.apicurio.registry.storage.MetaDataKeys.DESCRIPTION;
@@ -23,19 +30,12 @@ import static io.apicurio.registry.storage.MetaDataKeys.GLOBAL_ID;
 import static io.apicurio.registry.storage.MetaDataKeys.NAME;
 import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.EntityManager;
-
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
-import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 
 public class MetaDataMapperUpdater {
 
@@ -72,7 +72,7 @@ public class MetaDataMapperUpdater {
         this.update(GLOBAL_ID, artifact.getGlobalId());
         this.update(ARTIFACT_ID, artifact.getArtifactId());
         this.update(VERSION, artifact.getVersion());
-        this.update(CONTENT, artifact.getContent());
+        this.update(CONTENT, new String(artifact.getContent(), StandardCharsets.UTF_8));
         return this;
     }
 

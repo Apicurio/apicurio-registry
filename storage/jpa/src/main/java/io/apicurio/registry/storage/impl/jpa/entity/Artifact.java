@@ -64,5 +64,5 @@ public class Artifact {
     @Column(name = "value", updatable = false, nullable = false)
     @Lob
     @Basic(fetch = FetchType.EAGER)
-    private String content;
+    private byte[] content;
 }

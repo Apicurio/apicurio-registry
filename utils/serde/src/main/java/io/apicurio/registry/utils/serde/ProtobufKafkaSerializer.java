@@ -16,19 +16,16 @@
 
 package io.apicurio.registry.utils.serde;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
-
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.proto.Serde;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * @author Ales Justin
@@ -48,18 +45,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
 
     @Override
     protected byte[] toSchema(U data) {
-        try {
-
-            Serde.Schema schema = toSchemaProto(data.getDescriptorForType().getFile());
-
-            // Convert to a byte[]
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            schema.writeTo(out);
-            return out.toByteArray();
-
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        Serde.Schema schema = toSchemaProto(data.getDescriptorForType().getFile());
+        // Convert to a byte[]
+        return schema.toByteArray();
     }
 
     private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
@@ -79,8 +67,8 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     @Override
     protected void serializeData(byte[] schema, U data, OutputStream out) throws IOException {
         Serde.Ref ref = Serde.Ref.newBuilder()
-                .setName(data.getDescriptorForType().getName())
-                .build();
+                                 .setName(data.getDescriptorForType().getName())
+                                 .build();
         ref.writeDelimitedTo(out);
         data.writeTo(out);
     }

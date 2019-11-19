@@ -83,11 +83,15 @@ public class MetaDataKeys {
         return dto;
     }
 
-    public static byte[] toContent(Map<String, String> cMap) {
+    public static byte[] getContent(Map<String, String> cMap) {
         String encoded = cMap.get(CONTENT);
         if (encoded == null) {
             return null;
         }
         return Base64.getDecoder().decode(encoded);
+    }
+
+    public static void putContent(Map<String, String> cMap, byte[] content) {
+        cMap.put(CONTENT, Base64.getEncoder().encodeToString(content));
     }
 }

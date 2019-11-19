@@ -16,21 +16,21 @@
 
 package io.apicurio.registry.utils.serde;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.serde.proto.Serde;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-
+import java.util.List;
 import javax.ws.rs.core.Response;
-
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.serde.proto.Serde;
 
 /**
  * @author Ales Justin
+ * @author Hiram Chirino
  */
 public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[], DynamicMessage> {
     public ProtobufKafkaDeserializer() {
@@ -45,12 +45,9 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
         return response.readEntity(byte[].class);
     }
 
-    // TODO -- work-in-progress, do not use yet !!!
-
     @Override
     protected DynamicMessage readData(byte[] schema, ByteBuffer buffer, int start, int length) {
         try {
-
             Serde.Schema s = Serde.Schema.parseFrom(schema);
             Descriptors.FileDescriptor fileDescriptor = toFileDescriptor(s);
 
@@ -62,16 +59,13 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
 
             Descriptors.Descriptor descriptor = fileDescriptor.findMessageTypeByName(ref.getName());
             return DynamicMessage.parseFrom(descriptor, is);
-
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        } catch (Descriptors.DescriptorValidationException e) {
+        } catch (IOException | Descriptors.DescriptorValidationException e) {
             throw new IllegalStateException(e);
         }
     }
 
     private Descriptors.FileDescriptor toFileDescriptor(Serde.Schema s) throws Descriptors.DescriptorValidationException {
-        ArrayList<Descriptors.FileDescriptor> imports = new ArrayList<>();
+        List<Descriptors.FileDescriptor> imports = new ArrayList<>();
         for (Serde.Schema i : s.getImportList()) {
             imports.add(toFileDescriptor(i));
         }

@@ -7,8 +7,9 @@
 
 // Branding
 :apicurio-registry:
-:prodname: Apicurio Registry
-:prodnamefull: Apicurio Registry
+//:rh-service-registry:
+:registry: Apicurio Registry
+//:registry: Service Registry
 :version: 1.0
 
 // Characters
@@ -31,8 +32,7 @@ include::attributes-links.adoc[]
 // Untagged content is common
 
 //:rh-service-registry:
-//:prodname: Service Registry
-//:prodnamefull: Red Hat Service Registry
+//:registry: Service Registry
 //:reg: ®
 //:reldate: December 2019
 //:trade: ™

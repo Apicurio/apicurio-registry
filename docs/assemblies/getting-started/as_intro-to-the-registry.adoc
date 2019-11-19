@@ -2,8 +2,13 @@
 //
 
 [id="intro-to-the-registry"]
-= Introduction to {prodname}
+= Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+This topic provides an overview of {registry} and explains the rules used to govern registry content:
+
+* xref:intro-to-registry[]
+* xref:registry-rules[]
 
 //INCLUDES
 include::../../modules/getting-started/c_intro-to-registry.adoc[leveloffset=+1]

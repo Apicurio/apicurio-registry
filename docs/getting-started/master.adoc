@@ -4,7 +4,7 @@ include::attributes.adoc[]
 :imagesdir: images
 
 [id="getting-started-with-registry"]
-= Getting Started with {prodname}
+= Getting Started with {registry}
 
 // Add include directives to include modules and assemblies here
 include::assemblies/getting-started/as_intro-to-the-registry.adoc[leveloffset=+1]

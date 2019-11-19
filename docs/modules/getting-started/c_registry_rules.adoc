@@ -18,7 +18,7 @@ Rules are applied only when content is added to the registry. This includes the 
 * Updating an artifact
 * Creating an artifact version
 
-If a rule is violated, {prodname} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
+If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
 NOTE: If no rules are configured for an artifact, the set of global rules is applied. This means that the global rules are always applied when a new artifact is created.  
 

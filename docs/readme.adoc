@@ -1,4 +1,4 @@
-= Explanation of the `doc` directory structure
+= Explanation of the `docs` directory structure
 
 The Apicurio Registry `docs` directory is organized for delivering flexible content, which is a framework for putting together exactly the content you need and making it easier to reuse the same content in multiple places. 
 

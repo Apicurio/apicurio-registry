@@ -2,13 +2,30 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-kafka-storage"]
-= Installing {prodname} with Apache Kafka storage
+ifdef::apicurio-registry[]
+= Installing {registry} with Apache Kafka storage
+endif::[]
 
-This topic explains how to install and run {prodname} with Apache Kafka storage from a container image. This storage option is suitable for production environments. 
+ifdef::rh-service-registry[]
+= Installing {registry} with Kafka storage using Docker
+endif::[]
+
+This topic explains how to install and run {registry} with Kafka storage from a container image. This storage option is suitable for production environments. 
+
+ifdef::rh-service-registry[]
+The following Kafka-based systems are supported:
+
+* Red Hat AMQ Streams 1.3
+* Apache Kafka 2.2.x or 2.3
+endif::[]
 
 .Prerequisites
 
-* Ensure that `KAFKA_HOME` is set to the location of your Kafka v2.2.x or v2.3 system. 
+* You must have Docker installed and the Docker daemon running.
+ifdef::apicurio-registry[]
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka.
+endif::[] 
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system. 
 * You must already have your Kafka broker running. For example: 
 +
 [source,bash]
@@ -18,11 +35,10 @@ $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
 ----
 + 
 For more details, see https://kafka.apache.org/quickstart. 
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
-
 
 .Procedure
-. Get the {prodname} container image:
+ifdef::apicurio-registry[]
+. Get the {registry} container image:
 +
 [source,bash]
 ----
@@ -38,8 +54,33 @@ For example:
 ----
 $ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafka:latest
 ----
+endif::[]
 
-. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
+ifdef::rh-service-registry[]
+. Log in and authenticate using the following command: 
++
+[source,bash]
+----
+$ docker login registry.redhat.io
+----
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7 
+----
+. Run the container image and specify the following environment variable for your Kafka system: 
++
+** `KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s). 
++
+For example:  
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7
+----
+endif::[]
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple artifact:
 +
 [source,bash]
 ----
@@ -53,10 +94,20 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-* For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].
-* For a demo based on Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[{prodname} Demo].
+* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
 * For details on installing on OpenShift, see the following:
-** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[Apicurio registry OpenShift template]
-** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v4.x]
-** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v3.x]
-* For more details on Kafka, see the link:https://kafka.apache.org/documentation/[Apache Kafka documentation].
+ifdef::apicurio-registry[]
+** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[{registry} OpenShift  template]
+endif::[]
+ifdef::rh-service-registry[]
+** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x-redhat/distro/openshift-template[{registry} OpenShift template]
+endif::[]
+** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
+** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
+ifdef::apicurio-registry[]
+* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
+endif::[]
+ifdef::rh-service-registry[]
+* For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str[Getting Started with AMQ Streams].
+endif::[]

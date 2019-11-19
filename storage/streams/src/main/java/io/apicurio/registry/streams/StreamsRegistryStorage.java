@@ -31,6 +31,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.CloseableIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +85,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     private static StoredArtifact addContent(Str.ArtifactValue value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
-        contents.put(MetaDataKeys.CONTENT, value.getContent().toStringUtf8());
+        MetaDataKeys.putContent(contents, value.getContent().toByteArray());
         return AbstractMapRegistryStorage.toStoredArtifact(contents);
     }
 
@@ -230,10 +231,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
+            byte[] needle = content.bytes();
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--){
                 Str.ArtifactValue artifact = data.getArtifacts(i);
                 if (isValid(artifact)) {
-                    if (content.content().equals(artifact.getContent().toStringUtf8())) {
+                    if (Arrays.equals(needle, artifact.getContent().toByteArray())) {
                         return MetaDataKeys.toArtifactMetaData(artifact.getMetadataMap());
                     }
                 }

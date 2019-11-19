@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -30,9 +31,9 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {
         return StoredArtifact.builder()
-                             .content(ContentHandle.create(content.get(MetaDataKeys.CONTENT)))
+                             .content(ContentHandle.create(MetaDataKeys.getContent(content)))
                              .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
                              .id(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
                              .build();
@@ -144,7 +145,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         
         Map<String, String> contents = new ConcurrentHashMap<>();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
-        contents.put(MetaDataKeys.CONTENT, content.content());
+        MetaDataKeys.putContent(contents, content.bytes());
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
@@ -265,9 +266,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        byte[] needle = content.bytes();
         Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);
         for (Map<String, String> cMap : map.values()) {
-            if (content.content().equals(MetaDataKeys.toContent(cMap))) {
+            if (Arrays.equals(needle, MetaDataKeys.getContent(cMap))) {
                 return MetaDataKeys.toArtifactMetaData(cMap);
             }
         }

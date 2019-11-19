@@ -19,6 +19,8 @@ package io.apicurio.registry.utils.serde.strategy;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
@@ -50,6 +52,10 @@ public interface GlobalIdStrategy<T> {
      * @return schema's input stream
      */
     default InputStream toStream(T schema) {
-        return new ByteArrayInputStream(schema.toString().getBytes());
+        if (schema instanceof byte[]) {
+            return new ByteArrayInputStream((byte[]) schema);
+        } else {
+            return new ByteArrayInputStream(schema.toString().getBytes(UTF_8));
+        }
     }
 }

@@ -16,17 +16,21 @@
 
 package io.apicurio.registry.utils.serde;
 
-import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.InvalidProtocolBufferException;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.serde.proto.Serde;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
+ * @author Hiram Chirino
  */
 public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[], DynamicMessage> {
     public ProtobufKafkaDeserializer() {
@@ -41,18 +45,30 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
         return response.readEntity(byte[].class);
     }
 
-    // TODO -- work-in-progress, do not use yet !!!
-
     @Override
     protected DynamicMessage readData(byte[] schema, ByteBuffer buffer, int start, int length) {
         try {
-            DescriptorProtos.DescriptorProto proto = DescriptorProtos.DescriptorProto.parseFrom(schema);
-            Descriptors.Descriptor descriptor = proto.getDescriptorForType(); // TODO -- wrong descriptor!
+            Serde.Schema s = Serde.Schema.parseFrom(schema);
+            Descriptors.FileDescriptor fileDescriptor = toFileDescriptor(s);
+
             byte[] bytes = new byte[length];
             System.arraycopy(buffer.array(), start, bytes, 0, length);
-            return DynamicMessage.parseFrom(descriptor, bytes);
-        } catch (InvalidProtocolBufferException e) {
+            ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+
+            Serde.Ref ref = Serde.Ref.parseDelimitedFrom(is);
+
+            Descriptors.Descriptor descriptor = fileDescriptor.findMessageTypeByName(ref.getName());
+            return DynamicMessage.parseFrom(descriptor, is);
+        } catch (IOException | Descriptors.DescriptorValidationException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private Descriptors.FileDescriptor toFileDescriptor(Serde.Schema s) throws Descriptors.DescriptorValidationException {
+        List<Descriptors.FileDescriptor> imports = new ArrayList<>();
+        for (Serde.Schema i : s.getImportList()) {
+            imports.add(toFileDescriptor(i));
+        }
+        return Descriptors.FileDescriptor.buildFrom(s.getFile(), imports.toArray(new Descriptors.FileDescriptor[0]));
     }
 }

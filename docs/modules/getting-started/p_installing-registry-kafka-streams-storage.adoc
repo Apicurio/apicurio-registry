@@ -2,12 +2,14 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-kafka-streams-storage"]
-= Installing {prodname} with Apache Kafka Streams storage
+= Installing {registry} with Apache Kafka Streams storage
 
-This topic explains how to install and run {prodname} with Apache Kafka Streams storage from a container image. This storage option is suitable for production environments. 
+This topic explains how to install and run {registry} with Kafka Streams storage from a container image. This storage option is suitable for production environments. 
 
 .Prerequisites
-* Ensure that `KAFKA_HOME` is set to the location of your Kafka v2.2.x system. 
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-streams.
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system. 
 * You must already have a Kafka broker running. For example:
 +
 [source,bash]
@@ -17,10 +19,9 @@ $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
 ----
 + 
 For more details, see https://kafka.apache.org/quickstart. 
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-streams.
 
 .Procedure
-. Get the {prodname} container image:
+. Get the {registry} container image:
 +
 [source,bash]
 ----
@@ -38,7 +39,7 @@ For example:
 $ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -e "APPLICATION_ID=my-kafka-streams-app" apicurio/apicurio-registry-kafka-streams:latest
 ----
 
-. Send a test request using the {prodname} REST API. For example, enter the following `curl` command to create a simple artifact:
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple artifact:
 +
 [source,bash]
 ----
@@ -52,10 +53,10 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 ----
 
 .Additional resources
-* For more REST API sample requests, see the link:files/index.html[{prodname} REST API documentation].
-* For a demo based on Kafka Streams storage, see the link:https://github.com/alesj/registry-demo[{prodname} Demo].
+* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
 * For details on installing on OpenShift, see the following:
 ** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[Apicurio registry OpenShift template]
-** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v4.x]
-** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v3.x]
+** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
+** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
 * For more details on Kafka Streams, see the link:https://kafka.apache.org/documentation/streams//[Apache Kafka Streams documentation].

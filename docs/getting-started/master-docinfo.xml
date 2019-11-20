@@ -1,8 +1,8 @@
-<productname>{prodnamefull}</productname>
+<productname>{registry}</productname>
 <productnumber>{version}</productnumber>
-<subtitle>{prodname}</subtitle>
+<subtitle>{registry}</subtitle>
 <abstract>
-    <para>This guide introduces {prodname} and explains how to install it in your storage environment.</para>
+    <para>This guide introduces {registry} and explains how to install it in your storage environment.</para>
 </abstract>
 <authorgroup>
   <org>

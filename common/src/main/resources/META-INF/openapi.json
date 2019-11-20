@@ -159,7 +159,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
                                 }
                             }
                         },
@@ -758,7 +758,7 @@
             "summary": "Manage the collection of artifacts in the registry.",
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -845,6 +845,7 @@
                             "enum": [
                                 "AVRO",
                                 "PROTOBUF",
+                                "PROTOBUF_FD",
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI"
@@ -878,11 +879,14 @@
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
                     }
                 },
                 "operationId": "createArtifact",
                 "summary": "Create artifact",
-                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n",
+                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
                 "x-codegen-async": true
             }
         },
@@ -939,7 +943,7 @@
             },
             "put": {
                 "requestBody": {
-                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -1021,11 +1025,12 @@
                 "parameters": [
                     {
                         "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
                         "schema": {
                             "enum": [
                                 "AVRO",
                                 "PROTOBUF",
+                                "PROTOBUF_FD",
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI"
@@ -1052,11 +1057,14 @@
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
                     }
                 },
                 "operationId": "updateArtifact",
                 "summary": "Update artifact",
-                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `400`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
+                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
                 "x-codegen-async": true
             },
             "delete": {
@@ -1134,7 +1142,7 @@
             },
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -1221,6 +1229,7 @@
                             "enum": [
                                 "AVRO",
                                 "PROTOBUF",
+                                "PROTOBUF_FD",
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI"
@@ -1246,11 +1255,14 @@
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
                     }
                 },
                 "operationId": "createArtifactVersion",
                 "summary": "Create artifact version",
-                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact will be applied, and if they all pass, the new content will be added as the \nmost recent version of the artifact.  If any of the rules fail, an error will be returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nwill typically be in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated be explicitly specifying the type \nusing the `X-Registry-ArtifactType` HTTP request header or by including a hint in the \nrequest's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact will be applied, and if they all pass, the new content will be added as the \nmost recent version of the artifact.  If any of the rules fail, an error will be returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nwill typically be in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated be explicitly specifying the type \nusing the `X-Registry-ArtifactType` HTTP request header or by including a hint in the \nrequest's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
                 "x-codegen-async": true
             },
             "parameters": [
@@ -1334,7 +1346,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
                                 }
                             }
                         },
@@ -1358,6 +1370,75 @@
                     "schema": {
                         "format": "int64",
                         "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts/{artifactId}/test": {
+            "summary": "Test whether content would pass update rules.",
+            "put": {
+                "requestBody": {
+                    "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                    "content": {
+                        "application/json": {
+
+                        },
+                        "application/x-protobuf": {
+
+                        },
+                        "application/x-protobuffer": {
+
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifact rules"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-ArtifactType",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)",
+                        "schema": {
+                            "enum": [
+                                "AVRO",
+                                "PROTOBUF",
+                                "PROTOBUF_FD",
+                                "JSON",
+                                "OPENAPI",
+                                "ASYNCAPI"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "When successful, returns \"No Content\" to indicate that the rules passed, and the\ncontent was not updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    }
+                },
+                "operationId": "testUpdateArtifact",
+                "summary": "Test update artifact",
+                "description": "Tests whether an update to the artifact's content *would* succeed for the provided content.\nUltimately, this will apply any rules configured for the artifact against the given content\nto determine whether the rules would pass or fail, but without actually updating the artifact\ncontent.\n\nThe body of the request should be the raw content of the artifact.  This will typically be \nin JSON format for *most* of the supported types, but may be in another format for a few \n(for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this operation simply returns a *No Content* response."
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client provided) or integer (server generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -1534,21 +1615,9 @@
                     }
                 },
                 "example": {
-                    "error_code": 12345,
+                    "error_code": 500,
                     "message": "An error occurred somewhere."
                 }
-            },
-            "ArtifactType": {
-                "description": "",
-                "enum": [
-                    "AVRO",
-                    "PROTOBUF",
-                    "JSON",
-                    "OPENAPI",
-                    "ASYNCAPI"
-                ],
-                "type": "string",
-                "x-codegen-package": "io.apicurio.registry.types"
             },
             "RuleType": {
                 "description": "",
@@ -1557,6 +1626,21 @@
                     "COMPATIBILITY"
                 ],
                 "type": "string",
+                "example": "VALIDITY",
+                "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "ArtifactType": {
+                "description": "",
+                "enum": [
+                    "AVRO",
+                    "PROTOBUF",
+                    "PROTOBUF_FD",
+                    "JSON",
+                    "OPENAPI",
+                    "ASYNCAPI"
+                ],
+                "type": "string",
+                "example": "AVRO",
                 "x-codegen-package": "io.apicurio.registry.types"
             }
         },
@@ -1566,6 +1650,14 @@
                     "application/json": {
                         "schema": {
                             "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "NotFoundExample": {
+                                "value": {
+                                    "error_code": 404,
+                                    "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                                }
+                            }
                         }
                     }
                 },
@@ -1576,6 +1668,14 @@
                     "application/json": {
                         "schema": {
                             "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "ErrorExample": {
+                                "value": {
+                                    "error_code": 500,
+                                    "message": "Lost connection to the database."
+                                }
+                            }
                         }
                     }
                 },
@@ -1592,6 +1692,21 @@
                 "description": "Common response for all operations that can return a `400` error."
             },
             "Conflict": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "ConflictExample": {
+                                "value": {
+                                    "error_code": 409,
+                                    "message": "The artifact content was invalid."
+                                }
+                            }
+                        }
+                    }
+                },
                 "description": "Common response used when an input conflicts with existing data."
             }
         }

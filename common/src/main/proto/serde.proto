@@ -1,8 +1,8 @@
 syntax = "proto3";
-package io.apicurio.registry.utils.serde.proto;
+package io.apicurio.registry.common.proto;
 import "google/protobuf/descriptor.proto";
 option optimize_for = SPEED;
-option java_package = "io.apicurio.registry.utils.serde.proto";
+option java_package = "io.apicurio.registry.common.proto";
 
 message Schema {
     google.protobuf.FileDescriptorProto file = 1;

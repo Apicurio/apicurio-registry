@@ -33,6 +33,8 @@ public class ContentValidatorFactory {
     @Inject
     ProtobufContentValidator protoValidator;
     @Inject
+    ProtobufFdContentValidator protofdValidator;
+    @Inject
     JsonSchemaContentValidator jsonValidator;
     @Inject
     OpenApiContentValidator openapiValidator;
@@ -51,6 +53,8 @@ public class ContentValidatorFactory {
                 return openapiValidator;
             case PROTOBUF:
                 return protoValidator;
+            case PROTOBUF_FD:
+                return protofdValidator;
             default:
                 break;
         }

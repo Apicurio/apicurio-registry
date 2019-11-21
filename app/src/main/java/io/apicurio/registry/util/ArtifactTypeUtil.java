@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
+import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 
@@ -52,12 +53,10 @@ public final class ArtifactTypeUtil {
         
         // If the content-type suggest it's protobuf, try that first.
         if (contentType == null || contentType.toLowerCase().contains("proto")) {
-            try {
-                triedProto = true;
-                ProtoParser.parse(Location.get(""), content.content());
-                return ArtifactType.PROTOBUF;
-            } catch (Exception e) {
-                // Doesn't seem to be protobuf.
+            triedProto = true;
+            ArtifactType type = tryProto(content);
+            if (type != null) {
+                return type;
             }
         }
         
@@ -85,16 +84,30 @@ public final class ArtifactTypeUtil {
         
         // Try protobuf (only if we haven't already)
         if (!triedProto) {
-            try {
-                ProtoParser.parse(Location.get(""), content.content());
-                return ArtifactType.PROTOBUF;
-            } catch (Exception e) {
-                // Doesn't seem to be protobuf
+            ArtifactType type = tryProto(content);
+            if (type != null) {
+                return type;
             }
         }
         
         // Default to Avro
         return ArtifactType.AVRO;
+    }
+
+    private static ArtifactType tryProto(ContentHandle content) {
+        try {
+            ProtoParser.parse(Location.get(""), content.content());
+            return ArtifactType.PROTOBUF;
+        } catch (Exception e) {
+            // Doesn't seem to be protobuf
+        }
+        try {
+            Serde.Schema.parseFrom(content.bytes());
+            return ArtifactType.PROTOBUF_FD;
+        } catch (Exception e) {
+            // Doesn't seem to be protobuf_fd
+        }
+        return null;
     }
 
 }

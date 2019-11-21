@@ -33,6 +33,7 @@ public class ArtifactTypeAdapterFactory {
         ADAPTERS = new HashMap<>();
         ADAPTERS.put(ArtifactType.AVRO, new AvroArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.PROTOBUF, new ProtobufArtifactTypeAdapter());
+        ADAPTERS.put(ArtifactType.PROTOBUF_FD, new ProtobufFdArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.JSON, new JsonArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.OPENAPI, NoopArtifactTypeAdapter.INSTANCE);
         ADAPTERS.put(ArtifactType.ASYNCAPI, NoopArtifactTypeAdapter.INSTANCE);

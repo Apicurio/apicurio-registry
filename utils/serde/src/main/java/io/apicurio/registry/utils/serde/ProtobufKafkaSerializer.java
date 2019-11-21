@@ -19,8 +19,8 @@ package io.apicurio.registry.utils.serde;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.proto.Serde;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 
@@ -61,7 +61,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
 
     @Override
     protected ArtifactType artifactType() {
-        return ArtifactType.PROTOBUF;
+        return ArtifactType.PROTOBUF_FD;
     }
 
     @Override

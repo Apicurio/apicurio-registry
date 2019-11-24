@@ -7,17 +7,15 @@ ifdef::apicurio-registry[]
 endif::[]
 
 ifdef::rh-service-registry[]
-= Installing {registry} with Kafka storage using Docker
+= Installing {registry} with Apache Kafka storage using Docker
 endif::[]
 
 This topic explains how to install and run {registry} with Kafka storage from a container image. This storage option is suitable for production environments. 
 
-ifdef::rh-service-registry[]
 The following Kafka-based systems are supported:
 
-* Red Hat AMQ Streams 1.3
-* Apache Kafka 2.2.x or 2.3
-endif::[]
+* Apache Kafka 2.2.x
+* Apache Kafka 2.3
 
 .Prerequisites
 
@@ -96,18 +94,10 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 * For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
-* For details on installing on OpenShift, see the following:
+* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
 ifdef::apicurio-registry[]
+* For details on installing on OpenShift, see the following:
 ** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[{registry} OpenShift  template]
-endif::[]
-ifdef::rh-service-registry[]
-** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x-redhat/distro/openshift-template[{registry} OpenShift template]
-endif::[]
 ** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
 ** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
-ifdef::apicurio-registry[]
-* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
-endif::[]
-ifdef::rh-service-registry[]
-* For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str[Getting Started with AMQ Streams].
 endif::[]

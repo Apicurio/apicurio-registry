@@ -55,8 +55,8 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 * For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
+* For more details on Kafka Streams, see the link:https://kafka.apache.org/documentation/streams//[Apache Kafka Streams documentation].
 * For details on installing on OpenShift, see the following:
 ** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[Apicurio registry OpenShift template]
 ** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
 ** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
-* For more details on Kafka Streams, see the link:https://kafka.apache.org/documentation/streams//[Apache Kafka Streams documentation].

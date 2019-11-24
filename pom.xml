@@ -7,7 +7,7 @@
 
 	<groupId>io.apicurio</groupId>
 	<artifactId>apicurio-registry</artifactId>
-	<version>1.0.3-SNAPSHOT</version>
+	<version>1.0.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>apicurio-registry</name>
 
@@ -79,8 +79,8 @@
 		<module>utils/maven-plugin</module>
 		<module>utils/serde</module>
 		<module>distro</module>
-		<module>tests</module>
 		<module>docs</module>
+		<module>tests</module>
 	</modules>
 
 	<properties>
@@ -127,7 +127,7 @@
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.javadoc.plugin>2.10.4</version.javadoc.plugin>
+        <version.javadoc.plugin>3.1.0</version.javadoc.plugin>
         <version.source.plugin>3.2.0</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.0</version.jar.plugin>
@@ -227,11 +227,16 @@
             </dependency>
 
 			<!-- gRPC -->
-			<dependency>
-				<groupId>io.grpc</groupId>
-				<artifactId>grpc-core</artifactId>
-				<version>${grpc.version}</version>
-			</dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-api</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-core</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
 			<dependency>
 				<groupId>io.grpc</groupId>
 				<artifactId>grpc-context</artifactId>
@@ -381,6 +386,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${version.javadoc.plugin}</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -397,6 +403,8 @@
 							<version>1.0.1.Final</version>
 						</additionalDependency>
 					</additionalDependencies>
+					<failOnError>false</failOnError>
+					<failOnWarnings>false</failOnWarnings>
 				</configuration>
 			</plugin>
 		</plugins>

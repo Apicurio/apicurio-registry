@@ -1,0 +1,6 @@
+:experimental:
+include::shared/attributes.adoc[]
+
+= Apicurio Registry user documentation
+
+include::getting-started/master.adoc[offsetlevel=+1]

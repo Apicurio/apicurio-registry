@@ -32,6 +32,18 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.avro.specific.SpecificRecord;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * @author Ales Justin

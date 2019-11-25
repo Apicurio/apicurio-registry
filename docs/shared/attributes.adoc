@@ -6,10 +6,10 @@
 :numbered:
 
 // Branding
-//:apicurio-registry:
-:rh-service-registry:
-//:registry: Apicurio Registry
-:registry: Service Registry
+:apicurio-registry:
+//:rh-service-registry:
+:registry: Apicurio Registry
+//:registry: Service Registry
 :version: 1.0
 
 // Characters

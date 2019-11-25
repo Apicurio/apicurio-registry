@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: apicurio-registry
+  name: apicurio-registry-kafka
 message: |-
-  Congratulations on deploying Apicurio Registry into OpenShift!
+  Congratulations on deploying Apicurio Registry (Kafka Storage) into OpenShift!
   
   All components have been deployed and configured.
 
@@ -18,7 +18,7 @@ objects:
       - name: latest
         from:
           kind: DockerImage
-          name: apicurio/apicurio-registry:latest
+          name: apicurio/apicurio-registry-kafka:latest
         importPolicy:
           scheduled: true
 # Services for the components
@@ -27,18 +27,19 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
-    name: apicurio-registry
+      app: apicurio-registry-kafka
+      template: apicurio-registry-kafka
+    name: apicurio-registry-kafka
   spec:
+    selector:
+      app: apicurio-registry-kafka
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
-    selector:
-      app: apicurio-registry
+      nodePort: 32222
+    type: NodePort
     sessionAffinity: None
-    type: ClusterIP
   status:
     loadBalancer: {}
 # Registry Deployment Configuration
@@ -48,14 +49,14 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
-    name: apicurio-registry
+      app: apicurio-registry-kafka
+      template: apicurio-registry-kafka
+    name: apicurio-registry-kafka
   spec:
     replicas: 1
     selector:
-      app: apicurio-registry
-      deploymentconfig: apicurio-registry
+      app: apicurio-registry-kafka
+      deploymentconfig: apicurio-registry-kafka
     strategy:
       type: Recreate
       recreateParams:
@@ -66,18 +67,23 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          app: apicurio-registry
-          deploymentconfig: apicurio-registry
-          template: apicurio-registry
+          app: apicurio-registry-kafka
+          deploymentconfig: apicurio-registry-kafka
+          template: apicurio-registry-kafka
       spec:
         replicas: 1
         containers:
         - image: registry:latest
           imagePullPolicy: Always
-          name: apicurio-registry
+          name: apicurio-registry-kafka
           ports:
           - containerPort: 8080
             protocol: TCP
+          env:
+          - name: QUARKUS_PROFILE
+            value: prod
+          - name: KAFKA_BOOTSTRAP_SERVERS
+            value: ${KAFKA_BOOTSTRAP_SERVERS}
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}
@@ -87,7 +93,7 @@ objects:
               memory: ${REGISTRY_MEM_REQUEST}
           livenessProbe:
             httpGet:
-              path: /rules
+              path: /health/live
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 5
@@ -97,7 +103,7 @@ objects:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /rules
+              path: /health/ready
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 5
@@ -115,7 +121,7 @@ objects:
       imageChangeParams:
         automatic: true
         containerNames:
-          - apicurio-registry
+          - apicurio-registry-kafka
         from:
           kind: ImageStreamTag
           name: 'registry:latest'
@@ -124,16 +130,16 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: apicurio-registry
+    name: apicurio-registry-kafka
     creationTimestamp: null
     labels:
-      app: apicurio-registry
-      template: apicurio-registry
+      app: apicurio-registry-kafka
+      template: apicurio-registry-kafka
   spec:
     host: ${REGISTRY_ROUTE}
     to:
       kind: Service
-      name: apicurio-registry
+      name: apicurio-registry-kafka
       weight: 100
     tls:
       termination: edge
@@ -152,8 +158,8 @@ parameters:
   value: 1300Mi
   required: true
 - name: REGISTRY_MEM_REQUEST
-  displayName: Registry Memory Request
-  description: Registry Pods Memory Request
+  displayName: Registry Memory Requests
+  description: Registry Pods Memory Requests
   value: 600Mi
   required: true
 - name: REGISTRY_CPU_LIMIT
@@ -162,7 +168,11 @@ parameters:
   value: '1'
   required: true
 - name: REGISTRY_CPU_REQUEST
-  displayName: Registry CPU Request
-  description: Registry Pods CPU Request
+  displayName: Registry CPU Requests
+  description: Registry Pods CPU Requests
   value: 100m
+  required: true
+- name: KAFKA_BOOTSTRAP_SERVERS
+  displayName: Kafka Bootstrap Servers
+  description: Kafka Bootstrap Servers
   required: true

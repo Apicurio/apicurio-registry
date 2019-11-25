@@ -24,7 +24,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -96,7 +95,7 @@ class CachedRegistryService implements RegistryService {
         String content = IoUtil.toString(data);
         Map<String, ArtifactMetaData> map = cmds.computeIfAbsent(artifactId, id -> new TreeMap<>());
         return map.computeIfAbsent(content, c -> {
-            InputStream copy = new ByteArrayInputStream(content.getBytes());
+            InputStream copy = IoUtil.toStream(content);
             ArtifactMetaData amd = getDelegate().getArtifactMetaDataByContent(artifactId, copy);
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;

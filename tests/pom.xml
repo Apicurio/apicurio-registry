@@ -173,6 +173,9 @@
                                 <native.image.path>${test.app.name}</native.image.path>
                                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                             </systemProperties>
+                            <environmentVariables>
+                                <REGISTRY_JAR_PATH>../app/target/apicurio-registry-app-${project.version}-runner.jar</REGISTRY_JAR_PATH>
+                            </environmentVariables>
                         </configuration>
                     </execution>
                 </executions>

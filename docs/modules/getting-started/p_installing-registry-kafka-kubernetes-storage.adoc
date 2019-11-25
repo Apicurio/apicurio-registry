@@ -50,14 +50,13 @@ ifdef::rh-service-registry[]
 
 * You must have already installed Red Hat AMQ Streams on your OpenShift cluster. For details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str#downloads-str[Installing AMQ Streams and deploying components].  
 
-* Ensure that you can connect to the {registry} container image in the Red Hat Container Catalog: 
-link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[]
+* Ensure that you can access the 
+link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[{registry} container image in the Red Hat Container Catalog].
 endif::[]
 
 .Procedure
 ifdef::apicurio-registry[]
-. Download the {registry} OpenShift template: 
-link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[]
+. Download the link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[{registry} OpenShift template].
 
 . Create a new OpenShift application and specify the following: 
 +
@@ -71,9 +70,9 @@ $ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-
 endif::[]
 
 ifdef::rh-service-registry[]
-. Download the {registry} OpenShift template: 
-link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[]
-. Get the {registry} container image by following the instructions in the Red Hat Container Catalog: link:https://access.redhat.com/containers/?tab=images#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[] 
+. Download the 
+link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
+. Get the {registry} container image by following the link:https://access.redhat.com/containers/?tab=images#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[instructions in the Red Hat Container Catalog]. 
 
 . Create a new OpenShift application and specify the following: 
 +
@@ -101,9 +100,9 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 ifdef::rh-service-registry[]
-* For more details on AMQ Streams, see: 
-** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str[Getting Started with AMQ Streams].
-** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run Kafka on Openshift with AMQ Streams]
+* For more details on AMQ Streams, see the following:
+** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str[Getting Started with AMQ Streams]
+** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run Kafka on OpenShift with AMQ Streams]
 endif::[]
 * For more details on installing OpenShift templates, see the following:
 ** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]

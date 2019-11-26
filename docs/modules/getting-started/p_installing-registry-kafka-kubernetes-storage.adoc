@@ -1,0 +1,110 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-kafka-kubernetes-storage"]
+ifdef::apicurio-registry[]
+= Installing {registry} with Apache Kafka storage on OpenShift
+
+This topic explains how to install and run {registry} with storage in Apache Kafka on OpenShift from a container image using Apache Strimzi. This storage option is suitable for production environments. 
+
+The following versions are supported:
+
+* Apache Kafka 2.2.x
+* Apache Kafka 2.3
+endif::[]
+
+ifdef::rh-service-registry[]
+=  Installing {registry} with AMQ Streams storage on OpenShift
+
+This topic explains how to install and run {registry} with storage in Red Hat AMQ Streams on OpenShift from a container image. This storage option is suitable for production environments. 
+
+The following versions are supported:
+
+* Red Hat AMQ Streams 1.3
+endif::[]
+
+.Prerequisites
+
+ifdef::apicurio-registry[]
+* You must have a Kubernetes or OpenShift cluster with cluster administrator access.
+
+* Ensure that you can connect to the {registry} container image in GitHub: link:https://hub.docker.com/r/apicurio/apicurio-registry-kafka[].
+* You must have already installed and deployed Apache Strimzi on your Kubernetes or OpenShift cluster. For example: 
++
+[source,bash]
+----
+minikube start --memory="8000m"
+kubectl create namespace kafka
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.14.0/strimzi-cluster-operator-0.14.0.yaml \
+  | sed 's/namespace: .*/namespace: kafka/' \
+  | kubectl apply -f - -n kafka
+kubectl apply -f kubernetes/resources.yaml
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
+----
++ 
+For more details, see https://strimzi.io/docs/quickstart/master/
+endif::[] 
+
+ifdef::rh-service-registry[]
+* You must have an OpenShift cluster with cluster administrator access.
+
+* You must have already installed Red Hat AMQ Streams on your OpenShift cluster. For details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str#downloads-str[Installing AMQ Streams and deploying components].  
+
+* Ensure that you can access the 
+link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[{registry} container image in the Red Hat Container Catalog].
+endif::[]
+
+.Procedure
+ifdef::apicurio-registry[]
+. Download the link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[{registry} OpenShift template].
+
+. Create a new OpenShift application and specify the following: 
++
+** {registry} OpenShift template: `service-registry-template.yaml` 
+** Address(es) of your Kafka broker(s): `KAFKA_BOOTSTRAP_SERVERS`   
++
+[source,bash]
+----
+$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap.kafka:9092
+----
+endif::[]
+
+ifdef::rh-service-registry[]
+. Download the 
+link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
+. Get the {registry} container image by following the link:https://access.redhat.com/containers/?tab=images#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[instructions in the Red Hat Container Catalog]. 
+
+. Create a new OpenShift application and specify the following: 
++
+** {registry} OpenShift template: `service-registry-template.yaml` 
+** Address(es) of your Kafka broker(s): `KAFKA_BOOTSTRAP_SERVERS`  
++
+[source,bash]
+----
+$ oc new-app service-registry-template.yaml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap.kafka:9092
+----
+endif::[]
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple artifact:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' http://localhost:8080/artifacts 
+----
+. Verify that the response includes the expected JSON body. For example:
++
+[source,bash]
+----
+{"createdOn":1571757704485,"modifiedOn":1571757704485,"id":"448bc6fe-bbf6-41c9-ba35-1a96a0d198bf","version":1,"type":"AVRO"}
+----
+
+.Additional resources
+* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+ifdef::rh-service-registry[]
+* For more details on AMQ Streams, see the following:
+** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str[Getting Started with AMQ Streams]
+** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run Kafka on OpenShift with AMQ Streams]
+endif::[]
+* For more details on installing OpenShift templates, see the following:
+** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
+** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
+* For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].

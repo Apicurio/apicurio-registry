@@ -16,26 +16,23 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
-import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
-import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
-import org.apache.avro.Schema;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.specific.SpecificDatumReader;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+
 import javax.ws.rs.core.Response;
+
+import org.apache.avro.Schema;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DecoderFactory;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
+import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
+import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 
 /**
  * @author Ales Justin

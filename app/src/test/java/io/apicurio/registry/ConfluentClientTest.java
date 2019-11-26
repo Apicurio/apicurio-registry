@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {

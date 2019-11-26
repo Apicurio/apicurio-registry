@@ -27,7 +27,7 @@ import javax.ws.rs.client.ClientResponseFilter;
  */
 public class RegistryFilter implements ClientRequestFilter, ClientResponseFilter {
 
-    private static Logger log = Logger.getLogger(RegistryFilter.class.getName());
+    protected static Logger log = Logger.getLogger(RegistryFilter.class.getName());
 
     // TODO -- cache
 

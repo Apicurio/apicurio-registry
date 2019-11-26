@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Tag(CLUSTER)
 public class BasicConfluentSerDesIT extends BaseIT {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BasicConfluentSerDesIT.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(BasicConfluentSerDesIT.class);
 
     @Test
     void testAvroConfluentSerDes(TestInfo testInfo) throws IOException, RestClientException, InterruptedException, ExecutionException, TimeoutException {

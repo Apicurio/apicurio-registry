@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BasicApicurioSerDesIT.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(BasicApicurioSerDesIT.class);
 
     @Test
     void testAvroApicurioSerDes(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {

@@ -131,8 +131,11 @@
         <version.source.plugin>3.2.0</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.0</version.jar.plugin>
+		<version.checkstyle.plugin>3.1.0</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
+		<!-- Plugin Deps -->
+		<version.puppycrawl>8.26</version.puppycrawl>
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
@@ -317,6 +320,11 @@
 					<version>${version.jar.plugin}</version>
 				</plugin>
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-checkstyle-plugin</artifactId>
+					<version>${version.checkstyle.plugin}</version>
+				</plugin>
+				<plugin>
 					<groupId>org.jboss.jandex</groupId>
 					<artifactId>jandex-maven-plugin</artifactId>
 					<version>${jandex.version}</version>
@@ -406,6 +414,39 @@
 					<failOnError>false</failOnError>
 					<failOnWarnings>false</failOnWarnings>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>${version.puppycrawl}</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>validate</id>
+						<phase>validate</phase>
+						<configuration>
+							<configLocation>.checkstyle/simple.xml
+							</configLocation>
+							<headerLocation>.checkstyle/java.header
+							</headerLocation>
+							<suppressionsLocation>.checkstyle/suppressions.xml
+							</suppressionsLocation>
+							<includeTestSourceDirectory>true
+							</includeTestSourceDirectory>
+							<encoding>UTF-8</encoding>
+							<consoleOutput>true</consoleOutput>
+							<failsOnError>true</failsOnError>
+						</configuration>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

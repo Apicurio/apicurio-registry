@@ -3,11 +3,11 @@
 [id="intro-to-registry"]
 = {registry} overview
 
-{registry} is a datastore for standard event schemas and API designs. It enables developers to share and manage the structure of their data structure using a REST interface. For example, client applications can dynamically pull the latest schema updates from the registry at runtime without needing to redeploy. 
+{registry} is a datastore for standard event schemas and API designs. It enables developers to decouple the structure of their data from their applications and to share and manage it using a REST interface. For example, client applications can dynamically push/pull the latest schema updates to/from the registry at runtime without needing to redeploy. 
 
 {registry} also enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.
 
-{registry} provides full Apache Kafka schema registry support, client Serializer/Deserializer (SerDes) to validate Kafka messages at runtime, and compatibility with existing Confluent registry clients.
+{registry} provides full Apache Kafka schema registry support, client serializer/deserializer (SerDe) to validate Kafka messages at runtime, and compatibility with existing Confluent registry clients.
 
 ifdef::rh-service-registry[]
 
@@ -103,7 +103,7 @@ ifdef::rh-service-registry[]
 |link:https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.5.0&downloadType=distributions[Software Downloads for Fuse v7.5.0]
 |===
 
-Both Maven repositories also include the Kafka client serializer/deserializer (SerDes), which can be used by AMQ Streams client developers to integrate with the registry. 
+Both Maven repositories also include a custom Kafka client serializer/deserializer, which can be used by Kafka client developers to integrate with the registry. These Java classes allow Kafka client applications to push/pull their schemas from the {registry} at runtime.
 
 NOTE: You must be logged into the Red Hat Customer Portal to access these resources.
 
@@ -118,11 +118,11 @@ The {registry} REST API enables client applications to manage the artifacts in t
 * Global rules
 * Artifact rules 
 
-For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+The {registry} REST API is also compatible with the Confluent schema registry REST API. For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 
 == {registry} demo
 {registry} provides a demo of Apache Avro serialization/deserialization based storage in Apache Kafka Streams. 
 
-This demo shows how the Avro serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
+This demo shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
 
 For more details, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].

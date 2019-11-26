@@ -7,7 +7,7 @@ You can configure rules for each artifact added to the registry to govern conten
 
 The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
 
-* Invalid syntax for a given artifact type
+* Invalid syntax for a given artifact type (for example, `AVRO` or  `PROTOBUF`)
 * Valid syntax but semantics violate company standards
 * New content makes breaking changes compared with the current version
 

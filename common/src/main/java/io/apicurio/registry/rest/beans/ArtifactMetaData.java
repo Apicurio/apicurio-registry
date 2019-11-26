@@ -275,4 +275,19 @@ public class ArtifactMetaData {
         this.globalId = globalId;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactMetaData{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdBy='" + createdBy + '\'' +
+                ", createdOn=" + createdOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                ", modifiedOn=" + modifiedOn +
+                ", id='" + id + '\'' +
+                ", version=" + version +
+                ", type=" + type +
+                ", globalId=" + globalId +
+                '}';
+    }
 }

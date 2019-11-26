@@ -17,7 +17,6 @@
 package io.apicurio.registry.utils.serde.strategy;
 
 import org.apache.avro.Schema;
-import org.apache.kafka.common.errors.SerializationException;
 
 /**
  * @author Ales Justin

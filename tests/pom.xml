@@ -22,7 +22,6 @@
         <vertx.version>3.8.1</vertx.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
-        <maven.checkstyle.version>3.0.0</maven.checkstyle.version>
         <log4j.version>1.7.28</log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
     </properties>
@@ -184,12 +183,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven.checkstyle.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.18</version>
+                        <version>${version.puppycrawl}</version>
                     </dependency>
                 </dependencies>
                 <executions>

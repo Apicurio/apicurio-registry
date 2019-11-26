@@ -16,6 +16,10 @@ setupStreams() {
     sleep 2
     ./kafka-topics.sh --zookeeper localhost --create --topic storage-topic --partitions 1 --replication-factor 1  --config cleanup.policy=compact
     ./kafka-topics.sh --zookeeper localhost --create --topic global-id-topic --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+    ./kafka-topics.sh --zookeeper localhost --create --topic search-configs --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+    ./kafka-topics.sh --zookeeper localhost --create --topic search-offsets --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+    ./kafka-topics.sh --zookeeper localhost --create --topic search-status --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+    ./kafka-topics.sh --zookeeper localhost --create --topic search-topic --partitions 1 --replication-factor 1
     sleep 1
     echo 'Streams ready ...'
 }

@@ -16,11 +16,10 @@
 
 package io.apicurio.registry.content;
 
+import io.apicurio.registry.utils.IoBufferedInputStream;
 import io.apicurio.registry.utils.IoUtil;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -41,13 +40,11 @@ class StreamContentHandle extends AbstractContentHandle {
         }
         InputStream is = stream;
         stream = null;
-        return new BufferedInputStream(is) {
-            @Override
-            public void close() throws IOException {
-                bytes = buf;
-                super.close();
-            }
-        };
+        return new IoBufferedInputStream(is, (bytes, count) -> {
+            byte[] copy = new byte[count];
+            System.arraycopy(bytes, 0, copy, 0, count);
+            this.bytes = copy;
+        });
     }
 
     @Override

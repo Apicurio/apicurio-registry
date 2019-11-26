@@ -80,6 +80,8 @@
 		<module>utils/maven-plugin</module>
 		<module>utils/serde</module>
 		<module>utils/tools</module>
+		<module>search/client</module>
+		<module>search/connector</module>
 		<module>distro</module>
 		<module>docs</module>
 		<module>tests</module>
@@ -96,9 +98,6 @@
 
 		<!-- Quarkus Version -->
 		<quarkus.version>1.0.1.Final</quarkus.version>
-
-		<!-- Connect API -->
-		<connect.version>2.2.1</connect.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.7</jandex.version>
@@ -127,6 +126,10 @@
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>
 		<h2.version>1.4.199</h2.version>
+
+		<!-- Search -->
+		<connect.version>2.2.1</connect.version>
+		<infinispan.version>10.0.1.Final</infinispan.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
@@ -162,6 +165,11 @@
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-client</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.apicurio</groupId>
+				<artifactId>apicurio-registry-search-client</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -239,22 +247,27 @@
                 <artifactId>json-schema-validator</artifactId>
                 <version>${json-schema-validator.version}</version>
             </dependency>
-			<dependency>
-				<groupId>com.squareup.wire</groupId>
-				<artifactId>wire-schema</artifactId>
-				<version>${wire-schema.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.google.protobuf</groupId>
-				<artifactId>protobuf-java</artifactId>
-				<version>${protobuf.version}</version>
-			</dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-schema</artifactId>
+                <version>${wire-schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
 				<version>${lombok.version}</version>
 			</dependency>
-
+			
 			<!-- gRPC -->
 			<dependency>
 				<groupId>io.grpc</groupId>
@@ -285,6 +298,18 @@
 				<groupId>io.grpc</groupId>
 				<artifactId>grpc-netty-shaded</artifactId>
 				<version>${grpc.version}</version>
+			</dependency>
+
+			<!-- Search -->
+			<dependency>
+				<groupId>org.apache.kafka</groupId>
+				<artifactId>connect-runtime</artifactId>
+				<version>${connect.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.infinispan</groupId>
+				<artifactId>infinispan-client-rest</artifactId>
+				<version>${infinispan.version}</version>
 			</dependency>
 
 			<!-- Tests -->

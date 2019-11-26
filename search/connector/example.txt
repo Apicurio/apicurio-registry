@@ -1,0 +1,1 @@
+curl -d '{"name":"registry-search-connector", "config":{"connector.class":"io.apicurio.registry.connector.SearchSinkConnector", "topics":"search-topic"}}' -H "Content-Type: application/json" -X POST http://localhost:8083/connectors

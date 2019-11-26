@@ -16,22 +16,6 @@
 
 package io.apicurio.registry.rest;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -41,6 +25,8 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.search.client.SearchClient;
+import io.apicurio.registry.search.common.Search;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
@@ -54,6 +40,25 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
+import io.apicurio.registry.utils.ProtoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -64,6 +69,7 @@ import io.apicurio.registry.util.DtoUtil;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 public class ArtifactsResourceImpl implements ArtifactsResource {
+    private static final Logger log = LoggerFactory.getLogger(ArtifactsResourceImpl.class);
 
     @Inject
     @Current
@@ -78,6 +84,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Context
     HttpServletRequest request;
 
+    @Inject
+    @Current
+    SearchClient searchClient;
+
     /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
@@ -85,11 +95,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
      * 2) A hint provided in the Content-Type header
      * 3) Determined from the content itself
      *
-     * @param content
-     * @param xArtifactType
-     * @param request
+     * @param content the content
+     * @param xArtifactType the artifact type
+     * @param request http request
      */
-    private static final ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, HttpServletRequest request) {
+    private static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, HttpServletRequest request) {
         ArtifactType artifactType = xArtifactType;
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(request);
@@ -102,9 +112,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     }
 
     /**
-     * Tries to figure out the artiact type by analyzing the content-type.
+     * Tries to figure out the artifact type by analyzing the content-type.
      *
-     * @param request
+     * @param request http request
      */
     private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
         String contentType = request.getHeader("Content-Type");
@@ -129,6 +139,30 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         return null;
     }
 
+    private CompletionStage<ArtifactMetaDataDto> indexArtifact(String artifactId, ContentHandle content, ArtifactMetaDataDto amdd) throws CompletionException {
+        try {
+            Search.Artifact artifact = Search.Artifact.newBuilder()
+                                                      .setArtifactId(artifactId)
+                                                      .setContent(content.content())
+                                                      .setVersion(amdd.getVersion())
+                                                      .setGlobalId(amdd.getGlobalId())
+                                                      .setName(ProtoUtil.nullAsEmpty(amdd.getName()))
+                                                      .setDescription(ProtoUtil.nullAsEmpty(amdd.getDescription()))
+                                                      .setCreatedBy(ProtoUtil.nullAsEmpty(amdd.getCreatedBy()))
+                                                      .build();
+            return searchClient.index(artifact).thenApply(sr -> {
+                if (sr.ok()) {
+                    log.info("Artifact {}/{} successfully indexed", artifactId, amdd.getVersion());
+                } else {
+                    log.warn("Artifact {}/{} not indexed, status: {}", artifactId, amdd.getVersion(), sr.status());
+                }
+                return amdd;
+            });
+        } catch (Exception e) {
+            throw new CompletionException(e);
+        }
+    }
+
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
@@ -150,11 +184,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         ContentHandle content = ContentHandle.create(data);
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
-        CompletionStage<ArtifactMetaDataDto> csDto = storage.createArtifact(artifactId, artifactType, content);
         String finalArtifactId = artifactId;
-        return csDto.thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
+        return storage.createArtifact(artifactId, artifactType, content)
+                      .thenCompose(amdd -> indexArtifact(finalArtifactId, content, amdd))
+                      .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
     }
 
     /**
@@ -179,10 +213,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
-        return csDto.thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
+        return storage.updateArtifact(artifactId, artifactType, content)
+                      .thenCompose(amdd -> indexArtifact(artifactId, content, amdd))
+                      .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -199,9 +233,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
         SortedSet<Long> versions = storage.getArtifactVersions(artifactId);
-        List<Long> rval = new ArrayList<Long>(versions.size());
-        rval.addAll(versions);
-        return rval;
+        return new ArrayList<>(versions);
     }
 
     /**
@@ -212,10 +244,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        // TODO -- canonical content!!
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        CompletionStage<ArtifactMetaDataDto> csDto = storage.updateArtifact(artifactId, artifactType, content);
-        return csDto.thenApply(dto -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, dto));
+        return storage.updateArtifact(artifactId, artifactType, content)
+                      .thenCompose(amdd -> indexArtifact(artifactId, content, amdd))
+                      .thenApply(dto -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -310,7 +342,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
      */

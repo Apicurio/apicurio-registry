@@ -17,6 +17,7 @@
 package io.apicurio.registry.kafka;
 
 import io.apicurio.registry.common.proto.Cmmn;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -32,11 +33,10 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ProtoUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
-import io.apicurio.registry.utils.kafka.ProtoUtil;
 import io.apicurio.registry.utils.kafka.Submitter;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;

@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.kafka;
+package io.apicurio.registry.search.client.hotrod;
 
 import io.apicurio.registry.common.proto.Cmmn;
-
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import org.infinispan.protostream.EnumMarshaller;
 
 /**
  * @author Ales Justin
  */
-public class ProtoUtil {
-
-    public static UUID convert(Cmmn.UUID mpUuid) {
-        return new UUID(mpUuid.getMsb(), mpUuid.getLsb());
+public class ArtifactTypeMarshaller implements EnumMarshaller<Cmmn.ArtifactType> {
+    @Override
+    public Cmmn.ArtifactType decode(int enumValue) {
+        return Cmmn.ArtifactType.forNumber(enumValue);
     }
 
-    public static Cmmn.UUID convert(UUID uuid) {
-        return Cmmn.UUID
-            .newBuilder()
-            .setMsb(uuid.getMostSignificantBits())
-            .setLsb(uuid.getLeastSignificantBits())
-            .build();
+    @Override
+    public int encode(Cmmn.ArtifactType artifactType) throws IllegalArgumentException {
+        return artifactType.getNumber();
     }
 
-    public static <B, R> R getNullable(B b, Predicate<? super B> tester, Function<? super B, ? extends R> getter) {
-        return tester.test(b) ? getter.apply(b) : null;
+    @Override
+    public Class<? extends Cmmn.ArtifactType> getJavaClass() {
+        return Cmmn.ArtifactType.class;
+    }
+
+    @Override
+    public String getTypeName() {
+        return "io.apicurio.registry.common.proto.ArtifactType";
     }
 }

@@ -59,7 +59,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
                     Assertions.assertNotNull(artifactMetaData);
                     Assertions.assertEquals("myname", artifactMetaData.getName());
-                   return null;
+                    return null;
                 });
 
                 stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes());

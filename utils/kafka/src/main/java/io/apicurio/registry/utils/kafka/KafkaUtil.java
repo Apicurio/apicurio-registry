@@ -37,7 +37,11 @@ public class KafkaUtil {
         Properties properties = new Properties();
         for (String key : config.getPropertyNames()) {
             if (key.startsWith(prefix)) {
-                properties.put(key.substring(prefix.length()), config.getValue(key, String.class));
+                // property can exist with key, but no value ...
+                Optional<String> value = config.getOptionalValue(key, String.class);
+                if (value.isPresent()) {
+                    properties.put(key.substring(prefix.length()), value.get());
+                }
             }
         }
         return properties;

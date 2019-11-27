@@ -39,7 +39,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
-    private Integer configErrorThreshold;
+    Integer configErrorThreshold;
 
     /**
      * The counter is reset after some time without errors.
@@ -48,20 +48,20 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    private Integer configCounterResetWindowDurationSec;
+    Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    private Integer configStatusResetWindowDurationSec;
+    Integer configStatusResetWindowDurationSec;
 
     /**
      * Set the request duration in seconds, after which it's considered an error.
      * TODO This may be expected on some endpoints. Add a way to ignore those.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
-    private Integer configTimeoutSec;
+    Integer configTimeoutSec;
 
     private Duration timeoutSec;
 

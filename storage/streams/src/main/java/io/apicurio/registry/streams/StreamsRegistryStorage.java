@@ -1,5 +1,7 @@
 package io.apicurio.registry.streams;
 
+import io.apicurio.registry.content.ContentCanonicalizer;
+import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
@@ -71,6 +73,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
     @Inject
     @Current
     AsyncBiFunctionService<String, Long, Str.Data> storageFunction;
+
+    @Inject
+    ContentCanonicalizerFactory ccFactory;
 
     private Submitter submitter = new Submitter(this::send);
 
@@ -229,14 +234,25 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        // Get the meta-data for the artifact
+        ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
+
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
-            byte[] needle = content.bytes();
+            // Create a canonicalizer for the artifact based on its type, and then 
+            // canonicalize the inbound content
+            ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            byte[] canonicalBytes = canonicalContent.bytes();
+
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--){
-                Str.ArtifactValue artifact = data.getArtifacts(i);
-                if (isValid(artifact)) {
-                    if (Arrays.equals(needle, artifact.getContent().toByteArray())) {
-                        return MetaDataKeys.toArtifactMetaData(artifact.getMetadataMap());
+                Str.ArtifactValue candidateArtifact = data.getArtifacts(i);
+                if (isValid(candidateArtifact)) {
+                    ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent().toByteArray());
+                    ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
+                    byte[] candidateBytes = canonicalCandidateContent.bytes();
+                    if (Arrays.equals(canonicalBytes, candidateBytes)) {
+                        return MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
                     }
                 }
             }

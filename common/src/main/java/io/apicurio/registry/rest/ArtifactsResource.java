@@ -71,8 +71,7 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
-      InputStream data);
+  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId, InputStream data);
 
   /**
    * Returns information about a single rule configured for an artifact.  This is useful

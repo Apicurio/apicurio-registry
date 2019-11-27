@@ -96,7 +96,7 @@
 		<quarkus.version>1.0.0.Final</quarkus.version>
 
 		<!-- Jandex -->
-		<jandex.version>1.0.6</jandex.version>
+		<jandex.version>1.0.7</jandex.version>
 
         <!-- Schema types -->
 		<avro.version>1.9.1</avro.version>

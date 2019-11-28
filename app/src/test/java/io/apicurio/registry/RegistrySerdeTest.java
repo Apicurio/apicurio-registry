@@ -48,7 +48,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -78,16 +77,17 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testConfiguration() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
-        RegistryService service = RegistryClient.create("http://localhost:8081");
-        CompletionStage<ArtifactMetaData> csa = service.createArtifact(
-            ArtifactType.AVRO,
-            "test-myrecord3",
-            new ByteArrayInputStream(schema.toString().getBytes())
-        );
-        ArtifactMetaData amd = ConcurrentUtil.result(csa);
-        // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-        Assertions.assertNotNull(amdById);
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            CompletionStage<ArtifactMetaData> csa = service.createArtifact(
+                ArtifactType.AVRO,
+                "test-myrecord3",
+                new ByteArrayInputStream(schema.toString().getBytes())
+            );
+            ArtifactMetaData amd = ConcurrentUtil.result(csa);
+            // wait for global id store to populate (in case of Kafka / Streams)
+            ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+            Assertions.assertNotNull(amdById);
+        }
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -128,6 +128,9 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         deserializer.configure(config, true);
         record = deserializer.deserialize("test", bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
+
+        serializer.close();
+        deserializer.close();
     }
 
     @Test
@@ -150,16 +153,6 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }
-    }
-
-    // some impl details ...
-    private static void waitForSchema(RegistryService service, byte[] bytes) throws Exception {
-        service.reset(); // clear any cache
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        buffer.get(); // magic byte
-        long id = buffer.getLong(); // id
-        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
-        Assertions.assertNotNull(amd); // wait for global id to populate
     }
 
     @Test

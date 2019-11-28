@@ -2,7 +2,6 @@ package io.apicurio.registry.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,15 +20,33 @@ public class IoUtil {
     }
 
     /**
-     * Close closeable, unchecked IOException is thrown for any IO exception.
+     * Close auto-closeable,
+     * unchecked IOException is thrown for any IO exception,
+     * IllegalStateException for all others.
      *
      * @param closeable the closeable
      */
-    public static void close(Closeable closeable) {
+    public static void close(AutoCloseable closeable) {
         try {
-            closeable.close();
+            if (closeable != null) {
+                closeable.close();
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Close auto-closeable, ignore any exception.
+     *
+     * @param closeable the closeable
+     */
+    public static void closeIgnore(AutoCloseable closeable) {
+        try {
+            close(closeable);
+        } catch (Exception ignored) {
         }
     }
 

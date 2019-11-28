@@ -19,10 +19,17 @@ package io.apicurio.registry.utils.serde;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.strategy.ConfluentIdHandler;
+import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
+import io.apicurio.registry.utils.serde.strategy.IdHandler;
+import io.apicurio.registry.utils.serde.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.utils.serde.util.Utils.isTrue;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -30,12 +37,17 @@ import java.util.function.Consumer;
  *
  * @author Ales Justin
  */
-public abstract class AbstractKafkaSerDe {
+public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> {
+    protected final Logger log = LoggerFactory.getLogger(getClass());
+
     public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
     public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
 
+    public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler";
+    public static final String REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.as-confluent";
+
     protected static final byte MAGIC_BYTE = 0x0;
-    protected static final int idSize = 8;
+    private IdHandler idHandler;
 
     private RegistryService client;
 
@@ -44,6 +56,27 @@ public abstract class AbstractKafkaSerDe {
 
     public AbstractKafkaSerDe(RegistryService client) {
         this.client = client;
+    }
+
+    protected T self() {
+        //noinspection unchecked
+        return (T) this;
+    }
+
+    public IdHandler getIdHandler() {
+        if (idHandler == null) {
+            idHandler = new DefaultIdHandler();
+        }
+        return idHandler;
+    }
+
+    public T setIdHandler(IdHandler idHandler) {
+        this.idHandler = Objects.requireNonNull(idHandler);
+        return self();
+    }
+
+    public T asConfluent() {
+        return setIdHandler(new ConfluentIdHandler());
     }
 
     protected void configure(Map<String, ?> configs) {
@@ -61,6 +94,17 @@ public abstract class AbstractKafkaSerDe {
                 }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
+            }
+        }
+        if (idHandler == null) {
+            Object idh = configs.get(REGISTRY_ID_HANDLER_CONFIG_PARAM);
+            instantiate(IdHandler.class, idh, this::setIdHandler);
+
+            if (Utils.isTrue(configs.get(REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM))) {
+                if (idHandler != null && !(idHandler instanceof ConfluentIdHandler)) {
+                    log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh, "as-confluent"));
+                }
+                setIdHandler(new ConfluentIdHandler());
             }
         }
     }

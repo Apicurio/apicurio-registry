@@ -32,7 +32,7 @@ import javax.ws.rs.core.Response;
  * @author Ales Justin
  * @author Hiram Chirino
  */
-public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[], DynamicMessage> {
+public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[], DynamicMessage, ProtobufKafkaDeserializer> {
     public ProtobufKafkaDeserializer() {
     }
 

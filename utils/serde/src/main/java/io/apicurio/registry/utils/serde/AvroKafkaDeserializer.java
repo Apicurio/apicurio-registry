@@ -35,7 +35,7 @@ import javax.ws.rs.core.Response;
 /**
  * @author Ales Justin
  */
-public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
+public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U, AvroKafkaDeserializer<U>> {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private AvroDatumProvider<U> avroDatumProvider;
 

@@ -28,14 +28,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 
 /**
  * @author Ales Justin
  */
-public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSerializer> extends AbstractKafkaSerDe implements Serializer<U> {
+public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSerializer<T, U, S>> extends AbstractKafkaSerDe<S> implements Serializer<U> {
     public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
     public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
 
@@ -60,11 +59,6 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
         super(client);
         setArtifactIdStrategy(artifactIdStrategy);
         setGlobalIdStrategy(globalIdStrategy);
-    }
-
-    protected S self() {
-        //noinspection unchecked
-        return (S) this;
     }
 
     public S setKey(boolean key) {
@@ -113,7 +107,7 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
             long id = globalIdStrategy.findId(getClient(), artifactId, artifactType(), schema);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             out.write(MAGIC_BYTE);
-            out.write(ByteBuffer.allocate(idSize).putLong(id).array());
+            getIdHandler().writeId(id, out);
             serializeData(schema, data, out);
             return out.toByteArray();
         } catch (IOException e) {

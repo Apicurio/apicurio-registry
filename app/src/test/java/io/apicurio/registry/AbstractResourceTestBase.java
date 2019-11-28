@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
@@ -89,11 +90,16 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     // some impl details ...
+
     protected static void waitForSchema(RegistryService service, byte[] bytes) throws Exception {
+        waitForSchema(service, bytes, ByteBuffer::getLong);
+    }
+
+    protected static void waitForSchema(RegistryService service, byte[] bytes, Function<ByteBuffer, Long> fn) throws Exception {
         service.reset(); // clear any cache
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         buffer.get(); // magic byte
-        long id = buffer.getLong(); // id
+        long id = fn.apply(buffer);
         ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
         Assertions.assertNotNull(amd); // wait for global id to populate
     }

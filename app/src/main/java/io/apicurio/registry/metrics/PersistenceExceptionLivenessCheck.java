@@ -27,7 +27,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold", defaultValue = "1")
-    private Integer configErrorThreshold;
+    Integer configErrorThreshold;
 
     /**
      * The counter is reset after some time without errors.
@@ -36,13 +36,13 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    private Integer configCounterResetWindowDurationSec;
+    Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the liveness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    private Integer configStatusResetWindowDurationSec;
+    Integer configStatusResetWindowDurationSec;
 
     @PostConstruct
     void init() {

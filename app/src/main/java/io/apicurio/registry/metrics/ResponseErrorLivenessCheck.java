@@ -25,7 +25,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
-    private Integer configErrorThreshold;
+    Integer configErrorThreshold;
 
     /**
      * The counter is reset after some time without errors.
@@ -34,13 +34,13 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    private Integer configCounterResetWindowDurationSec;
+    Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the liveness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    private Integer configStatusResetWindowDurationSec;
+    Integer configStatusResetWindowDurationSec;
 
     @PostConstruct
     void init() {

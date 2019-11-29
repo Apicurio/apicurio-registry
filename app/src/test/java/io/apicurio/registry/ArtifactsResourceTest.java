@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hamcrest.CustomMatcher;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.beans.Rule;
@@ -367,6 +368,62 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(404);
     }
+    
+    @Test
+    public void testGetArtifactMetaDataByContent() {
+        String artifactContent = resourceToString("openapi-empty.json");
+        
+        // Create an artifact
+        createArtifact("testGetArtifactMetaDataByContent/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Update the artifact 5 times
+        List<Integer> versions = new ArrayList<>();
+        for (int idx = 0; idx < 5; idx++) {
+            Integer version = given()
+                .when()
+                    .contentType(CT_JSON)
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
+                    .put("/artifacts/{artifactId}")
+                .then()
+                    .statusCode(200)
+                    .body("id", equalTo("testGetArtifactMetaDataByContent/EmptyAPI"))
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .extract().body().path("version");
+            versions.add(version);
+        }
+
+        // Get meta-data by content
+        String searchContent = artifactContent.replace("Empty API", "Empty API (Update 2)");
+        Integer globalId1 = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .body(searchContent)
+                .post("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("type", equalTo("OPENAPI"))
+            .extract().body().path("globalId");
+        
+        // Now add some extra whitespace/formatting to the content and try again
+        searchContent = searchContent.replace("{", "{\n").replace("}", "\n}");
+        Integer globalId2 = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .body(searchContent)
+                .post("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("type", equalTo("OPENAPI"))
+            .extract().body().path("globalId");
+
+        // Should return the same meta-data
+        Assertions.assertEquals(globalId1, globalId2);
+    }
+
 
     @Test
     public void testDeleteArtifactVersion() {

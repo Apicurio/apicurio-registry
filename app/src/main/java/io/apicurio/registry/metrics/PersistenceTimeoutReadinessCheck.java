@@ -28,7 +28,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
-    private Integer configErrorThreshold;
+    Integer configErrorThreshold;
 
     /**
      * The counter is reset after some time without errors.
@@ -37,19 +37,19 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    private Integer configCounterResetWindowDurationSec;
+    Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    private Integer configStatusResetWindowDurationSec;
+    Integer configStatusResetWindowDurationSec;
 
     /**
      * Set the operation duration in seconds, after which it's considered an error.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", defaultValue = "5")
-    private Integer configTimeoutSec;
+    Integer configTimeoutSec;
 
     private Duration timeoutSec;
 

@@ -16,6 +16,25 @@
 
 package io.apicurio.registry.storage.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import io.apicurio.registry.content.ContentCanonicalizer;
+import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
@@ -33,21 +52,6 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
-
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
  * subclasses of this might be an in-memory impl as well as an Infinispan impl.
@@ -55,6 +59,9 @@ import javax.annotation.PostConstruct;
  */
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
+    @Inject
+    protected ContentCanonicalizerFactory ccFactory;
+    
     protected Map<String, Map<Long, Map<String, String>>> storage;
     protected Map<Long, Map<String, String>> global;
     protected Map<String, Map<String, String>> artifactRules;
@@ -266,10 +273,16 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        byte[] needle = content.bytes();
+        ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
+        ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+        ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+        byte[] canonicalBytes = canonicalContent.bytes();
         Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);
         for (Map<String, String> cMap : map.values()) {
-            if (Arrays.equals(needle, MetaDataKeys.getContent(cMap))) {
+            ContentHandle candidateContent = ContentHandle.create(MetaDataKeys.getContent(cMap));
+            ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
+            byte[] candidateBytes = canonicalCandidateContent.bytes();
+            if (Arrays.equals(canonicalBytes, candidateBytes)) {
                 return MetaDataKeys.toArtifactMetaData(cMap);
             }
         }

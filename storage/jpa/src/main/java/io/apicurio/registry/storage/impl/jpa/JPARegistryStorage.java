@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import io.apicurio.registry.content.ContentCanonicalizer;
+import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -63,6 +65,9 @@ import javax.transaction.Transactional;
 public class JPARegistryStorage implements RegistryStorage {
 
 //    private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
+    
+    @Inject
+    ContentCanonicalizerFactory ccFactory;
 
     @Inject
     EntityManager entityManager;
@@ -140,23 +145,6 @@ public class JPARegistryStorage implements RegistryStorage {
         } catch (NoResultException ex) {
             throw new ArtifactNotFoundException(artifactId, ex);
         }
-    }
-
-    private Artifact _getArtifact(String artifactId, byte[] content) {
-        requireNonNull(artifactId);
-        requireNonNull(content);
-        List<Artifact> list = entityManager.createQuery(
-            "SELECT a FROM Artifact a " +
-            "WHERE a.artifactId = :artifact_id " +
-            "ORDER BY a.version DESC ", Artifact.class)
-                                           .setParameter("artifact_id", artifactId)
-                                           .getResultList();
-        for (Artifact artifact : list) {
-            if (Arrays.equals(content, artifact.getContent())) {
-                return artifact;
-            }
-        }
-        throw new ArtifactNotFoundException(artifactId);
     }
 
     private boolean _artifactExists(String artifactId) {
@@ -359,18 +347,48 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
+            
+            // Get the meta-data for the artifact
+            ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId, content.bytes());
+            // Create a canonicalizer for the artifact based on its type, and then 
+            // canonicalize the inbound content
+            ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            byte[] canonicalBytes = canonicalContent.bytes();
+
+            Artifact artifact = null;
+            List<Artifact> list = entityManager.createQuery(
+                    "SELECT a FROM Artifact a " +
+                    "WHERE a.artifactId = :artifact_id " +
+                    "ORDER BY a.version DESC ", Artifact.class)
+               .setParameter("artifact_id", artifactId)
+               .getResultList();
+            for (Artifact candidateArtifact : list) {
+                ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent());
+                ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
+                byte[] candidateBytes = canonicalCandidateContent.bytes();
+                if (Arrays.equals(canonicalBytes, candidateBytes)) {
+                    artifact = candidateArtifact;
+                }
+            }
+
+            if (artifact == null) {
+                throw new ArtifactNotFoundException(artifactId);
+            }
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
                 .update(artifact)
                 .toArtifactMetaDataDto();
-        } catch (PersistenceException ex) {
-            throw new RegistryStorageException(ex);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
         }
     }
 

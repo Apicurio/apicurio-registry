@@ -15,7 +15,7 @@ endif::[]
  
 ifdef::rh-service-registry[]
 * xref:installing-registry-kafka-kubernetes-storage[]
-* xref:installing-registry-kafka-storage[]
+//* xref:installing-registry-kafka-storage[]
 endif::[]
  
 .Prerequisites
@@ -37,5 +37,5 @@ endif::[]
 
 ifdef::rh-service-registry[]
 include::../../modules/getting-started/p_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
+//include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
 endif::[]

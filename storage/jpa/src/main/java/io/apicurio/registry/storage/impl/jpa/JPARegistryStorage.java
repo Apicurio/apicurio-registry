@@ -352,7 +352,6 @@ public class JPARegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        System.out.println("========== getArtifactMetaData -- " + artifactId);
         try {
             requireNonNull(artifactId);
             
@@ -389,7 +388,6 @@ public class JPARegistryStorage implements RegistryStorage {
                 .update(artifact)
                 .toArtifactMetaDataDto();
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RegistryStorageException(e);
         }
     }

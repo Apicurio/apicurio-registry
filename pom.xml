@@ -79,6 +79,7 @@
 		<module>utils/converter</module>
 		<module>utils/maven-plugin</module>
 		<module>utils/serde</module>
+		<module>utils/tools</module>
 		<module>distro</module>
 		<module>docs</module>
 		<module>tests</module>

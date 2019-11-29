@@ -16,23 +16,23 @@
 
 package io.apicurio.registry.utils.serde;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
+import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
+import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
-import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
-import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * @author Ales Justin
@@ -92,6 +92,13 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     @Override
     protected void serializeData(Schema schema, U data, OutputStream out) throws IOException {
         BinaryEncoder encoder = encoderFactory.directBinaryEncoder(out, null);
+
+        // I guess this can happen if generics are lost with reflection ...
+        if (data instanceof NonRecordContainer) {
+            //noinspection unchecked
+            data = (U) NonRecordContainer.class.cast(data).getValue();
+        }
+
         DatumWriter<U> writer = avroDatumProvider.createDatumWriter(data, schema);
         writer.write(data, encoder);
         encoder.flush();

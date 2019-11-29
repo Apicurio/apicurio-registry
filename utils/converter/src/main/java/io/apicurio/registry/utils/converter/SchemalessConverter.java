@@ -29,10 +29,12 @@ import java.util.Map;
 
 /**
  * Very simplistic converter -- no Schema handling atm.
+ * Subclasses should override {@link #applySchema(Schema, Object)} and
+ * {@link #provideSchema(T)} or {@link #toSchemaAndValue(T)}.
  *
  * @author Ales Justin
  */
-public class AbstractConverter<T> extends AbstractKafkaSerDe implements Converter, AutoCloseable {
+public class SchemalessConverter<T> extends AbstractKafkaSerDe implements Converter, AutoCloseable {
     public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
     public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
 
@@ -42,14 +44,14 @@ public class AbstractConverter<T> extends AbstractKafkaSerDe implements Converte
     protected Deserializer<T> deserializer;
     private boolean createdDeserializer;
 
-    public AbstractConverter() {
+    public SchemalessConverter() {
     }
 
-    public AbstractConverter(Serde<T> serde) {
+    public SchemalessConverter(Serde<T> serde) {
         this(serde.serializer(), serde.deserializer());
     }
 
-    public AbstractConverter(Serializer<T> serializer, Deserializer<T> deserializer) {
+    public SchemalessConverter(Serializer<T> serializer, Deserializer<T> deserializer) {
         this.serializer = serializer;
         this.deserializer = deserializer;
     }
@@ -89,7 +91,6 @@ public class AbstractConverter<T> extends AbstractKafkaSerDe implements Converte
         super.close();
     }
 
-    // TODO -- use schema
     protected T applySchema(Schema schema, Object value) {
         //noinspection unchecked
         return (T) value;
@@ -100,15 +101,21 @@ public class AbstractConverter<T> extends AbstractKafkaSerDe implements Converte
         return serializer.serialize(topic, applySchema(schema, value));
     }
 
-    // TODO -- get schema
     protected Schema provideSchema(T result) {
         return null;
+    }
+
+    protected SchemaAndValue toSchemaAndValue(T result) {
+        return new SchemaAndValue(provideSchema(result), result);
     }
 
     @Override
     public SchemaAndValue toConnectData(String topic, byte[] bytes) {
         T result = deserializer.deserialize(topic, bytes);
-        return new SchemaAndValue(provideSchema(result), result);
+        if (result == null) {
+            return SchemaAndValue.NULL;
+        }
+        return toSchemaAndValue(result);
     }
 
     public void setSerializer(Serializer<T> serializer) {

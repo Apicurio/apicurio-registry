@@ -16,25 +16,64 @@
 
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.utils.converter.avro.AvroData;
+import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
+import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
+
+import java.util.Map;
 
 /**
  * Avro converter.
  *
  * @author Ales Justin
  */
-public class AvroConverter<T> extends AbstractConverter<T> {
+public class AvroConverter<T> extends SchemalessConverter<T> {
+    private AvroData avroData;
+
     public AvroConverter() {
     }
 
     public AvroConverter(
         AvroKafkaSerializer<T> serializer,
-        AvroKafkaDeserializer<T> deserializer
+        AvroKafkaDeserializer<T> deserializer,
+        AvroData avroData
     ) {
         super(serializer, deserializer);
+        this.avroData = avroData;
+    }
+
+    @Override
+    public void configure(Map<String, ?> configs, boolean isKey) {
+        super.configure(configs, isKey);
+        avroData = new AvroData(new AvroDataConfig(configs));
+    }
+
+    @Override
+    protected T applySchema(Schema schema, Object value) {
+        //noinspection unchecked
+        return (T) avroData.fromConnectData(schema, value);
+    }
+
+    @Override
+    protected SchemaAndValue toSchemaAndValue(T result) {
+        if (result instanceof GenericContainer) {
+            GenericContainer container = (GenericContainer) result;
+            Object value = container;
+            Integer version = null; // TODO
+            if (result instanceof NonRecordContainer) {
+                NonRecordContainer nrc = (NonRecordContainer) result;
+                value = nrc.getValue();
+            }
+            return avroData.toConnectData(container.getSchema(), value, version);
+        }
+        return new SchemaAndValue(null, result);
     }
 
     @Override

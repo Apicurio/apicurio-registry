@@ -21,8 +21,10 @@ import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.converter.AbstractConverter;
 import io.apicurio.registry.utils.converter.AvroConverter;
+import io.apicurio.registry.utils.converter.SchemalessConverter;
+import io.apicurio.registry.utils.converter.avro.AvroData;
+import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
@@ -34,11 +36,14 @@ import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -70,11 +75,11 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
 
         Map<String, Object> config = new HashMap<>();
         config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081");
-        config.put(AbstractConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
-        config.put(AbstractConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
         config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
-        AbstractConverter<GenericData.Record> converter = new AbstractConverter<>();
+        SchemalessConverter<GenericData.Record> converter = new SchemalessConverter<>();
 
         byte[] bytes;
         try {
@@ -86,10 +91,10 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
             converter.close();
         }
 
-        config.put(AbstractConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class);
-        config.put(AbstractConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class);
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class);
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class);
 
-        converter = new AbstractConverter<>();
+        converter = new SchemalessConverter<>();
         try {
             converter.configure(config, true);
             bytes = converter.fromConnectData("test", null, record);
@@ -99,10 +104,10 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
             converter.close();
         }
 
-        config.put(AbstractConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
-        config.put(AbstractConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
+        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
 
-        converter = new AbstractConverter<>();
+        converter = new SchemalessConverter<>();
         try {
             converter.configure(config, true);
             bytes = converter.fromConnectData("test", null, record);
@@ -115,22 +120,25 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvro() throws Exception {
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
             try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
                  AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
 
-                Converter converter = new AvroConverter<>(serializer, deserializer);
+                AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+                Converter converter = new AvroConverter<>(serializer, deserializer, avroData);
 
-                GenericData.Record record = new GenericData.Record(schema);
-                record.put("bar", "somebar");
+                org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                       .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                       .build();
+                Struct struct = new Struct(sc);
+                struct.put("bar", "somebar");
 
-                byte[] bytes = converter.fromConnectData("foo", null, record);
+                byte[] bytes = converter.fromConnectData("foo", sc, struct);
 
                 // some impl details ...
                 waitForSchema(service, bytes);
 
-                GenericData.Record ir = (GenericData.Record) converter.toConnectData("foo", bytes).value();
+                Struct ir = (Struct) converter.toConnectData("foo", bytes).value();
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }

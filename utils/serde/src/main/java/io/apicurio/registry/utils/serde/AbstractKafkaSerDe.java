@@ -18,6 +18,7 @@ package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.IoUtil;
 
 import static io.apicurio.registry.utils.serde.util.Utils.isTrue;
 
@@ -112,11 +113,6 @@ public abstract class AbstractKafkaSerDe {
     }
 
     public void close() {
-        if (client != null) {
-            try {
-                client.close();
-            } catch (Exception ignored) {
-            }
-        }
+        IoUtil.closeIgnore(client);
     }
 }

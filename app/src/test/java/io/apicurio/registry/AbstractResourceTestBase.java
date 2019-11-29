@@ -16,6 +16,8 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import org.junit.jupiter.api.Assertions;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.Callable;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -49,7 +52,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         // Delete all global rules
         given().when().delete("/rules").then().statusCode(204);
     }
-    
+
     /**
      * Called to create an artifact by invoking the appropriate JAX-RS operation.
      * @param artifactId
@@ -84,4 +87,15 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         Assertions.assertTrue(tries > 0, "Failed handle callable: " + callable);
         throw new IllegalStateException("Should not be here!");
     }
+
+    // some impl details ...
+    protected static void waitForSchema(RegistryService service, byte[] bytes) throws Exception {
+        service.reset(); // clear any cache
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.get(); // magic byte
+        long id = buffer.getLong(); // id
+        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
+        Assertions.assertNotNull(amd); // wait for global id to populate
+    }
+
 }

@@ -5,7 +5,7 @@
 = Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This topic provides an overview of {registry} and explains the rules used to govern registry content:
+This topic provides an overview of {registry} features and explains the rules used to govern registry content:
 
 * xref:intro-to-registry[]
 * xref:registry-rules[]

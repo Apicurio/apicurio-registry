@@ -47,8 +47,9 @@ endif::[]
 
 ifdef::rh-service-registry[]
 * You must have an OpenShift cluster with cluster administrator access. {registry} and AMQ Streams support OpenShift versions 3.11 and 4.x.
-* You must have already installed Red Hat AMQ Streams on your OpenShift cluster. For details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str?lb_target=stage[Getting Started with AMQ Streams].  
-
+* You must have already installed Red Hat AMQ Streams on your OpenShift cluster. For details, see: 
+** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str?lb_target=stage[Getting Started with AMQ Streams]  
+** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run Kafka on OpenShift with AMQ Streams]
 * Ensure that you can access the 
 link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[{registry} container image in the Red Hat Container Catalog].
 endif::[]
@@ -67,26 +68,16 @@ link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/open
 . Edit your template file as needed. For example: 
  ** `Image Streams for the components`: Update the image `name` to match the link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[{registry} container image in the Red Hat Container Catalog].  
  ** `Template Parameters`: For `REGISTRY_ROUTE`, update the `value` to the domain for your registry API (for example, `registry.example.com`).
-endif::[]
-
-. Get the IP address of your Kafka cluster bootstrap service. For example:
-+
-[source,bash]
-----
-$ oc get services | grep .*-bootstrap
-my-cluster-kafka-bootstrap  ClusterIP  192.0.2.1  <none>  9091/TCP  30m
-----
-ifdef::rh-service-registry[]
 . Create a new OpenShift application and specify the following arguments: 
-+
+
 ** `service-registry-template.yml`: The OpenShift template file for {registry}
-** `KAFKA_BOOTSTRAP_SERVERS`: The cluster IP address from the previous step and the port for your Kafka broker (`9092`)  
+** `KAFKA_BOOTSTRAP_SERVERS`: The address of the Kafka bootstrap service (`my-cluster-kafka-bootstrap`) and the port number of the Kafka broker (`9092`)  
 +
 For example: 
 +
 [source,bash]
 ----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS={KAFKA_CLUSTER_IP_ADDR}:9092
+$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092
 ----
 +
 You should see output such as the following: 
@@ -106,7 +97,7 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
        * Registry Memory Requests=600Mi
        * Registry Max CPU Limit=1
        * Registry CPU Requests=100m
-       * Kafka Bootstrap Servers=192.0.2.1:9092
+       * Kafka Bootstrap Servers=my-cluster-kafka-bootstrap:9092
 
 --> Creating resources ...
    imagestream.image.openshift.io "registry" created
@@ -149,9 +140,7 @@ $ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement I
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 ifdef::rh-service-registry[]
-* For more details on AMQ Streams, see the following:
-** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
-** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run Kafka on OpenShift with AMQ Streams]
+* For more details on AMQ Streams, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
 endif::[]
-* For more details on installing templates, see the link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[OpenShift user documention].
+* For more details on OpenShift templates, see the link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[OpenShift user documention].
 * For a demo based on storage in Apache Kafka Streams, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].

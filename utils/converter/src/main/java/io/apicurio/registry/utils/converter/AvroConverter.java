@@ -28,6 +28,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Avro converter.
@@ -46,7 +47,7 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
         AvroData avroData
     ) {
         super(serializer, deserializer);
-        this.avroData = avroData;
+        this.avroData = Objects.requireNonNull(avroData);
     }
 
     @Override

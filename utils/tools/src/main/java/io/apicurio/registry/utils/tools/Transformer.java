@@ -36,12 +36,15 @@ import java.util.function.Function;
 /**
  * Transform messages between Confluent and Apicurio format.
  *
+ * To start from input topic's beginning, use this config
+ * * auto.offset.reset=earliest / ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
+ *
  * @author Ales Justin
  */
 public class Transformer {
     private static final Logger log = LoggerFactory.getLogger(Transformer.class);
 
-    private enum Type implements Function<byte[], byte[]> {
+    enum Type implements Function<byte[], byte[]> {
         CONFLUENT_TO_APICURIO(bytes -> {
             ByteBuffer input = ByteBuffer.wrap(bytes);
             ByteBuffer output = ByteBuffer.allocate(bytes.length + 4); // 4more due to long

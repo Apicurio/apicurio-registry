@@ -26,6 +26,7 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.storage.Converter;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Very simplistic converter -- no Schema handling atm.
@@ -34,7 +35,7 @@ import java.util.Map;
  *
  * @author Ales Justin
  */
-public class SchemalessConverter<T> extends AbstractKafkaSerDe implements Converter, AutoCloseable {
+public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConverter<T>> implements Converter, AutoCloseable {
     public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
     public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
 
@@ -48,12 +49,15 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe implements Conver
     }
 
     public SchemalessConverter(Serde<T> serde) {
-        this(serde.serializer(), serde.deserializer());
+        this(
+            Objects.requireNonNull(serde).serializer(),
+            Objects.requireNonNull(serde).deserializer()
+        );
     }
 
     public SchemalessConverter(Serializer<T> serializer, Deserializer<T> deserializer) {
-        this.serializer = serializer;
-        this.deserializer = deserializer;
+        setSerializer(serializer);
+        setDeserializer(deserializer);
     }
 
     protected Class<? extends Serializer> serializerClass() {
@@ -119,10 +123,10 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe implements Conver
     }
 
     public void setSerializer(Serializer<T> serializer) {
-        this.serializer = serializer;
+        this.serializer = Objects.requireNonNull(serializer);
     }
 
     public void setDeserializer(Deserializer<T> deserializer) {
-        this.deserializer = deserializer;
+        this.deserializer = Objects.requireNonNull(deserializer);
     }
 }

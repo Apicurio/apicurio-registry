@@ -64,7 +64,7 @@ ifdef::rh-service-registry[]
 . Make a copy of the 
 link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
 . Edit this template file as needed to suit your environment. For example: 
-** `Image Streams for the components`: Update the image `name` to the {registry} container image: `fuse7-tech-preview/fuse-service-registry-rhel7:latest`  
+** `Image Streams for the components`: Update the image `name` to the {registry} container image: `registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7:latest`  
 ** `Template Parameters`: For `REGISTRY_ROUTE`, update the `value` to the domain for your registry API (for example, `registry.example.com`).
 . Create a new OpenShift application and specify the following: 
 
@@ -118,7 +118,7 @@ For example:
 +
 [source,bash]
 ----
-$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS={KAFKA_CLUSTER_IP_ADDR}:9092
+$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092
 ----
 endif::[]
 

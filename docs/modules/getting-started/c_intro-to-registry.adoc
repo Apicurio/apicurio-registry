@@ -3,13 +3,13 @@
 [id="intro-to-registry"]
 = {registry} overview
 
-{registry} is a datastore for standard event schemas and API designs. It enables developers to decouple the structure of their data from their applications and to share and manage it using a REST interface. For example, client applications can dynamically push/pull the latest schema updates to/from the registry at runtime without needing to redeploy. 
+{registry} is a datastore for standard event schemas and API designs. It enables developers to decouple the structure of their data from their applications and to share and manage their data structure using a REST interface. For example, client applications can dynamically push/pull the latest schema updates to/from the registry at runtime without needing to redeploy. 
 
-{registry} also enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.
-
-{registry} provides full Apache Kafka schema registry support, client serializer/deserializer (SerDe) to validate Kafka messages at runtime, and compatibility with existing Confluent registry clients.
+{registry} enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility. {registry} also provides full Apache Kafka schema registry support, client serializer/deserializer (SerDe) to validate Kafka messages at runtime, and compatibility with existing Confluent registry clients.
 
 ifdef::rh-service-registry[]
+
+{registry} is built on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
 
 [IMPORTANT]
 ====
@@ -30,7 +30,7 @@ endif::[]
 |`AVRO`
 |Apache Avro schema
 |`PROTOBUF`
-|Google protocol buffers schema 
+|Google protocol buffers schema
 |`JSON`
 |JSON Schema
 |`OPENAPI`
@@ -40,7 +40,7 @@ endif::[]
 |===
 
 == Storage implementations
-{registry} provides the following pluggable storage options: 
+{registry} supports the following pluggable storage options: 
 
 ifdef::apicurio-registry[]
 
@@ -58,7 +58,6 @@ endif::[]
 ifdef::rh-service-registry[]
 
 * Red Hat AMQ Streams 1.3
-* Apache Kafka 2.2.x/2.3
 
 endif::[]
 
@@ -103,7 +102,7 @@ ifdef::rh-service-registry[]
 |link:https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.5.0&downloadType=distributions[Software Downloads for Fuse v7.5.0]
 |===
 
-Both Maven repositories also include a custom Kafka client serializer/deserializer, which can be used by Kafka client developers to integrate with the registry. These Java classes allow Kafka client applications to push/pull their schemas from the {registry} at runtime.
+Both Maven repositories also include a custom Kafka client serializer/deserializer, which can be used by Kafka client developers to integrate with {registry}. These Java classes allow Kafka client applications to push/pull their schemas from the registry at runtime.
 
 NOTE: You must be logged into the Red Hat Customer Portal to access these resources.
 
@@ -120,9 +119,9 @@ The {registry} REST API enables client applications to manage the artifacts in t
 
 The {registry} REST API is also compatible with the Confluent schema registry REST API. For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 
-== {registry} demo
-{registry} provides a demo of Apache Avro serialization/deserialization based storage in Apache Kafka Streams. 
+== Registry demo
+Apicurio Registry provides an open source demo of Apache Avro serialization/deserialization based storage in Apache Kafka Streams. 
 
 This demo shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
 
-For more details, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
+For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].

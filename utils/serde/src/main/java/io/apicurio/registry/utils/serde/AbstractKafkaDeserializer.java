@@ -28,7 +28,7 @@ import javax.ws.rs.core.Response;
 /**
  * @author Ales Justin
  */
-public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe implements Deserializer<U> {
+public abstract class AbstractKafkaDeserializer<T, U, S  extends AbstractKafkaDeserializer<T, U, S>> extends AbstractKafkaSerDe<S> implements Deserializer<U> {
     private final Map<Long, T> schemas = new ConcurrentHashMap<>();
 
     public AbstractKafkaDeserializer() {
@@ -85,9 +85,9 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         }
 
         ByteBuffer buffer = getByteBuffer(data);
-        long id = buffer.getLong();
+        long id = getIdHandler().readId(buffer);
         T schema = getSchema(id);
-        int length = buffer.limit() - 1 - idSize;
+        int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
         return readData(schema, buffer, start, length);
     }

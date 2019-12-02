@@ -95,7 +95,7 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 
 		<!-- Quarkus Version -->
-		<quarkus.version>1.0.0.Final</quarkus.version>
+		<quarkus.version>1.0.1.Final</quarkus.version>
 
 		<!-- Connect API -->
 		<connect.version>2.2.1</connect.version>
@@ -140,7 +140,7 @@
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
 		<!-- Plugin Deps -->
-		<version.puppycrawl>8.26</version.puppycrawl>
+		<version.puppycrawl>8.27</version.puppycrawl>
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>

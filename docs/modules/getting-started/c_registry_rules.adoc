@@ -27,9 +27,7 @@ Every rule is simply a name and some optional configuration. The storage layer m
 
 Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule with a `Map<String,String>`, or a compatibility rule with a single property of `BACKWARD` for compatibility with existing versions.
     
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the registry will report the reason why in an HTTP error response.
-
-Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules do not.
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the registry will report the reason in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules do not.
 
 == Supported rule types
 You can specify the following rule types to govern content evolution in the registry: 
@@ -39,7 +37,7 @@ You can specify the following rule types to govern content evolution in the regi
 |Type
 |Description
 |`VALIDITY`
-a| Validates the data before adding it to the registry. Includes the following values:
+a| Validates data before adding it to the registry. Includes the following values:
 
 * `FULL`: The validation can be both syntax and semantic.
 * `SYNTAX_ONLY`: The validation can be syntax only.

@@ -42,7 +42,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        client.register("foo-value", schema);
+        client.register("SerdeMixTest-foo-value", schema);
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -50,18 +50,18 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(service).asConfluent();
             try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
-                byte[] bytes = serializer1.serialize("foo", record);
+                byte[] bytes = serializer1.serialize("SerdeMixTest-foo", record);
 
                 waitForSchema(service, bytes, bb -> (long) bb.getInt());
 
-                GenericData.Record ir = deserializer1.deserialize("foo", bytes);
+                GenericData.Record ir = deserializer1.deserialize("SerdeMixTest-foo", bytes);
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
 
             AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(service).asConfluent();
             try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
-                byte[] bytes = serializer2.serialize("foo", record);
-                GenericData.Record ir = (GenericData.Record) deserializer2.deserialize("foo", bytes);
+                byte[] bytes = serializer2.serialize("SerdeMixTest-foo", record);
+                GenericData.Record ir = (GenericData.Record) deserializer2.deserialize("SerdeMixTest-foo", bytes);
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }

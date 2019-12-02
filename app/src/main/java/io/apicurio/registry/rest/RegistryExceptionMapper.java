@@ -43,6 +43,9 @@ import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
@@ -52,7 +55,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
-//    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
+    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
 
     private static final Map<Class<?>, Integer> CODE_MAP = new HashMap<>();
 
@@ -79,6 +82,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         int code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
         if (code == HTTP_INTERNAL_ERROR) {
             liveness.suspect();
+	    log.error(t.getMessage(), t);
         }
         Error error = toError(t, code);
         return Response.status(code)

@@ -20,7 +20,7 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of global rules is applied. This means that the global rules are always applied when a new artifact is created.  
+NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied. This means that these global rules are always applied when a new artifact is created.  
 
 == How rules work
 Every rule is simply a name and some optional configuration. The storage layer maintains the list of rules for each artifact and the list of global rules. 

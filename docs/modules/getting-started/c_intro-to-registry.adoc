@@ -117,7 +117,10 @@ The {registry} REST API enables client applications to manage the artifacts in t
 * Global rules
 * Artifact rules 
 
-The {registry} REST API is also compatible with the Confluent schema registry REST API. For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+
+The Service Registry REST API is also compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use Service Registry instead.
+
 
 == Registry demo
 Apicurio Registry provides an open source demo of Apache Avro serialization/deserialization based storage in Apache Kafka Streams. 

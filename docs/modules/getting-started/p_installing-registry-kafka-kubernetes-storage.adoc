@@ -113,7 +113,7 @@ For example:
 +
 [source,bash]
 ----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-registry.example.com
+$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-registry.example.com
 ----
 endif::[]
 

@@ -18,7 +18,7 @@ objects:
       - name: latest
         from:
           kind: DockerImage
-          name: registry-proxy.engineering.redhat.com/rh-osbs/fuse7-tech-preview-fuse-service-registry:1.5-6
+          name: registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7:1.5-9
         importPolicy:
           insecure: true
         referencePolicy:

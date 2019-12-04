@@ -54,28 +54,22 @@ endif::[]
 
 .Procedure
 ifdef::apicurio-registry[]
-. Make a copy of the link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[{registry} OpenShift template].
-. Edit this template file as needed to suit your environment.. For example: 
-** `Template Parameters`: For `REGISTRY_ROUTE`, update the `value` to the domain for your registry API (for example, `registry.example.com`).
+. Get the link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[{registry} OpenShift template].
 endif::[]
 
 ifdef::rh-service-registry[]
-//. Get the {registry} container image by following the link:https://access.redhat.com/containers/?tab=images#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[instructions in the Red Hat Container Catalog]. 
-. Make a copy of the 
+. Get the 
 link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
-. Edit this template file as needed to suit your environment. For example: 
-** `Image Streams for the components`: Update the image `name` to the {registry} container image: `registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7:latest`  
-** `Template Parameters`: For `REGISTRY_ROUTE`, update the `value` to the domain for your registry API (for example, `registry.example.com`).
 . Create a new OpenShift application and specify the following: 
-
-** `service-registry-template.yml`: The OpenShift template file for {registry}
-** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service in your OpenShift cluster (for example, `my-cluster-kafka-bootstrap`) and the port number for the Kafka broker (`9092`)  
+** `service-registry-template.yml`: The OpenShift template file for {registry}.
+** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service in your OpenShift cluster (for example, `my-cluster-kafka-bootstrap`) and the port number for the Kafka broker (`9092`).  
+** `REGISTRY_ROUTE`: The name of the route for {registry} in your OpenShift cluster (for example, `my-registry.example.com`).
 +
 For example: 
 +
 [source,bash]
 ----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092
+$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-registry.example.com
 ----
 +
 You should see output such as the following: 
@@ -90,7 +84,7 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
     All components have been deployed and configured.
 
     * With parameters:
-       * Registry Route Name=registry.example.com
+       * Registry Route Name=my-registry.example.com
        * Registry Max Memory Limit=1300Mi
        * Registry Memory Requests=600Mi
        * Registry Max CPU Limit=1
@@ -103,7 +97,7 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
    deploymentconfig.apps.openshift.io "service-registry" created
    route.route.openshift.io "service-registry" created
 --> Success
-   Access your application via route 'registry.example.com' 
+   Access your application via route 'my-registry.example.com' 
    Run 'oc status' to view your app.
 ----
 endif::[]
@@ -111,14 +105,15 @@ endif::[]
 ifdef::apicurio-registry[]
 . Create a new OpenShift application and specify the following: 
 +
-** `apicurio-registry-template-kafka`: The OpenShift template file for {registry}
-** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service running in your cluster (for example, `my-cluster-kafka-bootstrap`) and the port number of the Kafka broker (`9092`)
+** `apicurio-registry-template-kafka`: The OpenShift template file for {registry}.
+** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service running in your cluster (for example, `my-cluster-kafka-bootstrap`) and the port number of the Kafka broker (`9092`).
+** `REGISTRY_ROUTE`: The name of the route for {registry} in your OpenShift cluster (for example, `my-registry.example.com`).
 +
 For example: 
 +
 [source,bash]
 ----
-$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092
+$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-registry.example.com
 ----
 endif::[]
 
@@ -126,7 +121,7 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' registry.example.com/artifacts 
+$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' my-registry.example.com/artifacts 
 ----
 . Verify that the response includes the expected JSON body. For example:
 +

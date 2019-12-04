@@ -119,7 +119,7 @@ The {registry} REST API enables client applications to manage the artifacts in t
 
 For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
 
-The Service Registry REST API is also compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use Service Registry instead.
+The {registry} REST API is also compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead.
 
 
 == Registry demo

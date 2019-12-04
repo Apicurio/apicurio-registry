@@ -63,7 +63,7 @@ link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/open
 . Create a new OpenShift application and specify the following: 
 ** `service-registry-template.yml`: The OpenShift template file for {registry}.
 ** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service in your OpenShift cluster (for example, `my-cluster-kafka-bootstrap`) and the port number for the Kafka broker (`9092`).  
-** `REGISTRY_ROUTE`: The name of route for {registry} in your OpenShift cluster (for example, `my-registry.example.com`).
+** `REGISTRY_ROUTE`: The name of the route for {registry} in your OpenShift cluster (for example, `my-registry.example.com`).
 +
 For example: 
 +

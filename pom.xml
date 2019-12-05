@@ -98,7 +98,7 @@
 		<quarkus.version>1.0.1.Final</quarkus.version>
 
 		<!-- Connect API -->
-		<connect.version>2.2.1</connect.version>
+		<connect.version>2.2.2-cp1</connect.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.7</jandex.version>

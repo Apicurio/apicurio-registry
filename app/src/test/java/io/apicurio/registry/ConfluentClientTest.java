@@ -16,17 +16,22 @@
 
 package io.apicurio.registry;
 
+import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @QuarkusTest
@@ -105,17 +110,38 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         client.register("foo-value", schema);
 
-        try (  KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
-               KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);  ) {
+        try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
+             KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);) {
 
             GenericData.Record record = new GenericData.Record(schema);
             record.put("bar", "somebar");
-    
+
             byte[] bytes = serializer.serialize("foo", record);
             GenericData.Record ir = (GenericData.Record) deserializer.deserialize("foo", bytes);
-    
+
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
 
+    @Test
+    public void testConverter() throws Exception {
+        SchemaRegistryClient client = buildClient();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord12345\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        client.register("foo-value", schema);
+
+        org.apache.kafka.connect.data.Schema cs =
+            org.apache.kafka.connect.data.SchemaBuilder.struct()
+                                                       .name("myrecord12345").field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
+        Struct struct = new Struct(cs);
+        struct.put("bar", "somebar");
+
+        AvroConverter converter = new AvroConverter(client);
+        converter.configure(Collections.singletonMap(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "dummy"), false);
+
+        byte[] bytes = converter.fromConnectData("foo-value", cs, struct);
+        SchemaAndValue sav = converter.toConnectData("foo-value", bytes);
+        Struct ir = (Struct) sav.value();
+        Assertions.assertEquals("somebar", ir.get("bar").toString());
+    }
 }

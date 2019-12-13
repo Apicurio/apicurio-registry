@@ -17,7 +17,6 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.ByteBuffer;
@@ -58,14 +57,6 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
     public void reset() {
         getCache().clear();
         super.reset();
-    }
-
-    private ByteBuffer getByteBuffer(byte[] payload) {
-        ByteBuffer buffer = ByteBuffer.wrap(payload);
-        if (buffer.get() != MAGIC_BYTE) {
-            throw new SerializationException("Unknown magic byte!");
-        }
-        return buffer;
     }
 
     protected abstract T toSchema(Response response);

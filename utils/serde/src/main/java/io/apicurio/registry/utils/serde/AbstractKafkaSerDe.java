@@ -23,11 +23,13 @@ import io.apicurio.registry.utils.serde.strategy.ConfluentIdHandler;
 import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
 import io.apicurio.registry.utils.serde.strategy.IdHandler;
 import io.apicurio.registry.utils.serde.util.Utils;
+import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.utils.serde.util.Utils.isTrue;
 
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -46,7 +48,8 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
     public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler";
     public static final String REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.as-confluent";
 
-    protected static final byte MAGIC_BYTE = 0x0;
+    public static final byte MAGIC_BYTE = 0x0;
+
     private IdHandler idHandler;
 
     private RegistryService client;
@@ -56,6 +59,14 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     public AbstractKafkaSerDe(RegistryService client) {
         this.client = client;
+    }
+
+    public static ByteBuffer getByteBuffer(byte[] payload) {
+        ByteBuffer buffer = ByteBuffer.wrap(payload);
+        if (buffer.get() != MAGIC_BYTE) {
+            throw new SerializationException("Unknown magic byte!");
+        }
+        return buffer;
     }
 
     protected T self() {

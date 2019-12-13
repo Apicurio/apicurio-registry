@@ -16,6 +16,11 @@ public class ConfluentIdHandler implements IdHandler {
         out.write(ByteBuffer.allocate(idSize).putInt((int) id).array());
     }
 
+    @Override
+    public void writeId(long id, ByteBuffer buffer) {
+        buffer.putInt((int) id);
+    }
+
     public long readId(ByteBuffer buffer) {
         return buffer.getInt();
     }

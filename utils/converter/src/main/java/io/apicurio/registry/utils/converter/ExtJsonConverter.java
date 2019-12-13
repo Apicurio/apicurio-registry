@@ -18,11 +18,10 @@ package io.apicurio.registry.utils.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.util.RawValue;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.converter.json.FormatStrategy;
+import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 import io.apicurio.registry.utils.serde.AbstractKafkaStrategyAwareSerDe;
 import io.apicurio.registry.utils.serde.SchemaCache;
 import org.apache.kafka.connect.data.Schema;
@@ -34,9 +33,9 @@ import org.apache.kafka.connect.storage.Converter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import javax.ws.rs.core.Response;
 
 /**
@@ -45,6 +44,7 @@ import javax.ws.rs.core.Response;
 public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, ExtJsonConverter> implements Converter {
     private final JsonConverter jsonConverter;
     private final ObjectMapper mapper;
+    private FormatStrategy formatStrategy;
 
     private SchemaCache<JsonNode> cache;
 
@@ -56,6 +56,12 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
         super(client);
         this.jsonConverter = new JsonConverter();
         this.mapper = new ObjectMapper();
+        this.formatStrategy = new PrettyFormatStrategy();
+    }
+
+    public ExtJsonConverter setFormatStrategy(FormatStrategy formatStrategy) {
+        this.formatStrategy = Objects.requireNonNull(formatStrategy);
+        return self();
     }
 
     @Override
@@ -88,35 +94,22 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
         String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schemaString);
         long globalId = getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, schemaString);
 
-        byte[] bytes = jsonConverter.fromConnectData(topic, schema, value);
-        String payload = new String(bytes, StandardCharsets.UTF_8); // TODO -- use IoUtil
+        byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 
-        ObjectNode root = JsonNodeFactory.instance.objectNode();
-        root.put("id", globalId);
-        root.putRawValue("payload", new RawValue(payload));
-        try {
-            return mapper.writeValueAsBytes(root);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return formatStrategy.fromConnectData(globalId, payload);
     }
 
     @Override
     public SchemaAndValue toConnectData(String topic, byte[] value) {
-        try {
-            JsonNode root = mapper.readTree(value);
+        FormatStrategy.IdPayload ip = formatStrategy.toConnectData(value);
 
-            long globalId = root.get("id").asLong();
-            JsonNode schemaNode = getCache().getSchema(globalId);
-            Schema schema = jsonConverter.asConnectSchema(schemaNode);
+        long globalId = ip.getGlobalId();
+        JsonNode schemaNode = getCache().getSchema(globalId);
+        Schema schema = jsonConverter.asConnectSchema(schemaNode);
 
-            String payload = root.get("payload").toString();
-            byte[] bytes = payload.getBytes(StandardCharsets.UTF_8); // TODO -- use IoUtil
-            SchemaAndValue sav = jsonConverter.toConnectData(topic, bytes);
+        byte[] payload = ip.getPayload();
+        SchemaAndValue sav = jsonConverter.toConnectData(topic, payload);
 
-            return new SchemaAndValue(schema, sav.value());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return new SchemaAndValue(schema, sav.value());
     }
 }

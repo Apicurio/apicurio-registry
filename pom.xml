@@ -207,16 +207,21 @@
 				<artifactId>connect-api</artifactId>
 				<version>${connect.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.kafka</groupId>
+				<artifactId>connect-json</artifactId>
+				<version>${connect.version}</version>
+			</dependency>
 
-            <!-- Third Party Libraries -->
+			<!-- Third Party Libraries -->
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-data-models</artifactId>
 				<version>${apicurio-data-models.version}</version>
 			</dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
+			<dependency>
+				<groupId>org.infinispan</groupId>
+				<artifactId>infinispan-core</artifactId>
                 <version>${infinispan.version}</version>
             </dependency>
 			<dependency>

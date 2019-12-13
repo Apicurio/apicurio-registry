@@ -37,7 +37,7 @@ import java.util.function.Consumer;
  *
  * @author Ales Justin
  */
-public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> {
+public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implements AutoCloseable {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";

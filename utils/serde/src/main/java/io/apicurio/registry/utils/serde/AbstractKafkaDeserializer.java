@@ -22,20 +22,31 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
  */
-public abstract class AbstractKafkaDeserializer<T, U, S  extends AbstractKafkaDeserializer<T, U, S>> extends AbstractKafkaSerDe<S> implements Deserializer<U> {
-    private final Map<Long, T> schemas = new ConcurrentHashMap<>();
+public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDeserializer<T, U, S>> extends AbstractKafkaSerDe<S> implements Deserializer<U> {
+    private SchemaCache<T> cache;
 
     public AbstractKafkaDeserializer() {
     }
 
     public AbstractKafkaDeserializer(RegistryService client) {
         super(client);
+    }
+
+    private synchronized SchemaCache<T> getCache() {
+        if (cache == null) {
+            cache = new SchemaCache<T>(getClient()) {
+                @Override
+                protected T toSchema(Response artifactResponse) {
+                    return AbstractKafkaDeserializer.this.toSchema(artifactResponse);
+                }
+            };
+        }
+        return cache;
     }
 
     @Override
@@ -45,7 +56,7 @@ public abstract class AbstractKafkaDeserializer<T, U, S  extends AbstractKafkaDe
 
     @Override
     public void reset() {
-        schemas.clear();
+        getCache().clear();
         super.reset();
     }
 
@@ -55,23 +66,6 @@ public abstract class AbstractKafkaDeserializer<T, U, S  extends AbstractKafkaDe
             throw new SerializationException("Unknown magic byte!");
         }
         return buffer;
-    }
-
-    private T getSchema(long id) {
-        return schemas.computeIfAbsent(id, key -> {
-            Response artifactResponse = getClient().getArtifactByGlobalId(key);
-            Response.StatusType statusInfo = artifactResponse.getStatusInfo();
-            if (statusInfo.getStatusCode() != 200) {
-                throw new IllegalStateException(
-                    String.format(
-                        "Error [%s] retrieving schema: %s",
-                        statusInfo.getReasonPhrase(),
-                        key
-                    )
-                );
-            }
-            return toSchema(artifactResponse);
-        });
     }
 
     protected abstract T toSchema(Response response);
@@ -86,7 +80,7 @@ public abstract class AbstractKafkaDeserializer<T, U, S  extends AbstractKafkaDe
 
         ByteBuffer buffer = getByteBuffer(data);
         long id = getIdHandler().readId(buffer);
-        T schema = getSchema(id);
+        T schema = getCache().getSchema(id);
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
         return readData(schema, buffer, start, length);

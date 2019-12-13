@@ -30,9 +30,14 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {
@@ -108,7 +113,15 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        client.register("foo-value", schema);
+        int id = client.register("foo-value", schema);
+        client.reset();
+
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema2 = client.getById(id);
+            Assertions.assertNotNull(schema2);
+            return schema2;
+        });
 
         try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
              KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);) {
@@ -124,23 +137,75 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testConverter() throws Exception {
+    public void testConverter_PreRegisterSchema() {
+        String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
+        testConverter(
+            name,
+            false,
+            (client) -> {
+                try {
+                    Schema schema = new Schema.Parser().parse(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
+                    int id = client.register("foo-value", schema);
+                    client.reset();
+                    // can be async ...
+                    Schema retry = retry(() -> client.getById(id));
+                    Assertions.assertNotNull(retry);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            },
+            (c, b) -> {
+            }
+        );
+    }
+
+    @Test
+    public void testConverter_AutoRegisterSchema() {
+        String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
+        testConverter(
+            name,
+            true,
+            (c) -> {
+            },
+            (client, bytes) -> {
+                try {
+                    client.reset();
+                    Schema retry = retry(() -> {
+                        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                        buffer.get(); // magic-byte
+                        int id = buffer.getInt();
+                        return client.getById(id);
+                    });
+                    Assertions.assertNotNull(retry);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        );
+    }
+
+    private void testConverter(String name, boolean autoRegister, Consumer<SchemaRegistryClient> pre, BiConsumer<SchemaRegistryClient, byte[]> post) {
         SchemaRegistryClient client = buildClient();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord12345\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        client.register("foo-value", schema);
+        pre.accept(client);
 
         org.apache.kafka.connect.data.Schema cs =
             org.apache.kafka.connect.data.SchemaBuilder.struct()
-                                                       .name("myrecord12345").field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
+                                                       .name(name).field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
         Struct struct = new Struct(cs);
         struct.put("bar", "somebar");
 
         AvroConverter converter = new AvroConverter(client);
-        converter.configure(Collections.singletonMap(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "dummy"), false);
+        Map<String, Object> config = new HashMap<>();
+        config.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "dummy");
+        config.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegister);
+        converter.configure(config, false);
 
-        byte[] bytes = converter.fromConnectData("foo-value", cs, struct);
-        SchemaAndValue sav = converter.toConnectData("foo-value", bytes);
+        byte[] bytes = converter.fromConnectData("foo", cs, struct);
+
+        post.accept(client, bytes);
+
+        SchemaAndValue sav = converter.toConnectData("foo", bytes);
         Struct ir = (Struct) sav.value();
         Assertions.assertEquals("somebar", ir.get("bar").toString());
     }

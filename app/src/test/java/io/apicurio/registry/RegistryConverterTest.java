@@ -16,12 +16,15 @@
 
 package io.apicurio.registry;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.converter.AvroConverter;
+import io.apicurio.registry.utils.converter.ExtJsonConverter;
 import io.apicurio.registry.utils.converter.SchemalessConverter;
 import io.apicurio.registry.utils.converter.avro.AvroData;
 import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
@@ -43,6 +46,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -139,6 +144,38 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
                 waitForSchema(service, bytes);
 
                 Struct ir = (Struct) converter.toConnectData("foo", bytes).value();
+                Assertions.assertEquals("somebar", ir.get("bar").toString());
+            }
+        }
+    }
+
+    @Test
+    public void testJson() throws Exception {
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            try (ExtJsonConverter converter = new ExtJsonConverter(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>())) {
+                converter.configure(Collections.emptyMap(), false);
+
+                org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                       .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                       .build();
+                Struct struct = new Struct(sc);
+                struct.put("bar", "somebar");
+
+                byte[] bytes = converter.fromConnectData("foo", sc, struct);
+
+                // some impl details ...
+                waitForSchemaCustom(service, bytes, input -> {
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        JsonNode root = mapper.readTree(input);
+                        return root.get("id").asLong();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+
+                //noinspection rawtypes
+                Map ir = (Map) converter.toConnectData("foo", bytes).value();
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }

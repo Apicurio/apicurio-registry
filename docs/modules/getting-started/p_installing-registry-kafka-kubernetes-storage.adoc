@@ -70,13 +70,13 @@ link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/open
 . Create a new OpenShift application and specify the following: 
 ** `service-registry-template.yml`: The OpenShift template file for {registry}.
 ** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service in your OpenShift cluster (for example, `my-cluster-kafka-bootstrap`) and the port number for the Kafka broker (`9092`).  
-** `REGISTRY_ROUTE`: The name of the route to expose {registry} based on your OpenShift cluster environment (for example, `my-cluster-service-registry-myproject-example.com`).
+** `REGISTRY_ROUTE`: The name of the route to expose {registry} based on your OpenShift cluster environment (for example, `my-cluster-service-registry-myproject.example.com`).
 +
 For example: 
 +
 [source,bash]
 ----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject-example.com
+$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com
 ----
 +
 You should see output such as the following: 
@@ -91,7 +91,7 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
     All components have been deployed and configured.
 
     * With parameters:
-       * Registry Route Name=my-cluster-service-registry-myproject-example.com
+       * Registry Route Name=my-cluster-service-registry-myproject.example.com
        * Registry Max Memory Limit=1300Mi
        * Registry Memory Requests=600Mi
        * Registry Max CPU Limit=1
@@ -104,7 +104,7 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
    deploymentconfig.apps.openshift.io "service-registry" created
    route.route.openshift.io "service-registry" created
 --> Success
-   Access your application via route 'my-cluster-service-registry-myproject-example.com' 
+   Access your application via route 'my-cluster-service-registry-myproject.example.com' 
    Run 'oc status' to view your app.
 ----
 endif::[]
@@ -114,13 +114,13 @@ ifdef::apicurio-registry[]
 +
 ** `apicurio-registry-template-kafka`: The OpenShift template file for {registry}.
 ** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service running in your cluster (for example, `my-cluster-kafka-bootstrap`) and the port number of the Kafka broker (`9092`).
-** `REGISTRY_ROUTE`: The name of the route to expose {registry} based on your OpenShift cluster environment (for example, `my-cluster-service-registry-myproject-example.com`.
+** `REGISTRY_ROUTE`: The name of the route to expose {registry} based on your OpenShift cluster environment (for example, `my-cluster-service-registry-myproject.example.com`.
 +
 For example: 
 +
 [source,bash]
 ----
-$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject-example.com
+$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com
 ----
 endif::[]
 
@@ -128,7 +128,7 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' my-cluster-service-registry-myproject-example.com/artifacts 
+$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' my-cluster-service-registry-myproject.example.com/artifacts 
 ----
 . Verify that the response includes the expected JSON body. For example:
 +

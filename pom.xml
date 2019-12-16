@@ -207,16 +207,21 @@
 				<artifactId>connect-api</artifactId>
 				<version>${connect.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.kafka</groupId>
+				<artifactId>connect-json</artifactId>
+				<version>${connect.version}</version>
+			</dependency>
 
-            <!-- Third Party Libraries -->
+			<!-- Third Party Libraries -->
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-data-models</artifactId>
 				<version>${apicurio-data-models.version}</version>
 			</dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
+			<dependency>
+				<groupId>org.infinispan</groupId>
+				<artifactId>infinispan-core</artifactId>
                 <version>${infinispan.version}</version>
             </dependency>
 			<dependency>
@@ -234,26 +239,31 @@
                 <artifactId>json-schema-validator</artifactId>
                 <version>${json-schema-validator.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.squareup.wire</groupId>
-                <artifactId>wire-schema</artifactId>
-                <version>${wire-schema.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
+			<dependency>
+				<groupId>com.squareup.wire</groupId>
+				<artifactId>wire-schema</artifactId>
+				<version>${wire-schema.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.google.protobuf</groupId>
+				<artifactId>protobuf-java</artifactId>
+				<version>${protobuf.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+			</dependency>
 
 			<!-- gRPC -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-api</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-api</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-core</artifactId>
                 <version>${grpc.version}</version>
             </dependency>
 			<dependency>
@@ -283,11 +293,6 @@
 				<artifactId>kafka-avro-serializer</artifactId>
 				<version>${confluent.version}</version>
 				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.projectlombok</groupId>
-				<artifactId>lombok</artifactId>
-				<version>${lombok.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

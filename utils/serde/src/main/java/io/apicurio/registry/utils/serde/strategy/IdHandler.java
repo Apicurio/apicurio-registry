@@ -12,6 +12,8 @@ import java.nio.ByteBuffer;
 public interface IdHandler {
     void writeId(long id, OutputStream out) throws IOException;
 
+    void writeId(long id, ByteBuffer buffer);
+
     long readId(ByteBuffer buffer);
 
     int idSize();

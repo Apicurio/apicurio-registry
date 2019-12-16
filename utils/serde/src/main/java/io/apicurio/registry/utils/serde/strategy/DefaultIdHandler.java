@@ -14,6 +14,10 @@ public class DefaultIdHandler implements IdHandler {
         out.write(ByteBuffer.allocate(idSize).putLong(id).array());
     }
 
+    public void writeId(long id, ByteBuffer buffer) {
+        buffer.putLong(id);
+    }
+
     public long readId(ByteBuffer buffer) {
         return buffer.getLong();
     }

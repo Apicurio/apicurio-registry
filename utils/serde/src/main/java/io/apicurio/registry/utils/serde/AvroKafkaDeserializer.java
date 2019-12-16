@@ -62,7 +62,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         super.configure(configs, isKey);
 
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
-        //noinspection unchecked
+        //noinspection unchecked,rawtypes
         Consumer<AvroDatumProvider> consumer =
             ((Consumer<AvroDatumProvider>) avroDatumProvider -> avroDatumProvider.configure(configs))
                 .andThen(this::setAvroDatumProvider);

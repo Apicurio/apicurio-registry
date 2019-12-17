@@ -107,7 +107,17 @@ public class IoUtil {
      * @return byte array as a string
      */
     public static String toString(byte[] bytes) {
-        return new String(bytes, StandardCharsets.UTF_8);
+        return (bytes == null ? null : new String(bytes, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Get byte array from string.
+     *
+     * @param string the string
+     * @return string as byte array
+     */
+    public static byte[] toBytes(String string) {
+        return (string == null ? null : string.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

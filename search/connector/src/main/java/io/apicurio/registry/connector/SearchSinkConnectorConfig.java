@@ -19,6 +19,9 @@ package io.apicurio.registry.connector;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+import static io.apicurio.registry.search.client.SearchClientFactory.SEARCH_CLIENT_CLASS;
+import static io.apicurio.registry.search.client.SearchClientFactory.SEARCH_CLIENT_CLASSES;
+
 import java.util.Map;
 
 /**
@@ -28,9 +31,12 @@ public class SearchSinkConnectorConfig extends AbstractConfig {
 
     public static final String VERSION = "connector.version";
 
-    public static final String SEARCH_CLIENT_CLASS = "search.client-class";
-    private static final String SEARCH_CLIENT_CLASS_DEFAULT = null; // no default
     private static final String SEARCH_CLIENT_CLASS_DOC = "Search client class";
+    private static final String SEARCH_CLIENT_CLASSES_DOC = "Search client classes";
+
+    public static final String SEARCH_CLIENT_INITIALIZE = "search.client-initialize";
+    private static final boolean SEARCH_CLIENT_INITIALIZE_DEFAULT = false;
+    private static final String SEARCH_CLIENT_INITIALIZE_DOC = "Initialize search client";
 
     public static final String SEARCH_HOST = "search.host";
     private static final String SEARCH_HOST_DEFAULT = "localhost";
@@ -70,9 +76,21 @@ public class SearchSinkConnectorConfig extends AbstractConfig {
         configDef.define(
             SEARCH_CLIENT_CLASS,
             ConfigDef.Type.CLASS,
-            SEARCH_CLIENT_CLASS_DEFAULT,
+            null,
             ConfigDef.Importance.LOW,
             SEARCH_CLIENT_CLASS_DOC
+        ).define(
+            SEARCH_CLIENT_CLASSES,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            SEARCH_CLIENT_CLASSES_DOC
+        ).define(
+            SEARCH_CLIENT_INITIALIZE,
+            ConfigDef.Type.BOOLEAN,
+            SEARCH_CLIENT_INITIALIZE_DEFAULT,
+            ConfigDef.Importance.LOW,
+            SEARCH_CLIENT_INITIALIZE_DOC
         ).define(
             SEARCH_HOST,
             ConfigDef.Type.STRING,

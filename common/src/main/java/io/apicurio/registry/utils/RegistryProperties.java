@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.kafka;
+package io.apicurio.registry.utils;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -27,6 +27,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RUNTIME)
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
-public @interface KafkaProperties {
+public @interface RegistryProperties {
     String value() default "";
 }

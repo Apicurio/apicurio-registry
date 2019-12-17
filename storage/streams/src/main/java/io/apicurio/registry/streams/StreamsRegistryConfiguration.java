@@ -20,9 +20,9 @@ import io.apicurio.registry.streams.utils.LoggingStateRestoreListener;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.PropertiesUtil;
+import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
-import io.apicurio.registry.utils.kafka.KafkaProperties;
-import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
 import io.grpc.Server;
@@ -70,14 +70,14 @@ public class StreamsRegistryConfiguration {
 
     @Produces
     public Properties properties(InjectionPoint ip) {
-        KafkaProperties kp = ip.getAnnotated().getAnnotation(KafkaProperties.class);
-        return KafkaUtil.properties(kp);
+        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
+        return PropertiesUtil.properties(kp);
     }
 
     @Produces
     @ApplicationScoped
     public StreamsProperties streamsProperties(
-        @KafkaProperties("registry.streams.topology.") Properties properties
+        @RegistryProperties("registry.streams.topology.") Properties properties
     ) {
         return new StreamsPropertiesImpl(properties);
     }
@@ -85,7 +85,7 @@ public class StreamsRegistryConfiguration {
     @Produces
     @ApplicationScoped
     public ProducerActions<String, Str.StorageValue> storageProducer(
-        @KafkaProperties("registry.streams.storage-producer.") Properties properties
+        @RegistryProperties("registry.streams.storage-producer.") Properties properties
     ) {
         return new AsyncProducer<>(
             properties,

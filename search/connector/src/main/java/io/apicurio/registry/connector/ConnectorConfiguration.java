@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.connector;
 
-import io.apicurio.registry.utils.kafka.KafkaProperties;
-import io.apicurio.registry.utils.kafka.KafkaUtil;
+import io.apicurio.registry.utils.PropertiesUtil;
+import io.apicurio.registry.utils.RegistryProperties;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 
@@ -35,8 +35,8 @@ public class ConnectorConfiguration {
 
     @Produces
     public Properties properties(InjectionPoint ip) {
-        KafkaProperties kp = ip.getAnnotated().getAnnotation(KafkaProperties.class);
-        return KafkaUtil.properties(kp);
+        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
+        return PropertiesUtil.properties(kp);
     }
 
     public void init(@Observes StartupEvent event, ConnectorApplication app) {

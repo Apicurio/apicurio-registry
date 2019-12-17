@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.connector;
 
-import io.apicurio.registry.utils.kafka.KafkaProperties;
+import io.apicurio.registry.utils.RegistryProperties;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.Connect;
@@ -55,7 +55,7 @@ public class ConnectorApplication {
 
     private Connect connect;
 
-    public ConnectorApplication(@KafkaProperties Properties properties) {
+    public ConnectorApplication(@RegistryProperties Properties properties) {
         workerProperties = Utils.propsToStringMap(properties);
     }
 

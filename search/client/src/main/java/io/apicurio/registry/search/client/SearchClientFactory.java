@@ -26,16 +26,17 @@ import java.util.Properties;
 /**
  * @author Ales Justin
  */
-class SearchClientFactory {
+public class SearchClientFactory {
     private static final Logger log = LoggerFactory.getLogger(SearchClientFactory.class);
 
     public static final String SEARCH_CLIENT_CLASS = "search.client-class";
+    public static final String SEARCH_CLIENT_CLASSES = "search.client-classes";
 
-    private static final String[] CLASSES = new String[]{
-        "io.apicurio.registry.search.client.kafka.KafkaSearchClient",
-        "io.apicurio.registry.search.client.hotrod.HotRodSearchClient",
-        "io.apicurio.registry.search.client.rest.RestSearchClient"
-    };
+    public static final String KAFKA_CLIENT = "io.apicurio.registry.search.client.kafka.KafkaSearchClient";
+    public static final String HOTROD_CLIENT = "io.apicurio.registry.search.client.hotrod.HotRodSearchClient";
+    public static final String REST_CLIENT = "io.apicurio.registry.search.client.rest.RestSearchClient";
+
+    private static final String[] CLASSES = new String[]{KAFKA_CLIENT, HOTROD_CLIENT, REST_CLIENT};
 
     static SearchClient create(Properties properties) {
         String explicitClass = SearchUtil.property(properties, SEARCH_CLIENT_CLASS, null);
@@ -43,7 +44,12 @@ class SearchClientFactory {
             return instantiateSearchClient(properties, explicitClass, false);
         }
 
-        for (String clazz : CLASSES) {
+        String clientClasses = SearchUtil.property(properties, SEARCH_CLIENT_CLASSES, null);
+        String[] clazzes = CLASSES;
+        if (clientClasses != null) {
+            clazzes = clientClasses.split(",");
+        }
+        for (String clazz : clazzes) {
             SearchClient client = instantiateSearchClient(properties, clazz, true);
             if (client != null) {
                 return client;

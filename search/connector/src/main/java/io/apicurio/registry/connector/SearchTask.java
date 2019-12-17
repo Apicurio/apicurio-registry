@@ -22,6 +22,8 @@ import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
  * @author Ales Justin
  */
 public class SearchTask extends SinkTask {
+    private static final Logger log = LoggerFactory.getLogger(SearchTask.class);
 
     private SearchClient client;
 
@@ -42,17 +45,30 @@ public class SearchTask extends SinkTask {
         Properties properties = new Properties();
         properties.putAll(config.originals());
         client = SearchClient.create(properties);
+        if (config.getBoolean(SearchSinkConnectorConfig.SEARCH_CLIENT_INITIALIZE)) {
+            try {
+                client.initialize(false);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     @Override
     public void put(Collection<SinkRecord> records) {
+        if (records.isEmpty()) {
+            return;
+        }
         try {
             List<Search.Artifact> artifacts = records.stream()
                                                      .map(ConnectRecord::value)
                                                      .map(Search.Artifact.class::cast)
                                                      .collect(Collectors.toList());
+
+            log.info("Indexing artifacts ({}) ... ", artifacts.size());
             client.index(artifacts);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new IllegalStateException(e);
         }
     }

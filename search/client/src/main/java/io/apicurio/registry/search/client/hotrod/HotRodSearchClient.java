@@ -81,14 +81,21 @@ public class HotRodSearchClient extends InfinispanSearchClient {
         manager = new RemoteCacheManager(clientBuilder.build());
     }
 
-    private void registerProto(String... protoKeys) {
+    private void registerProto(boolean reset, String... protoKeys) {
+        RemoteCache<Object, Object> cache = manager.getCache(PROTO_CACHE);
+        if (cache == null) {
+            throw new IllegalStateException(String.format("Missing %s cache!", PROTO_CACHE));
+        }
+
         SerializationContext ctx = MarshallerUtil.getSerializationContext(manager);
         FileDescriptorSource fds = new FileDescriptorSource();
         for (String protoKey : protoKeys) {
-            String protoContent = IoUtil.toString(getClass().getResourceAsStream("/" + protoKey));
-            log.info(String.format("Using proto schema: %s\n%s", protoKey, protoContent));
-            fds.addProtoFile(protoKey, protoContent);
-            manager.getCache(PROTO_CACHE).put(protoKey, protoContent);
+            if (reset || !cache.containsKey(protoKey)) {
+                String protoContent = IoUtil.toString(getClass().getResourceAsStream("/" + protoKey));
+                log.info(String.format("Using proto schema: %s\n%s", protoKey, protoContent));
+                fds.addProtoFile(protoKey, protoContent);
+                cache.put(protoKey, protoContent);
+            }
         }
         ctx.registerProtoFiles(fds);
         ctx.registerMarshaller(new ArtifactTypeMarshaller());
@@ -97,9 +104,7 @@ public class HotRodSearchClient extends InfinispanSearchClient {
 
     @Override
     public CompletionStage<Boolean> initialize(boolean reset) {
-        if (reset) {
-            registerProto(COMMON_PROTO_KEY, SEARCH_PROTO_KEY);
-        }
+        registerProto(reset, COMMON_PROTO_KEY, SEARCH_PROTO_KEY);
 
         Set<String> caches = manager.getCacheNames();
         boolean hasSearch = caches.contains(cacheName);

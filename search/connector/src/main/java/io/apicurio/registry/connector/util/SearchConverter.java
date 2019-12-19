@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.kafka;
+package io.apicurio.registry.connector.util;
 
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import io.apicurio.registry.search.common.Search;
 
 /**
  * @author Ales Justin
  */
-@Retention(RUNTIME)
-@Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
-public @interface KafkaProperties {
-    String value() default "";
+public class SearchConverter extends ProtoConverter<Search.Artifact> {
+    public SearchConverter() {
+        super(Search.Artifact.parser());
+    }
 }

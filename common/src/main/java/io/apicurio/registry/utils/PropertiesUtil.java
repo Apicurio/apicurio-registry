@@ -1,29 +1,17 @@
-package io.apicurio.registry.utils.kafka;
+package io.apicurio.registry.utils;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
-import java.util.UUID;
 
 /**
  * @author Ales Justin
  */
-public class KafkaUtil {
-    private static final Logger log = LoggerFactory.getLogger(KafkaUtil.class);
+public class PropertiesUtil {
 
-    public static void applyGroupId(String type, Properties properties) {
-        String groupId = properties.getProperty("group.id");
-        if (groupId == null) {
-            log.warn("No group.id set for " + type + " properties, creating one ... DEV env only!!");
-            properties.put("group.id", UUID.randomUUID().toString());
-        }
-    }
-
-    public static Properties properties(KafkaProperties kp) {
+    public static Properties properties(RegistryProperties kp) {
         String prefix = (kp != null ? kp.value() : "");
         Config config = ConfigProviderResolver.instance().getConfig();
         Optional<String> po = config.getOptionalValue("quarkus.profile", String.class);
@@ -37,7 +25,11 @@ public class KafkaUtil {
         Properties properties = new Properties();
         for (String key : config.getPropertyNames()) {
             if (key.startsWith(prefix)) {
-                properties.put(key.substring(prefix.length()), config.getValue(key, String.class));
+                // property can exist with key, but no value ...
+                Optional<String> value = config.getOptionalValue(key, String.class);
+                if (value.isPresent()) {
+                    properties.put(key.substring(prefix.length()), value.get());
+                }
             }
         }
         return properties;

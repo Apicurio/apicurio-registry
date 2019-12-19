@@ -21,10 +21,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.RawValue;
+import io.apicurio.registry.utils.IoUtil;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author Ales Justin
@@ -34,7 +34,7 @@ public class PrettyFormatStrategy implements FormatStrategy {
 
     @Override
     public byte[] fromConnectData(long globalId, byte[] bytes) {
-        String payload = new String(bytes, StandardCharsets.UTF_8); // TODO -- use IoUtil
+        String payload = IoUtil.toString(bytes);
         ObjectNode root = JsonNodeFactory.instance.objectNode();
         root.put("id", globalId);
         root.putRawValue("payload", new RawValue(payload));
@@ -51,7 +51,7 @@ public class PrettyFormatStrategy implements FormatStrategy {
             JsonNode root = mapper.readTree(bytes);
             long globalId = root.get("id").asLong();
             String payload = root.get("payload").toString();
-            byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8); // TODO -- use IoUtil
+            byte[] payloadBytes = IoUtil.toBytes(payload);
             return new IdPayload(globalId, payloadBytes);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

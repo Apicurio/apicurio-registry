@@ -20,10 +20,10 @@ import io.apicurio.registry.common.proto.Cmmn;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.utils.PropertiesUtil;
+import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ConsumerActions;
-import io.apicurio.registry.utils.kafka.KafkaProperties;
-import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
 import io.quarkus.runtime.ShutdownEvent;
@@ -45,14 +45,14 @@ public class KafkaRegistryConfiguration {
 
     @Produces
     public Properties properties(InjectionPoint ip) {
-        KafkaProperties kp = ip.getAnnotated().getAnnotation(KafkaProperties.class);
-        return KafkaUtil.properties(kp);
+        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
+        return PropertiesUtil.properties(kp);
     }
 
     @Produces
     @ApplicationScoped
     public ProducerActions<Long, StorageSnapshot> snapshotProducer(
-        @KafkaProperties("registry.kafka.snapshot-producer.") Properties properties
+        @RegistryProperties("registry.kafka.snapshot-producer.") Properties properties
     ) {
         return new AsyncProducer<>(
             properties,
@@ -68,7 +68,7 @@ public class KafkaRegistryConfiguration {
     @Produces
     @ApplicationScoped
     public ProducerActions<Cmmn.UUID, Str.StorageValue> storageProducer(
-        @KafkaProperties("registry.kafka.storage-producer.") Properties properties
+        @RegistryProperties("registry.kafka.storage-producer.") Properties properties
     ) {
         return new AsyncProducer<>(
             properties,
@@ -84,8 +84,8 @@ public class KafkaRegistryConfiguration {
     @Produces
     @ApplicationScoped
     public ConsumerActions.DynamicAssignment<Cmmn.UUID, Str.StorageValue> registryContainer(
-        @KafkaProperties("registry.kafka.storage-consumer.") Properties registryProperties,
-        @KafkaProperties("registry.kafka.snapshot-consumer.") Properties snapshotProperties,
+        @RegistryProperties("registry.kafka.storage-consumer.") Properties registryProperties,
+        @RegistryProperties("registry.kafka.snapshot-consumer.") Properties snapshotProperties,
         KafkaRegistryStorageHandle handle
     ) {
         return new RegistryConsumerContainer(

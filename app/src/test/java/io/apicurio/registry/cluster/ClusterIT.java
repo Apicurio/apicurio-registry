@@ -7,7 +7,11 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.quarkus.runtime.configuration.QuarkusConfigFactory;
+import io.smallrye.config.SmallRyeConfig;
 import org.apache.avro.Schema;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -28,6 +32,11 @@ public class ClusterIT {
 
     @BeforeAll
     public static void startCluster() throws Exception {
+        // hack around Quarkus core config factory ...
+        ClassLoader systemCL = new ClassLoader(null) {};
+        Config config = ConfigProviderResolver.instance().getConfig(systemCL);
+        QuarkusConfigFactory.setConfig((SmallRyeConfig) config);
+
         ClusterUtils.startCluster();
     }
 

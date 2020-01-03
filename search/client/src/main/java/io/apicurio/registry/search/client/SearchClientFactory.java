@@ -72,7 +72,7 @@ public class SearchClientFactory {
             if (!ignoreErrors) {
                 throw new IllegalStateException(t);
             }
-            log.info("Ignoring search client '{}' -- cannot instantiate: {}", clazz, t);
+            log.debug("Ignoring search client '{}' -- cannot instantiate: {}", clazz, t);
             return null;
         }
     }

@@ -3,13 +3,11 @@
 [id="registry-rules"]
 
 = Rules for registry content
-You can configure rules for each artifact added to the registry to govern content evolution. All rules configured for an artifact must pass before a new version can be uploaded to the registry. 
+To govern content evolution, you can configure optional rules for artifacts added to the registry, as a post-installation step. All rules configured for an artifact must pass before a new artifact version can be uploaded to the registry. The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
 
-The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
-
-* Invalid syntax for a given artifact type (for example, `AVRO` or  `PROTOBUF`)
-* Valid syntax but semantics violate company standards
-* New content makes breaking changes compared with the current version
+* Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
+* Valid syntax, but semantics violate company standards
+* New content includes breaking changes to the current artifact version
 
 == When rules are applied
 Rules are applied only when content is added to the registry. This includes the following REST operations:
@@ -20,14 +18,12 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied. This means that these global rules are always applied when a new artifact is created.  
+NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied.
 
 == How rules work
-Every rule is simply a name and some optional configuration. The storage layer maintains the list of rules for each artifact and the list of global rules. 
+Each rule is simply a name and some optional configuration. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule might use  a `Map<String,String>`, or a compatibility rule might use a single property of `BACKWARD` for compatibility with existing versions.
 
-Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule with a `Map<String,String>`, or a compatibility rule with a single property of `BACKWARD` for compatibility with existing versions.
-    
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the content being added. The rule implementation returns true or false depending on whether it passes. If not, the registry will report the reason in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but validity (syntax or semantic) rules do not.
+A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 == Supported rule types
 You can specify the following rule types to govern content evolution in the registry: 
@@ -39,16 +35,17 @@ You can specify the following rule types to govern content evolution in the regi
 |`VALIDITY`
 a| Validates data before adding it to the registry. Includes the following values:
 
-* `FULL`: The validation can be both syntax and semantic.
-* `SYNTAX_ONLY`: The validation can be syntax only.
+* `FULL`: The validation is both syntax and semantic.
+* `SYNTAX_ONLY`: The validation is syntax only.
+
 |`COMPATIBILITY`
 a| Ensures that newly added artifacts are compatible with previously added versions. Includes the following values:
 
-* `FULL`: The new artifact is forward and backward compatible with the latest artifact.
+* `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
 * `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
-* `BACKWARD`: Clients using the new artifact can read data written using the latest artifact. 
+* `BACKWARD`: Clients using the new artifact can read data written using the most recently added artifact. 
 * `BACKWARD_TRANSITIVE`: Clients using the new artifact can read data written using all previously added artifacts.
-* `FORWARD`: Clients using the latest artifact can read data written using the new artifact.
+* `FORWARD`: Clients using the most recently added artifact can read data written using the new artifact.
 * `FORWARD_TRANSITIVE`: Clients using all previously added artifacts can read data written using the new artifact.
 * `NONE`: All backward and forward compatibility checks are disabled.
 |===

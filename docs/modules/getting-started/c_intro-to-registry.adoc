@@ -3,20 +3,13 @@
 [id="intro-to-registry"]
 = {registry} overview
 
-{registry} is a datastore for standard event schemas and API designs. It enables developers to decouple the structure of their data from their applications and to share and manage their data structure using a REST interface. For example, client applications can dynamically push/pull the latest schema updates to/from the registry at runtime without needing to redeploy. 
+{registry} is a datastore for standard event schemas and API designs. {registry} enables enables you to decouple the structure of your data from your applications and to share and manage your data structure using a REST interface. For example, client applications can dynamically push/pull the latest schema updates to/from the registry at runtime without needing to redeploy.
 
-{registry} enables developers to create rules to govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility. {registry} also provides full Apache Kafka schema registry support, client serializer/deserializer (SerDe) to validate Kafka messages at runtime, and compatibility with existing Confluent registry clients.
+{registry} enables you to create optional rules to govern how registry content can evolve over time. For example, the available registry rule types include content validation and version compatibility. {registry} also provides full Apache Kafka schema registry support, client serializer/deserializer (SerDe) to validate Kafka messages at runtime, and compatibility with existing Confluent Schema Registry clients.
 
 ifdef::rh-service-registry[]
 
 {registry} is built on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
-
-[IMPORTANT]
-====
-{registry} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
-
-These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
-====
 
 endif::[]
 
@@ -40,7 +33,7 @@ endif::[]
 |===
 
 == Storage implementations
-{registry} supports the following pluggable storage options: 
+{registry} supports the following artifact storage implementations: 
 
 ifdef::apicurio-registry[]
 
@@ -61,7 +54,7 @@ ifdef::rh-service-registry[]
 
 endif::[]
 
-== Distribution
+== Available distributions
 
 ifdef::apicurio-registry[]
 {registry} provides the following container images for the available storage options: 
@@ -86,7 +79,7 @@ ifdef::apicurio-registry[]
 endif::[]
 
 ifdef::rh-service-registry[]
-{registry} is available as follows:
+{registry} distributions are available as follows:
 
 [%header,cols=2*] 
 |===
@@ -102,29 +95,29 @@ ifdef::rh-service-registry[]
 |link:https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.5.0&downloadType=distributions[Software Downloads for Fuse v7.5.0]
 |===
 
-Both Maven repositories also include a custom Kafka client serializer/deserializer, which can be used by Kafka client developers to integrate with {registry}. These Java classes allow Kafka client applications to push/pull their schemas from the registry at runtime.
+Both Maven repositories include a Kafka client serializer/deserializer implementation, which can be used by Kafka client developers to integrate with {registry}. This implementation includes custom `Serde` Java classes, which enable Kafka client applications to push/pull their schemas from {registry} at runtime. 
 
-NOTE: You must be logged into the Red Hat Customer Portal to access these resources.
+NOTE: You must have a subscription for Red Hat Fuse and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
 
 endif::[]
 
-== {registry} REST API
+== Registry REST API
 The {registry} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
 
 * Schema and API artifacts
-* Versions 
-* Metadata
+* Artifact versions 
+* Artifact metadata
 * Global rules
 * Artifact rules 
 
-For detailed information, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
-The {registry} REST API is also compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead.
-
+.Compatibility with Confluent Schema Registry
+The {registry} REST API is compatible with the Confluent Schema Registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 
 == Registry demo
-Apicurio Registry provides an open source demo of Apache Avro serialization/deserialization based storage in Apache Kafka Streams. 
+Apicurio Registry provides an open source demo of Apache Avro serialization/deserialization based on storage in Apache Kafka Streams. This demo shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
 
-This demo shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages.
-
-For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+ifdef::rh-service-registry[]
+For another demo of Avro serialization/deserialization, this time with storage in an Apache Kafka cluster based on Strimzi, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
+endif::[]

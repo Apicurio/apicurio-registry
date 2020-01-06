@@ -5,10 +5,17 @@
 = Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This topic provides an overview of {registry} features and explains the rules used to govern registry content:
+This topic provides an overview of {registry} features and explains the optional rules used to govern registry content:
 
 * xref:intro-to-registry[]
 * xref:registry-rules[]
+
+[IMPORTANT]
+====
+{registry} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
 
 //INCLUDES
 include::../../modules/getting-started/c_intro-to-registry.adoc[leveloffset=+1]

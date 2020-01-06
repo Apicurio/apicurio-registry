@@ -149,9 +149,9 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
-ifdef::rh-service-registry[]
 * For more details on registry demo applications: 
 ** https://github.com/Apicurio/apicurio-registry-demo
+ifdef::rh-service-registry[]
 ** link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry]
 * For more details on AMQ Streams:
 ** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]

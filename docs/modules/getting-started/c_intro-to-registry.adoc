@@ -98,7 +98,6 @@ ifdef::rh-service-registry[]
 Both Maven repositories include a Kafka client serializer/deserializer implementation, which can be used by Kafka client developers to integrate with {registry}. This implementation includes custom `Serde` Java classes, which enable Kafka client applications to push/pull their schemas from {registry} at runtime. 
 
 NOTE: You must have a subscription for Red Hat Fuse and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
-
 endif::[]
 
 == Registry REST API
@@ -113,7 +112,10 @@ The {registry} REST API enables client applications to manage the artifacts in t
 For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 .Compatibility with Confluent Schema Registry
-The {registry} REST API is compatible with the Confluent Schema Registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
+The {registry} REST API is compatible with the Confluent Schema Registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
+ifdef::rh-service-registry[]
+For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
+endif::[]
 
 == Registry demo
 Apicurio Registry provides an open source demo of Apache Avro serialization/deserialization based on storage in Apache Kafka Streams. This demo shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].

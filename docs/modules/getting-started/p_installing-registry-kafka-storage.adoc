@@ -78,26 +78,22 @@ For example:
 $ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" registry.redhat.io/fuse7-tech-preview/fuse-service-registry-rhel7
 ----
 endif::[]
-. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple artifact:
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-Type: application/json" --data '{"id": "Procurement Invoice", "name": "My Invoice", "description": "My invoice description", "type": "AVRO", "version": 1}' http://localhost:8080/artifacts 
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: prices-value" --data '{"type":"record","name":"price","namespace":"com.redhat","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/artifacts
 ----
-. Verify that the response includes the expected JSON body. For example:
+
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
 +
 [source,bash]
 ----
-{"createdOn":1571757704485,"modifiedOn":1571757704485,"id":"448bc6fe-bbf6-41c9-ba35-1a96a0d198bf","version":1,"type":"AVRO"}
+{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"prices-value","version":1,"type":"AVRO","globalId":8}
 ----
 
 .Additional resources
 * For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
-* For a demo based on Kafka Streams storage, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demo].
+* For a demo based on Kafka Streams storage, see link:https://github.com/Apicurio/apicurio-registry-demo[].
 * For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
-ifdef::apicurio-registry[]
-* For details on installing on OpenShift, see the following:
-** link:https://github.com/Apicurio/apicurio-registry/tree/1.0.x/distro/openshift-template[{registry} OpenShift  template]
-** link:https://docs.openshift.com/container-platform/3.11/dev_guide/templates.html[Using templates on OpenShift v3.11]
-** link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[Using templates on OpenShift v4.x]
-endif::[]

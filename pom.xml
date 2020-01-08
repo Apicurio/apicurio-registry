@@ -77,6 +77,7 @@
 		<module>app</module>
 		<module>client</module>
 		<module>utils/converter</module>
+		<module>utils/kafka</module>
 		<module>utils/maven-plugin</module>
 		<module>utils/serde</module>
 		<module>utils/tools</module>
@@ -97,16 +98,16 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 
 		<!-- Quarkus Version -->
-		<quarkus.version>1.1.0.Final</quarkus.version>
+		<quarkus.version>1.1.1.Final</quarkus.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.7</jandex.version>
 
 		<!-- Schema types -->
 		<avro.version>1.9.1</avro.version>
-        <json-schema-validator.version>1.0.29</json-schema-validator.version>
-        <wire-schema.version>3.0.2</wire-schema.version>
-        <protobuf.version>3.11.1</protobuf.version>
+		<json-schema-validator.version>1.0.29</json-schema-validator.version>
+		<wire-schema.version>3.0.2</wire-schema.version>
+		<protobuf.version>3.11.1</protobuf.version>
 
 		<!-- Storage types -->
 		<infinispan.version>10.0.1.Final</infinispan.version>
@@ -476,14 +477,10 @@
 						<id>validate</id>
 						<phase>validate</phase>
 						<configuration>
-							<configLocation>.checkstyle/simple.xml
-							</configLocation>
-							<headerLocation>.checkstyle/java.header
-							</headerLocation>
-							<suppressionsLocation>.checkstyle/suppressions.xml
-							</suppressionsLocation>
-							<includeTestSourceDirectory>true
-							</includeTestSourceDirectory>
+							<configLocation>.checkstyle/simple.xml</configLocation>
+							<headerLocation>.checkstyle/java.header</headerLocation>
+							<suppressionsLocation>.checkstyle/suppressions.xml</suppressionsLocation>
+							<includeTestSourceDirectory>true</includeTestSourceDirectory>
 							<encoding>UTF-8</encoding>
 							<consoleOutput>true</consoleOutput>
 							<failsOnError>true</failsOnError>
@@ -528,14 +525,12 @@
 		<profile>
 			<id>kafka</id>
 			<modules>
-				<module>utils/kafka</module>
 				<module>storage/kafka</module>
 			</modules>
 		</profile>
 		<profile>
 			<id>streams</id>
 			<modules>
-				<module>utils/kafka</module>
 				<module>storage/streams</module>
 			</modules>
 		</profile>

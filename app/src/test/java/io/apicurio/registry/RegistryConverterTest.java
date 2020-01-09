@@ -143,12 +143,14 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
                 Struct struct = new Struct(sc);
                 struct.put("bar", "somebar");
 
-                byte[] bytes = converter.fromConnectData("foo", sc, struct);
+                String subject = generateArtifactId();
+
+                byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
                 // some impl details ...
                 waitForSchema(service, bytes);
 
-                Struct ir = (Struct) converter.toConnectData("foo", bytes).value();
+                Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }

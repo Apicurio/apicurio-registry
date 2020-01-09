@@ -56,7 +56,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     @Test
     public void testSimpleOps() throws Exception {
         SchemaRegistryClient client = buildClient();
-        final String subject = "foobar";
+        final String subject = generateArtifactId();
 
         Schema schema1 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = client.register(subject, schema1);
@@ -112,8 +112,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testSerde() throws Exception {
         SchemaRegistryClient client = buildClient();
 
+        String subject = generateArtifactId();
+
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        int id = client.register("foo-value", schema);
+        int id = client.register(subject + "-value", schema);
         client.reset();
 
         // global id can be mapped async
@@ -129,8 +131,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             GenericData.Record record = new GenericData.Record(schema);
             record.put("bar", "somebar");
 
-            byte[] bytes = serializer.serialize("foo", record);
-            GenericData.Record ir = (GenericData.Record) deserializer.deserialize("foo", bytes);
+            byte[] bytes = serializer.serialize(subject, record);
+            GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
 
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
@@ -138,14 +140,16 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testConverter_PreRegisterSchema() {
+        String subject = generateArtifactId();
         String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
         testConverter(
+            subject,
             name,
             false,
             (client) -> {
                 try {
                     Schema schema = new Schema.Parser().parse(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
-                    int id = client.register("foo-value", schema);
+                    int id = client.register(subject + "-value", schema);
                     client.reset();
                     // can be async ...
                     Schema retry = retry(() -> client.getById(id));
@@ -163,6 +167,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testConverter_AutoRegisterSchema() {
         String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
         testConverter(
+            generateArtifactId(),
             name,
             true,
             (c) -> {
@@ -184,7 +189,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         );
     }
 
-    private void testConverter(String name, boolean autoRegister, Consumer<SchemaRegistryClient> pre, BiConsumer<SchemaRegistryClient, byte[]> post) {
+    private void testConverter(String subject, String name, boolean autoRegister, Consumer<SchemaRegistryClient> pre, BiConsumer<SchemaRegistryClient, byte[]> post) {
         SchemaRegistryClient client = buildClient();
 
         pre.accept(client);
@@ -201,11 +206,11 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         config.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegister);
         converter.configure(config, false);
 
-        byte[] bytes = converter.fromConnectData("foo", cs, struct);
+        byte[] bytes = converter.fromConnectData(subject, cs, struct);
 
         post.accept(client, bytes);
 
-        SchemaAndValue sav = converter.toConnectData("foo", bytes);
+        SchemaAndValue sav = converter.toConnectData(subject, bytes);
         Struct ir = (Struct) sav.value();
         Assertions.assertEquals("somebar", ir.get("bar").toString());
     }

@@ -27,13 +27,9 @@ import io.apicurio.tests.utils.subUtils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.quarkus.runtime.configuration.QuarkusConfigFactory;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
-import io.smallrye.config.SmallRyeConfig;
 import org.apache.avro.Schema;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
@@ -66,12 +62,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        // hack around Quarkus core config factory ...
-        ClassLoader systemCL = new ClassLoader(null) {
-        };
-        Config config = ConfigProviderResolver.instance().getConfig(systemCL);
-        QuarkusConfigFactory.setConfig((SmallRyeConfig) config);
-
         if (!RegistryFacade.REGISTRY_URL.equals(RegistryFacade.DEFAULT_REGISTRY_URL) || RegistryFacade.EXTERNAL_REGISTRY.equals("")) {
             registry.start();
         } else {

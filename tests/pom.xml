@@ -16,7 +16,9 @@
     <properties>
         <skipTests>true</skipTests>
         <!--native-image has to be build before running system tests-->
-        <test.app.name>../app/target/apicurio-registry-app-${project.version}-runner</test.app.name>
+        <test.app.name>
+            ../app/target/apicurio-registry-app-${project.version}-runner
+        </test.app.name>
         <debezium.version>0.10.0.Final</debezium.version>
         <kafka.version>2.3.0</kafka.version>
         <vertx.version>3.8.4</vertx.version>
@@ -24,41 +26,36 @@
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <log4j.version>1.7.30</log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
+        <commons-logging.version>1.2</commons-logging.version>
+        <javax-annotation-api.version>1.2</javax-annotation-api.version>
     </properties>
 
     <dependencies>
-        <!-- Quarkus Dependencies -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-jackson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-jackson</artifactId>
-        </dependency>
-        
-        <!-- Modules -->
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-app</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
 
         <!-- Third Party Libraries -->
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-data-models</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-app</artifactId>
-            <scope>compile</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
             <version>${hamcrest.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>${commons-logging.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>${javax-annotation-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
         </dependency>
 
         <!-- Test Only -->
@@ -68,15 +65,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5</artifactId>
-            <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.slf4j</groupId>
-                    <artifactId>slf4j-jboss-logging</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>

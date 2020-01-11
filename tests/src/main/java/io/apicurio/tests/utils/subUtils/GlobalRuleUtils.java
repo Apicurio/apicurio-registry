@@ -16,7 +16,6 @@
 
 package io.apicurio.tests.utils.subUtils;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.response.Response;

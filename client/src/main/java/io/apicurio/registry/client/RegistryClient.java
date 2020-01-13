@@ -17,7 +17,6 @@
 package io.apicurio.registry.client;
 
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
-import org.jboss.resteasy.microprofile.client.ExceptionMapping;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -35,12 +34,27 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
  * @author Ales Justin
  */
 public class RegistryClient {
+
+    private static BiFunction<Method, Throwable, Throwable> UNWRAPPER;
+
+    static {
+        try {
+            ClassLoader cl = RegistryClient.class.getClassLoader();
+            //noinspection unchecked
+            UNWRAPPER = (BiFunction<Method, Throwable, Throwable>) cl.loadClass("io.apicurio.registry.client.ext.RestEasyExceptionUnwrapper").newInstance();
+            // simple test to see if we have RestEasy on the classpath ...
+            UNWRAPPER.apply(null, new Throwable());
+        } catch (Throwable ignored) {
+            UNWRAPPER = (m, t) -> t;
+        }
+    }
 
     // TODO -- more options?
     public static class Builder {
@@ -98,15 +112,7 @@ public class RegistryClient {
         if (t instanceof CompletionException) {
             t = t.getCause();
         }
-        if (t instanceof ExceptionMapping.HandlerException) {
-            ExceptionMapping.HandlerException he = (ExceptionMapping.HandlerException) t;
-            try {
-                he.mapException(method);
-            } catch (Exception e) {
-                return e;
-            }
-        }
-        return t;
+        return UNWRAPPER.apply(method, t);
     }
 
     private static class ServiceProxy implements InvocationHandler {
@@ -118,13 +124,11 @@ public class RegistryClient {
         private final ExecutorService executor;
 
         private final boolean shutdownExecutor;
-        private final RegistryFilter filter;
 
         private ServiceProxy(Builder builder) {
             this.baseUri = builder.baseUrl;
             this.shutdownExecutor = (builder.executor == null);
             this.executor = (shutdownExecutor ? Executors.newFixedThreadPool(10) : builder.executor);
-            this.filter = new RegistryFilter();
         }
 
         @Override
@@ -158,7 +162,6 @@ public class RegistryClient {
                 Class<?> targetClass = method.getDeclaringClass();
                 Object target = targets.compute(targetClass, (aClass, o) -> RestClientBuilder.newBuilder()
                                                                                              .baseUri(baseUri)
-                                                                                             .register(filter)
                                                                                              .executorService(executor)
                                                                                              .build(targetClass));
                 Object result = method.invoke(target, args);

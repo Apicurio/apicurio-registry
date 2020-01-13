@@ -30,11 +30,14 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -47,9 +50,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public abstract class BaseIT implements TestSeparator, Constants {
 
@@ -68,7 +68,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
             LOGGER.info("Going to use already running registries on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         }
         TestUtils.waitFor("Cannot connect to registries on " + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + " in timeout!",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, RegistryFacade::isReachable);
+                          Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, RegistryFacade::isReachable);
         RestAssured.baseURI = "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT;
         LOGGER.info("Registry app is running on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         RestAssured.defaultParser = Parser.JSON;

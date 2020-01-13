@@ -31,7 +31,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -49,7 +48,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
 
     @Test
     public void testDownloadIds() throws Exception {
-        String artifactId = UUID.randomUUID().toString();
+        String artifactId = generateArtifactId();
 
         try (RegistryService client = RegistryClient.create(mojo.registryUrl)) {
             Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));

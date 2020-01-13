@@ -26,6 +26,14 @@
             <artifactId>resteasy-client-microprofile</artifactId>
         </dependency>
 
+        <!-- Only real usage in server-side -->
+
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Add exclusions, so users don't have to -->
 
         <dependency>

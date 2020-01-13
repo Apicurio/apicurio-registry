@@ -16,7 +16,6 @@
 
 package io.apicurio.tests.utils.subUtils;
 
-import io.apicurio.registry.ccompat.rest.RestConstants;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -26,12 +25,12 @@ import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 
+import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
+import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
+
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.concurrent.CompletionStage;
-
-import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
-import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
 
 public class ArtifactUtils {
 

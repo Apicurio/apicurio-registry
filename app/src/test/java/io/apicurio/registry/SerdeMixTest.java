@@ -41,8 +41,10 @@ public class SerdeMixTest extends AbstractResourceTestBase {
     public void testSerdeMix() throws Exception {
         SchemaRegistryClient client = buildClient();
 
+        String subject = generateArtifactId();
+
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        client.register("SerdeMixTest-foo-value", schema);
+        client.register(subject + "-value", schema);
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -50,18 +52,18 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(service).asConfluent();
             try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
-                byte[] bytes = serializer1.serialize("SerdeMixTest-foo", record);
+                byte[] bytes = serializer1.serialize(subject, record);
 
                 waitForSchema(service, bytes, bb -> (long) bb.getInt());
 
-                GenericData.Record ir = deserializer1.deserialize("SerdeMixTest-foo", bytes);
+                GenericData.Record ir = deserializer1.deserialize(subject, bytes);
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
 
             AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(service).asConfluent();
             try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
-                byte[] bytes = serializer2.serialize("SerdeMixTest-foo", record);
-                GenericData.Record ir = (GenericData.Record) deserializer2.deserialize("SerdeMixTest-foo", bytes);
+                byte[] bytes = serializer2.serialize(subject, record);
+                GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }

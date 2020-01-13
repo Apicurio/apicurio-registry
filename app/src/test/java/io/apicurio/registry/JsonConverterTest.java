@@ -47,9 +47,9 @@ public class JsonConverterTest {
         Struct struct = new Struct(sc);
         struct.put("bar", "somebar");
 
-        byte[] bytes = converter.fromConnectData("foo", sc, struct);
+        byte[] bytes = converter.fromConnectData("qwerty123", sc, struct);
 
-        Object result = converter.toConnectData("foo", bytes).value();
+        Object result = converter.toConnectData("qwerty123", bytes).value();
         Object value = (result instanceof Struct) ? Struct.class.cast(result).get("bar") : Map.class.cast(result).get("bar");
         Assertions.assertEquals("somebar", value.toString());
     }

@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -46,7 +45,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void testAsyncCRUD() throws Exception {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            String artifactId = UUID.randomUUID().toString();
+            String artifactId = generateArtifactId();
             try {
                 ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
                 CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);

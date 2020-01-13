@@ -24,19 +24,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static io.apicurio.tests.Constants.CLUSTER;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.tests.Constants.CLUSTER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
-    protected static final Logger LOGGER = LoggerFactory.getLogger(BasicApicurioSerDesIT.class);
 
     @Test
     void testAvroApicurioSerDes(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {

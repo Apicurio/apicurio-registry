@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -50,7 +49,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
 
     @Test
     public void testCompatibility() throws Exception {
-        String artifactId = UUID.randomUUID().toString();
+        String artifactId = generateArtifactId();
 
         try (RegistryService client = RegistryClient.create(mojo.registryUrl)) {
             Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +

@@ -1,5 +1,6 @@
 package io.apicurio.registry.utils;
 
+import io.quarkus.runtime.configuration.ProfileManager;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 
@@ -14,14 +15,10 @@ public class PropertiesUtil {
     public static Properties properties(RegistryProperties kp) {
         String prefix = (kp != null ? kp.value() : "");
         Config config = ConfigProviderResolver.instance().getConfig();
-        Optional<String> po = config.getOptionalValue("quarkus.profile", String.class);
-        if (po.isPresent()) {
-            String profile = po.get();
-            if (profile.length() > 0) {
-                prefix = "%" + profile + "." + prefix;
-            }
+        String profile = ProfileManager.getActiveProfile();
+        if (profile != null && profile.length() > 0) {
+            prefix = "%" + profile + "." + prefix;
         }
-
         Properties properties = new Properties();
         for (String key : config.getPropertyNames()) {
             if (key.startsWith(prefix)) {

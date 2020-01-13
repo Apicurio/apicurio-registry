@@ -50,7 +50,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -61,7 +60,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testFindBySchema() throws Exception {
-        String artifactId = UUID.randomUUID().toString();
+        String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
             CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
@@ -143,12 +142,14 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 GenericData.Record record = new GenericData.Record(schema);
                 record.put("bar", "somebar");
 
-                byte[] bytes = serializer.serialize("foo", record);
+                String subject = generateArtifactId();
+
+                byte[] bytes = serializer.serialize(subject, record);
 
                 // some impl details ...
                 waitForSchema(service, bytes);
 
-                GenericData.Record ir = deserializer.deserialize("foo", bytes);
+                GenericData.Record ir = deserializer.deserialize(subject, bytes);
 
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
@@ -182,11 +183,13 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
                 TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
 
-                byte[] bytes = serializer.serialize("foo", record);
+                String subject = generateArtifactId();
+
+                byte[] bytes = serializer.serialize(subject, record);
 
                 waitForSchema(service, bytes);
 
-                DynamicMessage dm = deserializer.deserialize("foo", bytes);
+                DynamicMessage dm = deserializer.deserialize(subject, bytes);
                 Descriptors.Descriptor descriptor = dm.getDescriptorForType();
 
                 Descriptors.FieldDescriptor lsb = descriptor.findFieldByName("lsb");

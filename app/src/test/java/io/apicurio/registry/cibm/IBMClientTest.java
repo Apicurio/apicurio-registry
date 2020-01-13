@@ -21,8 +21,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
-
 @QuarkusTest
 public class IBMClientTest extends AbstractResourceTestBase {
 
@@ -35,7 +33,7 @@ public class IBMClientTest extends AbstractResourceTestBase {
 
         SchemaRegistryRestAPIClient client = buildClient();
 
-        String id = UUID.randomUUID().toString();
+        String id = generateArtifactId();
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
 
         SchemaRegistryRestAPIClient.Tuple tuple = client.create(id, content, true);

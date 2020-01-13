@@ -13,7 +13,8 @@ public enum ArtifactType {
     PROTOBUF_FD("PROTOBUF_FD"),
     JSON("JSON"),
     OPENAPI("OPENAPI"),
-    ASYNCAPI("ASYNCAPI");
+    ASYNCAPI("ASYNCAPI"),
+    GRAPHQL("GRAPHQL");
     private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 

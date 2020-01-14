@@ -1,9 +1,14 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -14,13 +19,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
-
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -71,7 +69,8 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId, InputStream data);
+  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
+      InputStream data);
 
   /**
    * Returns information about a single rule configured for an artifact.  This is useful
@@ -274,6 +273,7 @@ public interface ArtifactsResource {
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
    *
    * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
    * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
@@ -327,6 +327,7 @@ public interface ArtifactsResource {
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
    *
    * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
    * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
@@ -396,6 +397,7 @@ public interface ArtifactsResource {
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
    *
    * Alternatively, the artifact type can be indicated be explicitly specifying the type 
    * using the `X-Registry-ArtifactType` HTTP request header or by including a hint in the 
@@ -440,6 +442,7 @@ public interface ArtifactsResource {
    * * JSON Schema (`JSON`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
    *
    * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
    * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
+ * An interface that is used to determine whether a proposed artifact's content is compatible
+ * with older version(s) of the same content, based on a given compatibility level.
  * @author Ales Justin
  */
 public interface ArtifactTypeAdapter {

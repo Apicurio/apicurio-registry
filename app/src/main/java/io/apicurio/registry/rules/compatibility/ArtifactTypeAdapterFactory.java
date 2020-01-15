@@ -37,6 +37,7 @@ public class ArtifactTypeAdapterFactory {
         ADAPTERS.put(ArtifactType.JSON, new JsonArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.OPENAPI, NoopArtifactTypeAdapter.INSTANCE);
         ADAPTERS.put(ArtifactType.ASYNCAPI, NoopArtifactTypeAdapter.INSTANCE);
+        ADAPTERS.put(ArtifactType.GRAPHQL, NoopArtifactTypeAdapter.INSTANCE);
     }
 
     public static ArtifactTypeAdapter toAdapter(ArtifactType type) {

@@ -89,4 +89,24 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         Assertions.assertEquals(ArtifactType.ASYNCAPI, type);
     }
 
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_GraphQL() {
+        ContentHandle content = resourceToContentHandle("example.graphql");
+        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.GRAPHQL, type);
+    }
+
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_DefaultAvro() {
+        ContentHandle content = resourceToContentHandle("example.txt");
+        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.AVRO, type);
+    }
+
 }

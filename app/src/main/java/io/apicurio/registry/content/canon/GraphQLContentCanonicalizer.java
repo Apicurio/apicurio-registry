@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,15 +30,19 @@ import io.apicurio.registry.content.ContentHandle;
  */
 public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
     
+    private static final SchemaParser sparser = new SchemaParser();
+    private static final SchemaGenerator schemaGenerator = new SchemaGenerator();
+    private static final RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring().build();
+    private static final SchemaPrinter printer = new SchemaPrinter();
+    
     /**
      * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {
         try {
-            TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(content.content());
-            SchemaGenerator schemaGenerator = new SchemaGenerator();
-            String canonicalized = new SchemaPrinter().print(schemaGenerator.makeExecutableSchema(typeRegistry, RuntimeWiring.newRuntimeWiring().build()));
+            TypeDefinitionRegistry typeRegistry = sparser.parse(content.content());
+            String canonicalized = printer.print(schemaGenerator.makeExecutableSchema(typeRegistry, wiring));
             return ContentHandle.create(canonicalized);
         } catch (Exception e) {
             // Must not be a GraphQL file

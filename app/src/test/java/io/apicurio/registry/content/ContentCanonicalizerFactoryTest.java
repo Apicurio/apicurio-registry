@@ -97,4 +97,51 @@ class ContentCanonicalizerFactoryTest {
         Assertions.assertEquals(expected, actual);
     }
 
+    /**
+     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+     */
+    @Test
+    void testGraphQL() {
+        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
+        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.GRAPHQL);
+        
+        String before = "type Query {\r\n" + 
+                "  bookById(id: ID): Book \r\n" + 
+                "}\r\n" + 
+                "\r\n" + 
+                "type Book {\r\n" + 
+                "    id: ID\r\n" + 
+                "  name: String\r\n" + 
+                "   pageCount: Int\r\n" + 
+                "  author: Author\r\n" + 
+                "}\r\n" + 
+                "\r\n" + 
+                "type Author {\r\n" + 
+                "  id: ID\r\n\r\n" + 
+                "    firstName: String\r\n" + 
+                "  lastName: String\r\n" + 
+                "}\r\n\r\n";
+        String expected = "type Author {\n" + 
+                "  firstName: String\n" + 
+                "  id: ID\n" + 
+                "  lastName: String\n" + 
+                "}\n" + 
+                "\n" + 
+                "type Book {\n" + 
+                "  author: Author\n" + 
+                "  id: ID\n" + 
+                "  name: String\n" + 
+                "  pageCount: Int\n" + 
+                "}\n" + 
+                "\n" + 
+                "type Query {\n" + 
+                "  bookById(id: ID): Book\n" + 
+                "}\n" + 
+                "";
+        
+        ContentHandle content = ContentHandle.create(before);
+        String actual = canonicalizer.canonicalize(content).content();
+        Assertions.assertEquals(expected, actual);
+    }
+
 }

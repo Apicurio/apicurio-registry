@@ -20,9 +20,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
+
+import graphql.schema.idl.SchemaParser;
+import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -51,7 +54,7 @@ public final class ArtifactTypeUtil {
     public static ArtifactType discoverType(ContentHandle content, String contentType) {
         boolean triedProto = false;
         
-        // If the content-type suggest it's protobuf, try that first.
+        // If the content-type suggests it's protobuf, try that first.
         if (contentType == null || contentType.toLowerCase().contains("proto")) {
             triedProto = true;
             ArtifactType type = tryProto(content);
@@ -90,6 +93,11 @@ public final class ArtifactTypeUtil {
             }
         }
         
+        // Try GraphQL (SDL)
+        if (tryGraphQL(content)) {
+            return ArtifactType.GRAPHQL;
+        }
+        
         // Default to Avro
         return ArtifactType.AVRO;
     }
@@ -108,6 +116,18 @@ public final class ArtifactTypeUtil {
             // Doesn't seem to be protobuf_fd
         }
         return null;
+    }
+    
+    private static boolean tryGraphQL(ContentHandle content) {
+        try {
+            TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(content.content());
+            if (typeRegistry != null) {
+                return true;
+            }
+        } catch (Exception e) {
+            // Must not be a GraphQL file
+        }
+        return false;
     }
 
 }

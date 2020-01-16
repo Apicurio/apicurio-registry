@@ -18,4 +18,5 @@ enum ArtifactType {
     JSON = 3;
     OPENAPI = 4;
     ASYNCAPI = 5;
+    GRAPHQL = 6;
 }

@@ -122,8 +122,10 @@
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-		<apicurio-data-models.version>1.0.20.Final
-		</apicurio-data-models.version>
+		<apicurio-data-models.version>1.0.20.Final</apicurio-data-models.version>
+        
+        <!-- GraphQL -->
+        <graphql.version>13.0</graphql.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>
@@ -301,6 +303,13 @@
 				<artifactId>grpc-netty-shaded</artifactId>
 				<version>${grpc.version}</version>
 			</dependency>
+            
+            <!-- GraphQL -->
+            <dependency>
+                <groupId>com.graphql-java</groupId>
+                <artifactId>graphql-java</artifactId>
+                <version>${graphql.version}</version>
+            </dependency>
 
 			<!-- Search -->
 			<dependency>

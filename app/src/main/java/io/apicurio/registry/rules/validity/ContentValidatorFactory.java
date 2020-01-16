@@ -40,6 +40,8 @@ public class ContentValidatorFactory {
     OpenApiContentValidator openapiValidator;
     @Inject
     AsyncApiContentValidator asyncValidator;
+    @Inject
+    GraphQLContentValidator graphqlValidator;
     
     public ContentValidator createValidator(ArtifactType artifactType) {
         switch (artifactType) {
@@ -55,6 +57,8 @@ public class ContentValidatorFactory {
                 return protoValidator;
             case PROTOBUF_FD:
                 return protofdValidator;
+            case GRAPHQL:
+                return graphqlValidator;
             default:
                 break;
         }

@@ -19,6 +19,7 @@ package io.apicurio.registry.content;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
+import io.apicurio.registry.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.canon.NoOpContentCanonicalizer;
 import io.apicurio.registry.types.ArtifactType;
@@ -33,6 +34,7 @@ public class ContentCanonicalizerFactory {
     private ContentCanonicalizer avro = new AvroContentCanonicalizer();
     private ContentCanonicalizer noop = new NoOpContentCanonicalizer();
     private ContentCanonicalizer json = new JsonContentCanonicalizer();
+    private ContentCanonicalizer graphql = new GraphQLContentCanonicalizer();
     
     /**
      * Creates a canonicalizer for a given artifact type.
@@ -52,6 +54,8 @@ public class ContentCanonicalizerFactory {
                 return noop;
             case PROTOBUF_FD:
                 return noop;
+            case GRAPHQL:
+                return graphql;
             default:
                 break;
         }

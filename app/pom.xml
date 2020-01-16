@@ -66,6 +66,12 @@
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
         </dependency>
+        
+        <!-- GraphQL -->
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+        </dependency>
 
         <!-- Test Only -->
         <dependency>

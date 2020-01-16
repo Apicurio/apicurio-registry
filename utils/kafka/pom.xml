@@ -56,6 +56,8 @@
                 <extensions>true</extensions>
                 <executions>
                     <execution>
+                        <id>gencode</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>compile</goal>
                             <!--<goal>test-compile</goal>-->

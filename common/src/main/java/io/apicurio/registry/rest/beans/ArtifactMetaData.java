@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
 
@@ -25,7 +26,8 @@ import io.apicurio.registry.types.ArtifactType;
     "id",
     "version",
     "type",
-    "globalId"
+    "globalId",
+    "state"
 })
 public class ArtifactMetaData {
 
@@ -85,6 +87,14 @@ public class ArtifactMetaData {
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
     private Long globalId;
+    /**
+     *
+     * (Required)
+     *
+     */
+    @JsonProperty("state")
+    @JsonPropertyDescription("")
+    private ArtifactState state;
 
     @JsonProperty("name")
     public String getName() {
@@ -258,6 +268,26 @@ public class ArtifactMetaData {
         this.globalId = globalId;
     }
 
+    /**
+     *
+     * (Required)
+     *
+     */
+    @JsonProperty("state")
+    public ArtifactState getState() {
+        return state;
+    }
+
+    /**
+     *
+     * (Required)
+     *
+     */
+    @JsonProperty("state")
+    public void setState(ArtifactState state) {
+        this.state = state;
+    }
+
     @Override
     public String toString() {
         return "ArtifactMetaData{" +
@@ -271,6 +301,7 @@ public class ArtifactMetaData {
                 ", version=" + version +
                 ", type=" + type +
                 ", globalId=" + globalId +
+                ", state=" + state +
                 '}';
     }
 }

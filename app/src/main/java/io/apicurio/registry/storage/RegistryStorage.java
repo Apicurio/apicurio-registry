@@ -16,8 +16,9 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
@@ -28,9 +29,27 @@ import java.util.concurrent.CompletionStage;
 
 /**
  * The storage layer for the registry.
+ *
  * @author eric.wittmann@gmail.com
  */
 public interface RegistryStorage {
+
+    /**
+     * Update artifact state.
+     *
+     * @param artifactId
+     * @param state
+     */
+    void updateArtifactState(String artifactId, ArtifactState state);
+
+    /**
+     * Update artifact state.
+     *
+     * @param artifactId
+     * @param state
+     * @param version
+     */
+    void updateArtifactState(String artifactId, ArtifactState state, Integer version);
 
     /**
      * Creates a new artifact (from the given value) in the storage.  The artifactId must be globally unique

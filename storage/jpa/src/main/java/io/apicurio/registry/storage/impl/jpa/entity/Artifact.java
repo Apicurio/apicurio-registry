@@ -16,16 +16,20 @@
 
 package io.apicurio.registry.storage.impl.jpa.entity;
 
+import io.apicurio.registry.types.ArtifactState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -65,4 +69,9 @@ public class Artifact {
     @Lob
     @Basic(fetch = FetchType.EAGER)
     private byte[] content;
+
+    @Column(name = "state")
+    @Enumerated(EnumType.ORDINAL)
+    @Setter
+    private ArtifactState state;
 }

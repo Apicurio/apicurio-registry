@@ -28,6 +28,7 @@ import static io.apicurio.registry.storage.MetaDataKeys.CONTENT;
 import static io.apicurio.registry.storage.MetaDataKeys.DESCRIPTION;
 import static io.apicurio.registry.storage.MetaDataKeys.GLOBAL_ID;
 import static io.apicurio.registry.storage.MetaDataKeys.NAME;
+import static io.apicurio.registry.storage.MetaDataKeys.STATE;
 import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +74,7 @@ public class MetaDataMapperUpdater {
         this.update(ARTIFACT_ID, artifact.getArtifactId());
         this.update(VERSION, artifact.getVersion());
         this.update(CONTENT, new String(artifact.getContent(), StandardCharsets.UTF_8));
+        this.update(STATE, artifact.getState().name());
         return this;
     }
 

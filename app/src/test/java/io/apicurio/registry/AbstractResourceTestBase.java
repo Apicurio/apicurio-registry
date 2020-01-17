@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import javax.ws.rs.WebApplicationException;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -76,17 +77,32 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected static <T> T retry(Callable<T> callable) throws Exception {
+        Throwable error = null;
         int tries = 5;
         while (tries > 0) {
             try {
                 return callable.call();
             } catch (Throwable t) {
+                if (error == null) {
+                    error = t;
+                } else {
+                    error.addSuppressed(t);
+                }
                 Thread.sleep(100L);
                 tries--;
             }
         }
-        Assertions.assertTrue(tries > 0, "Failed handle callable: " + callable);
+        Assertions.assertTrue(tries > 0, String.format("Failed handle callable: %s [%s]", callable, error));
         throw new IllegalStateException("Should not be here!");
+    }
+
+    protected static void assertWebError(int expectedCode, Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (Exception e) {
+            Assertions.assertTrue(e instanceof WebApplicationException);
+            Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());
+        }
     }
 
     // some impl details ...

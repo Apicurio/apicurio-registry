@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -161,6 +162,21 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         } catch (Exception e) {
             throw new CompletionException(e);
         }
+    }
+
+    @Override
+    public void updateArtifactState(String artifactId, ArtifactState state) {
+        Objects.requireNonNull(artifactId);
+        Objects.requireNonNull(state);
+        storage.updateArtifactState(artifactId, state);
+    }
+
+    @Override
+    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+        Objects.requireNonNull(artifactId);
+        Objects.requireNonNull(state);
+        Objects.requireNonNull(version);
+        storage.updateArtifactState(artifactId, state, version);
     }
 
     @Override

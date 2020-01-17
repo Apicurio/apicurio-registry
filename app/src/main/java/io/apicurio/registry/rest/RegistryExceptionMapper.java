@@ -16,6 +16,20 @@
 
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
+import io.apicurio.registry.rest.beans.Error;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.storage.AlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
+import io.apicurio.registry.storage.NotFoundException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
@@ -23,7 +37,6 @@ import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -31,20 +44,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -67,6 +66,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         CODE_MAP.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         CODE_MAP.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP.put(BadRequestException.class, HTTP_BAD_REQUEST);
+        CODE_MAP.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         CODE_MAP.put(NotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
         CODE_MAP.put(RuleNotFoundException.class, HTTP_NOT_FOUND);

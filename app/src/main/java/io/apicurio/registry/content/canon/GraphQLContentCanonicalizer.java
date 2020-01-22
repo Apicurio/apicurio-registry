@@ -21,6 +21,7 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.SchemaPrinter;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.SchemaPrinter.Options;
 import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 
@@ -33,7 +34,7 @@ public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
     private static final SchemaParser sparser = new SchemaParser();
     private static final SchemaGenerator schemaGenerator = new SchemaGenerator();
     private static final RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring().build();
-    private static final SchemaPrinter printer = new SchemaPrinter();
+    private static final SchemaPrinter printer = new SchemaPrinter(Options.defaultOptions().includeDirectives(false));
     
     /**
      * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)

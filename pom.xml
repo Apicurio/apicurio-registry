@@ -125,7 +125,7 @@
 		<apicurio-data-models.version>1.1.0</apicurio-data-models.version>
         
         <!-- GraphQL -->
-        <graphql.version>13.0</graphql.version>
+        <graphql.version>14.0</graphql.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>

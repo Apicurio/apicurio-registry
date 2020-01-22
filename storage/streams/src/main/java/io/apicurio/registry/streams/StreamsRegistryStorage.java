@@ -3,6 +3,8 @@ package io.apicurio.registry.streams;
 import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -32,7 +34,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.CloseableIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,13 +53,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+
+import static io.apicurio.registry.metrics.MetricIDs.*;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author Ales Justin
  */
 @ApplicationScoped
+@PersistenceExceptionLivenessApply
+@PersistenceTimeoutReadinessApply
+@Counted(name = STORAGE_OPERATION_COUNT, description = STORAGE_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_COUNT})
+@ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT, description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT})
+@Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
 public class StreamsRegistryStorage implements RegistryStorage {
 
     /* Fake global rules as an artifact */

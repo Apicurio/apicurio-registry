@@ -6,6 +6,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;

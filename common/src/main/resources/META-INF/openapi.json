@@ -3,7 +3,7 @@
     "info": {
         "title": "Apicurio Registry API",
         "version": "1.0.0",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. It enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- Google protocol buffers schema \n- JSON Schema\n- OpenAPI specification\n- AsyncAPI specification\n- GraphQL specification\n\n",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. It enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- Google protocol buffers \n- JSON Schema\n- OpenAPI specification\n- AsyncAPI specification\n- GraphQL specification\n\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -1448,6 +1448,107 @@
                     "required": true
                 }
             ]
+        },
+        "/artifacts/{artifactId}/state": {
+            "summary": "Manage the state of an Artifact.",
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateState"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Returned when the operation was successful."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifactState",
+                "summary": "Update Artifact State",
+                "description": "Updates the state of the artifact.  This can be used to, for example, mark the latest\nversion of an Artifact as `DEPRECATED`.  The operation will change the state of the\nlatest version of the artifact.  If multiple versions exist, only the most recent will\nbe changed.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Artifact cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client provided) or integer (server generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts/{artifactId}/versions/{version}/state": {
+            "summary": "Manage the state of a specific Artifact version.",
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateState"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Returned when the update was successful."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifactVersionState",
+                "summary": "Update Artifact Version State",
+                "description": "Used to update the state of a specific version of an Artifact.  For example, this can\nbe used to \"disable\" a specific version.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* Artifact version cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client provided) or integer (server generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         }
     },
     "components": {
@@ -1506,6 +1607,16 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
+                    },
+                    "state": {
+                        "description": "",
+                        "enum": [
+                            "ENABLED",
+                            "DISABLED",
+                            "DEPRECATED",
+                            "DELETED"
+                        ],
+                        "type": "string"
                     }
                 },
                 "example": {
@@ -1570,6 +1681,16 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
+                    },
+                    "state": {
+                        "description": "",
+                        "enum": [
+                            "ENABLED",
+                            "DISABLED",
+                            "DEPRECATED",
+                            "DELETED"
+                        ],
+                        "type": "string"
                     }
                 },
                 "example": {
@@ -1647,6 +1768,32 @@
                 "type": "string",
                 "example": "AVRO",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "ArtifactState": {
+                "description": "Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n",
+                "enum": [
+                    "ENABLED",
+                    "DISABLED",
+                    "DEPRECATED",
+                    "DELETED"
+                ],
+                "type": "string"
+            },
+            "UpdateState": {
+                "title": "Root Type for UpdateState",
+                "description": "",
+                "required": [
+                    "state"
+                ],
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState"
+                    }
+                },
+                "example": {
+                    "state": "DISABLED"
+                }
             }
         },
         "responses": {

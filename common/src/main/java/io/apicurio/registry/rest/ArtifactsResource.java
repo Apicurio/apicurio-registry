@@ -3,10 +3,14 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
+import java.lang.Integer;
+import java.lang.Long;
+import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import javax.ws.rs.Consumes;
@@ -466,4 +470,40 @@ public interface ArtifactsResource {
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   void testUpdateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+
+  /**
+   * Updates the state of the artifact.  This can be used to, for example, mark the latest
+   * version of an Artifact as `DEPRECATED`.  The operation will change the state of the
+   * latest version of the artifact.  If multiple versions exist, only the most recent will
+   * be changed.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * Artifact cannot transition to the given state (HTTP error `400`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/state")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactState(@PathParam("artifactId") String artifactId, UpdateState data);
+
+  /**
+   * Used to update the state of a specific version of an Artifact.  For example, this can
+   * be used to "disable" a specific version.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * Artifact version cannot transition to the given state (HTTP error `400`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/versions/{version}/state")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactVersionState(@PathParam("version") Integer version,
+      @PathParam("artifactId") String artifactId, UpdateState data);
 }

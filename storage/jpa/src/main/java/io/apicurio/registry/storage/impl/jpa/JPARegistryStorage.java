@@ -67,8 +67,6 @@ import javax.transaction.Transactional;
 @PersistenceTimeoutReadinessApply
 public class JPARegistryStorage implements RegistryStorage {
 
-//    private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
-    
     @Inject
     ContentCanonicalizerFactory ccFactory;
 
@@ -89,14 +87,15 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     private List<MetaData> _getMetaData(String artifactId, Long version) {
-        requireNonNull(artifactId); // TODO split null version into separate method?
-        TypedQuery<MetaData> res = entityManager.createQuery(
-                "SELECT m FROM MetaData m " +
-                        "WHERE m.artifactId = :artifact_id AND m.version " + (version == null ? "IS NULL" : "= :version"), MetaData.class)
-                .setParameter("artifact_id", artifactId);
-        if (version != null)
-            res.setParameter("version", version);
-        return res.getResultList();
+        requireNonNull(artifactId);
+        requireNonNull(version);
+
+        return entityManager.createQuery(
+            "SELECT m FROM MetaData m " +
+            "WHERE m.artifactId = :artifact_id AND m.version = :version", MetaData.class)
+                            .setParameter("artifact_id", artifactId)
+                            .setParameter("version", version)
+                            .getResultList();
     }
 
     private Rule _getRule(String artifactId, RuleType rule) {
@@ -235,15 +234,9 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-// TODO --- @jsenko ... why this dup update?!
-
-            new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, nextVersion);
-
             ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.TYPE, artifactType.value())
-                .persistUpdate(entityManager, artifactId, null)
+                .persistUpdate(entityManager, artifactId, nextVersion)
                 .update(artifact)
                 .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
@@ -332,13 +325,11 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-            new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, nextVersion);
-
             ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.TYPE, artifactType.value())
-                .persistUpdate(entityManager, artifactId, null)
+                // copy name and description .. if previous version (still) exists
+                .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME, MetaDataKeys.DESCRIPTION)
+                .persistUpdate(entityManager, artifactId, nextVersion)
                 .update(artifact)
                 .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
@@ -351,11 +342,11 @@ public class JPARegistryStorage implements RegistryStorage {
     @Transactional
     public Set<String> getArtifactIds() {
         try {
-            List<String> res1 = entityManager.createQuery(
-                    "SELECT a.artifactId FROM Artifact a", String.class)
-                    .getResultList();
+            List<String> ids = entityManager.createQuery(
+                "SELECT a.artifactId FROM Artifact a", String.class)
+                                            .getResultList();
 
-            return new HashSet<>(res1);
+            return new HashSet<>(ids);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -371,9 +362,9 @@ public class JPARegistryStorage implements RegistryStorage {
 
             Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ALL);
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
-                    .update(artifact)
-                    .toArtifactMetaDataDto();
+            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
+                .update(artifact)
+                .toArtifactMetaDataDto();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -418,7 +409,7 @@ public class JPARegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(artifactId);
             }
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
+            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
                 .update(artifact)
                 .toArtifactMetaDataDto();
         } catch (Exception e) {
@@ -446,11 +437,11 @@ public class JPARegistryStorage implements RegistryStorage {
             requireNonNull(artifactId);
             requireNonNull(metaData);
 
-            _ensureArtifactExists(artifactId, ArtifactStateExt.ACTIVE_STATES);
+            Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
-            new MetaDataMapperUpdater(_getMetaData(artifactId, null))
-                    .update(metaData)
-                    .persistUpdate(entityManager, artifactId, null);
+            new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
+                .update(metaData)
+                .persistUpdate(entityManager, artifactId, artifact.getVersion());
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }

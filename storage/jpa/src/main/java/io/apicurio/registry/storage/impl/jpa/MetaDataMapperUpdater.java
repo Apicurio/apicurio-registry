@@ -32,10 +32,13 @@ import static io.apicurio.registry.storage.MetaDataKeys.STATE;
 import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.persistence.EntityManager;
 
 public class MetaDataMapperUpdater {
@@ -66,6 +69,16 @@ public class MetaDataMapperUpdater {
 
     public MetaDataMapperUpdater update(Map<String, String> map) {
         added.putAll(map);
+        return this;
+    }
+
+    public MetaDataMapperUpdater update(List<MetaData> existing, String... keys) {
+        Set<String> set = new HashSet<>(Arrays.asList(keys));
+        existing.forEach(md -> {
+            if (set.contains(md.getKey())) {
+                update(md.getKey(), md.getValue());
+            }
+        });
         return this;
     }
 

@@ -477,6 +477,16 @@ public interface ArtifactsResource {
    * latest version of the artifact.  If multiple versions exist, only the most recent will
    * be changed.
    *
+   * The following state changes are supported:
+   *
+   * * Enabled -> Disabled
+   * * Enabled -> Deprecated
+   * * Enabled -> Deleted
+   * * Disabled -> Enabled
+   * * Disabled -> Deleted
+   * * Disabled -> Deprecated
+   * * Deprecated -> Deleted
+   *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
@@ -492,6 +502,16 @@ public interface ArtifactsResource {
   /**
    * Used to update the state of a specific version of an Artifact.  For example, this can
    * be used to "disable" a specific version.
+   *
+   * The following state changes are supported:
+   *
+   * * Enabled -> Disabled
+   * * Enabled -> Deprecated
+   * * Enabled -> Deleted
+   * * Disabled -> Enabled
+   * * Disabled -> Deleted
+   * * Disabled -> Deprecated
+   * * Deprecated -> Deleted
    *
    * This operation can fail for the following reasons:
    *

@@ -2,14 +2,11 @@
 package io.apicurio.registry.rest.beans;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonValue;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
 
@@ -100,12 +97,18 @@ public class ArtifactMetaData {
     @JsonPropertyDescription("")
     private Integer globalId;
     /**
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
      * 
      * 
      */
     @JsonProperty("state")
-    @JsonPropertyDescription("")
-    private ArtifactMetaData.State state;
+    @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
+    private ArtifactState state;
 
     @JsonProperty("name")
     public String getName() {
@@ -288,62 +291,33 @@ public class ArtifactMetaData {
     }
 
     /**
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
      * 
      * 
      */
     @JsonProperty("state")
-    public ArtifactMetaData.State getState() {
+    public ArtifactState getState() {
         return state;
     }
 
     /**
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
      * 
      * 
      */
     @JsonProperty("state")
-    public void setState(ArtifactMetaData.State state) {
+    public void setState(ArtifactState state) {
         this.state = state;
-    }
-
-    public enum State {
-
-        ENABLED("ENABLED"),
-        DISABLED("DISABLED"),
-        DEPRECATED("DEPRECATED"),
-        DELETED("DELETED");
-        private final String value;
-        private final static Map<String, ArtifactMetaData.State> CONSTANTS = new HashMap<String, ArtifactMetaData.State>();
-
-        static {
-            for (ArtifactMetaData.State c: values()) {
-                CONSTANTS.put(c.value, c);
-            }
-        }
-
-        private State(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return this.value;
-        }
-
-        @JsonValue
-        public String value() {
-            return this.value;
-        }
-
-        @JsonCreator
-        public static ArtifactMetaData.State fromValue(String value) {
-            ArtifactMetaData.State constant = CONSTANTS.get(value);
-            if (constant == null) {
-                throw new IllegalArgumentException(value);
-            } else {
-                return constant;
-            }
-        }
-
     }
 
 }

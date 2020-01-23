@@ -95,7 +95,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -276,7 +276,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -286,7 +286,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 
@@ -320,4 +320,19 @@ public class ArtifactMetaData {
         this.state = state;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactMetaData{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdBy='" + createdBy + '\'' +
+                ", createdOn=" + createdOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                ", modifiedOn=" + modifiedOn +
+                ", id='" + id + '\'' +
+                ", version=" + version +
+                ", type=" + type +
+                ", globalId=" + globalId +
+                '}';
+    }
 }

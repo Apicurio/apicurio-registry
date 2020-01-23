@@ -2,10 +2,14 @@
 package io.apicurio.registry.rest.beans;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonValue;
 import io.apicurio.registry.types.ArtifactType;
 
 
@@ -23,7 +27,8 @@ import io.apicurio.registry.types.ArtifactType;
     "createdBy",
     "createdOn",
     "type",
-    "globalId"
+    "globalId",
+    "state"
 })
 public class VersionMetaData {
 
@@ -67,7 +72,14 @@ public class VersionMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Long globalId;
+    private Integer globalId;
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("state")
+    @JsonPropertyDescription("")
+    private VersionMetaData.State state;
 
     /**
      * 
@@ -175,7 +187,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Long getGlobalId() {
+    public Integer getGlobalId() {
         return globalId;
     }
 
@@ -185,8 +197,67 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Long globalId) {
+    public void setGlobalId(Integer globalId) {
         this.globalId = globalId;
+    }
+
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("state")
+    public VersionMetaData.State getState() {
+        return state;
+    }
+
+    /**
+     * 
+     * 
+     */
+    @JsonProperty("state")
+    public void setState(VersionMetaData.State state) {
+        this.state = state;
+    }
+
+    public enum State {
+
+        ENABLED("ENABLED"),
+        DISABLED("DISABLED"),
+        DEPRECATED("DEPRECATED"),
+        DELETED("DELETED");
+        private final String value;
+        private final static Map<String, VersionMetaData.State> CONSTANTS = new HashMap<String, VersionMetaData.State>();
+
+        static {
+            for (VersionMetaData.State c: values()) {
+                CONSTANTS.put(c.value, c);
+            }
+        }
+
+        private State(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        @JsonValue
+        public String value() {
+            return this.value;
+        }
+
+        @JsonCreator
+        public static VersionMetaData.State fromValue(String value) {
+            VersionMetaData.State constant = CONSTANTS.get(value);
+            if (constant == null) {
+                throw new IllegalArgumentException(value);
+            } else {
+                return constant;
+            }
+        }
+
     }
 
 }

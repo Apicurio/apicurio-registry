@@ -109,6 +109,9 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         }
         if (idHandler == null) {
             Object idh = configs.get(REGISTRY_ID_HANDLER_CONFIG_PARAM);
+            if (idh == null) {
+                idh = DefaultIdHandler.class.getName();
+            }
             instantiate(IdHandler.class, idh, this::setIdHandler);
 
             if (Utils.isTrue(configs.get(REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM))) {

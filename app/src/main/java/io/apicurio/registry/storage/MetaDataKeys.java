@@ -19,7 +19,6 @@ package io.apicurio.registry.storage;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.util.Base64;
-import java.util.Date;
 import java.util.Map;
 
 /**
@@ -54,11 +53,11 @@ public class MetaDataKeys {
         
         dto.setCreatedBy(content.get(CREATED_BY));
         if (createdOn != null) {
-            dto.setCreatedOn(new Date(Long.parseLong(createdOn))); // TODO discuss
+            dto.setCreatedOn(Long.parseLong(createdOn)); // TODO discuss
         }
         dto.setModifiedBy(content.get(MODIFIED_BY));
         if (modifiedOn != null) {
-            dto.setModifiedOn(new Date(Long.parseLong(modifiedOn))); // TODO discuss
+            dto.setModifiedOn(Long.parseLong(modifiedOn)); // TODO discuss
         }
         dto.setDescription(content.get(DESCRIPTION));
         dto.setName(content.get(NAME));
@@ -72,7 +71,7 @@ public class MetaDataKeys {
         ArtifactVersionMetaDataDto dto = new ArtifactVersionMetaDataDto();
         String createdOn = content.get(CREATED_ON);
         if (createdOn != null) {
-            dto.setCreatedOn(new Date(Long.parseLong(createdOn))); // TODO discuss
+            dto.setCreatedOn(Long.parseLong(createdOn)); // TODO discuss
         }
         dto.setCreatedBy(content.get(CREATED_BY));
         dto.setDescription(content.get(DESCRIPTION));

@@ -331,9 +331,12 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
             contents.put(MetaDataKeys.VERSION, String.valueOf(version));
             contents.put(MetaDataKeys.TYPE, ArtifactType.values()[artifact.getArtifactType()].value());
+
             // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
-            contents.put(MetaDataKeys.CREATED_ON, String.valueOf(System.currentTimeMillis()));
-            contents.put(MetaDataKeys.MODIFIED_ON, String.valueOf(System.currentTimeMillis()));
+            String currentTimeMillis = String.valueOf(System.currentTimeMillis());
+            contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
+            contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
+
             //        contents.put(MetaDataKeys.NAME, null);
             //        contents.put(MetaDataKeys.DESCRIPTION, null);
             // TODO -- createdBy, modifiedBy

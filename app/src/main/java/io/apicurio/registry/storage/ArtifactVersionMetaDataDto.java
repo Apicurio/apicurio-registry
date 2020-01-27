@@ -22,8 +22,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Date;
-
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -38,7 +36,7 @@ public class ArtifactVersionMetaDataDto {
     private String name;
     private String description;
     private String createdBy;
-    private Date createdOn;
+    private long createdOn;
     private ArtifactType type;
 
     /**
@@ -78,14 +76,14 @@ public class ArtifactVersionMetaDataDto {
     /**
      * @return the createdOn
      */
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
      * @param createdOn the createdOn to set
      */
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 

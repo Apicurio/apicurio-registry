@@ -16,23 +16,6 @@
 
 package io.apicurio.registry.storage.impl;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
 import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
@@ -51,6 +34,22 @@ import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
@@ -149,20 +148,23 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         long prevVersion = version - 1;
-        
+
         Map<String, String> contents = new ConcurrentHashMap<>();
         // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         MetaDataKeys.putContent(contents, content.bytes());
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
-        contents.put(MetaDataKeys.CREATED_ON, String.valueOf(System.currentTimeMillis()));
-        contents.put(MetaDataKeys.MODIFIED_ON, String.valueOf(System.currentTimeMillis()));
+
+        String currentTimeMillis = String.valueOf(System.currentTimeMillis());
+        contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
+        contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
+
 //        contents.put(MetaDataKeys.NAME, null);
 //        contents.put(MetaDataKeys.DESCRIPTION, null);
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         // TODO -- createdBy, modifiedBy
-        
+
         // Carry over some meta-data from the previous version on an update.
         if (!create) {
             Map<String, String> prevContents = v2c.get(prevVersion);

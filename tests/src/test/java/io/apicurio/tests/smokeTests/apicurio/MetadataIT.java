@@ -21,19 +21,20 @@ import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.hamcrest.number.OrderingComparison;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import java.io.ByteArrayInputStream;
-
 import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.CoreMatchers.is;
+
+import java.io.ByteArrayInputStream;
+import javax.ws.rs.WebApplicationException;
 
 @Tag(SMOKE)
 class MetadataIT extends BaseIT {
@@ -52,8 +53,8 @@ class MetadataIT extends BaseIT {
         ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData.toString());
 
-        assertThat(artifactMetaData.getCreatedOn().toString(), notNullValue());
-        assertThat(artifactMetaData.getModifiedOn().toString(), notNullValue());
+        assertThat(artifactMetaData.getCreatedOn(), OrderingComparison.greaterThan(0L));
+        assertThat(artifactMetaData.getModifiedOn(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getId(), is("artifactUpdateAndMetadataId"));
         assertThat(artifactMetaData.getVersion(), is(1));
         assertThat(artifactMetaData.getType().value(), is("AVRO"));

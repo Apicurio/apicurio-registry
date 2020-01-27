@@ -23,6 +23,7 @@ public final class JsonSchemaSerDeConstants {
     
     public static final String HEADER_ARTIFACT_ID = "apicurio.artifactId";
     public static final String HEADER_VERSION = "apicurio.version";
+    public static final String HEADER_GLOBAL_ID = "apicurio.globalId";
     public static final String HEADER_MSG_TYPE = "apicurio.messageType";
 
 }

@@ -35,6 +35,10 @@ import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
 
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -43,14 +47,18 @@ import io.apicurio.registry.client.RegistryService;
  * 
  * @author eric.wittmann@gmail.com
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerDe<JsonSchemaKafkaSerializer<T>> implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T>
+        extends AbstractKafkaStrategyAwareSerDe<SchemaValidator, JsonSchemaKafkaSerializer<T>>
+        implements Serializer<T> {
     
     public static final String REGISTRY_JSON_SCHEMA_SERIALIZER_VALIDATION_ENABLED = "apicurio.registry.serdes.json-schema.validation-enabled";
 
     private static MedeiaJacksonApi api = new MedeiaJacksonApi();
     private static ObjectMapper mapper = new ObjectMapper();
+    private static GlobalIdStrategy<SchemaValidator> latestVersionStrategy = new FindLatestIdStrategy<>();
     
     private boolean validationEnabled = false;
+    private SchemaCache<SchemaValidator> schemaCache;
 
     /**
      * Constructor.
@@ -71,10 +79,18 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerDe<JsonSchemaK
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs);
+        super.configure(configs, isKey);
         
         Object ve = configs.get(REGISTRY_JSON_SCHEMA_SERIALIZER_VALIDATION_ENABLED);
-        this.validationEnabled = ve != null && ("true".equals(ve) || ve.equals(Boolean.TRUE));
+        this.validationEnabled = Utils.isTrue(ve);
+        
+        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
+            @Override
+            protected SchemaValidator toSchema(Response response) {
+                String schema = response.readEntity(String.class);
+                return api.loadSchema(new StringSchemaSource(schema));
+            }
+        };
     }
     
     /**
@@ -101,12 +117,13 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerDe<JsonSchemaK
             JsonGenerator generator = mapper.getFactory().createGenerator(baos);
             if (validationEnabled) {
                 String artifactId = getArtifactId(topic, data);
-                Integer version = getArtifactVersion(artifactId, topic, data);
-                addSchemaHeaders(headers, artifactId, version);
+                Long globalId = getArtifactVersionGlobalId(artifactId, topic, data);
+                if (globalId == null) {
+                    globalId = latestVersionStrategy.findId(getClient(), artifactId, ArtifactType.JSON, null);
+                }
+                addSchemaHeaders(headers, artifactId, globalId);
 
-                String schema = loadSchema(artifactId, version);
-                SchemaValidator schemaValidator = api.loadSchema(new StringSchemaSource(schema));
-                // TODO cache the SchemaValidator - keyed on artifactId+version
+                SchemaValidator schemaValidator = schemaCache.getSchema(globalId);
                 generator = api.decorateJsonGenerator(schemaValidator, generator);
             }
             addTypeHeaders(headers, data);
@@ -124,35 +141,38 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerDe<JsonSchemaK
      * @param topic
      * @param data
      */
-    private String getArtifactId(String topic, T data) {
-        // TODO support other options - other impls use a strategy for this
-        return topic;
+    protected String getArtifactId(String topic, T data) {
+        // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
+        return getArtifactIdStrategy().artifactId(topic, isKey(), null);
     }
 
     /**
-     * Figure out which version of the artifact to use, specifically.  If this returns
-     * null then the latest version will be used.
+     * Gets the global id of the schema to use for validation.
      * @param artifactId
      * @param topic
      * @param data
      */
-    private Integer getArtifactVersion(String artifactId, String topic, T data) {
-        // TODO how can we know what artifact version we need?  passed in via config?
-        return null;
+    protected Long getArtifactVersionGlobalId(String artifactId, String topic, T data) {
+        if (getGlobalIdStrategy() == null) {
+            return null;
+        }
+        // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
+        return getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, null);
     }
 
     /**
      * Adds appropriate information to the Headers so that the deserializer can function properly.
      * @param headers
      * @param artifactId
-     * @param version
+     * @param globalId
      */
-    private void addSchemaHeaders(Headers headers, String artifactId, Integer version) {
-        headers.add(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID, artifactId.getBytes(StandardCharsets.UTF_8));
-        if (version != null) {
-            ByteBuffer buff = ByteBuffer.allocate(4);
-            buff.putInt(version.intValue());
-            headers.add(JsonSchemaSerDeConstants.HEADER_VERSION, buff.array());
+    protected void addSchemaHeaders(Headers headers, String artifactId, Long globalId) {
+        if (globalId != null) {
+            ByteBuffer buff = ByteBuffer.allocate(8);
+            buff.putLong(globalId.longValue());
+            headers.add(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID, buff.array());
+        } else {
+            headers.add(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID, artifactId.getBytes(StandardCharsets.UTF_8));
         }
     }
 
@@ -161,32 +181,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerDe<JsonSchemaK
      * @param headers
      * @param data
      */
-    private void addTypeHeaders(Headers headers, T data) {
+    protected void addTypeHeaders(Headers headers, T data) {
         headers.add(JsonSchemaSerDeConstants.HEADER_MSG_TYPE, data.getClass().getName().getBytes(StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Gets the schema from the registry.
-     * @param artifactId
-     * @param version
-     */
-    private String loadSchema(String artifactId, Integer version) {
-        String schema;
-        Response artifact;
-        
-        if (version == null) {
-            artifact = getClient().getLatestArtifact(artifactId);
-        } else {
-            artifact = getClient().getArtifactVersion(version, artifactId);
-        }
-        
-        if (artifact.getStatus() != 200) {
-            throw new RuntimeException("Failed to get schema from registry: [" + artifact.getStatus() + "] " + 
-                    artifact.getStatusInfo().getReasonPhrase());
-        }
-        
-        schema = artifact.readEntity(String.class);
-        return schema;
     }
 
 }

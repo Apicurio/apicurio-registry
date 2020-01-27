@@ -27,8 +27,6 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.utils.serde.util.Utils.isTrue;
-
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
@@ -98,7 +96,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             }
             try {
                 Object cached = configs.get(REGISTRY_CACHED_CONFIG_PARAM);
-                if (isTrue(cached)) {
+                if (Utils.isTrue(cached)) {
                     client = RegistryClient.cached(baseUrl);
                 } else {
                     client = RegistryClient.create(baseUrl);

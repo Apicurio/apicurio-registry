@@ -116,7 +116,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     Str.ArtifactValue value = list.get(index);
                     if (isValid(value)) {
                         ArtifactState state = ArtifactStateExt.getState(value.getMetadataMap());
-                        if (states.contains(state)) {
+                        if (states == null || states.contains(state)) {
                             ArtifactStateExt.logIfDeprecated(artifactId, state, index + 1);
                             return value;
                         }
@@ -155,7 +155,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             ArtifactState current = handleVersion(
                 artifactId,
                 version,
-                ArtifactStateExt.ALL,
+                null,
                 av -> ArtifactStateExt.getState(av.getMetadataMap())
             );
 
@@ -282,7 +282,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLastArtifact(artifactId, ArtifactStateExt.ALL).getMetadataMap();
+        Map<String, String> content = getLastArtifact(artifactId, null).getMetadataMap();
         return MetaDataKeys.toArtifactMetaData(content);
     }
 
@@ -320,7 +320,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
         if (tuple == null) {
             throw new ArtifactNotFoundException("GlobalId: " + id);
         }
-        return handleVersion(tuple.getArtifactId(), tuple.getVersion(), ArtifactStateExt.ALL, value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
+        return handleVersion(tuple.getArtifactId(), tuple.getVersion(), null, value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
     }
 
     @Override
@@ -459,12 +459,12 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        handleVersion(artifactId, version, ArtifactStateExt.ALL, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null)));
+        handleVersion(artifactId, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null)));
     }
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return handleVersion(artifactId, version, ArtifactStateExt.ALL, value -> MetaDataKeys.toArtifactVersionMetaData(value.getMetadataMap()));
+        return handleVersion(artifactId, version, null, value -> MetaDataKeys.toArtifactVersionMetaData(value.getMetadataMap()));
     }
 
     @Override
@@ -482,7 +482,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
         handleVersion(
             artifactId,
             version,
-            ArtifactStateExt.ALL,
+            null,
             value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null))
         );
     }

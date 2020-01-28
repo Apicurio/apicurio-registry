@@ -44,7 +44,6 @@ public class ArtifactStateExt {
     }
 
     public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED);
-    public static final EnumSet<ArtifactState> ALL = EnumSet.allOf(ArtifactState.class);
 
     public static boolean canTransition(ArtifactState before, ArtifactState after) {
         EnumSet<ArtifactState> states = transitions.get(before);
@@ -60,7 +59,7 @@ public class ArtifactStateExt {
     }
 
     public static void validateState(EnumSet<ArtifactState> states, ArtifactState state, String identifier, Number version) {
-        if (states.contains(state) == false) {
+        if (states != null && states.contains(state) == false) {
             throw new InvalidArtifactStateException(identifier, version, state);
         }
         ArtifactStateExt.logIfDeprecated(identifier, state, version);

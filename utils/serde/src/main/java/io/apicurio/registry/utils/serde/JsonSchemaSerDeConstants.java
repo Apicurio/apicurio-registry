@@ -26,4 +26,6 @@ public final class JsonSchemaSerDeConstants {
     public static final String HEADER_GLOBAL_ID = "apicurio.globalId";
     public static final String HEADER_MSG_TYPE = "apicurio.messageType";
 
+    public static final String REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED = "apicurio.registry.serdes.json-schema.validation-enabled";
+
 }

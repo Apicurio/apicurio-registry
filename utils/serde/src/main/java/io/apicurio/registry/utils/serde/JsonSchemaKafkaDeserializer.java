@@ -44,8 +44,6 @@ import io.apicurio.registry.utils.serde.util.Utils;
  */
 public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchemaKafkaDeserializer<T>> implements Deserializer<T> {
 
-    public static final String REGISTRY_JSON_SCHEMA_DESERIALIZER_VALIDATION_ENABLED = "apicurio.registry.serdes.json-schema.validation-enabled";
-
     private static MedeiaJacksonApi api = new MedeiaJacksonApi();
     private static ObjectMapper mapper = new ObjectMapper();
     
@@ -56,15 +54,25 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
      * Constructor.
      */
     public JsonSchemaKafkaDeserializer() {
-        this(null);
+        this(null, false);
     }
 
     /**
      * Constructor.
      * @param client
      */
-    public JsonSchemaKafkaDeserializer(RegistryService client) {
+    public JsonSchemaKafkaDeserializer(RegistryService client, boolean validationEnabled) {
         super(client);
+        
+        this.validationEnabled = validationEnabled;
+        
+        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
+            @Override
+            protected SchemaValidator toSchema(Response response) {
+                String schema = response.readEntity(String.class);
+                return api.loadSchema(new StringSchemaSource(schema));
+            }
+        };
     }
 
     /**
@@ -74,16 +82,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs);
 
-        Object ve = configs.get(REGISTRY_JSON_SCHEMA_DESERIALIZER_VALIDATION_ENABLED);
+        Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
         this.validationEnabled = Utils.isTrue(ve);
-
-        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
-            @Override
-            protected SchemaValidator toSchema(Response response) {
-                String schema = response.readEntity(String.class);
-                return api.loadSchema(new StringSchemaSource(schema));
-            }
-        };
     }
     
     /**
@@ -113,9 +113,6 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
                 if (globalId == null) {
                     String artifactId = getArtifactId(headers);
                     Integer version = getVersion(headers);
-                    if (version == null) {
-                        version = getLatestVersion(artifactId);
-                    }
                     globalId = toGlobalId(artifactId, version);
                 }
                 
@@ -140,7 +137,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(8);
+        ByteBuffer buffer = ByteBuffer.allocate(header.value().length);
         buffer.put(header.value());
         buffer.position(0);
         return buffer.getLong();
@@ -167,7 +164,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(4);
+        ByteBuffer buffer = ByteBuffer.allocate(header.value().length);
         buffer.put(header.value());
         buffer.position(0);
         return buffer.getInt();
@@ -195,23 +192,19 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
     }
 
     /**
-     * Gets the latest version of the artifact id.
-     * @param artifactId
-     */
-    protected Integer getLatestVersion(String artifactId) {
-        ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
-        return amd.getVersion();
-    }
-
-    /**
      * Converts an artifact id and version to a global id by querying the registry.  If anything goes wrong, 
      * throws an approprate exception.
      * @param artifactId
      * @param version
      */
     protected Long toGlobalId(String artifactId, Integer version) {
-        VersionMetaData vmd = getClient().getArtifactVersionMetaData(version, artifactId);
-        return vmd.getGlobalId();
+        if (version == null) {
+            ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
+            return amd.getGlobalId();
+        } else {
+            VersionMetaData vmd = getClient().getArtifactVersionMetaData(version, artifactId);
+            return vmd.getGlobalId();
+        }
     }
 
 }

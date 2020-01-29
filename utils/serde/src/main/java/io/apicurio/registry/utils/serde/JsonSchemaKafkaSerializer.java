@@ -51,8 +51,6 @@ public class JsonSchemaKafkaSerializer<T>
         extends AbstractKafkaStrategyAwareSerDe<SchemaValidator, JsonSchemaKafkaSerializer<T>>
         implements Serializer<T> {
     
-    public static final String REGISTRY_JSON_SCHEMA_SERIALIZER_VALIDATION_ENABLED = "apicurio.registry.serdes.json-schema.validation-enabled";
-
     private static MedeiaJacksonApi api = new MedeiaJacksonApi();
     private static ObjectMapper mapper = new ObjectMapper();
     private static GlobalIdStrategy<SchemaValidator> latestVersionStrategy = new FindLatestIdStrategy<>();
@@ -69,9 +67,20 @@ public class JsonSchemaKafkaSerializer<T>
     /**
      * Constructor.
      * @param client
+     * @param validationEnabled
      */
-    public JsonSchemaKafkaSerializer(RegistryService client) {
+    public JsonSchemaKafkaSerializer(RegistryService client, boolean validationEnabled) {
         super(client);
+        
+        this.validationEnabled = validationEnabled;
+        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
+            @Override
+            protected SchemaValidator toSchema(Response response) {
+                String schema = response.readEntity(String.class);
+                return api.loadSchema(new StringSchemaSource(schema));
+            }
+        };
+
     }
 
     /**
@@ -81,16 +90,8 @@ public class JsonSchemaKafkaSerializer<T>
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
         
-        Object ve = configs.get(REGISTRY_JSON_SCHEMA_SERIALIZER_VALIDATION_ENABLED);
+        Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
         this.validationEnabled = Utils.isTrue(ve);
-        
-        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
-            @Override
-            protected SchemaValidator toSchema(Response response) {
-                String schema = response.readEntity(String.class);
-                return api.loadSchema(new StringSchemaSource(schema));
-            }
-        };
     }
     
     /**
@@ -118,9 +119,6 @@ public class JsonSchemaKafkaSerializer<T>
             if (validationEnabled) {
                 String artifactId = getArtifactId(topic, data);
                 Long globalId = getArtifactVersionGlobalId(artifactId, topic, data);
-                if (globalId == null) {
-                    globalId = latestVersionStrategy.findId(getClient(), artifactId, ArtifactType.JSON, null);
-                }
                 addSchemaHeaders(headers, artifactId, globalId);
 
                 SchemaValidator schemaValidator = schemaCache.getSchema(globalId);
@@ -154,7 +152,7 @@ public class JsonSchemaKafkaSerializer<T>
      */
     protected Long getArtifactVersionGlobalId(String artifactId, String topic, T data) {
         if (getGlobalIdStrategy() == null) {
-            return null;
+            return latestVersionStrategy.findId(getClient(), artifactId, ArtifactType.JSON, null);
         }
         // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
         return getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, null);

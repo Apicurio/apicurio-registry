@@ -37,5 +37,10 @@
             <artifactId>avro</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.worldturner.medeia</groupId>
+            <artifactId>medeia-validator-jackson</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

@@ -66,7 +66,7 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs);
+        super.configure(configs, isKey);
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
         jsonConverter.configure(wrapper, isKey);

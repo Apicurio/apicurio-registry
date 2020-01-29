@@ -19,7 +19,6 @@ package io.apicurio.registry.utils.serde;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
@@ -37,6 +36,7 @@ import com.worldturner.medeia.schema.validation.SchemaValidator;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
@@ -152,7 +152,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             throw new RuntimeException("ArtifactId not found in headers.");
         }
-        return new String(header.value(), StandardCharsets.UTF_8);
+        return IoUtil.toString(header.value());
     }
 
     /**
@@ -179,7 +179,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             throw new RuntimeException("Message Type not found in headers.");
         }
-        String msgTypeName = new String(header.value(), StandardCharsets.UTF_8);
+        String msgTypeName = IoUtil.toString(header.value());
         
         try {
             return (Class<T>) Thread.currentThread().getContextClassLoader().loadClass(msgTypeName);

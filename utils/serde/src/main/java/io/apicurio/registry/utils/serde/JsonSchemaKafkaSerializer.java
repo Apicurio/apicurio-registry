@@ -19,7 +19,6 @@ package io.apicurio.registry.utils.serde;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
@@ -36,6 +35,7 @@ import com.worldturner.medeia.schema.validation.SchemaValidator;
 
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.util.Utils;
@@ -170,7 +170,7 @@ public class JsonSchemaKafkaSerializer<T>
             buff.putLong(globalId.longValue());
             headers.add(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID, buff.array());
         } else {
-            headers.add(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID, artifactId.getBytes(StandardCharsets.UTF_8));
+            headers.add(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID, IoUtil.toBytes(artifactId));
         }
     }
 
@@ -180,7 +180,7 @@ public class JsonSchemaKafkaSerializer<T>
      * @param data
      */
     protected void addTypeHeaders(Headers headers, T data) {
-        headers.add(JsonSchemaSerDeConstants.HEADER_MSG_TYPE, data.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        headers.add(JsonSchemaSerDeConstants.HEADER_MSG_TYPE, IoUtil.toBytes(data.getClass().getName()));
     }
 
 }

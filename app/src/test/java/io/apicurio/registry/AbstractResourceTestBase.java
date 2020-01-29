@@ -99,6 +99,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static void assertWebError(int expectedCode, Runnable runnable) {
         try {
             runnable.run();
+            Assertions.fail();
         } catch (Exception e) {
             Assertions.assertTrue(e instanceof WebApplicationException);
             Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());

@@ -20,6 +20,7 @@ import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -57,8 +58,15 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             );
             ConcurrentUtil.result(a2);
 
+            CompletionStage<ArtifactMetaData> a3 = service.updateArtifact(
+                artifactId,
+                ArtifactType.JSON,
+                new ByteArrayInputStream("\"type\": \"float\"".getBytes())
+            );
+            ConcurrentUtil.result(a3);
+
             ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
-            Assertions.assertEquals(2, amd.getVersion());
+            Assertions.assertEquals(3, amd.getVersion());
 
             // disable latest
             service.updateArtifactState(artifactId, ArtifactState.DISABLED);
@@ -66,47 +74,77 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             // retries are here due to possible async nature of storage; e.g. Kafka, Streams, ...
 
             retry(() -> {
+                      VersionMetaData tvmd = service.getArtifactVersionMetaData(3, artifactId);
+                      Assertions.assertEquals(3, tvmd.getVersion());
+                      Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
+                      return null;
+                  }
+            );
+
+            retry(() -> {
                       ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(2, tamd.getVersion()); // should still be latest (aka 2)
-                      Assertions.assertEquals(ArtifactState.DISABLED, tamd.getState());
+                      Assertions.assertEquals(2, tamd.getVersion()); // should still be latest active (aka 2)
+                      Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
+                      Assertions.assertNull(tamd.getDescription());
                       return null;
                   }
             );
 
             EditableMetaData emd = new EditableMetaData();
-            emd.setDescription("Testing artifact state");
+            String description = "Testing artifact state";
+            emd.setDescription(description);
 
             // cannot get, update disabled artifact
-            assertWebError(400, () -> service.getArtifactVersion(2, artifactId));
-            assertWebError(400, () -> service.updateArtifactMetaData(artifactId, emd));
+            assertWebError(400, () -> service.getArtifactVersion(3, artifactId));
+            assertWebError(400, () -> service.updateArtifactVersionMetaData(3, artifactId, emd));
 
-            service.updateArtifactState(artifactId, ArtifactState.DEPRECATED);
-
-            // cannot go back from deprecated ...
-            retry(() -> {
-                assertWebError(400, () -> service.updateArtifactState(artifactId, ArtifactState.ENABLED));
-                return null;
-            });
+            service.updateArtifactMetaData(artifactId, emd);
 
             retry(() -> {
                       ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
                       Assertions.assertEquals(2, tamd.getVersion()); // should still be latest (aka 2)
-                      Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
+                      Assertions.assertEquals(description, tamd.getDescription());
+                      return null;
+                  }
+            );
 
-                      Response avr = service.getArtifactVersion(2, artifactId);
-                      Assertions.assertEquals(200, avr.getStatus());
+            service.updateArtifactState(artifactId, ArtifactState.DEPRECATED, 3);
+
+            retry(() -> {
+                ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                Assertions.assertEquals(3, tamd.getVersion()); // should be back to v3
+                Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
+                Assertions.assertNull(tamd.getDescription());
+
+                Response avr = service.getLatestArtifact(artifactId);
+                Assertions.assertEquals(200, avr.getStatus());
+                avr = service.getArtifactVersion(2, artifactId);
+                Assertions.assertEquals(200, avr.getStatus());
+
+                // cannot go back from deprecated ...
+                assertWebError(400, () -> service.updateArtifactState(artifactId, ArtifactState.ENABLED));
+                return null;
+            });
+
+            service.updateArtifactMetaData(artifactId, emd); // should be allowed for deprecated
+
+            retry(() -> {
+                      ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                      Assertions.assertEquals(3, tamd.getVersion()); // should still be latest (aka 3)
+                      Assertions.assertEquals(description, tamd.getDescription());
+
+                      VersionMetaData tvmd = service.getArtifactVersionMetaData(1, artifactId);
+                      Assertions.assertNull(tvmd.getDescription());
 
                       return null;
                   }
             );
 
-            service.updateArtifactMetaData(artifactId, emd); // should be allowed
-
             service.updateArtifactState(artifactId, ArtifactState.DELETED);
 
             retry(() -> {
                       ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(1, tamd.getVersion());
+                      Assertions.assertEquals(2, tamd.getVersion());
                       Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
                       return null;
                   }

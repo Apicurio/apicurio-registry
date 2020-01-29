@@ -365,7 +365,7 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId, null);
+            Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
                 .update(artifact)

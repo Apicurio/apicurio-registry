@@ -282,7 +282,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLastArtifact(artifactId, null).getMetadataMap();
+        Map<String, String> content = getLastArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES).getMetadataMap();
         return MetaDataKeys.toArtifactMetaData(content);
     }
 

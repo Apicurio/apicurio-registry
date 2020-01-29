@@ -137,10 +137,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(header.value().length);
-        buffer.put(header.value());
-        buffer.position(0);
-        return buffer.getLong();
+        return ByteBuffer.wrap(header.value()).getLong();
     }
 
     /**
@@ -164,10 +161,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         if (header == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(header.value().length);
-        buffer.put(header.value());
-        buffer.position(0);
-        return buffer.getInt();
+        return ByteBuffer.wrap(header.value()).getInt();
     }
 
     /**

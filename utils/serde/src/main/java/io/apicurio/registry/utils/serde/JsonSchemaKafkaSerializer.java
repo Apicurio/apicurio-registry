@@ -53,7 +53,7 @@ public class JsonSchemaKafkaSerializer<T>
     
     private static MedeiaJacksonApi api = new MedeiaJacksonApi();
     private static ObjectMapper mapper = new ObjectMapper();
-    private static GlobalIdStrategy<SchemaValidator> latestVersionStrategy = new FindLatestIdStrategy<>();
+    private static GlobalIdStrategy<SchemaValidator> defaultGlobalIdStrategy = new FindLatestIdStrategy<>();
     
     private boolean validationEnabled = false;
     private SchemaCache<SchemaValidator> schemaCache;
@@ -81,6 +81,18 @@ public class JsonSchemaKafkaSerializer<T>
             }
         };
 
+    }
+    
+    /**
+     * @see io.apicurio.registry.utils.serde.AbstractKafkaStrategyAwareSerDe#getGlobalIdStrategy()
+     */
+    @Override
+    protected GlobalIdStrategy<SchemaValidator> getGlobalIdStrategy() {
+        GlobalIdStrategy<SchemaValidator> strategy = super.getGlobalIdStrategy();
+        if (strategy == null) {
+            strategy = defaultGlobalIdStrategy;
+        }
+        return strategy;
     }
 
     /**
@@ -151,9 +163,6 @@ public class JsonSchemaKafkaSerializer<T>
      * @param data
      */
     protected Long getArtifactVersionGlobalId(String artifactId, String topic, T data) {
-        if (getGlobalIdStrategy() == null) {
-            return latestVersionStrategy.findId(getClient(), artifactId, ArtifactType.JSON, null);
-        }
         // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
         return getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, null);
     }

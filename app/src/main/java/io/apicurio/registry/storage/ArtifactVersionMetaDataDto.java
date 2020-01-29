@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +39,7 @@ public class ArtifactVersionMetaDataDto {
     private String createdBy;
     private long createdOn;
     private ArtifactType type;
+    private ArtifactState state;
 
     /**
      * Constructor.
@@ -99,6 +101,20 @@ public class ArtifactVersionMetaDataDto {
      */
     public void setType(ArtifactType type) {
         this.type = type;
+    }
+
+    /**
+     * @return the state
+     */
+    public ArtifactState getState() {
+        return state;
+    }
+
+    /**
+     * @param state the state to set
+     */
+    public void setState(ArtifactState state) {
+        this.state = state;
     }
 
     /**

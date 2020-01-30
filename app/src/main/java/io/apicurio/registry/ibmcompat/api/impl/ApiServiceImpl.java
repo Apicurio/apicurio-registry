@@ -1,13 +1,5 @@
-package io.apicurio.registry.cibm.api.impl;
+package io.apicurio.registry.ibmcompat.api.impl;
 
-import io.apicurio.registry.cibm.api.ApiService;
-import io.apicurio.registry.cibm.model.AnyOfStateModificationEnabledModification;
-import io.apicurio.registry.cibm.model.NewSchema;
-import io.apicurio.registry.cibm.model.NewSchemaVersion;
-import io.apicurio.registry.cibm.model.Schema;
-import io.apicurio.registry.cibm.model.SchemaInfo;
-import io.apicurio.registry.cibm.model.SchemaListItem;
-import io.apicurio.registry.cibm.model.SchemaVersion;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
@@ -16,6 +8,14 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.ibmcompat.api.ApiService;
+import io.apicurio.registry.ibmcompat.model.AnyOfStateModificationEnabledModification;
+import io.apicurio.registry.ibmcompat.model.NewSchema;
+import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
+import io.apicurio.registry.ibmcompat.model.Schema;
+import io.apicurio.registry.ibmcompat.model.SchemaInfo;
+import io.apicurio.registry.ibmcompat.model.SchemaListItem;
+import io.apicurio.registry.ibmcompat.model.SchemaVersion;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 

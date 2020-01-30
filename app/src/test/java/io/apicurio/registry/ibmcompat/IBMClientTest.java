@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.cibm;
+package io.apicurio.registry.ibmcompat;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 public class IBMClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryRestAPIClient buildClient() throws Exception {
-        return new SchemaRegistryRestAPIClient("http://localhost:8081/cibm", "<API_KEY>", true);
+        return new SchemaRegistryRestAPIClient("http://localhost:8081/ibmcompat", "<API_KEY>", true);
     }
 
     @Test

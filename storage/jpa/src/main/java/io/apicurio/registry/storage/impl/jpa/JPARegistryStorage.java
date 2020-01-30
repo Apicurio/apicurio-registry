@@ -24,6 +24,7 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.MetaDataKeys;
@@ -38,12 +39,14 @@ import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import io.apicurio.registry.storage.impl.jpa.entity.Rule;
 import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,6 +54,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -64,8 +68,6 @@ import javax.transaction.Transactional;
 @PersistenceTimeoutReadinessApply
 public class JPARegistryStorage implements RegistryStorage {
 
-//    private static Logger log = LoggerFactory.getLogger(JPARegistryStorage.class);
-    
     @Inject
     ContentCanonicalizerFactory ccFactory;
 
@@ -78,30 +80,32 @@ public class JPARegistryStorage implements RegistryStorage {
     private long _getNextArtifactVersion(String artifactId) {
         requireNonNull(artifactId);
         Long latest = entityManager.createQuery(
-                "SELECT MAX(a.version) FROM Artifact a " +
-                        "WHERE a.artifactId = :artifact_id", Long.class)
-                .setParameter("artifact_id", artifactId)
-                .getSingleResult();
+            "SELECT MAX(a.version) FROM Artifact a " +
+            "WHERE a.artifactId = :artifact_id", Long.class)
+                                   .setParameter("artifact_id", artifactId)
+                                   .getSingleResult();
         return latest != null ? latest + 1 : 1;
     }
 
     private List<MetaData> _getMetaData(String artifactId, Long version) {
-        requireNonNull(artifactId); // TODO split null version into separate method?
-        TypedQuery<MetaData> res = entityManager.createQuery(
-                "SELECT m FROM MetaData m " +
-                        "WHERE m.artifactId = :artifact_id AND m.version " + (version == null ? "IS NULL" : "= :version"), MetaData.class)
-                .setParameter("artifact_id", artifactId);
-        if (version != null)
-            res.setParameter("version", version);
-        return res.getResultList();
+        requireNonNull(artifactId);
+        requireNonNull(version);
+
+        return entityManager.createQuery(
+            "SELECT m FROM MetaData m " +
+            "WHERE m.artifactId = :artifact_id AND m.version = :version", MetaData.class)
+                            .setParameter("artifact_id", artifactId)
+                            .setParameter("version", version)
+                            .getResultList();
     }
 
     private Rule _getRule(String artifactId, RuleType rule) {
         requireNonNull(rule); // TODO split null artifactId into separate method?
         try {
-            TypedQuery<Rule> res = entityManager.createQuery("SELECT r FROM Rule r " +
-                    "WHERE r.artifactId " + (artifactId == null ? "IS NULL" : "= :artifact_id") + " AND r.name = :name", Rule.class)
-                    .setParameter("name", rule);
+            TypedQuery<Rule> res = entityManager.createQuery(
+                "SELECT r FROM Rule r " +
+                "WHERE r.artifactId " + (artifactId == null ? "IS NULL" : "= :artifact_id") + " AND r.name = :name", Rule.class)
+                                                .setParameter("name", rule);
             if (artifactId != null) {
                 res.setParameter("artifact_id", artifactId);
             }
@@ -114,75 +118,103 @@ public class JPARegistryStorage implements RegistryStorage {
     private List<RuleConfig> _getRuleConfig(Rule rule) {
         requireNonNull(rule);
         return entityManager.createQuery("SELECT rc FROM RuleConfig rc " +
-                "WHERE rc.rule.id = :rule_id", RuleConfig.class)
-                .setParameter("rule_id", rule.getId())
-                .getResultList();
+                                         "WHERE rc.rule.id = :rule_id", RuleConfig.class)
+                            .setParameter("rule_id", rule.getId())
+                            .getResultList();
     }
 
-    private Artifact _getArtifact(String artifactId, long version) {
+    private <T> T getMetaData(String artifactId, long version, String key, Function<MetaData, T> fn) {
+        MetaData metaData = entityManager.createQuery(
+            "SELECT m FROM MetaData m " +
+            "WHERE m.artifactId = :artifact_id AND m.version = :version AND m.key = :key", MetaData.class)
+                                         .setParameter("artifact_id", artifactId)
+                                         .setParameter("version", version)
+                                         .setParameter("key", key)
+                                         .getSingleResult();
+        return fn.apply(metaData);
+    }
+
+    private ArtifactState getState(String artifactId, long version) {
+        return getMetaData(artifactId, version, MetaDataKeys.STATE, md -> ArtifactState.valueOf(md.getValue()));
+    }
+
+    private Artifact _getArtifact(String artifactId, long version, EnumSet<ArtifactState> states) {
         requireNonNull(artifactId);
         try {
+            ArtifactState state = getState(artifactId, version);
+
+            ArtifactStateExt.validateState(states, state, artifactId, version);
+
             return entityManager.createQuery("SELECT a FROM Artifact a " +
-                    "WHERE a.artifactId = :artifact_id AND a.version = :version", Artifact.class)
-                    .setParameter("artifact_id", artifactId)
-                    .setParameter("version", version)
-                    .getSingleResult();
+                                             "WHERE a.artifactId = :artifact_id " +
+                                             "AND a.version = :version", Artifact.class)
+                                .setParameter("artifact_id", artifactId)
+                                .setParameter("version", version)
+                                .getSingleResult();
         } catch (NoResultException ex) {
             throw new VersionNotFoundException(artifactId, version, ex);
         }
     }
 
-    private Artifact _getArtifact(String artifactId) {
+    private Artifact _getArtifact(String artifactId, EnumSet<ArtifactState> states) {
         requireNonNull(artifactId);
-        try {
-            return entityManager.createQuery(
-                    "SELECT a FROM Artifact a " +
-                            "WHERE a.artifactId = :artifact_id " +
-                            "ORDER BY a.version DESC ", Artifact.class)
-                    .setParameter("artifact_id", artifactId)
-                    .setMaxResults(1)
-                    .getSingleResult();
-        } catch (NoResultException ex) {
-            throw new ArtifactNotFoundException(artifactId, ex);
+        List<Artifact> artifacts = entityManager.createQuery(
+            "SELECT a FROM Artifact a " +
+            "WHERE a.artifactId = :artifact_id " +
+            "ORDER BY a.version DESC ", Artifact.class)
+                                                .setParameter("artifact_id", artifactId)
+                                                .getResultList();
+
+        for (Artifact artifact : artifacts) {
+            ArtifactState state = getState(artifactId, artifact.getVersion());
+            if (states == null || states.contains(state)) {
+                ArtifactStateExt.logIfDeprecated(artifactId, state, artifact.getVersion());
+                return artifact;
+            }
+        }
+
+        throw new ArtifactNotFoundException(artifactId);
+    }
+
+    private Artifact _getArtifact(long id, EnumSet<ArtifactState> states) {
+        Artifact artifact = entityManager.createQuery(
+            "SELECT a FROM Artifact a " +
+            "WHERE a.globalId = :global_id", Artifact.class)
+                                         .setParameter("global_id", id)
+                                         .getSingleResult();
+
+        ArtifactState state = getState(artifact.getArtifactId(), artifact.getVersion());
+
+        ArtifactStateExt.validateState(states, state, artifact.getArtifactId(), artifact.getVersion());
+
+        return artifact;
+    }
+
+    private void updateArtifactState(Artifact artifact, ArtifactState state) {
+        if (state == ArtifactState.DELETED) {
+            deleteArtifactVersion(artifact.getArtifactId(), artifact.getVersion());
+        } else {
+            MetaData md = getMetaData(artifact.getArtifactId(), artifact.getVersion(), MetaDataKeys.STATE, Function.identity());
+            ArtifactState previousState = ArtifactState.valueOf(md.getValue());
+            ArtifactStateExt.applyState(s -> md.setValue(s.name()), previousState, state);
         }
     }
 
-    private boolean _artifactExists(String artifactId) {
-        requireNonNull(artifactId);
-        return entityManager.createQuery("SELECT COUNT(a) FROM Artifact a " +
-                "WHERE a.artifactId = :artifact_id", Long.class)
-                .setParameter("artifact_id", artifactId)
-                .getSingleResult() != 0;
-    }
-
-    private void _ensureArtifactExists(String artifactId) {
-        if (!_artifactExists(artifactId))
-            throw new ArtifactNotFoundException(artifactId);
-    }
-
-    private boolean _artifactVersionExists(String artifactId, long version) {
-        requireNonNull(artifactId);
-        return entityManager.createQuery("SELECT COUNT(a) FROM Artifact a " +
-                "WHERE a.artifactId = :artifact_id AND a.version = :version", Long.class)
-                .setParameter("artifact_id", artifactId)
-                .setParameter("version", version)
-                .getSingleResult() != 0;
-    }
-
-    private void _ensureArtifactVersionExists(String artifactId, long version) {
-        if (!_artifactVersionExists(artifactId, version))
-            throw new VersionNotFoundException(artifactId, version);
-    }
-
-    private Artifact _getArtifact(long id) {
-        return entityManager.createQuery(
-            "SELECT a FROM Artifact a " +
-            "WHERE a.globalId = :global_id", Artifact.class)
-                            .setParameter("global_id", id)
-                            .getSingleResult();
-    }
-
     // ========================================================================
+
+    @Override
+    @Transactional
+    public void updateArtifactState(String artifactId, ArtifactState state) {
+        Artifact artifact = _getArtifact(artifactId, null);
+        updateArtifactState(artifact, state);
+    }
+
+    @Override
+    @Transactional
+    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+        Artifact artifact = _getArtifact(artifactId, version.longValue(), null);
+        updateArtifactState(artifact, state);
+    }
 
     @Override
     @Transactional
@@ -206,13 +238,10 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-            new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, nextVersion);
-
             ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+                .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                 .update(MetaDataKeys.TYPE, artifactType.value())
-                .persistUpdate(entityManager, artifactId, null)
+                .persistUpdate(entityManager, artifactId, nextVersion)
                 .update(artifact)
                 .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
@@ -227,37 +256,36 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            _ensureArtifactExists(artifactId);
-
             List<Long> res1 = entityManager.createQuery(
-                    "SELECT a.version FROM Artifact a " +
-                            "WHERE a.artifactId = :artifact_id " +
-                            "ORDER BY a.version DESC", Long.class)
-                    .setParameter("artifact_id", artifactId)
-                    .getResultList();
+                "SELECT a.version FROM Artifact a " +
+                "WHERE a.artifactId = :artifact_id " +
+                "ORDER BY a.version DESC", Long.class)
+                                           .setParameter("artifact_id", artifactId)
+                                           .getResultList();
 
-            if (res1.size() == 0)
+            if (res1.size() == 0) {
                 throw new ArtifactNotFoundException(artifactId);
+            }
 
             entityManager.createQuery(
-                    "DELETE FROM Artifact a " +
-                            "WHERE a.artifactId = :artifact_id")
-                    .setParameter("artifact_id", artifactId)
-                    .executeUpdate();
+                "DELETE FROM Artifact a " +
+                "WHERE a.artifactId = :artifact_id")
+                         .setParameter("artifact_id", artifactId)
+                         .executeUpdate();
 
             // delete meta data
             entityManager.createQuery(
-                    "DELETE FROM MetaData m " +
-                            "WHERE m.artifactId = :artifact_id")
-                    .setParameter("artifact_id", artifactId)
-                    .executeUpdate();
+                "DELETE FROM MetaData m " +
+                "WHERE m.artifactId = :artifact_id")
+                         .setParameter("artifact_id", artifactId)
+                         .executeUpdate();
 
             // delete rules
             entityManager.createQuery(
-                    "DELETE FROM Rule r " +
-                            "WHERE r.artifactId = :artifact_id")
-                    .setParameter("artifact_id", artifactId)
-                    .executeUpdate();
+                "DELETE FROM Rule r " +
+                "WHERE r.artifactId = :artifact_id")
+                         .setParameter("artifact_id", artifactId)
+                         .executeUpdate();
 
             return new TreeSet<>(res1);
 
@@ -272,7 +300,7 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId);
+            Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
             return mapper.toStoredArtifact(artifact);
         } catch (PersistenceException ex) {
@@ -288,8 +316,10 @@ public class JPARegistryStorage implements RegistryStorage {
             requireNonNull(artifactType);
             requireNonNull(content);
 
-            _ensureArtifactExists(artifactId);
             long nextVersion = _getNextArtifactVersion(artifactId);
+            if (nextVersion == 1L) {
+                throw new ArtifactNotFoundException(artifactId);
+            }
 
             Artifact artifact = Artifact.builder()
                                         .artifactId(artifactId)
@@ -299,13 +329,12 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-            new MetaDataMapperUpdater()
-                    .update(MetaDataKeys.TYPE, artifactType.value())
-                    .persistUpdate(entityManager, artifactId, nextVersion);
-
             ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+                .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                 .update(MetaDataKeys.TYPE, artifactType.value())
-                .persistUpdate(entityManager, artifactId, null)
+                // copy name and description .. if previous version (still) exists
+                .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME, MetaDataKeys.DESCRIPTION)
+                .persistUpdate(entityManager, artifactId, nextVersion)
                 .update(artifact)
                 .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
@@ -318,12 +347,11 @@ public class JPARegistryStorage implements RegistryStorage {
     @Transactional
     public Set<String> getArtifactIds() {
         try {
-            List<String> res1 = entityManager.createQuery(
-                    "SELECT a.artifactId FROM Artifact a", String.class)
-                    .getResultList();
+            List<String> ids = entityManager.createQuery(
+                "SELECT a.artifactId FROM Artifact a", String.class)
+                                            .getResultList();
 
-            return new HashSet<>(res1);
-
+            return new HashSet<>(ids);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -337,11 +365,11 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            Artifact artifact = _getArtifact(artifactId);
+            Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
-                    .update(artifact)
-                    .toArtifactMetaDataDto();
+            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
+                .update(artifact)
+                .toArtifactMetaDataDto();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -354,7 +382,7 @@ public class JPARegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
-            
+
             // Get the meta-data for the artifact
             ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
 
@@ -366,17 +394,18 @@ public class JPARegistryStorage implements RegistryStorage {
 
             Artifact artifact = null;
             List<Artifact> list = entityManager.createQuery(
-                    "SELECT a FROM Artifact a " +
-                    "WHERE a.artifactId = :artifact_id " +
-                    "ORDER BY a.version DESC ", Artifact.class)
-               .setParameter("artifact_id", artifactId)
-               .getResultList();
+                "SELECT a FROM Artifact a " +
+                "WHERE a.artifactId = :artifact_id " +
+                "ORDER BY a.version DESC ", Artifact.class)
+                                               .setParameter("artifact_id", artifactId)
+                                               .getResultList();
             for (Artifact candidateArtifact : list) {
                 ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent());
                 ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
                 byte[] candidateBytes = canonicalCandidateContent.bytes();
                 if (Arrays.equals(canonicalBytes, candidateBytes)) {
                     artifact = candidateArtifact;
+                    break;
                 }
             }
 
@@ -384,7 +413,7 @@ public class JPARegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(artifactId);
             }
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, null))
+            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
                 .update(artifact)
                 .toArtifactMetaDataDto();
         } catch (Exception e) {
@@ -395,7 +424,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            Artifact artifact = _getArtifact(id);
+            Artifact artifact = _getArtifact(id, null);
 
             return new MetaDataMapperUpdater(_getMetaData(artifact.getArtifactId(), artifact.getVersion()))
                 .update(artifact)
@@ -412,11 +441,11 @@ public class JPARegistryStorage implements RegistryStorage {
             requireNonNull(artifactId);
             requireNonNull(metaData);
 
-            _ensureArtifactExists(artifactId);
+            Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
-            new MetaDataMapperUpdater(_getMetaData(artifactId, null))
-                    .update(metaData)
-                    .persistUpdate(entityManager, artifactId, null);
+            new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
+                .update(metaData)
+                .persistUpdate(entityManager, artifactId, artifact.getVersion());
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -428,12 +457,12 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            _ensureArtifactExists(artifactId);
+            _getArtifact(artifactId, null);
 
             return entityManager.createQuery("SELECT r.name FROM Rule r " +
-                    "WHERE r.artifactId = :artifact_id", RuleType.class)
-                    .setParameter("artifact_id", artifactId)
-                    .getResultList();
+                                             "WHERE r.artifactId = :artifact_id", RuleType.class)
+                                .setParameter("artifact_id", artifactId)
+                                .getResultList();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -445,25 +474,26 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+    throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(rule);
             requireNonNull(config);
 
-            if (getArtifactRules(artifactId).contains(rule))
+            if (getArtifactRules(artifactId).contains(rule)) {
                 throw new RuleAlreadyExistsException(rule);
+            }
 
             Rule ruleEntity = Rule.builder()
-                    .artifactId(artifactId)
-                    .name(rule)
-                    .build();
+                                  .artifactId(artifactId)
+                                  .name(rule)
+                                  .build();
 
             entityManager.persist(ruleEntity);
 
             new RuleConfigMapperUpdater()
-                    .update(config)
-                    .persistUpdate(entityManager, ruleEntity);
+                .update(config)
+                .persistUpdate(entityManager, ruleEntity);
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -476,12 +506,12 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            _ensureArtifactExists(artifactId);
+            _getArtifact(artifactId, null);
 
             entityManager.createQuery("DELETE FROM Rule r " +
-                    "WHERE r.artifactId = :artifact_id")
-                    .setParameter("artifact_id", artifactId)
-                    .executeUpdate();
+                                      "WHERE r.artifactId = :artifact_id")
+                         .setParameter("artifact_id", artifactId)
+                         .executeUpdate();
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -494,7 +524,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Transactional
     @Override
     public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+    throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(rule);
@@ -502,7 +532,7 @@ public class JPARegistryStorage implements RegistryStorage {
             Rule res1 = _getRule(artifactId, rule);
 
             return new RuleConfigMapperUpdater(_getRuleConfig(res1))
-                    .toRuleConfigurationDto();
+                .toRuleConfigurationDto();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -514,7 +544,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+    throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(rule);
@@ -523,8 +553,8 @@ public class JPARegistryStorage implements RegistryStorage {
             Rule ruleEntity = _getRule(artifactId, rule);
 
             new RuleConfigMapperUpdater(_getRuleConfig(ruleEntity))
-                    .update(config)
-                    .persistUpdate(entityManager, ruleEntity);
+                .update(config)
+                .persistUpdate(entityManager, ruleEntity);
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -537,18 +567,18 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void deleteArtifactRule(String artifactId, RuleType rule)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+    throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
             requireNonNull(rule);
 
-            _ensureArtifactExists(artifactId);
+            _getArtifact(artifactId, null);
 
             int affected = entityManager.createQuery("DELETE FROM Rule r " +
-                    "WHERE r.artifactId = :artifact_id AND r.name = :name")
-                    .setParameter("artifact_id", artifactId)
-                    .setParameter("name", rule)
-                    .executeUpdate();
+                                                     "WHERE r.artifactId = :artifact_id AND r.name = :name")
+                                        .setParameter("artifact_id", artifactId)
+                                        .setParameter("name", rule)
+                                        .executeUpdate();
 
             if (affected == 0) {
                 throw new RuleNotFoundException(rule);
@@ -564,16 +594,18 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            _ensureArtifactExists(artifactId);
+            List<Long> versions = entityManager.createQuery(
+                "SELECT a.version FROM Artifact a " +
+                "WHERE a.artifactId = :artifact_id " +
+                "ORDER BY a.version DESC", Long.class)
+                                               .setParameter("artifact_id", artifactId)
+                                               .getResultList();
 
-            List<Long> res1 = entityManager.createQuery(
-                    "SELECT a.version FROM Artifact a " +
-                            "WHERE a.artifactId = :artifact_id " +
-                            "ORDER BY a.version DESC", Long.class)
-                    .setParameter("artifact_id", artifactId)
-                    .getResultList();
+            if (versions.isEmpty()) {
+                throw new ArtifactNotFoundException(artifactId);
+            }
 
-            return new TreeSet<>(res1);
+            return new TreeSet<>(versions);
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -584,7 +616,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Transactional
     public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         try {
-            Artifact artifact = _getArtifact(id);
+            Artifact artifact = _getArtifact(id, ArtifactStateExt.ACTIVE_STATES);
 
             return mapper.toStoredArtifact(artifact);
         } catch (NoResultException ex) {
@@ -598,10 +630,7 @@ public class JPARegistryStorage implements RegistryStorage {
     public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         requireNonNull(artifactId);
         try {
-            _ensureArtifactVersionExists(artifactId, version);
-
-            return mapper.toStoredArtifact(_getArtifact(artifactId, version));
-
+            return mapper.toStoredArtifact(_getArtifact(artifactId, version, ArtifactStateExt.ACTIVE_STATES));
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -614,12 +643,13 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             // TODO ArtifactVersionNotFoundEx ?
             int affected = entityManager.createQuery("DELETE FROM Artifact a " +
-                    "WHERE a.artifactId = :artifact_id AND a.version = :version")
-                    .setParameter("artifact_id", artifactId)
-                    .setParameter("version", version)
-                    .executeUpdate();
-            if (affected == 0)
+                                                     "WHERE a.artifactId = :artifact_id AND a.version = :version")
+                                        .setParameter("artifact_id", artifactId)
+                                        .setParameter("version", version)
+                                        .executeUpdate();
+            if (affected == 0) {
                 throw new VersionNotFoundException(artifactId, version);
+            }
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -630,11 +660,11 @@ public class JPARegistryStorage implements RegistryStorage {
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         requireNonNull(artifactId);
         try {
-            Artifact artifact = _getArtifact(artifactId, version);
+            Artifact artifact = _getArtifact(artifactId, version, null);
 
             return new MetaDataMapperUpdater(_getMetaData(artifactId, version))
-                    .update(artifact)
-                    .toArtifactVersionMetaDataDto();
+                .update(artifact)
+                .toArtifactVersionMetaDataDto();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -646,11 +676,11 @@ public class JPARegistryStorage implements RegistryStorage {
         requireNonNull(artifactId);
         requireNonNull(metaData);
         try {
-            _ensureArtifactExists(artifactId);
+            _getArtifact(artifactId, version, ArtifactStateExt.ACTIVE_STATES);
 
             new MetaDataMapperUpdater(_getMetaData(artifactId, version))
-                    .update(metaData)
-                    .persistUpdate(entityManager, artifactId, version);
+                .update(metaData)
+                .persistUpdate(entityManager, artifactId, version);
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -663,13 +693,13 @@ public class JPARegistryStorage implements RegistryStorage {
         try {
             requireNonNull(artifactId);
 
-            _ensureArtifactExists(artifactId);
+            _getArtifact(artifactId, null);
 
             entityManager.createQuery("DELETE FROM MetaData md " +
-                    "WHERE md.artifactId = :artifact_id AND md.version = :version")
-                    .setParameter("artifact_id", artifactId)
-                    .setParameter("version", version)
-                    .executeUpdate();
+                                      "WHERE md.artifactId = :artifact_id AND md.version = :version")
+                         .setParameter("artifact_id", artifactId)
+                         .setParameter("version", version)
+                         .executeUpdate();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -680,8 +710,8 @@ public class JPARegistryStorage implements RegistryStorage {
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         try {
             return entityManager.createQuery("SELECT r.name FROM Rule r " +
-                    "WHERE r.artifactId IS NULL", RuleType.class)
-                    .getResultList();
+                                             "WHERE r.artifactId IS NULL", RuleType.class)
+                                .getResultList();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -693,7 +723,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleAlreadyExistsException, RegistryStorageException {
+    throws RuleAlreadyExistsException, RegistryStorageException {
         requireNonNull(rule);
         requireNonNull(config);
         try {
@@ -702,15 +732,15 @@ public class JPARegistryStorage implements RegistryStorage {
                 throw new RuleAlreadyExistsException(rule);
 
             Rule ruleEntity = Rule.builder()
-                    .artifactId(null)
-                    .name(rule)
-                    .build();
+                                  .artifactId(null)
+                                  .name(rule)
+                                  .build();
 
             entityManager.persist(ruleEntity);
 
             new RuleConfigMapperUpdater()
-                    .update(config)
-                    .persistUpdate(entityManager, ruleEntity);
+                .update(config)
+                .persistUpdate(entityManager, ruleEntity);
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -722,8 +752,8 @@ public class JPARegistryStorage implements RegistryStorage {
     public void deleteGlobalRules() throws RegistryStorageException {
         try {
             entityManager.createQuery("DELETE FROM Rule r " +
-                    "WHERE r.artifactId IS NULL")
-                    .executeUpdate();
+                                      "WHERE r.artifactId IS NULL")
+                         .executeUpdate();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -735,12 +765,12 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public RuleConfigurationDto getGlobalRule(RuleType rule)
-            throws RuleNotFoundException, RegistryStorageException {
+    throws RuleNotFoundException, RegistryStorageException {
         requireNonNull(rule);
         try {
             Rule ruleEntity = _getRule(null, rule);
             return new RuleConfigMapperUpdater(_getRuleConfig(ruleEntity))
-                    .toRuleConfigurationDto();
+                .toRuleConfigurationDto();
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -752,15 +782,15 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleNotFoundException, RegistryStorageException {
+    throws RuleNotFoundException, RegistryStorageException {
         requireNonNull(rule);
         requireNonNull(config);
         try {
             Rule ruleEntity = _getRule(null, rule);
             new RuleConfigMapperUpdater(_getRuleConfig(ruleEntity))
-                    .update(config)
-                    .persistUpdate(entityManager, ruleEntity)
-                    .toRuleConfigurationDto();
+                .update(config)
+                .persistUpdate(entityManager, ruleEntity)
+                .toRuleConfigurationDto();
 
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);

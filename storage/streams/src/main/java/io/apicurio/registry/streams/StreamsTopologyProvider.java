@@ -1,8 +1,11 @@
 package io.apicurio.registry.streams;
 
 import com.google.common.collect.ImmutableMap;
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
@@ -204,6 +207,8 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     return consumeMetaData(aggregate, value, type, artifactId, version, offset);
                 case RULE:
                     return consumeRule(aggregate, value, type, offset);
+                case STATE:
+                    return consumeState(aggregate, value, artifactId, version, offset);
                 default:
                     throw new IllegalArgumentException("Cannot handle value type: " + vt);
             }
@@ -260,6 +265,30 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             builder.setRules(i, Str.RuleValue.newBuilder().setType(rtv).setConfiguration(rule.getConfiguration()).build());
         }
 
+        private Str.Data consumeState(Str.Data data, Str.StorageValue rv, String artifactId, long version, long offset) {
+            Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
+            if (version > builder.getArtifactsCount()) {
+                log.warn("Version not found: {} [{}]", version, artifactId);
+            } else {
+                int index = (int)(version >= 0 ? version : data.getArtifactsCount()) - 1;
+
+                Str.ArtifactValue artifact = data.getArtifacts(index);
+                ArtifactState currentState = ArtifactStateExt.getState(artifact.getMetadataMap());
+                ArtifactState newState = ArtifactState.valueOf(rv.getState().name());
+
+                Str.ArtifactValue.Builder ab = Str.ArtifactValue.newBuilder(artifact);
+
+                if (ArtifactStateExt.canTransition(currentState, newState) == false) {
+                    log.error(InvalidArtifactStateException.errorMsg(currentState, newState));
+                } else {
+                    ab.putMetadata(MetaDataKeys.STATE, newState.name());
+                }
+
+                builder.setArtifacts(index, ab.build());
+            }
+            return builder.build();
+        }
+
         private Str.Data consumeMetaData(Str.Data data, Str.StorageValue rv, Str.ActionType type, String artifactId, long version, long offset) {
             Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
             Str.MetaDataValue metaData = rv.getMetadata();
@@ -268,18 +297,42 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             if (version > count) {
                 log.warn("Version not found: {} [{}]", version, artifactId);
             } else {
-                int index = version >= 0 ? (int) (version - 1) : count - 1;
-                Str.ArtifactValue av = builder.getArtifacts(index);
-                Str.ArtifactValue.Builder avb = Str.ArtifactValue.newBuilder(av);
+                Str.ArtifactValue av = null;
 
-                if (type == Str.ActionType.UPDATE) {
-                    avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
-                    avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
-                } else if (type == Str.ActionType.DELETE) {
-                    avb.removeMetadata(MetaDataKeys.NAME);
-                    avb.removeMetadata(MetaDataKeys.DESCRIPTION);
+                int index;
+                if (version > 0) {
+                    index = (int)(version - 1);
+                    av = builder.getArtifacts(index);
+                    ArtifactState state = ArtifactStateExt.getState(av.getMetadataMap());
+                    if (ArtifactStateExt.ACTIVE_STATES.contains(state) == false) {
+                        log.warn(String.format("Not an active artifact, cannot modify metadata: %s [%s]", artifactId, version));
+                        av = null;
+                    }
+                } else {
+                    for (index = count - 1; index >= 0; index--) {
+                        av = builder.getArtifacts(index);
+                        ArtifactState state = ArtifactStateExt.getState(av.getMetadataMap());
+                        if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
+                            break;
+                        }
+                    }
+                    if (index < 0) {
+                        av = null; // not found
+                    }
                 }
-                builder.setArtifacts(index, avb.build()); // override with new value
+
+                if (av != null) {
+                    Str.ArtifactValue.Builder avb = Str.ArtifactValue.newBuilder(av);
+
+                    if (type == Str.ActionType.UPDATE) {
+                        avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
+                        avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+                    } else if (type == Str.ActionType.DELETE) {
+                        avb.removeMetadata(MetaDataKeys.NAME);
+                        avb.removeMetadata(MetaDataKeys.DESCRIPTION);
+                    }
+                    builder.setArtifacts(index, avb.build()); // override with new value
+                }
             }
             return builder.build();
         }
@@ -340,6 +393,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             //        contents.put(MetaDataKeys.NAME, null);
             //        contents.put(MetaDataKeys.DESCRIPTION, null);
             // TODO -- createdBy, modifiedBy
+            contents.put(MetaDataKeys.STATE, ArtifactState.ENABLED.name());
 
             if (!create) {
                 Str.ArtifactValue previous = builder.getArtifacts(count - 1); // last one

@@ -4,8 +4,10 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -26,11 +28,39 @@ import javax.ws.rs.core.Response;
 @Path("/artifacts")
 public interface ArtifactsResource {
   /**
+   * Set the artifact state of the latest artifact.
+   * <p>
+   * This operation can fail for the following reasons:
+   * <p>
+   * * Artifact cannot transition to this state (HTTP error `400`)
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/state/{state}")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactState(@PathParam("artifactId") String artifactId, @PathParam("state") ArtifactState state);
+
+  /**
+   * Set the artifact state.
+   * <p>
+   * This operation can fail for the following reasons:
+   * <p>
+   * * Artifact cannot transition to this state (HTTP error `400`)
+   * * No artifact with the `artifactId` and `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}/state/{state}/{version}")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactState(@PathParam("artifactId") String artifactId, @PathParam("state") ArtifactState state, @PathParam("version") Integer version);
+
+  /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include
    * both generated (read-only) and editable metadata (such as name and description).
-   *
+   * <p>
    * This operation can fail for the following reasons:
-   *
+   * <p>
    * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    */

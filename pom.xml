@@ -126,6 +126,9 @@
         
         <!-- GraphQL -->
         <graphql.version>14.0</graphql.version>
+        
+        <!-- JSON Schema Validator -->
+        <medeia-validator-jackson.version>1.1.0</medeia-validator-jackson.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>
@@ -310,6 +313,13 @@
                 <groupId>com.graphql-java</groupId>
                 <artifactId>graphql-java</artifactId>
                 <version>${graphql.version}</version>
+            </dependency>
+            
+            <!-- JSON Schema Validator -->
+            <dependency>
+                <groupId>com.worldturner.medeia</groupId>
+                <artifactId>medeia-validator-jackson</artifactId>
+                <version>${medeia-validator-jackson.version}</version>
             </dependency>
 
 			<!-- Search -->

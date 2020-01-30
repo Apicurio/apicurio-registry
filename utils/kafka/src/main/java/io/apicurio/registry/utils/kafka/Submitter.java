@@ -2,6 +2,7 @@ package io.apicurio.registry.utils.kafka;
 
 import com.google.protobuf.ByteString;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -77,6 +78,14 @@ public class Submitter {
     public <T> CompletableFuture<T> submitSnapshot(long timestamp) {
         Str.SnapshotValue.Builder builder = Str.SnapshotValue.newBuilder().setTimestamp(timestamp);
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.SNAPSHOT, Str.ActionType.CREATE, null, -1).setSnapshot(builder);
+        return submit(rvb.build());
+    }
+
+    public <T> CompletableFuture<T> submitState(String artifactId, Long version, ArtifactState state) {
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.STATE,
+                                                    Str.ActionType.UPDATE,
+                                                    artifactId, version != null ? version : -1L)
+            .setState(Str.ArtifactState.valueOf(state.name()));
         return submit(rvb.build());
     }
 

@@ -47,7 +47,7 @@ public interface GlobalIdStrategy<T> {
     /**
      * Create InputStream from schema.
      * By default we just take string bytes.
-     *
+     * 
      * @param schema the schema
      * @return schema's input stream
      */
@@ -55,6 +55,7 @@ public interface GlobalIdStrategy<T> {
         if (schema instanceof byte[]) {
             return new ByteArrayInputStream((byte[]) schema);
         } else {
+            // TODO Calling "toString()" here will work for Avro, but is unlikely to work for other schemas
             return new ByteArrayInputStream(schema.toString().getBytes(UTF_8));
         }
     }

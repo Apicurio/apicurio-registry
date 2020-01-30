@@ -47,6 +47,7 @@ public final class DtoUtil {
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setState(dto.getState());
         return metaData;
     }
 
@@ -67,6 +68,7 @@ public final class DtoUtil {
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setState(dto.getState());
         return metaData;
     }
 
@@ -87,6 +89,7 @@ public final class DtoUtil {
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setState(dto.getState());
         return metaData;
     }
 

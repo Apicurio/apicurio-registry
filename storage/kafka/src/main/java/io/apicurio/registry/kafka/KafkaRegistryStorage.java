@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
@@ -233,6 +234,11 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
                     forcedSnapshot = true;
                     break;
                 }
+                case STATE: {
+                    Str.ArtifactState state = rv.getState();
+                    consumeState(tf, artifactId, version, state);
+                    break;
+                }
                 default: {
                     throw new IllegalArgumentException("No such ValueType: " + vt);
                 }
@@ -341,6 +347,21 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
                 cf.complete(super.deleteArtifact(artifactId));
             }
         }
+    }
+
+    private void consumeState(CompletableFuture<Object> cf, String artifactId, long version, Str.ArtifactState state) {
+        super.updateArtifactState(artifactId, ArtifactState.valueOf(state.name()), version > 0 ? (int) version : null);
+        cf.complete(Void.class);
+    }
+
+    @Override
+    public void updateArtifactState(String artifactId, ArtifactState state) {
+        get(submitter.submitState(artifactId, -1L, state));
+    }
+
+    @Override
+    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+        get(submitter.submitState(artifactId, version.longValue(), state));
     }
 
     @Override

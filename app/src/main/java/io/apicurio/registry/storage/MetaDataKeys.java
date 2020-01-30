@@ -36,6 +36,7 @@ public class MetaDataKeys {
     public static String CREATED_ON = "createdOn";
     public static String MODIFIED_BY = "modifiedBy";
     public static String MODIFIED_ON = "modifiedOn";
+    public static String STATE = "state";
 
     // Internal
 
@@ -64,6 +65,7 @@ public class MetaDataKeys {
         dto.setType(ArtifactType.fromValue(content.get(TYPE))); // TODO null check
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
+        dto.setState(ArtifactStateExt.getState(content));
         return dto;
     }
 
@@ -79,6 +81,7 @@ public class MetaDataKeys {
         dto.setType(ArtifactType.fromValue(content.get(TYPE)));
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
+        dto.setState(ArtifactStateExt.getState(content));
         return dto;
     }
 

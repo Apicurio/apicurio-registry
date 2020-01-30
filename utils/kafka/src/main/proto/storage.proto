@@ -15,6 +15,15 @@ enum ActionType {
     DELETE = 4;
 }
 
+enum ArtifactState {
+    __LIMBO = 0;
+    // crud
+    ENABLED = 1;
+    DISABLED = 2;
+    DEPRECATED = 3;
+    DELETED = 4;
+}
+
 enum RuleType {
     __NONE = 0;
     VALIDITY = 1;
@@ -49,6 +58,7 @@ enum ValueType {
     METADATA = 2;
     RULE = 3;
     SNAPSHOT = 4;
+    STATE = 5;
 }
 
 message StorageValue {
@@ -61,6 +71,7 @@ message StorageValue {
         MetaDataValue metadata = 6;
         RuleValue rule = 7;
         SnapshotValue snapshot = 8;
+        ArtifactState state = 9;
     }
 }
 

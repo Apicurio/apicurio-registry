@@ -62,6 +62,7 @@ public class JsonSchemaKafkaSerializer<T>
      * Constructor.
      */
     public JsonSchemaKafkaSerializer() {
+        this(null, false);
     }
 
     /**
@@ -73,14 +74,22 @@ public class JsonSchemaKafkaSerializer<T>
         super(client);
         
         this.validationEnabled = validationEnabled;
-        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
-            @Override
-            protected SchemaValidator toSchema(Response response) {
-                String schema = response.readEntity(String.class);
-                return api.loadSchema(new StringSchemaSource(schema));
-            }
-        };
-
+    }
+    
+    /**
+     * Lazy getter for the schema cache.
+     */
+    protected SchemaCache<SchemaValidator> getSchemaCache() {
+        if (schemaCache == null) {
+            this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
+                @Override
+                protected SchemaValidator toSchema(Response response) {
+                    String schema = response.readEntity(String.class);
+                    return api.loadSchema(new StringSchemaSource(schema));
+                }
+            };
+        }
+        return schemaCache;
     }
     
     /**
@@ -133,7 +142,7 @@ public class JsonSchemaKafkaSerializer<T>
                 Long globalId = getArtifactVersionGlobalId(artifactId, topic, data);
                 addSchemaHeaders(headers, artifactId, globalId);
 
-                SchemaValidator schemaValidator = schemaCache.getSchema(globalId);
+                SchemaValidator schemaValidator = getSchemaCache().getSchema(globalId);
                 generator = api.decorateJsonGenerator(schemaValidator, generator);
             }
             addTypeHeaders(headers, data);

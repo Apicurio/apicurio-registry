@@ -65,16 +65,24 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         super(client);
         
         this.validationEnabled = validationEnabled;
-        
-        this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
-            @Override
-            protected SchemaValidator toSchema(Response response) {
-                String schema = response.readEntity(String.class);
-                return api.loadSchema(new StringSchemaSource(schema));
-            }
-        };
     }
 
+    /**
+     * Lazy getter for the schema cache.
+     */
+    protected SchemaCache<SchemaValidator> getSchemaCache() {
+        if (schemaCache == null) {
+            this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
+                @Override
+                protected SchemaValidator toSchema(Response response) {
+                    String schema = response.readEntity(String.class);
+                    return api.loadSchema(new StringSchemaSource(schema));
+                }
+            };
+        }
+        return schemaCache;
+    }
+    
     /**
      * @see org.apache.kafka.common.serialization.Deserializer#configure(java.util.Map, boolean)
      */
@@ -116,7 +124,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
                     globalId = toGlobalId(artifactId, version);
                 }
                 
-                SchemaValidator schema = schemaCache.getSchema(globalId);
+                SchemaValidator schema = getSchemaCache().getSchema(globalId);
                 parser = api.decorateJsonParser(schema, parser);
             }
             

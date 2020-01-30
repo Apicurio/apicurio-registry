@@ -16,13 +16,12 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -37,12 +36,13 @@ public class ArtifactMetaDataDto {
     private String name;
     private String description;
     private String createdBy;
-    private Date createdOn;
+    private long createdOn;
     private String modifiedBy;
-    private Date modifiedOn;
+    private long modifiedOn;
     private int version;
     private long globalId; // TODO which? global ID points to a specific artifact version
     private ArtifactType type;
+    private ArtifactState state;
 
     /**
      * Constructor.
@@ -81,14 +81,14 @@ public class ArtifactMetaDataDto {
     /**
      * @return the createdOn
      */
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
      * @param createdOn the createdOn to set
      */
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -109,14 +109,14 @@ public class ArtifactMetaDataDto {
     /**
      * @return the modifiedOn
      */
-    public Date getModifiedOn() {
+    public long getModifiedOn() {
         return modifiedOn;
     }
 
     /**
      * @param modifiedOn the modifiedOn to set
      */
-    public void setModifiedOn(Date modifiedOn) {
+    public void setModifiedOn(long modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 
@@ -146,6 +146,20 @@ public class ArtifactMetaDataDto {
      */
     public void setType(ArtifactType type) {
         this.type = type;
+    }
+
+    /**
+     * @return the state
+     */
+    public ArtifactState getState() {
+        return state;
+    }
+
+    /**
+     * @param state the state to set
+     */
+    public void setState(ArtifactState state) {
+        this.state = state;
     }
 
     /**

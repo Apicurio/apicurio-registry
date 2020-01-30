@@ -1,7 +1,6 @@
 
 package io.apicurio.registry.rest.beans;
 
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -43,21 +42,17 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("createdOn")
-    private Date createdOn;
+    private long createdOn;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
@@ -147,25 +142,25 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
      * 
      */
@@ -233,5 +228,4 @@ public class VersionMetaData {
     public void setState(ArtifactState state) {
         this.state = state;
     }
-
 }

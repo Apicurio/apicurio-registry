@@ -1,7 +1,6 @@
 
 package io.apicurio.registry.rest.beans;
 
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -39,35 +38,27 @@ public class ArtifactMetaData {
     /**
      * 
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("createdOn")
-    private Date createdOn;
+    private long createdOn;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("modifiedBy")
     private String modifiedBy;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("modifiedOn")
-    private Date modifiedOn;
+    private long modifiedOn;
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("id")
     @JsonPropertyDescription("")
@@ -156,24 +147,20 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("modifiedBy")
     public String getModifiedBy() {
@@ -196,24 +183,20 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    public Date getModifiedOn() {
+    public long getModifiedOn() {
         return modifiedOn;
     }
 
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(Date modifiedOn) {
+    public void setModifiedOn(long modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("id")
     public String getId() {
@@ -333,6 +316,7 @@ public class ArtifactMetaData {
                 ", version=" + version +
                 ", type=" + type +
                 ", globalId=" + globalId +
+                ", state=" + state +
                 '}';
     }
 }

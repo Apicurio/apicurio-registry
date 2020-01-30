@@ -1,18 +1,9 @@
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.UpdateState;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.Long;
-import java.lang.String;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -24,17 +15,26 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
 @Path("/artifacts")
 public interface ArtifactsResource {
+
   /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include
    * both generated (read-only) and editable metadata (such as name and description).
-   *
+   * <p>
    * This operation can fail for the following reasons:
-   *
+   * <p>
    * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    */

@@ -16,14 +16,6 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +29,15 @@ import java.util.stream.Collectors;
 import javax.enterprise.inject.Vetoed;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -188,6 +189,21 @@ class CachedRegistryService implements RegistryService {
     }
 
     // ---- Auto reset
+
+    @Override
+    public void updateArtifactState(String artifactId, UpdateState data) {
+        getDelegate().updateArtifactState(artifactId, data);
+        reset();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
+     */
+    @Override
+    public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
+        getDelegate().updateArtifactVersionState(version, artifactId, data);
+        reset();
+    }
 
     @Override
     public void deleteArtifact(String artifactId) {

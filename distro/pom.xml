@@ -16,6 +16,7 @@
         <module>kubernetes-helm</module>
         <module>openshift-operator</module>
         <module>openshift-template</module>
+        <module>connect-converter</module>
     </modules>
     <build>
         <plugins>

@@ -128,7 +128,7 @@
         <graphql.version>14.0</graphql.version>
         
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.0</medeia-validator-jackson.version>
+        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>

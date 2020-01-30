@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+  <id>converter</id>
+  <formats>
+    <format>tar.gz</format>
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>
+      <dependencySet>
+          <unpack>false</unpack>
+          <scope>runtime</scope>
+          <useProjectArtifact>false</useProjectArtifact>
+          <useTransitiveFiltering>true</useTransitiveFiltering>
+          <excludes>
+              <!-- Exclude dependencies of Kafka APIs, since they will be available in the runtime -->
+              <exclude>org.apache.kafka:kafka-clients:*</exclude>
+              <exclude>org.apache.kafka:connect-api:*</exclude>
+              <!-- Connect JSON needs to be kept due to classloading conflicts of Jackson data mapper
+              <exclude>org.apache.kafka:connect-json:*</exclude>
+              -->
+          </excludes>
+  </dependencySet>
+  </dependencySets>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}/../..</directory>
+      <includes>
+        <include>README*</include>
+        <include>LICENSE*</include>
+      </includes>
+      <useDefaultExcludes>true</useDefaultExcludes>
+    </fileSet>
+  </fileSets>
+</assembly>

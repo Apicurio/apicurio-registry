@@ -40,7 +40,7 @@ import javax.ws.rs.container.Suspended;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/compatibility")
+@Path("/ccompat/compatibility")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class CompatibilityResource extends AbstractResource {

@@ -27,7 +27,7 @@ import javax.ws.rs.Produces;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/schemas")
+@Path("/ccompat/schemas")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class SchemasResource extends AbstractResource {

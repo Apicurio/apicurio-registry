@@ -36,7 +36,7 @@ import javax.ws.rs.core.HttpHeaders;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/subjects")
+@Path("/ccompat/subjects")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class SubjectsResource extends AbstractResource {

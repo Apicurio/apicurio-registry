@@ -31,7 +31,7 @@ import javax.ws.rs.core.HttpHeaders;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/config")
+@Path("/ccompat/config")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class ConfigResource extends AbstractResource {

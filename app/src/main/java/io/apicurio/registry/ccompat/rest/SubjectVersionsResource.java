@@ -38,7 +38,7 @@ import javax.ws.rs.core.HttpHeaders;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/subjects/{subject}/versions")
+@Path("/ccompat/subjects/{subject}/versions")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 public class SubjectVersionsResource extends AbstractResource {

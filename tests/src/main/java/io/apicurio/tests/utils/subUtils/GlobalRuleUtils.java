@@ -69,14 +69,14 @@ public class GlobalRuleUtils {
     // ================================================
 
     public static Response testCompatibility(String body, String schemaName, int returnCode) {
-        return BaseHttpUtils.rulesPostRequest(RestConstants.SR, body, "/confluent/compatibility/subjects/" + schemaName + "/versions/latest", returnCode);
+        return BaseHttpUtils.rulesPostRequest(RestConstants.SR, body, "/ccompat/compatibility/subjects/" + schemaName + "/versions/latest", returnCode);
     }
 
     public static Response createGlobalCompatibilityConfig(String typeOfCompatibility) {
-        return BaseHttpUtils.putRequest(RestConstants.SR, "{\"compatibility\":\"" + typeOfCompatibility + "\"}", "/confluent/config", 200);
+        return BaseHttpUtils.putRequest(RestConstants.SR, "{\"compatibility\":\"" + typeOfCompatibility + "\"}", "/ccompat/config", 200);
     }
 
     public static Response getGlobalCompatibilityConfig() {
-        return BaseHttpUtils.getRequest(RestConstants.JSON, "/confluent/config", 204);
+        return BaseHttpUtils.getRequest(RestConstants.JSON, "/ccompat/config", 204);
     }
 }

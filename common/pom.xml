@@ -41,6 +41,7 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-metrics</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

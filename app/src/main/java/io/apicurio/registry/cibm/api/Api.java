@@ -6,9 +6,12 @@ import io.apicurio.registry.cibm.model.NewSchemaVersion;
 import io.apicurio.registry.cibm.model.Schema;
 import io.apicurio.registry.cibm.model.SchemaInfo;
 import io.apicurio.registry.cibm.model.SchemaListItem;
+import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import java.util.List;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
@@ -28,8 +31,16 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.util.List;
+
+import static io.apicurio.registry.metrics.MetricIDs.*;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 @Path("/cibm")
+@RestMetricsApply
+@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
+@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
+@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 public class Api {
 
     @Inject

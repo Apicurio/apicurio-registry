@@ -106,7 +106,7 @@
 		<!-- Schema types -->
 		<avro.version>1.9.1</avro.version>
 		<json-schema-validator.version>1.0.29</json-schema-validator.version>
-		<wire-schema.version>3.0.2</wire-schema.version>
+		<wire-schema.version>3.0.3</wire-schema.version>
 		<protobuf.version>3.11.1</protobuf.version>
 
 		<!-- Storage types -->

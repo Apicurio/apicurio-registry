@@ -50,7 +50,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/compatibility")
+@Path("/ccompat/compatibility")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

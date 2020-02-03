@@ -71,8 +71,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/confluent", 3);
-        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/confluent", 3);
+        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/ccompat", 3);
+        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
 
         String subject = UUID.randomUUID().toString();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");

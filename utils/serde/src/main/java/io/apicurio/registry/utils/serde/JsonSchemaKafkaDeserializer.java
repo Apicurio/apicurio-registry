@@ -16,84 +16,40 @@
 
 package io.apicurio.registry.utils.serde;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
-import java.util.Map;
-
-import javax.ws.rs.core.Response;
-
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Deserializer;
-
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.worldturner.medeia.api.StringSchemaSource;
-import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
-
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.util.Utils;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Deserializer;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 
 /**
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchemaKafkaDeserializer<T>> implements Deserializer<T> {
-
-    private static MedeiaJacksonApi api = new MedeiaJacksonApi();
-    private static ObjectMapper mapper = new ObjectMapper();
-    
-    private boolean validationEnabled = false;
-    private SchemaCache<SchemaValidator> schemaCache;
+public class JsonSchemaKafkaDeserializer<T> extends JsonSchemaKafkaSerDe<JsonSchemaKafkaDeserializer<T>> implements Deserializer<T> {
 
     /**
      * Constructor.
      */
     public JsonSchemaKafkaDeserializer() {
-        this(null, false);
+        this(null, null);
     }
 
     /**
      * Constructor.
-     * @param client
      */
-    public JsonSchemaKafkaDeserializer(RegistryService client, boolean validationEnabled) {
-        super(client);
-        
-        this.validationEnabled = validationEnabled;
+    public JsonSchemaKafkaDeserializer(RegistryService client, Boolean validationEnabled) {
+        super(client, validationEnabled);
     }
 
-    /**
-     * Lazy getter for the schema cache.
-     */
-    protected SchemaCache<SchemaValidator> getSchemaCache() {
-        if (schemaCache == null) {
-            this.schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
-                @Override
-                protected SchemaValidator toSchema(Response response) {
-                    String schema = response.readEntity(String.class);
-                    return api.loadSchema(new StringSchemaSource(schema));
-                }
-            };
-        }
-        return schemaCache;
-    }
-    
-    /**
-     * @see org.apache.kafka.common.serialization.Deserializer#configure(java.util.Map, boolean)
-     */
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs);
-
-        Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
-        this.validationEnabled = Utils.isTrue(ve);
-    }
-    
     /**
      * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, byte[])
      */
@@ -113,7 +69,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         
         try {
             JsonParser parser = mapper.getFactory().createParser(data);
-            if (validationEnabled) {
+            if (isValidationEnabled()) {
                 Long globalId = getGlobalId(headers);
                 
                 // If no globalId is provided, check the alternative - which is to check for artifactId and 
@@ -138,7 +94,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
 
     /**
      * Gets the global id from the headers.  Returns null if not found.
-     * @param headers
+     *
+     * @param headers the headers
      */
     protected Long getGlobalId(Headers headers) {
         Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID);
@@ -150,7 +107,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
 
     /**
      * Gets the artifact id from the headers.  Throws if not found.
-     * @param headers
+     *
+     * @param headers the headers
      */
     protected String getArtifactId(Headers headers) {
         Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID);
@@ -162,7 +120,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
 
     /**
      * Gets the artifact version from the headers.  Returns null if not found.
-     * @param headers
+     *
+     * @param headers the headers
      */
     protected Integer getVersion(Headers headers) {
         Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_VERSION);
@@ -174,8 +133,10 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
 
     /**
      * Gets the message type from the headers.  Throws if not found.
-     * @param headers
+     *
+     * @param headers the headers
      */
+    @SuppressWarnings("unchecked")
     protected Class<T> getMessageType(Headers headers) {
         Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_MSG_TYPE);
         if (header == null) {
@@ -185,7 +146,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
         
         try {
             return (Class<T>) Thread.currentThread().getContextClassLoader().loadClass(msgTypeName);
-        } catch (ClassNotFoundException e) {}
+        } catch (ClassNotFoundException ignored) {
+        }
         try {
             return (Class<T>) Class.forName(msgTypeName);
         } catch (Exception e) {
@@ -195,9 +157,10 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaSerDe<JsonSchem
 
     /**
      * Converts an artifact id and version to a global id by querying the registry.  If anything goes wrong, 
-     * throws an approprate exception.
-     * @param artifactId
-     * @param version
+     * throws an appropriate exception.
+     *
+     * @param artifactId artifact id
+     * @param version the artifact version
      */
     protected Long toGlobalId(String artifactId, Integer version) {
         if (version == null) {

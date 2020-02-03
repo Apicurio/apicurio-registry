@@ -3,7 +3,7 @@
  * (C) Copyright IBM Corp. 2019  All Rights Reserved.
  *
  */
-package io.apicurio.registry.cibm;
+package io.apicurio.registry.ibmcompat;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

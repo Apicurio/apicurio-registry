@@ -1,4 +1,4 @@
-package io.apicurio.registry.cibm.model;
+package io.apicurio.registry.ibmcompat.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

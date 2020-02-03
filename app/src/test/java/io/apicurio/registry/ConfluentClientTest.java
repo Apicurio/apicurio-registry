@@ -43,7 +43,7 @@ import java.util.function.Consumer;
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:8081/confluent", 3);
+        return new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
     }
 
     @Test

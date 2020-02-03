@@ -192,18 +192,18 @@ public class ArtifactUtils {
     // ================================================================================
 
     public static Response getAllSchemas(int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", "/confluent/subjects", returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "", "/ccompat/subjects", returnCode);
     }
 
     public static Response getLatestVersionSchema(String nameOfSchema) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", "/confluent/subjects/" + nameOfSchema + "/versions/latest", 200);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "", "/ccompat/subjects/" + nameOfSchema + "/versions/latest", 200);
     }
 
     public static Response createSchema(String schemeDefinition, String schemaName, int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, "/confluent/subjects/" + schemaName + "/versions", returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, "/ccompat/subjects/" + schemaName + "/versions", returnCode);
     }
 
     public static Response updateSchemaMetadata(String schemaName, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, "/confluent/subjects/" + schemaName + "/meta", returnCode);
+        return putRequest(RestConstants.JSON, metadata, "/ccompat/subjects/" + schemaName + "/meta", returnCode);
     }
 }

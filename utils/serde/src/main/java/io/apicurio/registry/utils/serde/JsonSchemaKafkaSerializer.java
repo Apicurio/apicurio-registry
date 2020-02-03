@@ -84,7 +84,7 @@ public class JsonSchemaKafkaSerializer<T>
             JsonGenerator generator = mapper.getFactory().createGenerator(baos);
             if (isValidationEnabled()) {
                 String artifactId = getArtifactId(topic, data);
-                Long globalId = getGlobalId(artifactId, topic, data);
+                long globalId = getGlobalId(artifactId, topic, data);
                 addSchemaHeaders(headers, artifactId, globalId);
 
                 SchemaValidator schemaValidator = getSchemaCache().getSchema(globalId);
@@ -115,10 +115,10 @@ public class JsonSchemaKafkaSerializer<T>
      * Gets the global id of the schema to use for validation.
      *
      * @param artifactId artifact id
-     * @param topic the topic
-     * @param data the msg data
+     * @param topic      the topic
+     * @param data       the msg data
      */
-    protected Long getGlobalId(String artifactId, String topic, T data) {
+    protected long getGlobalId(String artifactId, String topic, T data) {
         // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
         return getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, null);
     }
@@ -126,12 +126,13 @@ public class JsonSchemaKafkaSerializer<T>
     /**
      * Adds appropriate information to the Headers so that the deserializer can function properly.
      *
-     * @param headers msg headers
+     * @param headers    msg headers
      * @param artifactId artifact id
-     * @param globalId global id
+     * @param globalId   global id
      */
-    protected void addSchemaHeaders(Headers headers, String artifactId, Long globalId) {
-        if (globalId != null) {
+    protected void addSchemaHeaders(Headers headers, String artifactId, long globalId) {
+        // we never actually set this requirement for the globalId to be non-negative ... but it mostly is ...
+        if (globalId >= 0) {
             ByteBuffer buff = ByteBuffer.allocate(8);
             buff.putLong(globalId);
             headers.add(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID, buff.array());

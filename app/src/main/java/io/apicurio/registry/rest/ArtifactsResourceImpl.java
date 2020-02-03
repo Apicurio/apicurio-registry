@@ -16,6 +16,38 @@
 
 package io.apicurio.registry.rest;
 
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -23,6 +55,7 @@ import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
@@ -35,7 +68,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactMediaTypes;
-import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -43,30 +75,6 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ProtoUtil;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -174,20 +182,26 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             throw new CompletionException(e);
         }
     }
-
+    
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
+     */
     @Override
-    public void updateArtifactState(String artifactId, ArtifactState state) {
+    public void updateArtifactState(String artifactId, UpdateState data) {
         Objects.requireNonNull(artifactId);
-        Objects.requireNonNull(state);
-        storage.updateArtifactState(artifactId, state);
+        Objects.requireNonNull(data.getState());
+        storage.updateArtifactState(artifactId, data.getState());
     }
 
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
+     */
     @Override
-    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+    public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
         Objects.requireNonNull(artifactId);
-        Objects.requireNonNull(state);
+        Objects.requireNonNull(data.getState());
         Objects.requireNonNull(version);
-        storage.updateArtifactState(artifactId, state, version);
+        storage.updateArtifactState(artifactId, data.getState(), version);
     }
 
     @Override

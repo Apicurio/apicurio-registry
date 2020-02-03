@@ -66,12 +66,17 @@ public class VersionMetaData {
     @JsonPropertyDescription("")
     private Long globalId;
     /**
-     *
-     * (Required)
-     *
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
+     * 
+     * 
      */
     @JsonProperty("state")
-    @JsonPropertyDescription("")
+    @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
 
     /**
@@ -195,9 +200,14 @@ public class VersionMetaData {
     }
 
     /**
-     *
-     * (Required)
-     *
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
+     * 
+     * 
      */
     @JsonProperty("state")
     public ArtifactState getState() {
@@ -205,9 +215,14 @@ public class VersionMetaData {
     }
 
     /**
-     *
-     * (Required)
-     *
+     * Describes the state of an artifact or artifact version.  The following states
+     * are possible:
+     * 
+     * * ENABLED
+     * * DISABLED
+     * * DEPRECATED
+     * 
+     * 
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {

@@ -16,27 +16,36 @@
 
 package io.apicurio.registry;
 
+import java.io.ByteArrayInputStream;
+import java.util.concurrent.CompletionStage;
+
+import javax.ws.rs.core.Response;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-import java.util.concurrent.CompletionStage;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
  */
 @QuarkusTest
 public class ArtifactStateTest extends AbstractResourceTestBase {
+    
+    private static final UpdateState toUpdateState(ArtifactState state) {
+        UpdateState us = new UpdateState();
+        us.setState(state);
+        return us;
+    }
 
     @Test
     public void testSmoke() throws Exception {
@@ -69,7 +78,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             Assertions.assertEquals(3, amd.getVersion());
 
             // disable latest
-            service.updateArtifactState(artifactId, ArtifactState.DISABLED);
+            service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DISABLED));
 
             // retries are here due to possible async nature of storage; e.g. Kafka, Streams, ...
 
@@ -108,7 +117,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
                   }
             );
 
-            service.updateArtifactState(artifactId, ArtifactState.DEPRECATED, 3);
+            service.updateArtifactVersionState(3, artifactId, toUpdateState(ArtifactState.DEPRECATED));
 
             retry(() -> {
                 ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
@@ -122,7 +131,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
                 Assertions.assertEquals(200, avr.getStatus());
 
                 // cannot go back from deprecated ...
-                assertWebError(400, () -> service.updateArtifactState(artifactId, ArtifactState.ENABLED));
+                assertWebError(400, () -> service.updateArtifactState(artifactId, toUpdateState(ArtifactState.ENABLED)));
                 return null;
             });
 
@@ -140,7 +149,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
                   }
             );
 
-            service.updateArtifactState(artifactId, ArtifactState.DELETED);
+            service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DELETED));
 
             retry(() -> {
                       ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);

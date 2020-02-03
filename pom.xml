@@ -113,7 +113,7 @@
 		<infinispan.version>10.0.1.Final</infinispan.version>
 
 		<!-- gRPC -->
-		<grpc.version>1.25.0</grpc.version>
+		<grpc.version>1.27.0</grpc.version>
 
 		<!-- Confluent API / client -->
 		<confluent.version>5.3.2</confluent.version>
@@ -122,13 +122,13 @@
 		<quarkus.profile>dev</quarkus.profile>
 
 		<!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-		<apicurio-data-models.version>1.1.0</apicurio-data-models.version>
+		<apicurio-data-models.version>1.1.1</apicurio-data-models.version>
         
         <!-- GraphQL -->
         <graphql.version>14.0</graphql.version>
         
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.0</medeia-validator-jackson.version>
+        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
 
 		<!-- Dependency versions -->
 		<lombok.version>1.18.10</lombok.version>
@@ -149,6 +149,7 @@
 		<version.checkstyle.plugin>3.1.0</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.1</version.dependency.plugin>
+        <version.assembly.plugin>3.2.0</version.assembly.plugin>
 		<!-- Plugin Deps -->
 		<version.puppycrawl>8.29</version.puppycrawl>
         <!-- Proto -->

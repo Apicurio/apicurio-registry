@@ -1,21 +1,18 @@
-package io.apicurio.registry.cibm.model;
+package io.apicurio.registry.ibmcompat.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
-public class SchemaInfo {
+public class SchemaSummary {
 
     private String id;
     private String name;
     private SchemaState state;
-    private Boolean enabled;
-    private List<SchemaVersion> versions = new ArrayList<SchemaVersion>();
+    private boolean enabled;
 
     /**
      * Lower-case URL-encoded version of the schema name.
@@ -66,26 +63,12 @@ public class SchemaInfo {
 
     @JsonProperty("enabled")
     @NotNull
-    public Boolean getEnabled() {
+    public boolean isEnabled() {
         return enabled;
     }
 
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    /**
-     *
-     **/
-
-    @JsonProperty("versions")
-    @NotNull
-    public List<SchemaVersion> getVersions() {
-        return versions;
-    }
-
-    public void setVersions(List<SchemaVersion> versions) {
-        this.versions = versions;
     }
 
 
@@ -97,29 +80,27 @@ public class SchemaInfo {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        SchemaInfo schemaInfo = (SchemaInfo) o;
-        return Objects.equals(id, schemaInfo.id) &&
-               Objects.equals(name, schemaInfo.name) &&
-               Objects.equals(state, schemaInfo.state) &&
-               Objects.equals(enabled, schemaInfo.enabled) &&
-               Objects.equals(versions, schemaInfo.versions);
+        SchemaSummary schemaSummary = (SchemaSummary) o;
+        return Objects.equals(id, schemaSummary.id) &&
+               Objects.equals(name, schemaSummary.name) &&
+               Objects.equals(state, schemaSummary.state) &&
+               Objects.equals(enabled, schemaSummary.enabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, state, enabled, versions);
+        return Objects.hash(id, name, state, enabled);
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("class SchemaInfo {\n");
+        sb.append("class SchemaSummary {\n");
 
         sb.append("    id: ").append(toIndentedString(id)).append("\n");
         sb.append("    name: ").append(toIndentedString(name)).append("\n");
         sb.append("    state: ").append(toIndentedString(state)).append("\n");
         sb.append("    enabled: ").append(toIndentedString(enabled)).append("\n");
-        sb.append("    versions: ").append(toIndentedString(versions)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -128,7 +109,7 @@ public class SchemaInfo {
      * Convert the given object to string with each line indented by 4 spaces
      * (except the first line).
      */
-    private String toIndentedString(java.lang.Object o) {
+    protected String toIndentedString(java.lang.Object o) {
         if (o == null) {
             return "null";
         }

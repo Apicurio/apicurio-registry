@@ -37,7 +37,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/schemas")
+@Path("/ccompat/schemas")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

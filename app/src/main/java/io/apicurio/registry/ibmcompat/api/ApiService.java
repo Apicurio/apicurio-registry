@@ -1,11 +1,11 @@
-package io.apicurio.registry.cibm.api;
+package io.apicurio.registry.ibmcompat.api;
 
-import io.apicurio.registry.cibm.model.AnyOfStateModificationEnabledModification;
-import io.apicurio.registry.cibm.model.NewSchema;
-import io.apicurio.registry.cibm.model.NewSchemaVersion;
-import io.apicurio.registry.cibm.model.Schema;
-import io.apicurio.registry.cibm.model.SchemaInfo;
-import io.apicurio.registry.cibm.model.SchemaListItem;
+import io.apicurio.registry.ibmcompat.model.AnyOfStateModificationEnabledModification;
+import io.apicurio.registry.ibmcompat.model.NewSchema;
+import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
+import io.apicurio.registry.ibmcompat.model.Schema;
+import io.apicurio.registry.ibmcompat.model.SchemaInfo;
+import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 
 import java.util.List;

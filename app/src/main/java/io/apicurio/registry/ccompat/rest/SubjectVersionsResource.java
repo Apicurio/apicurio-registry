@@ -48,7 +48,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 /**
  * @author Ales Justin
  */
-@Path("/confluent/subjects/{subject}/versions")
+@Path("/ccompat/subjects/{subject}/versions")
 @Consumes({RestConstants.JSON, RestConstants.SR})
 @Produces({RestConstants.JSON, RestConstants.SR})
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})

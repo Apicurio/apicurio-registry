@@ -10,10 +10,11 @@ This project supports several build configuration options that affect the produc
 
 By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation. 
 
-Apicurio Registry supports 3 persistence implementations:
- - in-memory
- - Kafka
- - JPA.
+Apicurio Registry supports 4 persistence implementations:
+ - In-Memory
+ - Kafka (Topics vs. KV-Store / Streams)
+ - JPA
+ - Infinispan (POC / WIP)
  
 If you enable one, a separate set of artifacts is produced with the persistence implementation available.
 

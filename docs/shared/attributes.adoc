@@ -12,6 +12,11 @@
 //:registry: Service Registry
 :version: 1.0
 
+//integration products
+:fuse-version: 7.5
+:amq-version: 7.5
+:3scale-version: 2.7
+
 // Characters
 :copy: ©
 :infin: ∞
@@ -23,7 +28,10 @@
 include::attributes-links.adoc[]
 
 // Download URLs
-:download-url-xxx: 
+:download-url-registry-container-catalog: https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7
+:download-url-registry-fuse-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.5.0&downloadType=distributions 
+:download-url-registry-fuse-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.5.0&downloadType=distributions
+:download-url-registry-fuse-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.5.0&downloadType=distributions 
 
 // Toggle downstream content "on"
 // The following attributes are used to conditionalize content from the Apicurio upstream project.
@@ -34,7 +42,7 @@ include::attributes-links.adoc[]
 //:rh-service-registry:
 //:registry: Service Registry
 //:reg: ®
-//:reldate: December 2019
+//:reldate: March 2020
 //:trade: ™
 //:previousVersion: 
 //:version: 1.0

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,16 @@
 package io.apicurio.registry.utils.serde.strategy;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
-
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
  */
-public class AutoRegisterIdStrategy<T> extends AbstractCrudIdStrategy<T> {
+public class GetOrCreateIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     @Override
     protected long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
-        CompletionStage<ArtifactMetaData> cs = service.updateArtifact(artifactId, artifactType, toStream(schema));
-        ArtifactMetaData amd = unwrap(cs);
-        return amd.getGlobalId();
+        return service.getArtifactMetaData(artifactId).getGlobalId();
     }
 
 }

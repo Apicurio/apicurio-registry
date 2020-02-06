@@ -32,12 +32,25 @@ import java.io.UncheckedIOException;
 public class PrettyFormatStrategy implements FormatStrategy {
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private String idName = "schemaId";
+    private String payloadName = "payload";
+
+    public PrettyFormatStrategy setIdName(String idName) {
+        this.idName = idName;
+        return this;
+    }
+
+    public PrettyFormatStrategy setPayloadName(String payloadName) {
+        this.payloadName = payloadName;
+        return this;
+    }
+
     @Override
     public byte[] fromConnectData(long globalId, byte[] bytes) {
         String payload = IoUtil.toString(bytes);
         ObjectNode root = JsonNodeFactory.instance.objectNode();
-        root.put("id", globalId);
-        root.putRawValue("payload", new RawValue(payload));
+        root.put(idName, globalId);
+        root.putRawValue(payloadName, new RawValue(payload));
         try {
             return mapper.writeValueAsBytes(root);
         } catch (IOException e) {
@@ -49,8 +62,8 @@ public class PrettyFormatStrategy implements FormatStrategy {
     public IdPayload toConnectData(byte[] bytes) {
         try {
             JsonNode root = mapper.readTree(bytes);
-            long globalId = root.get("id").asLong();
-            String payload = root.get("payload").toString();
+            long globalId = root.get(idName).asLong();
+            String payload = root.get(payloadName).toString();
             byte[] payloadBytes = IoUtil.toBytes(payload);
             return new IdPayload(globalId, payloadBytes);
         } catch (IOException e) {

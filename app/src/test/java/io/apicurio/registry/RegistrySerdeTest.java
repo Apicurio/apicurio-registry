@@ -37,6 +37,7 @@ import io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.quarkus.test.junit.QuarkusTest;
@@ -62,12 +63,38 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testFindBySchema() throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
+
+            retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+
+            Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
             GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
             Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
+        }
+    }
+
+    @Test
+    public void testGetOrCreate() throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            String artifactId = generateArtifactId();
+            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
+            ArtifactMetaData amd = ConcurrentUtil.result(csa);
+
+            retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+
             Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+            GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
+            Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
+
+            artifactId = generateArtifactId(); // new
+            long id = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
+
+            retry(() -> service.getArtifactMetaDataByGlobalId(id));
+
+            Assertions.assertEquals(id, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
         }
     }
 

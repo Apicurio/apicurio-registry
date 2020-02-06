@@ -164,7 +164,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
                     JsonNode root = mapper.readTree(input);
-                    return root.get("id").asLong();
+                    return root.get("schemaId").asLong();
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

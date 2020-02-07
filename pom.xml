@@ -110,7 +110,7 @@
 		<protobuf.version>3.11.1</protobuf.version>
 
 		<!-- Storage types -->
-		<infinispan.version>10.0.1.Final</infinispan.version>
+		<infinispan.version>10.1.1.Final</infinispan.version>
 
 		<!-- gRPC -->
 		<grpc.version>1.27.0</grpc.version>

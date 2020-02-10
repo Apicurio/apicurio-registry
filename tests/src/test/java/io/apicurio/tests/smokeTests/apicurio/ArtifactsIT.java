@@ -207,7 +207,7 @@ class ArtifactsIT extends BaseIT {
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
 
         try {
-            metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+            ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"An artifact with ID 'duplicateArtifactId' already exists.\",\"error_code\":409}", is(e.getResponse().readEntity(String.class)));
         }

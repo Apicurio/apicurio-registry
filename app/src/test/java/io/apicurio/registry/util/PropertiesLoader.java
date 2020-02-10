@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.util;
 
+import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -33,8 +34,8 @@ public class PropertiesLoader {
      * Loads properties file from the classpath.
      */
     private static void loadProperties(final String fileName) {
-        try {
-            properties.load(PropertiesLoader.class.getClassLoader().getResourceAsStream(fileName));
+        try (InputStream inputStream = PropertiesLoader.class.getClassLoader().getResourceAsStream(fileName)) {
+            properties.load(inputStream);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

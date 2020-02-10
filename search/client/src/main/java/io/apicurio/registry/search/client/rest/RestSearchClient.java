@@ -98,7 +98,7 @@ public class RestSearchClient extends InfinispanSearchClient {
 
     private CompletionStage<RestResponse> registerProto(String protoKey) {
         String protoContent = IoUtil.toString(getClass().getResourceAsStream("/" + protoKey));
-        log.info(String.format("Using proto schema: %s\n%s", protoKey, protoContent));
+        log.info(String.format("Using proto schema: %s%n%s", protoKey, protoContent));
         return client.cache(PROTO_CACHE).post(protoKey, protoContent)
                      .whenComplete((r, t) -> {
                          if (t == null) {

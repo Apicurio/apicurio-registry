@@ -92,7 +92,7 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
     public byte[] fromConnectData(String topic, Schema schema, Object value) {
         String schemaString = jsonConverter.asJsonSchema(schema).toString();
         String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schemaString);
-        long globalId = getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, schemaString);
+        long globalId = getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.KCONNECT, schemaString);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 

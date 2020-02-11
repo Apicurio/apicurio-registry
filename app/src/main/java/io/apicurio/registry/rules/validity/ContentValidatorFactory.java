@@ -37,6 +37,8 @@ public class ContentValidatorFactory {
     @Inject
     JsonSchemaContentValidator jsonValidator;
     @Inject
+    KafkaConnectContentValidator kconnectValidator;
+    @Inject
     OpenApiContentValidator openapiValidator;
     @Inject
     AsyncApiContentValidator asyncValidator;
@@ -51,6 +53,8 @@ public class ContentValidatorFactory {
                 return avroValidator;
             case JSON:
                 return jsonValidator;
+            case KCONNECT:
+                return kconnectValidator;
             case OPENAPI:
                 return openapiValidator;
             case PROTOBUF:

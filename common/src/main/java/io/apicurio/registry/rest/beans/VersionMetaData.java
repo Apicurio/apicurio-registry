@@ -42,17 +42,21 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("createdOn")
     private long createdOn;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
@@ -142,7 +146,7 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdOn")
     public long getCreatedOn() {
@@ -150,9 +154,9 @@ public class VersionMetaData {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(long createdOn) {
@@ -160,7 +164,7 @@ public class VersionMetaData {
     }
 
     /**
-     *
+     * 
      * (Required)
      * 
      */
@@ -228,4 +232,5 @@ public class VersionMetaData {
     public void setState(ArtifactState state) {
         this.state = state;
     }
+
 }

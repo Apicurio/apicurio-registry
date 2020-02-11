@@ -21,6 +21,7 @@ import javax.enterprise.context.ApplicationScoped;
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.content.canon.NoOpContentCanonicalizer;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -33,6 +34,7 @@ public class ContentCanonicalizerFactory {
 
     private ContentCanonicalizer avro = new AvroContentCanonicalizer();
     private ContentCanonicalizer noop = new NoOpContentCanonicalizer();
+    private ContentCanonicalizer kconnect = new KafkaConnectContentCanonicalizer();
     private ContentCanonicalizer json = new JsonContentCanonicalizer();
     private ContentCanonicalizer graphql = new GraphQLContentCanonicalizer();
     
@@ -48,6 +50,8 @@ public class ContentCanonicalizerFactory {
                 return avro;
             case JSON:
                 return json;
+            case KCONNECT:
+                return kconnect;
             case OPENAPI:
                 return json;
             case PROTOBUF:

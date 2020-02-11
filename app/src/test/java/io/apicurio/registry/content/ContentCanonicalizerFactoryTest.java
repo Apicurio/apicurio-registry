@@ -143,5 +143,33 @@ class ContentCanonicalizerFactoryTest {
         String actual = canonicalizer.canonicalize(content).content();
         Assertions.assertEquals(expected, actual);
     }
+    
+
+    /**
+     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+     */
+    @Test
+    void testKafkaConnect() {
+        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
+        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.KCONNECT);
+        
+        String before = "{\r\n" + 
+                "    \"type\": \"struct\",\r\n" + 
+                "    \"fields\": [\r\n" + 
+                "        {\r\n" + 
+                "            \"type\": \"string\",\r\n" + 
+                "            \"optional\": false,\r\n" + 
+                "            \"field\": \"bar\"\r\n" + 
+                "        }\r\n" + 
+                "    ],\r\n" + 
+                "    \"optional\": false\r\n" + 
+                "}";
+        String expected = "{\"fields\":[{\"field\":\"bar\",\"optional\":false,\"type\":\"string\"}],\"optional\":false,\"type\":\"struct\"}";
+        
+        ContentHandle content = ContentHandle.create(before);
+        String actual = canonicalizer.canonicalize(content).content();
+        Assertions.assertEquals(expected, actual);
+    }
+
 
 }

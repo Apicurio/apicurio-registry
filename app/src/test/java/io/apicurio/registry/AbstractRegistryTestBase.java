@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,7 +45,7 @@ public abstract class AbstractRegistryTestBase {
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = getClass().getResourceAsStream(resourceName)) {
             Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
-            return new BufferedReader(new InputStreamReader(stream)).lines().collect(Collectors.joining("\n"));
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
             return null;
         }

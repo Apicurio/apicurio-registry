@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
@@ -52,7 +53,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
 
         try (RegistryService client = RegistryClient.create(mojo.registryUrl)) {
             Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
+            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
             cs.toCompletableFuture().get();
         }
 

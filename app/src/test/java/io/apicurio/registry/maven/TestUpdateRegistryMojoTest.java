@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 
@@ -60,7 +61,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                        "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                        " ]" +
                                                        "}");
-            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
+            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
             cs.toCompletableFuture().get();
 
             Rule rule = new Rule();
@@ -80,7 +81,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                    " ]" +
                                                    "}");
         File file = new File(tempDirectory, artifactId + ".avsc");
-        writeContent(file, schema2.toString().getBytes());
+        writeContent(file, schema2.toString().getBytes(StandardCharsets.UTF_8));
 
         mojo.artifacts = Collections.singletonMap(artifactId, file);
         mojo.artifactType = ArtifactType.AVRO;

@@ -34,6 +34,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import javax.ws.rs.WebApplicationException;
 
 @Tag(SMOKE)
@@ -46,7 +47,7 @@ class MetadataIT extends BaseIT {
         String artifactId = "artifactUpdateAndMetadataId";
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
@@ -81,12 +82,12 @@ class MetadataIT extends BaseIT {
         String artifactId = "artifactUpdateMetadataOfArtifactSpecificVersionId";
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
-        ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes());
+        ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
         metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());

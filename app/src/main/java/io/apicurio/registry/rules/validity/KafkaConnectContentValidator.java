@@ -36,9 +36,11 @@ import io.apicurio.registry.content.ContentHandle;
 @ApplicationScoped
 public class KafkaConnectContentValidator implements ContentValidator {
     
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private static final JsonConverter jsonConverter = new JsonConverter();
+    private static final ObjectMapper mapper;
+    private static final JsonConverter jsonConverter;
     static {
+        mapper = new ObjectMapper();
+        jsonConverter = new JsonConverter();
         Map<String, Object> configs = new HashMap<>();
         configs.put("converter.type", "key");
         configs.put(JsonConverterConfig.SCHEMAS_CACHE_SIZE_CONFIG, new Integer(0));

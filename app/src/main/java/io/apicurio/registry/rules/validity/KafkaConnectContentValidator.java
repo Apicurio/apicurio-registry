@@ -19,6 +19,8 @@ package io.apicurio.registry.rules.validity;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.enterprise.context.ApplicationScoped;
+
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 
@@ -31,6 +33,7 @@ import io.apicurio.registry.content.ContentHandle;
  * A content validator implementation for the Kafka Connect schema content type.
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
 public class KafkaConnectContentValidator implements ContentValidator {
     
     private static final ObjectMapper mapper = new ObjectMapper();

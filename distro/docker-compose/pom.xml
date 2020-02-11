@@ -14,6 +14,7 @@
     <name>apicurio-registry-distro-docker-compose</name>
 
     <properties>
+         <tar.long.file.mode>gnu</tar.long.file.mode>
     </properties>
 
     <build>
@@ -39,6 +40,7 @@
                             <archiverConfig>
                                 <defaultDirectoryMode>0755</defaultDirectoryMode>
                             </archiverConfig>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
                     </execution>
                 </executions>

@@ -92,7 +92,7 @@ public class HotRodSearchClient extends InfinispanSearchClient {
         for (String protoKey : protoKeys) {
             if (reset || !cache.containsKey(protoKey)) {
                 String protoContent = IoUtil.toString(getClass().getResourceAsStream("/" + protoKey));
-                log.info(String.format("Using proto schema: %s\n%s", protoKey, protoContent));
+                log.info(String.format("Using proto schema: %s%n%s", protoKey, protoContent));
                 fds.addProtoFile(protoKey, protoContent);
                 cache.put(protoKey, protoContent);
             }

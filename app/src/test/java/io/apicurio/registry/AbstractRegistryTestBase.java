@@ -47,7 +47,7 @@ public abstract class AbstractRegistryTestBase {
             Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
             return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 

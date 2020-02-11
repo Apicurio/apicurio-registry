@@ -30,7 +30,6 @@ public class Rule {
     private String config;
     /**
      * 
-     * 
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
@@ -58,7 +57,6 @@ public class Rule {
 
     /**
      * 
-     * 
      */
     @JsonProperty("type")
     public RuleType getType() {
@@ -66,7 +64,6 @@ public class Rule {
     }
 
     /**
-     * 
      * 
      */
     @JsonProperty("type")

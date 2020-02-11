@@ -14,7 +14,8 @@ public enum ArtifactType {
     JSON("JSON"),
     OPENAPI("OPENAPI"),
     ASYNCAPI("ASYNCAPI"),
-    GRAPHQL("GRAPHQL");
+    GRAPHQL("GRAPHQL"),
+    KCONNECT("KCONNECT");
     private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 

@@ -1,6 +1,7 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -42,17 +43,21 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("createdOn")
-    private long createdOn;
+    private Date createdOn;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
@@ -64,7 +69,7 @@ public class VersionMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Long globalId;
+    private Integer globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -142,25 +147,25 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdOn")
-    public long getCreatedOn() {
+    public Date getCreatedOn() {
         return createdOn;
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(long createdOn) {
+    public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
     }
 
     /**
-     *
+     * 
      * (Required)
      * 
      */
@@ -185,7 +190,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Long getGlobalId() {
+    public Integer getGlobalId() {
         return globalId;
     }
 
@@ -195,7 +200,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Long globalId) {
+    public void setGlobalId(Integer globalId) {
         this.globalId = globalId;
     }
 
@@ -228,4 +233,5 @@ public class VersionMetaData {
     public void setState(ArtifactState state) {
         this.state = state;
     }
+
 }

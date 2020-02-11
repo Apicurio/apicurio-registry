@@ -2,8 +2,8 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API",
-        "version": "1.0.0",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. It enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- Google protocol buffers \n- JSON Schema\n- OpenAPI specification\n- AsyncAPI specification\n- GraphQL specification\n\n",
+        "version": "1.1.2",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. It enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. It provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- Google protocol buffers\n- JSON Schema\n- Kafka Connect schema\n- GraphQL schema\n- OpenAPI specification\n- AsyncAPI specification\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -16,7 +16,7 @@
     },
     "paths": {
         "/artifacts/{artifactId}/meta": {
-            "summary": "Manage the meta-data of a single artifact.",
+            "summary": "Manage the metadata of a single artifact.",
             "get": {
                 "tags": [
                     "Metadata"
@@ -388,7 +388,7 @@
             ]
         },
         "/artifacts/{artifactId}/versions/{version}/meta": {
-            "summary": "Manage the meta-data for a single version of an artifact in the registry.",
+            "summary": "Manage the metadata for a single version of an artifact in the registry.",
             "get": {
                 "tags": [
                     "Metadata"
@@ -758,7 +758,7 @@
             "summary": "Manage the collection of artifacts in the registry.",
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n",
+                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -840,7 +840,7 @@
                 "parameters": [
                     {
                         "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                         "schema": {
                             "enum": [
                                 "AVRO",
@@ -849,7 +849,8 @@
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI",
-                                "GRAPHQL"
+                                "GRAPHQL",
+                                "KCONNECT"
                             ],
                             "type": "string"
                         },
@@ -887,7 +888,7 @@
                 },
                 "operationId": "createArtifact",
                 "summary": "Create artifact",
-                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
                 "x-codegen-async": true
             }
         },
@@ -944,7 +945,7 @@
             },
             "put": {
                 "requestBody": {
-                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -1026,7 +1027,7 @@
                 "parameters": [
                     {
                         "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                         "schema": {
                             "enum": [
                                 "AVRO",
@@ -1035,7 +1036,8 @@
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI",
-                                "GRAPHQL"
+                                "GRAPHQL",
+                                "KCONNECT"
                             ],
                             "type": "string"
                         },
@@ -1066,7 +1068,7 @@
                 },
                 "operationId": "updateArtifact",
                 "summary": "Update artifact",
-                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
+                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
                 "x-codegen-async": true
             },
             "delete": {
@@ -1144,7 +1146,7 @@
             },
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                     "content": {
                         "application/json": {
                             "examples": {
@@ -1226,7 +1228,7 @@
                 "parameters": [
                     {
                         "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                         "schema": {
                             "enum": [
                                 "AVRO",
@@ -1235,7 +1237,8 @@
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI",
-                                "GRAPHQL"
+                                "GRAPHQL",
+                                "KCONNECT"
                             ],
                             "type": "string"
                         },
@@ -1265,7 +1268,7 @@
                 },
                 "operationId": "createArtifactVersion",
                 "summary": "Create artifact version",
-                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact will be applied, and if they all pass, the new content will be added as the \nmost recent version of the artifact.  If any of the rules fail, an error will be returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nwill typically be in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated be explicitly specifying the type \nusing the `X-Registry-ArtifactType` HTTP request header or by including a hint in the \nrequest's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact will be applied, and if they all pass, the new content will be added as the \nmost recent version of the artifact.  If any of the rules fail, an error will be returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nwill typically be in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated be explicitly specifying the type \nusing the `X-Registry-ArtifactType` HTTP request header or by including a hint in the \nrequest's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
                 "x-codegen-async": true
             },
             "parameters": [
@@ -1383,7 +1386,7 @@
             "summary": "Test whether content would pass update rules.",
             "put": {
                 "requestBody": {
-                    "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                    "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                     "content": {
                         "application/json": {
 
@@ -1403,7 +1406,7 @@
                 "parameters": [
                     {
                         "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
                         "schema": {
                             "enum": [
                                 "AVRO",
@@ -1412,7 +1415,8 @@
                                 "JSON",
                                 "OPENAPI",
                                 "ASYNCAPI",
-                                "GRAPHQL"
+                                "GRAPHQL",
+                                "KCONNECT"
                             ],
                             "type": "string"
                         },
@@ -1435,7 +1439,7 @@
                 },
                 "operationId": "testUpdateArtifact",
                 "summary": "Test update artifact",
-                "description": "Tests whether an update to the artifact's content *would* succeed for the provided content.\nUltimately, this will apply any rules configured for the artifact against the given content\nto determine whether the rules would pass or fail, but without actually updating the artifact\ncontent.\n\nThe body of the request should be the raw content of the artifact.  This will typically be \nin JSON format for *most* of the supported types, but may be in another format for a few \n(for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this operation simply returns a *No Content* response."
+                "description": "Tests whether an update to the artifact's content *would* succeed for the provided content.\nUltimately, this will apply any rules configured for the artifact against the given content\nto determine whether the rules would pass or fail, but without actually updating the artifact\ncontent.\n\nThe body of the request should be the raw content of the artifact.  This will typically be \nin JSON format for *most* of the supported types, but may be in another format for a few \n(for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this operation simply returns a *No Content* response."
             },
             "parameters": [
                 {
@@ -1450,7 +1454,7 @@
             ]
         },
         "/artifacts/{artifactId}/state": {
-            "summary": "Manage the state of an Artifact.",
+            "summary": "Manage the state of an artifact.",
             "put": {
                 "requestBody": {
                     "content": {
@@ -1480,8 +1484,8 @@
                     }
                 },
                 "operationId": "updateArtifactState",
-                "summary": "Update Artifact State",
-                "description": "Updates the state of the artifact.  This can be used to, for example, mark the latest\nversion of an Artifact as `DEPRECATED`.  The operation will change the state of the\nlatest version of the artifact.  If multiple versions exist, only the most recent will\nbe changed.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Artifact cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+                "summary": "Update artifact state",
+                "description": "Updates the state of the artifact.  This can be used to, for example, mark the latest\nversion of an artifact as `DEPRECATED`.  The operation will change the state of the\nlatest version of the artifact.  If multiple versions exist, only the most recent will\nbe changed.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Artifact cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -1526,8 +1530,8 @@
                     }
                 },
                 "operationId": "updateArtifactVersionState",
-                "summary": "Update Artifact Version State",
-                "description": "Used to update the state of a specific version of an Artifact.  For example, this can\nbe used to \"disable\" a specific version.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* Artifact version cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+                "summary": "Update artifact version state",
+                "description": "Used to update the state of a specific version of an artifact.  For example, this can\nbe used to \"disable\" a specific version.\n\nThe following state changes are supported:\n\n* Enabled -> Disabled\n* Enabled -> Deprecated\n* Enabled -> Deleted\n* Disabled -> Enabled\n* Disabled -> Deleted\n* Disabled -> Deprecated\n* Deprecated -> Deleted\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* Artifact version cannot transition to the given state (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -1751,7 +1755,8 @@
                     "JSON",
                     "OPENAPI",
                     "ASYNCAPI",
-                    "GRAPHQL"
+                    "GRAPHQL",
+                    "KCONNECT"
                 ],
                 "type": "string",
                 "example": "AVRO",
@@ -1871,7 +1876,7 @@
         },
         {
             "name": "Global rules",
-            "description": "Global rules can be configured in the registry to govern how artifact content can \nevolve over time (as artifact content is **updated**). Global rules will be applied \nwhenever an artifact is added to the registry, and also whenever an artfiact's \ncontent is updated (only if that artifact doesn't have its own specific rules \nconfigured). This section describes the operations used to manage the global rules."
+            "description": "Global rules can be configured in the registry to govern how artifact content can \nevolve over time (as artifact content is **updated**). Global rules will be applied \nwhenever an artifact is added to the registry, and also whenever an artifact's \ncontent is updated (only if that artifact doesn't have its own specific rules \nconfigured). This section describes the operations used to manage the global rules."
         }
     ]
 }

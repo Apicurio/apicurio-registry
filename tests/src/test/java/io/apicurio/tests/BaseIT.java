@@ -42,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -107,7 +108,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
             String artifactId = String.valueOf(x);
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-            ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+            ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
             ConcurrentUtil.result(csResult);
 
@@ -131,7 +132,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
                 ArtifactType.AVRO,
                 artifactName,
-                new ByteArrayInputStream(schema.toString().getBytes())
+                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);
         EditableMetaData editableMetaData = new EditableMetaData();
@@ -151,7 +152,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         CompletionStage<ArtifactMetaData> csa = apicurioService.updateArtifact(
                 artifactName,
                 ArtifactType.AVRO,
-                new ByteArrayInputStream(schema.toString().getBytes())
+                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);
         EditableMetaData editableMetaData = new EditableMetaData();

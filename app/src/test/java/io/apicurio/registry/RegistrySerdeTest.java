@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -64,7 +65,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
+            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
             retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -80,7 +81,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             String artifactId = generateArtifactId();
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes()));
+            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
             retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -107,7 +108,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             CompletionStage<ArtifactMetaData> csa = service.createArtifact(
                 ArtifactType.AVRO,
                 "test-myrecord3",
-                new ByteArrayInputStream(schema.toString().getBytes())
+                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
             );
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
             // wait for global id store to populate (in case of Kafka / Streams)

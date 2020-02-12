@@ -42,7 +42,7 @@ The items stored in {registry}, such as event schemas and API specifications, ar
 {
    "type": "record",
    "name": "price",
-   "namespace": "com.redhat",
+   "namespace": "com.example",
    "fields": [
        {
            "name": "symbol",

@@ -1,0 +1,7 @@
+{
+    "realm": "apicurio",
+    "auth-server-url": "https://studio-auth.apicur.io/auth",
+    "ssl-required": "none",
+    "resource": "apicurio-studio",
+    "public-client": true
+  }

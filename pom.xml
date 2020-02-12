@@ -75,6 +75,7 @@
 	<modules>
 		<module>common</module>
 		<module>app</module>
+		<module>ui</module>
 		<module>client</module>
 		<module>utils/converter</module>
 		<module>utils/kafka</module>

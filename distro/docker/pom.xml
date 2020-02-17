@@ -120,6 +120,7 @@
                                         <dockerFile>./Dockerfile.jvm</dockerFile>
                                         <tags combine.children="append">
                                             <tag>latest</tag>
+                                            <tag>${docker.tag.name}</tag>
                                         </tags>
                                     </build>
                                 </image>

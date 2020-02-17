@@ -96,6 +96,8 @@
 
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
+        
+        <docker.tag.name>latest-release</docker.tag.name>
 
 		<!-- Quarkus Version -->
 		<quarkus.version>1.2.0.Final</quarkus.version>

@@ -58,7 +58,7 @@ The items stored in {registry}, such as event schemas and API specifications, ar
 
 When a schema or API contract is added as an artifact in the registry, client applications can then use that schema or API contract to validate that client messages conform to the correct data structure at runtime. 
 
-{registry} supports a wide range of payload formats for standard event schemas and API specifications. For example, these include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and so on. For more details, see xref:registry-artifact-types[].
+{registry} supports a wide range of message payload formats for standard event schemas and API specifications. These formats include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and so on. For more details, see xref:registry-artifact-types[].
 
 
 
@@ -68,7 +68,7 @@ The {registry} REST API enables client applications to manage the artifacts in t
 Artifacts::
 Manage the schemas and API specifications stored in the registry.
 Artifact versions::
-When artifact content is updated, older versions are stored in the registry, which you can access when needed.
+Manage the versions that are created when artifact content is updated.
 Artifact metadata::
 Manage details such as when the artifact was created, last updated, and so on.
 Artifact rules::
@@ -163,7 +163,7 @@ Event-based producer applications can use serializers to encode messages that co
 * Google protocol buffers
 * JSON Schema
 
-The {registry} Maven repository and source code distributions include these serializer/deserializer implementations, which client developers can use to integrate with {registry}. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
+The {registry} Maven repository and source code distributions include the serializer/deserializer implementations for these message types, which client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
 
 ifdef::rh-service-registry[]
 For an example of how to use the Apache Avro client serializer/deserializer in AMQ Streams producer and consumer applications, see

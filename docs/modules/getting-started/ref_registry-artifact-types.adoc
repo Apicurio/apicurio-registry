@@ -13,10 +13,10 @@ You can manage the following artifact types in the registry:
 |AsyncAPI specification
 |`AVRO`
 |Apache Avro schema
-|`JSON`
-|JSON Schema
 |`GRAPHQL`
 |GraphQL schema
+|`JSON`
+|JSON Schema
 |`KCONNECT`
 |Apache Kafka Connect schema
 |`OPENAPI`

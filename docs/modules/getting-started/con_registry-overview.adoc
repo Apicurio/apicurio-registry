@@ -1,6 +1,6 @@
 // Metadata created by nebel
 
-[id="intro-to-registry"]
+[id="registry-overview"]
 = {registry} overview
 
 {registry} is a datastore for standard event schemas and API designs. {registry} enables enables you to decouple the structure of your data from your applications and to share and manage your data structures using a REST interface. For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for schemas required by existing services and register schemas required by new services.
@@ -58,28 +58,9 @@ The items stored in {registry}, such as event schemas and API specifications, ar
 
 When a schema or API contract is added as an artifact in the registry, client applications can then use that schema or API contract to validate that client messages conform to the correct data structure at runtime. 
 
-.Supported artifact types
-{registry} supports the following artifact types:
+{registry} supports a wide range of payload formats for standard event schemas and API specifications. For example, these include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and so on. For more details, see xref:registry-artifact-types[].
 
-[%header,cols=2*] 
-|===
-|Type
-|Description
-|`AVRO`
-|Apache Avro schema
-|`PROTOBUF`
-|Google protocol buffers schema
-|`PROTOBUF_FD`
-|Google protocol buffers file descriptor
-|`JSON`
-|JSON Schema
-|`GRAPHQL`
-|GraphQL schema
-|`OPENAPI`
-|OpenAPI specification
-|`ASYNCAPI`
-|AsyncAPI specification
-|===
+
 
 == Registry REST API
 The {registry} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:

@@ -43,6 +43,7 @@ The following parameters are available for executable files:
   
 |Option|Command argument|Env. variable|
 |---|---|---|
+| Profile | `-Dquarkus.profile=prod` | `QUARKUS_PROFILE=prod` |
 |Data Source URL|`-Dquarkus.datasource.url`|`QUARKUS_DATASOURCE_URL`|
 |DS Username|`-Dquarkus.datasource.username`|`QUARKUS_DATASOURCE_USERNAME`|
 |DS Password|`-Dquarkus.datasource.password`|`QUARKUS_DATASOURCE_PASSWORD`|

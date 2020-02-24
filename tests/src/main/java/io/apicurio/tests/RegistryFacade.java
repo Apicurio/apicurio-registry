@@ -29,7 +29,7 @@ import java.util.concurrent.Future;
 public class RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
 
-    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.1.0-SNAPSHOT-runner.jar";
+    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.1.2-SNAPSHOT-runner.jar";
     public static final String DEFAULT_REGISTRY_PORT = "8080";
     public static final String DEFAULT_REGISTRY_URL = "localhost";
 

@@ -2,7 +2,7 @@
 <productnumber>{version}</productnumber>
 <subtitle>{registry}</subtitle>
 <abstract>
-    <para>This guide introduces {registry} and explains how to install it in your selected storage environment.</para>
+    <para>This guide introduces {registry} and explains how to install {registry} in your storage environment.</para>
 </abstract>
 <authorgroup>
   <org>

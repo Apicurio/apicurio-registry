@@ -16,31 +16,73 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.WebApplicationException;
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import javax.ws.rs.WebApplicationException;
+
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 
 @Tag(SMOKE)
 class RulesResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
+    
+    @Test
+    void createAndDeleteGlobalRules() {
+        // Create a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("SYNTAX_ONLY");
+        apicurioService.createGlobalRule(rule);
+        
+        // Check the rule was created.
+        Rule ruleConfig = apicurioService.getGlobalRuleConfig(RuleType.VALIDITY);
+        assertNotNull(ruleConfig);
+        assertEquals("SYNTAX_ONLY", ruleConfig.getConfig());
+        
+        // Delete all rules
+        apicurioService.deleteAllGlobalRules();
+        
+        // No rules listed now
+        List<RuleType> rules = apicurioService.listGlobalRules();
+        assertEquals(0, rules.size());
+        
+        // Should be null/error (never configured the COMPATIBILITY rule)
+        try {
+            ruleConfig = apicurioService.getGlobalRuleConfig(RuleType.COMPATIBILITY);
+            fail("Expected 404");
+        } catch (WebApplicationException e) {
+            assertEquals(404, e.getResponse().getStatus());
+        }
+
+        // Should be null/error (deleted the VALIDITY rule)
+        try {
+            ruleConfig = apicurioService.getGlobalRuleConfig(RuleType.VALIDITY);
+            fail("Expected 404");
+        } catch (WebApplicationException e) {
+            assertEquals(404, e.getResponse().getStatus());
+        }
+    }
 
     @Test
     void createAndValidateGlobalRules() {
@@ -63,7 +105,7 @@ class RulesResourceIT extends BaseIT {
 
         try {
             LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-            ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+            ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"Syntax violation for Avro artifact.\",\"error_code\":400}", is(e.getResponse().readEntity(String.class)));
         }
@@ -71,18 +113,18 @@ class RulesResourceIT extends BaseIT {
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         try {
-            ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+            ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"No artifact with ID 'artifactNameId' was found.\",\"error_code\":404}", is(e.getResponse().readEntity(String.class)));
         }
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
         List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId);
@@ -97,14 +139,14 @@ class RulesResourceIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId1, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId1, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData.toString());
 
         String artifactId2 = "artifactValidateRuleId2";
         artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.createArtifact(apicurioService, artifactId2, artifactData);
+        metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId2, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId2, metaData.toString());
 
         Rule rule = new Rule();
@@ -124,7 +166,7 @@ class RulesResourceIT extends BaseIT {
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         try {
-            ArtifactUtils.updateArtifact(apicurioService, artifactId1, artifactData);
+            ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId1, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"Syntax violation for Avro artifact.\",\"error_code\":400}", is(e.getResponse().readEntity(String.class)));
         }
@@ -132,11 +174,11 @@ class RulesResourceIT extends BaseIT {
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 
         artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId2, artifactData);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId2, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId2, metaData.toString());
 
         artifactData = new ByteArrayInputStream(updatedArtifactData.getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId1, artifactData);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId1, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
         List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId1);

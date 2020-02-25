@@ -261,18 +261,18 @@ class ArtifactsIT extends BaseIT {
     void testDisableEnableArtifactVersion() {
         String artifactId = "testDisableEnableArtifactVersion";
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        String artifactData_v2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        String artifactData_v3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         
         // Create the artifact
         ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v2));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
         
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v3));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
         
         // Disable v3
         UpdateState data = new UpdateState();
@@ -343,18 +343,18 @@ class ArtifactsIT extends BaseIT {
     void testDeprecateArtifactVersion() {
         String artifactId = "testDeprecateArtifactVersion";
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        String artifactData_v2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        String artifactData_v3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         
         // Create the artifact
         ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v2));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
         
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v3));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
         
         // Deprecate v2
         UpdateState data = new UpdateState();

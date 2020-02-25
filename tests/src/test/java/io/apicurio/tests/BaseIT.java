@@ -60,7 +60,7 @@ import io.restassured.parsing.Parser;
 
 public abstract class BaseIT implements TestSeparator, Constants {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = new KafkaFacade();
     private static RegistryFacade registry = new RegistryFacade();
 

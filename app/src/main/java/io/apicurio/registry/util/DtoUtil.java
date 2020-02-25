@@ -61,6 +61,7 @@ public final class DtoUtil {
     public static final VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
                                                         ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
+        metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
@@ -82,6 +83,7 @@ public final class DtoUtil {
     public static final VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
                                                         ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
+        metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());

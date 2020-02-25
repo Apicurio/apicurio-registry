@@ -18,8 +18,7 @@ package io.apicurio.registry.utils.serde.strategy;
 
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -56,7 +55,7 @@ public interface GlobalIdStrategy<T> {
             return new ByteArrayInputStream((byte[]) schema);
         } else {
             // TODO Calling "toString()" here will work for Avro, but is unlikely to work for other schemas
-            return new ByteArrayInputStream(schema.toString().getBytes(UTF_8));
+            return new ByteArrayInputStream(IoUtil.toBytes(schema.toString()));
         }
     }
 }

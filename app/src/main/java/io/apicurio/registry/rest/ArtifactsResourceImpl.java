@@ -16,38 +16,6 @@
 
 package io.apicurio.registry.rest;
 
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -75,6 +43,36 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ProtoUtil;
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -88,7 +86,7 @@ import io.apicurio.registry.utils.ProtoUtil;
 @Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
-public class ArtifactsResourceImpl implements ArtifactsResource {
+public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     private static final Logger log = LoggerFactory.getLogger(ArtifactsResourceImpl.class);
 
     @Inject
@@ -182,7 +180,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
             throw new CompletionException(e);
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
      */
@@ -239,11 +237,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
     public Response getLatestArtifact(String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifact(artifactId);
+
         MediaType contentType = ArtifactMediaTypes.JSON;
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
         }
-        return Response.ok(artifact.content, contentType).build();
+
+        Response.ResponseBuilder builder = Response.ok(artifact.content, contentType);
+        checkIfDeprecated(metaData::getState, artifactId, metaData.getVersion(), builder);
+        return builder.build();
     }
 
     /**
@@ -304,7 +306,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
         }
-        return Response.ok(artifact.content, contentType).build();
+
+        Response.ResponseBuilder builder = Response.ok(artifact.content, contentType);
+        checkIfDeprecated(metaData::getState, artifactId, version, builder);
+        return builder.build();
     }
 
     /**

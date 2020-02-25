@@ -15,32 +15,40 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.vertx.core.json.JsonObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.junit.jupiter.api.Test;
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
+import javax.ws.rs.WebApplicationException;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.vertx.core.json.JsonObject;
 
 @Tag(SMOKE)
 class ArtifactsIT extends BaseIT {
@@ -213,6 +221,161 @@ class ArtifactsIT extends BaseIT {
             assertThat("{\"message\":\"An artifact with ID 'duplicateArtifactId' already exists.\",\"error_code\":409}", is(e.getResponse().readEntity(String.class)));
         }
     }
+    
+    @Test
+    void testDisableEnableArtifact() {
+        String artifactId = "testDisableEnableArtifact";
+        String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        
+        // Create the artifact
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
+
+        // Verify
+        ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
+
+        // Disable the artifact
+        UpdateState data = new UpdateState();
+        data.setState(ArtifactState.DISABLED);
+        apicurioService.updateArtifactState(artifactId, data);
+        
+        // Verify (expect 404)
+        try {
+            apicurioService.getArtifactMetaData(artifactId);
+            fail("Expected 404");
+        } catch (WebApplicationException e) {
+            assertEquals(404, e.getResponse().getStatus());
+        }
+        
+        // Re-enable the artifact
+        data.setState(ArtifactState.ENABLED);
+        apicurioService.updateArtifactState(artifactId, data);
+        
+        // Verify
+        actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
+    }
+
+    @Test
+    void testDisableEnableArtifactVersion() {
+        String artifactId = "testDisableEnableArtifactVersion";
+        String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactData_v2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactData_v3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        
+        // Create the artifact
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
+
+        // Update the artifact (v2)
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v2));
+        
+        // Update the artifact (v3)
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v3));
+        
+        // Disable v3
+        UpdateState data = new UpdateState();
+        data.setState(ArtifactState.DISABLED);
+        apicurioService.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+
+        // Verify artifact
+        ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(ArtifactState.ENABLED, actualMD.getState());
+        assertEquals(2, actualMD.getVersion()); // version 2 is active (3 is disabled)
+        
+        // Verify v1
+        VersionMetaData actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+        // Verify v2
+        actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+        // Verify v3
+        actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.DISABLED, actualVMD.getState());
+        
+        // Re-enable v3
+        data.setState(ArtifactState.ENABLED);
+        apicurioService.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+
+        // Verify artifact (now v3)
+        actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(ArtifactState.ENABLED, actualMD.getState());
+        assertEquals(3, actualMD.getVersion()); // version 2 is active (3 is disabled)
+
+        // Verify v1
+        actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+        // Verify v2
+        actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+        // Verify v3
+        actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+    }
+    
+    @Test
+    void testDeprecateArtifact() {
+        String artifactId = "testDeprecateArtifact";
+        String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        
+        // Create the artifact
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
+
+        // Verify
+        ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
+        assertEquals(ArtifactState.ENABLED, actualMD.getState());
+
+        // Deprecate the artifact
+        UpdateState data = new UpdateState();
+        data.setState(ArtifactState.DEPRECATED);
+        apicurioService.updateArtifactState(artifactId, data);
+        
+        // Verify (expect 404)
+        actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
+        assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
+    }
+    
+    @Test
+    void testDeprecateArtifactVersion() {
+        String artifactId = "testDeprecateArtifactVersion";
+        String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactData_v2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        String artifactData_v3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        
+        // Create the artifact
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
+
+        // Update the artifact (v2)
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v2));
+        
+        // Update the artifact (v3)
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData_v3));
+        
+        // Deprecate v2
+        UpdateState data = new UpdateState();
+        data.setState(ArtifactState.DEPRECATED);
+        apicurioService.updateArtifactVersionState(v2MD.getVersion(), artifactId, data);
+
+        // Verify artifact
+        ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+        assertEquals(ArtifactState.ENABLED, actualMD.getState());
+        
+        // Verify v1
+        VersionMetaData actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+        // Verify v2
+        actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
+        // Verify v3
+        actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+        assertEquals(ArtifactState.ENABLED, actualVMD.getState());
+    }
+    
 
     @AfterEach
     void deleteRules() {

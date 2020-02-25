@@ -119,7 +119,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             stream = stream.filter(e -> states.contains(ArtifactStateExt.getState(e.getValue())));
         }
         Map<String, String> latest = stream.max((e1, e2) -> (int) (e1.getKey() - e2.getKey()))
-                                           .orElseThrow(() -> new RegistryStorageException("Race-condition?!", null))
+                                           .orElseThrow(() -> new ArtifactNotFoundException(artifactId))
                                            .getValue();
 
         ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(latest), latest.get(VERSION));

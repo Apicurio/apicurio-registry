@@ -89,7 +89,6 @@ class AllArtifactTypesIT extends BaseIT {
             ArtifactUtils.updateArtifact(apicurioService, atype, artifactId, IoUtil.toStream("This is not valid content."));
         } finally {
             apicurioService.deleteAllGlobalRules();
-            try { apicurioService.deleteArtifact(artifactId); } catch (Exception e) {}
         }
     }
 
@@ -111,11 +110,6 @@ class AllArtifactTypesIT extends BaseIT {
     @Test
     void testKafkaConnect() throws Exception {
         doTest("kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
-    }
-
-    @Test
-    void testOpenApi20() throws Exception {
-        doTest("openapi/2.0-petstore_v1.json", "openapi/2.0-petstore_v2.json", ArtifactType.OPENAPI);
     }
 
     @Test

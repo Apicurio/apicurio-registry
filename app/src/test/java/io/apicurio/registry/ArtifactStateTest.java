@@ -16,10 +16,13 @@
 
 package io.apicurio.registry;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletionStage;
 
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.junit.jupiter.api.Assertions;
@@ -161,4 +164,44 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             );
         }
     }
+    
+    @Test
+    void testEnableDisableArtifact() throws Exception {
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            String artifactId = generateArtifactId();
+
+            // Create the artifact
+            CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
+                ArtifactType.JSON,
+                artifactId,
+                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+            );
+            ArtifactMetaData md = ConcurrentUtil.result(a1);
+            
+            // Get the meta-data
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+
+            // Set to disabled
+            UpdateState state = new UpdateState();
+            state.setState(ArtifactState.DISABLED);
+            service.updateArtifactState(artifactId, state);
+            
+            // Get the meta-data again - should be a 404
+            try {
+                service.getArtifactMetaData(artifactId);
+            } catch (WebApplicationException e) {
+                assertEquals(404, e.getResponse().getStatus());
+            }
+            
+            // Now re-enable the artifact
+            state.setState(ArtifactState.ENABLED);
+            service.updateArtifactState(artifactId, state);
+
+            // Get the meta-data
+            actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+        }
+    }
+    
 }

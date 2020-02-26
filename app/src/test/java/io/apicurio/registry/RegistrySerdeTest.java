@@ -207,7 +207,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testProto() throws Exception {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-                 Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(service)) {
+                    Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(service)) {
 
                 TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
 

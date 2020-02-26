@@ -40,6 +40,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
+
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
@@ -56,6 +60,7 @@ import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.apicurio.tests.RegistryFacade;
 import io.apicurio.tests.serdes.json.Msg;
 import io.apicurio.tests.serdes.json.ValidMessage;
+import io.apicurio.tests.serdes.proto.MsgTypes;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
@@ -138,11 +143,6 @@ public class KafkaClients {
         return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), AvroKafkaSerializer.class.getName(), TopicRecordIdStrategy.class.getName(), schemaKeys);
     }
 
-    // TODO create protobuf tests when it's ready
-    public static CompletableFuture<Integer> produceProtobufMessages(String topicName, String subjectName, Schema schema, int messageCount, String... schemaKeys) {
-        return produceMessages(topicName, subjectName, schema, messageCount, StringSerializer.class.getName(), ProtobufKafkaSerializer.class.getName(), TopicIdStrategy.class.getName(), schemaKeys);
-    }
-
     private static CompletableFuture<Integer> produceMessages(String topicName, String subjectName, Schema schema, int messageCount, String keySerializer, String valueSerializer, String artifactIdStrategy, String... schemaKeys) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             Producer<Object, Object> producer = (Producer<Object, Object>) KafkaClients.createProducer(keySerializer, valueSerializer, topicName, artifactIdStrategy);
@@ -189,10 +189,6 @@ public class KafkaClients {
     public static CompletableFuture<Integer> consumeAvroApicurioMessages(String topicName,  int messageCount) {
         return consumeMessages(topicName, messageCount, StringDeserializer.class.getName(), AvroKafkaDeserializer.class.getName());
     }
-
-    public static CompletableFuture<Integer> consumeProtobufMessages(String topicName,  int messageCount) {
-        return consumeMessages(topicName, messageCount, StringDeserializer.class.getName(), ProtobufKafkaDeserializer.class.getName());
-    }    
 
     private static CompletableFuture<Integer> consumeMessages(String topicName, int messageCount, String keyDeserializer, String valueDeserializer) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
@@ -318,5 +314,90 @@ public class KafkaClients {
 
         return resultPromise;
     }
+
+    public static CompletableFuture<Integer> produceProtobufMessages(String topicName, String subjectName, int messageCount) {
+        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
+            Producer<Object, Message> producer = (Producer<Object, Message>) KafkaClients.createProducer(StringSerializer.class.getName(), 
+                    ProtobufKafkaSerializer.class.getName(), topicName, SimpleTopicIdStrategy.class.getName());
+            LOGGER.debug("++++++++++++++++++ Producer created.");
+
+            int producedMessages = 0;
+
+            try {
+                while (producedMessages < messageCount) {
+                    // Create the message to send
+                    Date now = new Date();
+                    MsgTypes.Msg msg = MsgTypes.Msg.newBuilder().setWhat("Hello (" + producedMessages++ + ")!").setWhen(now.getTime()).build();
+
+                    LOGGER.info("Sending message {} to topic {}", msg, topicName);
+
+                    ProducerRecord<Object, Message> producedRecord = new ProducerRecord<>(topicName, subjectName, msg);
+                    producer.send(producedRecord);
+                    LOGGER.debug("++++++++++++++++++ Produced a message in kafka!");
+                }
+
+                LOGGER.info("Produced {} messages", producedMessages);
+
+            } finally {
+                producer.flush();
+                producer.close();
+            }
+
+            return producedMessages;
+        });
+
+        try {
+            resultPromise.get(30, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            resultPromise.completeExceptionally(e);
+        }
+
+        return resultPromise;
+
+    }
+    
+    public static CompletableFuture<Integer> consumeProtobufMessages(String topicName,  int messageCount) {
+        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
+            final Consumer<Long, DynamicMessage> consumer = (Consumer<Long, DynamicMessage>) KafkaClients.createConsumer(
+                    StringDeserializer.class.getName(), ProtobufKafkaDeserializer.class.getName(), topicName);
+            consumer.subscribe(Collections.singletonList(topicName));
+
+            AtomicInteger consumedMessages = new AtomicInteger();
+
+            try {
+                while (consumedMessages.get() < messageCount) {
+
+                    final ConsumerRecords<Long, DynamicMessage> records = consumer.poll(Duration.ofSeconds(1));
+                    if (records.count() == 0) {
+                        LOGGER.info("None found");
+                    } else {
+                        records.forEach(record -> {
+                            consumedMessages.getAndIncrement();
+                            DynamicMessage dm = record.value();
+                            Descriptors.Descriptor descriptor = dm.getDescriptorForType();
+                            String message = (String) dm.getField(descriptor.findFieldByName("what"));
+                            
+                            LOGGER.info("{} {} {} {}", record.topic(),
+                                    record.partition(), record.offset(), message);
+                        });
+                    }
+                }
+
+                LOGGER.info("Consumed {} messages", consumedMessages.get());
+            } finally {
+                consumer.close();
+            }
+
+            return consumedMessages.get();
+        });
+
+        try {
+            resultPromise.get(30, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            resultPromise.completeExceptionally(e);
+        }
+
+        return resultPromise;
+    }    
 
 }

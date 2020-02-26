@@ -30,11 +30,15 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import com.google.protobuf.Descriptors;
+
+import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.serdes.KafkaClients;
+import io.apicurio.tests.serdes.proto.MsgTypes;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 
 @Tag(CLUSTER)
@@ -181,6 +185,33 @@ public class BasicApicurioSerDesIT extends BaseIT {
 
         KafkaClients.produceJsonSchemaApicurioMessages(topicName, subjectName, 10).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeJsonSchemaApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);
+    }
+
+    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
+        Serde.Schema.Builder b = Serde.Schema.newBuilder();
+        b.setFile(file.toProto());
+        for (Descriptors.FileDescriptor d : file.getDependencies()) {
+            b.addImport(toSchemaProto(d));
+        }
+        return b.build();
+    }
+
+    @Test
+    void testProtobufSerDes(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {
+        Serde.Schema protobufSchema = toSchemaProto(MsgTypes.Msg.newBuilder().build().getDescriptorForType().getFile());
+        String artifactId = testInfo.getTestMethod().get().getName();
+
+        String topicName = artifactId;
+        String subjectName = "Message";
+        kafkaCluster.createTopic(topicName, 1, 1);
+        LOGGER.debug("++++++++++++++++++ Created topic: {}", topicName);
+
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.PROTOBUF_FD, 
+                artifactId, IoUtil.toStream(protobufSchema.toByteArray()));
+        LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
+
+        KafkaClients.produceProtobufMessages(topicName, subjectName, 100).get(5, TimeUnit.SECONDS);
+        KafkaClients.consumeProtobufMessages(topicName, 100).get(5, TimeUnit.SECONDS);
     }
     
     @BeforeAll

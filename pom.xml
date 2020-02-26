@@ -100,7 +100,7 @@
         <docker.tag.name>latest-release</docker.tag.name>
 
 		<!-- Quarkus Version -->
-		<quarkus.version>1.2.0.Final</quarkus.version>
+		<quarkus.version>1.2.1.Final</quarkus.version>
 
 		<!-- Jandex -->
 		<jandex.version>1.0.7</jandex.version>

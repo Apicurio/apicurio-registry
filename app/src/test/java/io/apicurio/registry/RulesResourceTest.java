@@ -162,6 +162,53 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .contentType(ContentType.JSON)
             .body("[0]", nullValue());
 
+        // Get the other (deleted) rule by name (should fail with a 404)
+        given()
+            .when().get("/rules/VALIDITY")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("error_code", equalTo(404))
+            .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
+    }
+
+    @Test
+    public void testDeleteAllGlobalRules() {
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .then()
+            .statusCode(204)
+            .body(anything());
+        
+        // Get a single rule by name
+        given()
+            .when().get("/rules/VALIDITY")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("type", equalTo("VALIDITY"))
+            .body("config", equalTo("FULL"));
+
+        // Delete all rules
+        given()
+            .when().delete("/rules")
+            .then()
+            .statusCode(204);
+
+        // Get the (deleted) rule by name (should fail with a 404)
+        given()
+            .when().get("/rules/VALIDITY")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .body("error_code", equalTo(404))
+            .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
     }
 
 }

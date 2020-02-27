@@ -202,6 +202,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         storage.updateArtifactState(artifactId, data.getState(), version);
     }
 
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#testUpdateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.io.InputStream)
+     */
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);

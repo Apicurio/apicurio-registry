@@ -163,10 +163,11 @@ public class RegistryClient {
                                 executor.shutdown();
                             }
                         }
+                        return null;
                     } else if ("reset".equals(methodName)) {
                         // do nothing
+                        return null;
                     }
-                    return null; // close/reset are void
                 }
 
                 if (closed.get()) {

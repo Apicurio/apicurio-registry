@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validity;
+package io.apicurio.tests.serdes.json;
 
 /**
- * Indicates what level of validation should be performed by the content validity rule.
  * @author eric.wittmann@gmail.com
  */
-public enum ValidityLevel {
-
-    NONE, SYNTAX_ONLY, FULL;
+public class ValidMessage extends Msg {
     
 }

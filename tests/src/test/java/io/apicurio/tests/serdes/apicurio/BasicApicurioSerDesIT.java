@@ -16,8 +16,13 @@
 
 package io.apicurio.tests.serdes.apicurio;
 
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.serdes.KafkaClients;
+import static io.apicurio.tests.Constants.CLUSTER;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,12 +30,16 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import static io.apicurio.tests.Constants.CLUSTER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.google.protobuf.Descriptors;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.serdes.KafkaClients;
+import io.apicurio.tests.serdes.proto.MsgTypes;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
@@ -143,6 +152,68 @@ public class BasicApicurioSerDesIT extends BaseIT {
         KafkaClients.consumeAvroApicurioMessages(topicName3, 10).get(5, TimeUnit.SECONDS);
     }
 
+    @Test
+    void testJsonSchemaApicurioSerDes(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {
+        String jsonSchema = "{" +
+                "    \"$id\": \"https://example.com/message.schema.json\"," + 
+                "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," + 
+                "    \"required\": [" + 
+                "        \"message\"," + 
+                "        \"time\"" + 
+                "    ]," + 
+                "    \"type\": \"object\"," + 
+                "    \"properties\": {" + 
+                "        \"message\": {" + 
+                "            \"description\": \"\"," + 
+                "            \"type\": \"string\"" + 
+                "        }," + 
+                "        \"time\": {" + 
+                "            \"description\": \"\"," + 
+                "            \"type\": \"number\"" + 
+                "        }" + 
+                "    }" + 
+                "}";
+        String artifactId = testInfo.getTestMethod().get().getName();
+
+        String topicName = artifactId;
+        String subjectName = "Message";
+        kafkaCluster.createTopic(topicName, 1, 1);
+        LOGGER.debug("++++++++++++++++++ Created topic: {}", topicName);
+
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.JSON, artifactId, IoUtil.toStream(jsonSchema));
+        LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
+
+        KafkaClients.produceJsonSchemaApicurioMessages(topicName, subjectName, 10).get(5, TimeUnit.SECONDS);
+        KafkaClients.consumeJsonSchemaApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);
+    }
+
+    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
+        Serde.Schema.Builder b = Serde.Schema.newBuilder();
+        b.setFile(file.toProto());
+        for (Descriptors.FileDescriptor d : file.getDependencies()) {
+            b.addImport(toSchemaProto(d));
+        }
+        return b.build();
+    }
+
+    @Test
+    void testProtobufSerDes(TestInfo testInfo) throws InterruptedException, ExecutionException, TimeoutException {
+        Serde.Schema protobufSchema = toSchemaProto(MsgTypes.Msg.newBuilder().build().getDescriptorForType().getFile());
+        String artifactId = testInfo.getTestMethod().get().getName();
+
+        String topicName = artifactId;
+        String subjectName = "Message";
+        kafkaCluster.createTopic(topicName, 1, 1);
+        LOGGER.debug("++++++++++++++++++ Created topic: {}", topicName);
+
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.PROTOBUF_FD, 
+                artifactId, IoUtil.toStream(protobufSchema.toByteArray()));
+        LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
+
+        KafkaClients.produceProtobufMessages(topicName, subjectName, 100).get(5, TimeUnit.SECONDS);
+        KafkaClients.consumeProtobufMessages(topicName, 100).get(5, TimeUnit.SECONDS);
+    }
+    
     @BeforeAll
     static void setupEnvironment() {
         kafkaCluster.start();

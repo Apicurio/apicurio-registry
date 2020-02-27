@@ -19,6 +19,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.hamcrest.number.OrderingComparison;
@@ -48,7 +49,7 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
@@ -83,13 +84,13 @@ class MetadataIT extends BaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactUpdateData);
+        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
         VersionMetaData versionMetaData = apicurioService.getArtifactVersionMetaData(2, artifactId);

@@ -16,6 +16,13 @@
 
 package io.apicurio.tests.utils.subUtils;
 
+import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
+import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
+
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.concurrent.CompletionStage;
+
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -24,13 +31,6 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
-
-import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
-import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
-
-import java.io.ByteArrayInputStream;
-import java.util.HashMap;
-import java.util.concurrent.CompletionStage;
 
 public class ArtifactUtils {
 
@@ -71,8 +71,8 @@ public class ArtifactUtils {
         return  BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
-    public static ArtifactMetaData createArtifact(RegistryService apicurioService, String artifactId, ByteArrayInputStream artifactData) {
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+    public static ArtifactMetaData createArtifact(RegistryService apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(atype, artifactId, artifactData);
         return ConcurrentUtil.result(csResult);
     }
 
@@ -88,8 +88,8 @@ public class ArtifactUtils {
         return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId, returnCode);
     }
 
-    public static ArtifactMetaData updateArtifact(RegistryService apicurioService, String artifactId, ByteArrayInputStream artifactData) {
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
+    public static ArtifactMetaData updateArtifact(RegistryService apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.updateArtifact(artifactId, atype, artifactData);
         return ConcurrentUtil.result(csResult);
     }
 

@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: apicurio-registry-kafka
+  name: service-registry
 message: |-
-  Congratulations on deploying Apicurio Registry (Kafka Storage) into OpenShift!
+  Congratulations on deploying Service Registry into OpenShift!
   
   All components have been deployed and configured.
 
@@ -18,28 +18,30 @@ objects:
       - name: latest
         from:
           kind: DockerImage
-          name: apicurio/apicurio-registry-kafka:latest
+          name: registry-proxy.engineering.redhat.com/rh-osbs/fuse7-tech-preview-fuse-service-registry-rhel7:1.6-12
         importPolicy:
-          scheduled: true
+          insecure: true
+        referencePolicy:
+          type: Local
 # Services for the components
 - apiVersion: v1
   kind: Service
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry-kafka
-      template: apicurio-registry-kafka
-    name: apicurio-registry-kafka
+      app: service-registry
+      template: service-registry
+    name: service-registry
   spec:
     selector:
-      app: apicurio-registry-kafka
+      app: service-registry
     ports:
     - port: 8080
       protocol: TCP
       targetPort: 8080
       nodePort: 32222
-    type: NodePort
     sessionAffinity: None
+    type: NodePort
   status:
     loadBalancer: {}
 # Registry Deployment Configuration
@@ -49,14 +51,14 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry-kafka
-      template: apicurio-registry-kafka
-    name: apicurio-registry-kafka
+      app: service-registry
+      template: service-registry
+    name: service-registry
   spec:
     replicas: 1
     selector:
-      app: apicurio-registry-kafka
-      deploymentconfig: apicurio-registry-kafka
+      app: service-registry
+      deploymentconfig: service-registry
     strategy:
       type: Recreate
       recreateParams:
@@ -67,15 +69,15 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          app: apicurio-registry-kafka
-          deploymentconfig: apicurio-registry-kafka
-          template: apicurio-registry-kafka
+          app: service-registry
+          deploymentconfig: service-registry
+          template: service-registry
       spec:
         replicas: 1
         containers:
         - image: registry:latest
           imagePullPolicy: Always
-          name: apicurio-registry-kafka
+          name: service-registry
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -84,6 +86,8 @@ objects:
             value: prod
           - name: KAFKA_BOOTSTRAP_SERVERS
             value: ${KAFKA_BOOTSTRAP_SERVERS}
+          - name: APPLICATION_ID
+            value: ${APPLICATION_ID}
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}
@@ -121,7 +125,7 @@ objects:
       imageChangeParams:
         automatic: true
         containerNames:
-          - apicurio-registry-kafka
+          - service-registry
         from:
           kind: ImageStreamTag
           name: 'registry:latest'
@@ -130,16 +134,16 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: apicurio-registry-kafka
+    name: service-registry
     creationTimestamp: null
     labels:
-      app: apicurio-registry-kafka
-      template: apicurio-registry-kafka
+      app: service-registry
+      template: service-registry
   spec:
     host: ${REGISTRY_ROUTE}
     to:
       kind: Service
-      name: apicurio-registry-kafka
+      name: service-registry
       weight: 100
     tls:
       termination: edge
@@ -150,7 +154,7 @@ parameters:
 - name: REGISTRY_ROUTE
   displayName: Registry Route Name
   description: The route name to use for the Registry api.
-  value: registry.example.com
+  value: registry.OPENSHIFT_APP_DOMAIN.com
   required: true
 - name: REGISTRY_MEM_LIMIT
   displayName: Registry Max Memory Limit
@@ -175,4 +179,8 @@ parameters:
 - name: KAFKA_BOOTSTRAP_SERVERS
   displayName: Kafka Bootstrap Servers
   description: Kafka Bootstrap Servers
+  required: true
+- name: APPLICATION_ID
+  displayName: Kafka Application ID
+  description: Kafka Streams Application Identifier
   required: true

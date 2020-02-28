@@ -99,6 +99,7 @@
                             <archiverConfig>
                                 <defaultDirectoryMode>0755</defaultDirectoryMode>
                             </archiverConfig>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
                     </execution>
                 </executions>

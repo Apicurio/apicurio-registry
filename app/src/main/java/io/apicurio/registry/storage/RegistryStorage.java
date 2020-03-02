@@ -31,8 +31,20 @@ import java.util.concurrent.CompletionStage;
  * The storage layer for the registry.
  *
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
 public interface RegistryStorage {
+
+    /**
+     * Is the storage ready?
+     * <p>
+     * By default we check if it can access list of global rules.
+     *
+     * @return true if yes, false if no
+     */
+    default boolean isReady() {
+        return (getGlobalRules() != null);
+    }
 
     /**
      * Update artifact state.

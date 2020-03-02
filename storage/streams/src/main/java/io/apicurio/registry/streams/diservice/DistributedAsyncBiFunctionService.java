@@ -7,6 +7,7 @@ import org.apache.kafka.streams.state.HostInfo;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class DistributedAsyncBiFunctionService<K, REQ, RES>
     extends DistributedService<K, AsyncBiFunctionService<K, REQ, RES>>
@@ -34,6 +35,11 @@ public class DistributedAsyncBiFunctionService<K, REQ, RES>
     @Override
     public CompletionStage<RES> apply(K key, REQ req) {
         return serviceForKey(key).apply(key, req);
+    }
+
+    @Override
+    public Stream<CompletionStage<RES>> apply() {
+        return allServicesStream().flatMap(AsyncBiFunctionService::apply);
     }
 
     @Override

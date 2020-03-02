@@ -72,8 +72,8 @@ public class DistributedReadOnlyKeyValueStore<K, V>
 
     @Override
     public CloseableIterator<K> allKeys() {
-        return new StreamToIteratorAdapter<K>(
-            allServicesStream().flatMap(store -> StreamToIteratorAdapter.toStream(store.allKeys()))
+        return new StreamToIteratorAdapter<>(
+            allServicesForStoreStream().flatMap(store -> StreamToIteratorAdapter.toStream(store.allKeys()))
         );
     }
 
@@ -87,7 +87,7 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     @Override
     public KeyValueIterator<K, V> range(K from, K to) {
         return new StreamToKeyValueIteratorAdapter<>(
-            allServicesStream()
+            allServicesForStoreStream()
                 .flatMap(store -> toStream(store.range(from, to)))
         );
     }
@@ -95,14 +95,14 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     @Override
     public KeyValueIterator<K, V> all() {
         return new StreamToKeyValueIteratorAdapter<>(
-            allServicesStream()
+            allServicesForStoreStream()
                 .flatMap(store -> toStream(store.all()))
         );
     }
 
     @Override
     public long approximateNumEntries() {
-        return allServicesStream()
+        return allServicesForStoreStream()
             .mapToLong(ReadOnlyKeyValueStore::approximateNumEntries)
             .sum();
     }

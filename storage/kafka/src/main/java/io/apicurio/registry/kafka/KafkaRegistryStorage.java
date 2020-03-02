@@ -49,8 +49,16 @@ import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static io.apicurio.registry.utils.ConcurrentUtil.get;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
@@ -63,10 +71,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static io.apicurio.registry.utils.ConcurrentUtil.get;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -360,6 +366,12 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     private void consumeState(CompletableFuture<Object> cf, String artifactId, long version, Str.ArtifactState state) {
         super.updateArtifactState(artifactId, ArtifactState.valueOf(state.name()), version > 0 ? (int) version : null);
         cf.complete(Void.class);
+    }
+
+    @Override
+    public boolean isReady() {
+        // should be good enough, as other nodes will get the msgs after they join Kafka broker
+        return (executor != null);
     }
 
     @Override

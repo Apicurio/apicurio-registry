@@ -9,6 +9,7 @@ import io.grpc.ManagedChannel;
 import org.apache.kafka.common.serialization.Serde;
 
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Stream;
 
 public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFunctionService<K, REQ, RES> {
 
@@ -66,5 +67,10 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
                     resSerde.deserializer()
                             .deserialize(serviceName, resProto.getRes().isEmpty() ? null : resProto.getRes().toByteArray())
             );
+    }
+
+    @Override
+    public Stream<CompletionStage<RES>> apply() {
+        return Stream.of(apply(null, null));
     }
 }

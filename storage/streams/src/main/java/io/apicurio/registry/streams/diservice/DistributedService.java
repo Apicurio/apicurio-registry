@@ -63,7 +63,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
     ) {
         this.streams = Objects.requireNonNull(streams, "streams");
         this.localApplicationServer = Objects.requireNonNull(localApplicationServer, "localApplicationServer");
-        this.storeName = Objects.requireNonNull(storeName, "serviceName");
+        this.storeName = Objects.requireNonNull(storeName, "storeName");
         this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
         this.grpcChannelProvider = Objects.requireNonNull(grpcChannelProvider, "grpcChannelProvider");
         this.parallel = parallel;
@@ -113,13 +113,34 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         return serviceForHostInfo(smeta.hostInfo());
     }
 
-    protected final Collection<S> allServices() {
+    protected final Collection<S> allServicesForStore() {
         Collection<StreamsMetadata> smetas = streams.allMetadataForStore(storeName);
         if (smetas.isEmpty()) {
             throw new InvalidStateStoreException(
                 "StreamsMetadata is currently unavailable. " +
                 "This can occur during rebalance operations. " +
                 "Store-name: " + storeName
+            );
+        }
+        ArrayList<S> services = new ArrayList<>(smetas.size());
+        for (StreamsMetadata smeta : smetas) {
+            services.add(serviceForHostInfo(smeta.hostInfo()));
+        }
+        return services;
+    }
+
+    protected final Stream<S> allServicesForStoreStream() {
+        Collection<S> services = allServicesForStore();
+        // call multiple services in parallel if requested and there are more than one
+        return parallel && services.size() > 1 ? services.parallelStream() : services.stream();
+    }
+
+    protected final Collection<S> allServices() {
+        Collection<StreamsMetadata> smetas = streams.allMetadata();
+        if (smetas.isEmpty()) {
+            throw new InvalidStateStoreException(
+                "StreamsMetadata is currently unavailable. " +
+                "This can occur during rebalance operations. "
             );
         }
         ArrayList<S> services = new ArrayList<>(smetas.size());

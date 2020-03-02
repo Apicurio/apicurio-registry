@@ -101,6 +101,10 @@ public class StreamsRegistryStorage implements RegistryStorage {
     AsyncBiFunctionService<String, Long, Str.Data> storageFunction;
 
     @Inject
+    @Current
+    AsyncBiFunctionService<Void, Void, KafkaStreams.State> stateFunction;
+
+    @Inject
     ContentCanonicalizerFactory ccFactory;
 
     private Submitter submitter = new Submitter(this::send);
@@ -196,7 +200,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public boolean isReady() {
-        return streams.state() == KafkaStreams.State.RUNNING;
+        return stateFunction.apply()
+                            .map(ConcurrentUtil::result)
+                            .allMatch(s -> s == KafkaStreams.State.RUNNING);
     }
 
     @Override

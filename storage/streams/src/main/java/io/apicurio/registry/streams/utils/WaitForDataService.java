@@ -15,6 +15,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 /**
  * This is a local implementation of our Data lookup AsyncBiFunctionService.
@@ -107,6 +108,11 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
             cf.completeExceptionally(e);
         }
         return cf;
+    }
+
+    @Override
+    public Stream<CompletionStage<Str.Data>> apply() {
+        return Stream.empty();
     }
 
     private void register(String artifactId, ResultCF cf) {

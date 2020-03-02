@@ -370,6 +370,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     public boolean isReady() {
+        // should be good enough, as other nodes will get the msgs after they join Kafka broker
         return (executor != null);
     }
 

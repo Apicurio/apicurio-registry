@@ -7,7 +7,6 @@
 
 For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required by services deployed in production and can register new schemas required for new services.
 
-.{registry} features
 {registry} provides the following capabilities:
 
 * Support for multiple payload formats for standard event schemas and API specifications. 
@@ -107,7 +106,8 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-* Red Hat AMQ Streams 1.3 or 1.4
+* Red Hat AMQ Streams 1.4
+* Red Hat AMQ Streams 1.3
 
 //* Red Hat Data Grid 7.3
 //* Java Persistence API (PostgreSQL database)

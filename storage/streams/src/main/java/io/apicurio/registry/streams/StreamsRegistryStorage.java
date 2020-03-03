@@ -200,6 +200,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public boolean isReady() {
+        // first a quick local check
+        if (streams.state() != KafkaStreams.State.RUNNING) {
+            return false;
+        }
+        // then check all
         return stateFunction.apply()
                             .map(ConcurrentUtil::result)
                             .allMatch(s -> s == KafkaStreams.State.RUNNING);

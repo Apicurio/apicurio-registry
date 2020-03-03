@@ -3,17 +3,22 @@
 [id="installing-the-registry"]
 = Installing {registry}
 
-This chapter explains how to install and run the {registry} container image with the following storage options:
+This chapter explains how to install and run {registry} with the following storage:
 
 ifdef::apicurio-registry[]
+.Docker
 * xref:installing-registry-in-memory-storage[]
 * xref:installing-registry-jpa-storage[]
 * xref:installing-registry-kafka-storage[]
 * xref:installing-registry-kafka-streams-storage[]
+
+.Kubernetes
+* xref:setting-up-kafka-kubernetes-storage[]
 * xref:installing-registry-kafka-kubernetes-storage[]
 endif::[]
  
 ifdef::rh-service-registry[]
+* xref:setting-up-kafka-kubernetes-storage[]
 * xref:installing-registry-kafka-kubernetes-storage[]
 endif::[]
  
@@ -30,11 +35,12 @@ ifdef::apicurio-registry[]
 include::../../modules/getting-started/proc_installing-registry-in-memory-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-jpa-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-kafka-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 endif::[]
 
 ifdef::rh-service-registry[]
+include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
-//include::../../modules/getting-started/p_installing-registry-kafka-storage.adoc[leveloffset=+1]
 endif::[]

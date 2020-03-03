@@ -6,6 +6,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -138,7 +139,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
     protected final Collection<S> allServices() {
         Collection<StreamsMetadata> smetas = streams.allMetadata();
         if (smetas.isEmpty()) {
-            throw new InvalidStateStoreException(
+            throw new StreamsException(
                 "StreamsMetadata is currently unavailable. " +
                 "This can occur during rebalance operations. "
             );

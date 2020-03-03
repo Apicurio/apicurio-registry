@@ -38,6 +38,11 @@ public class DistributedAsyncBiFunctionService<K, REQ, RES>
     }
 
     @Override
+    public Stream<CompletionStage<RES>> applyForStore() {
+        return allServicesForStoreStream().flatMap(AsyncBiFunctionService::applyForStore);
+    }
+
+    @Override
     public Stream<CompletionStage<RES>> apply() {
         return allServicesStream().flatMap(AsyncBiFunctionService::apply);
     }

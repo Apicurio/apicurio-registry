@@ -168,14 +168,17 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                                                       .setDescription(ProtoUtil.nullAsEmpty(amdd.getDescription()))
                                                       .setCreatedBy(ProtoUtil.nullAsEmpty(amdd.getCreatedBy()))
                                                       .build();
-            return searchClient.index(artifact).thenApply(sr -> {
-                if (sr.ok()) {
-                    log.info("Artifact {}/{} successfully indexed", artifactId, amdd.getVersion());
+            return searchClient.index(artifact).whenComplete((sr, t) -> {
+                if (t != null) {
+                    log.error("Artifact {}/{} not indexed, error: {}", artifactId, amdd.getVersion(), t.getMessage());
                 } else {
-                    log.warn("Artifact {}/{} not indexed, status: {}", artifactId, amdd.getVersion(), sr.status());
+                    if (sr.ok()) {
+                        log.info("Artifact {}/{} successfully indexed", artifactId, amdd.getVersion());
+                    } else {
+                        log.warn("Artifact {}/{} not indexed, status: {}", artifactId, amdd.getVersion(), sr.status());
+                    }
                 }
-                return amdd;
-            });
+            }).thenApply(sr -> amdd);
         } catch (Exception e) {
             throw new CompletionException(e);
         }

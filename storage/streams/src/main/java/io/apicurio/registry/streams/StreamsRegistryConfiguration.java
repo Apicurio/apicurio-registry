@@ -21,7 +21,6 @@ import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.PropertiesUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -50,7 +49,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Singleton;
 
 /**
@@ -67,12 +65,6 @@ public class StreamsRegistryConfiguration {
             } catch (Exception ignored) {
             }
         }
-    }
-
-    @Produces
-    public Properties properties(InjectionPoint ip) {
-        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
-        return PropertiesUtil.properties(kp);
     }
 
     @Produces

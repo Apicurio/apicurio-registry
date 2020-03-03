@@ -55,6 +55,7 @@ public class SearchClientFactory {
                 return client;
             }
         }
+
         log.info("Using '{}' search client", NoopSearchClient.class.getName());
         return new NoopSearchClient();
     }

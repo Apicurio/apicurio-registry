@@ -16,11 +16,22 @@ import java.util.stream.Stream;
 public interface AsyncBiFunctionService<K, REQ, RES> extends BiFunction<K, REQ, CompletionStage<RES>>, AutoCloseable {
 
     /**
+     * Apply to all services for store, with null key and request - if they can handle it.
+     *
+     * @return stream of results
+     */
+    default Stream<CompletionStage<RES>> applyForStore() {
+        return Stream.empty();
+    }
+
+    /**
      * Apply to all services, with null key and request - if they can handle it.
      *
      * @return stream of results
      */
-    Stream<CompletionStage<RES>> apply();
+    default Stream<CompletionStage<RES>> apply() {
+        return Stream.empty();
+    }
 
     /**
      * An extension of {@link AsyncBiFunctionService} providing {@link Serde} implementations:

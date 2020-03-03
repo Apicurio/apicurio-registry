@@ -70,6 +70,11 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
     }
 
     @Override
+    public Stream<CompletionStage<RES>> applyForStore() {
+        return apply();
+    }
+
+    @Override
     public Stream<CompletionStage<RES>> apply() {
         return Stream.of(apply(null, null));
     }

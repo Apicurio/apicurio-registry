@@ -22,16 +22,12 @@ const DEFAULT_CONFIG: ConfigType = {
     url: "http://localhost:8080/",
     type: "rest"
   },
-  auth: {
-    type: "keycloakjs"
-  },
   features: {
   },
   mode: "dev",
   ui: {
     uiUrl: "http://localhost:8888/"
-  },
-  user: undefined
+  }
 };
 
 /**
@@ -50,45 +46,6 @@ export class ConfigService {
       console.error("[ConfigService] App config not found! (using default)");
       this.config = DEFAULT_CONFIG;
     }
-  }
-
-  public authType(): string {
-    if (!this.config.auth) {
-      return null;
-    }
-    return this.config.auth.type;
-  }
-
-  public authToken(): string {
-    if (!this.config.auth) {
-      return null;
-    }
-    return this.config.auth.token;
-  }
-
-  public authRefreshPeriod(): number {
-    if (!this.config.auth) {
-      return null;
-    }
-    return this.config.auth.tokenRefreshPeriod;
-  }
-
-  public authData(): any {
-    if (!this.config.auth) {
-      return null;
-    }
-    return this.config.auth.data;
-  }
-
-  public logoutUrl(): string {
-    if (!this.config.auth) {
-      return null;
-    }
-    return this.config.auth.logoutUrl;
-  }
-
-  public user(): any {
-    return this.config.user;
   }
 
   public artifactsType(): string {

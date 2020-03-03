@@ -32,7 +32,7 @@ public class SearchClientProducer {
     @Produces
     @ApplicationScoped
     @Current
-    public SearchClient searchClient(@RegistryProperties("search.") Properties properties) {
+    public SearchClient searchClient(@RegistryProperties("registry.search-index.") Properties properties) {
         return SearchClient.create(properties);
     }
 }

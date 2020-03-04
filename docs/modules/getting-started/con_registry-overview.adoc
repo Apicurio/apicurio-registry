@@ -63,10 +63,9 @@ When a schema or API contract is added as an artifact in the registry, client ap
 
 {registry} supports a wide range of message payload formats for standard event schemas and API specifications. These formats include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and so on. For more details, see xref:registry-artifact-types[].
 
-
-
+[id="registry-rest-api"]
 == Registry REST API
-The {registry} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
+The Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
 
 Artifacts::
 Manage the schemas and API specifications stored in the registry. You can also manage the lifecycle of an artifact: enabled, disabled, or deprecated. 

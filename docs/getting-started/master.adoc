@@ -8,4 +8,6 @@ include::attributes.adoc[]
 
 // Add include directives to include modules and assemblies here
 include::assemblies/getting-started/as_intro-to-the-registry.adoc[leveloffset=+1]
+include::assemblies/getting-started/as_intro-to-registry-rules.adoc[leveloffset=+1]
 include::assemblies/getting-started/as_installing-the-registry.adoc[leveloffset=+1]
+include::assemblies/getting-started/as_managing-registry-artifacts.adoc[leveloffset=+1]

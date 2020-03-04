@@ -2,7 +2,7 @@
 
 [id="registry-artifact-types"]
 
-== Supported artifact types
+= Supported artifact types
 You can manage the following artifact types in the registry:
 
 [%header,cols=2*] 

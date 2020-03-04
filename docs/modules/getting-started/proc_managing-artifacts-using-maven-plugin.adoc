@@ -1,0 +1,68 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="managing-artifacts-using-maven-plugin"]
+= Managing artifacts using the {registry} Maven plugin
+
+{registry} provides a Maven plugin to enable you to upload or download artifacts as part of your build. For example,  this plugin is useful for testing and validation, such as checking that your schema updates are compatible with client applications.
+
+.Prerequisites
+
+* {registry} must be installed and running in your environment
+* Maven must be installed and configured in your environment
+
+.Procedure
+
+. Update your Maven `pom.xml` file to register an artifact as part of your build. The following example shows registering an Apache Avro schema artifact:
++
+[source,bash]
+----
+<plugin>
+<groupId>io.apicurio</groupId>
+<artifactId>apicurio-registry-maven-plugin</artifactId>
+<version>${registry.version}</version>
+<executions>
+  <execution>
+    <phase>generate-sources</phase>
+    <goals>
+      <goal>register</goal>
+    </goals>
+    <configuration>
+      <registryUrl>https://my-cluster-service-registry-myproject.example.com</registryUrl>
+      <artifactType>AVRO</artifactType>
+      <artifacts>
+        <schema1>${project.basedir}/schemas/schema1.avsc</schema1>
+      </artifacts>
+    </configuration>
+  </execution>
+</executions>
+</plugin>
+----
+. You can update your Maven `pom.xml` file to download a registered artifact as part of your build as follows:
++
+[source,bash]
+----
+<plugin>
+<groupId>io.apicurio</groupId>
+<artifactId>apicurio-registry-maven-plugin</artifactId>
+<version>${registry.version}</version>
+<executions>   
+  <execution>
+    <phase>generate-sources</phase> 
+    <goals>
+      <goal>download</goal>
+    </goals>
+    <configuration>
+      <registryUrl>http://localhost:8080</registryUrl>
+          <ids>
+            <param1>schema1</param1>
+          </ids>
+      <outputDirectory>${project.build.directory}</outputDirectory>  
+   </configuration>
+ </execution>
+</executions>   
+</plugin>
+----
+
+.Additional resources
+For more details on the {registry} Maven plugin, see https://github.com/Apicurio/apicurio-registry-demo

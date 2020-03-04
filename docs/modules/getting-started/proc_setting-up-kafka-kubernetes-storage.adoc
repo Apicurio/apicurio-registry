@@ -53,7 +53,7 @@ curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.14
 [source,bash]
 ----
 $ cat << EOF | kubectl create -f -
-apiVersion: kafka.strimzi.io/v1alpha1
+apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 metadata: 
  name: my-cluster

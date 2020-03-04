@@ -126,22 +126,10 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
     route.route.openshift.io "service-registry" created
 --> Success
     Access your application via route 'my-cluster-service-registry-myproject.example.com' 
-    Run 'oc status' to view your app.
 ----
 endif::[]
 
-. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
-+
-[source,bash]
-----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' my-cluster-service-registry-myproject.example.com/artifacts
-----
-. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
-+
-[source,bash]
-----
-{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"prices-value","version":1,"type":"AVRO","globalId":8}
-----
+. Run `oc status` to view your {registry} installation. 
 
 .Additional resources
 * For sample REST API requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].

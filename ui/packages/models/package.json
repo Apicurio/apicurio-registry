@@ -1,5 +1,5 @@
 {
-  "name": "@apicurio-registry/models",
+  "name": "@apicurio/registry-models",
   "version": "1.0.0",
   "description": "Apicurio Registry UI models for use when developing client applications.",
   "main": "dist/js/index.js",

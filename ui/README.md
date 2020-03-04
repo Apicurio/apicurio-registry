@@ -15,7 +15,7 @@ Install development/build dependencies
 `yarn`
 
 Start the development server
-`yarn start`
+`yarn start:registry`
 
 Run a full build
 `yarn build`

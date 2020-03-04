@@ -1,7 +1,7 @@
 {
-  "name": "@apicurio-registry/services",
+  "name": "@apicurio/registry-services",
   "version": "1.0.0",
-  "description": "Apicurio Registry models for use when developing client applications.",
+  "description": "Apicurio Registry services for use when developing client applications.",
   "main": "dist/js/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/js/index.d.ts",
@@ -14,7 +14,7 @@
   "author": "Red Hat",
   "license": "Apache-2.0",
   "dependencies": {
-    "@apicurio/models": "1.0.0"
+    "@apicurio/registry-models": "1.0.0"
   },
   "devDependencies": {
     "rimraf": "^2.6.2",

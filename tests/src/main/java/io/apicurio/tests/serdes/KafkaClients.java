@@ -347,7 +347,7 @@ public class KafkaClients {
         });
 
         try {
-            resultPromise.get(30, TimeUnit.SECONDS);
+            resultPromise.get(90, TimeUnit.SECONDS);
         } catch (Exception e) {
             resultPromise.completeExceptionally(e);
         }

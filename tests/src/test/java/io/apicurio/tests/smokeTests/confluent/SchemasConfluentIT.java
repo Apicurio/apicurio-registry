@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -180,6 +181,11 @@ public class SchemasConfluentIT extends BaseIT {
         LOGGER.info("Available versions of schema with ID {} are: {}", schemaId, schemaVersions.toString());
         assertThat(schemaVersions, hasItems(1, 2));
 
+        confluentService.deleteSubject(SUBJECT_NAME);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException, RestClientException {
         confluentService.deleteSubject(SUBJECT_NAME);
     }
 }

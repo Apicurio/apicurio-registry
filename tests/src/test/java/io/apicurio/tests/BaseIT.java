@@ -90,16 +90,17 @@ public abstract class BaseIT implements TestSeparator, Constants {
         LOGGER.info("Registry app is running on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         RestAssured.defaultParser = Parser.JSON;
         confluentService = new CachedSchemaRegistryClient("http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/ccompat", 3);
-        apicurioService = RegistryClient.create("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+        apicurioService = RegistryClient.cached("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
 
         clearAllConfluentSubjects();
     }
 
     @AfterAll
-    static void afterAll(TestInfo info) throws InterruptedException {
+    static void afterAll(TestInfo info) throws Exception {
         registry.stop();
         Thread.sleep(3000);
         storeRegistryLog(info.getTestClass().get().getCanonicalName());
+        apicurioService.close();
     }
 
     private static void storeRegistryLog(String className) {

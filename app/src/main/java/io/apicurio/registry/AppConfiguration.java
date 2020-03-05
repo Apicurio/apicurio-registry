@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,39 +14,37 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.search;
+package io.apicurio.registry;
 
 import io.apicurio.registry.search.client.SearchClient;
 import io.apicurio.registry.types.Current;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import io.apicurio.registry.utils.PropertiesUtil;
+import io.apicurio.registry.utils.RegistryProperties;
 
-import java.util.Optional;
 import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.spi.InjectionPoint;
 
 /**
+ * Generic configuration.
+ *
  * @author Ales Justin
  */
 @ApplicationScoped
-public class SearchClientProducer {
+public class AppConfiguration {
+
+    @Produces
+    public Properties properties(InjectionPoint ip) {
+        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
+        return PropertiesUtil.properties(kp);
+    }
+
     @Produces
     @ApplicationScoped
     @Current
-    public SearchClient searchClient() {
-        Properties properties = new Properties();
-
-        Config config = ConfigProviderResolver.instance().getConfig();
-        for (String key : config.getPropertyNames()) {
-            int p = key.indexOf("search.");
-            if (p >= 0) {
-                // property can exist with key, but no value ...
-                Optional<String> value = config.getOptionalValue(key, String.class);
-                value.ifPresent(s -> properties.put(key.substring(p), s));
-            }
-        }
-
+    public SearchClient searchClient(@RegistryProperties("registry.search-index.") Properties properties) {
         return SearchClient.create(properties);
     }
+
 }

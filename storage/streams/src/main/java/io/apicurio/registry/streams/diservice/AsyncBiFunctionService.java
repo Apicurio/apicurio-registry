@@ -4,6 +4,7 @@ import org.apache.kafka.common.serialization.Serde;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 /**
  * A {@link BiFunction} that returns an asynchronous {@link CompletionStage} result.
@@ -13,6 +14,24 @@ import java.util.function.BiFunction;
  * @param <RES> the type of responses (wrapped into {@link CompletionStage} to be asynchronous)
  */
 public interface AsyncBiFunctionService<K, REQ, RES> extends BiFunction<K, REQ, CompletionStage<RES>>, AutoCloseable {
+
+    /**
+     * Apply to all services for store, with null key and request - if they can handle it.
+     *
+     * @return stream of results
+     */
+    default Stream<CompletionStage<RES>> applyForStore() {
+        return Stream.empty();
+    }
+
+    /**
+     * Apply to all services, with null key and request - if they can handle it.
+     *
+     * @return stream of results
+     */
+    default Stream<CompletionStage<RES>> apply() {
+        return Stream.empty();
+    }
 
     /**
      * An extension of {@link AsyncBiFunctionService} providing {@link Serde} implementations:

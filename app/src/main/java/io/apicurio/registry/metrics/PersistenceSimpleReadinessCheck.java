@@ -1,18 +1,14 @@
 package io.apicurio.registry.metrics;
 
-import java.util.List;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
-import javax.inject.Inject;
-
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
 
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.RuleType;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
+import javax.inject.Inject;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -34,11 +30,7 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
      */
     private boolean test() {
         try {
-            List<RuleType> res = storage.getGlobalRules();
-            if (res == null) {
-                return false;
-            }
-            return true;
+            return storage.isReady();
         } catch (Exception ex) {
             ex.printStackTrace();
             return false;

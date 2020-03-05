@@ -7,7 +7,6 @@
 
 For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required by services deployed in production and can register new schemas required for new services.
 
-.{registry} features
 {registry} provides the following capabilities:
 
 * Support for multiple payload formats for standard event schemas and API specifications. 
@@ -64,10 +63,9 @@ When a schema or API contract is added as an artifact in the registry, client ap
 
 {registry} supports a wide range of message payload formats for standard event schemas and API specifications. These formats include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and so on. For more details, see xref:registry-artifact-types[].
 
-
-
+[id="registry-rest-api"]
 == Registry REST API
-The {registry} REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
+The Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
 
 Artifacts::
 Manage the schemas and API specifications stored in the registry. You can also manage the lifecycle of an artifact: enabled, disabled, or deprecated. 
@@ -107,7 +105,8 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-* Red Hat AMQ Streams 1.3 or 1.4
+* Red Hat AMQ Streams 1.4
+* Red Hat AMQ Streams 1.3
 
 //* Red Hat Data Grid 7.3
 //* Java Persistence API (PostgreSQL database)

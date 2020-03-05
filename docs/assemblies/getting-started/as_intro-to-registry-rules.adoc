@@ -1,15 +1,14 @@
 // Metadata created by nebel
 //
 
-[id="intro-to-the-registry"]
-= Introduction to {registry}
+[id="intro-to-registry-rules"]
+= Introduction to {registry} rules
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter introduces {registry} features and provides details on the supported artifact types that are stored in the registry:
+This chapter introduces the optional rules used to govern registry content and provides details on the available rule types:
 
-* xref:registry-overview[]
-* xref:registry-artifact-types[]
-
+* xref:registry-rules[]
+* xref:registry-rule-types[]
 
 ifdef::rh-service-registry[]
 [IMPORTANT]
@@ -21,5 +20,5 @@ These features provide early access to upcoming product features, enabling custo
 endif::[]
 
 //INCLUDES
-include::../../modules/getting-started/con_registry-overview.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-rules.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]

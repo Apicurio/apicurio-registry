@@ -35,13 +35,21 @@ import lombok.Getter;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.CloseableIterator;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -56,9 +64,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -75,6 +82,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
     @Inject
+    KafkaStreams streams;
+
+    @Inject
     StreamsProperties properties;
 
     @Inject
@@ -89,6 +99,10 @@ public class StreamsRegistryStorage implements RegistryStorage {
     @Inject
     @Current
     AsyncBiFunctionService<String, Long, Str.Data> storageFunction;
+
+    @Inject
+    @Current
+    AsyncBiFunctionService<Void, Void, KafkaStreams.State> stateFunction;
 
     @Inject
     ContentCanonicalizerFactory ccFactory;
@@ -182,6 +196,18 @@ public class StreamsRegistryStorage implements RegistryStorage {
                 state
             );
         }
+    }
+
+    @Override
+    public boolean isReady() {
+        // first a quick local check
+        if (streams.state() != KafkaStreams.State.RUNNING) {
+            return false;
+        }
+        // then check all
+        return stateFunction.apply()
+                            .map(ConcurrentUtil::result)
+                            .allMatch(s -> s == KafkaStreams.State.RUNNING);
     }
 
     @Override

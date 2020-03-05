@@ -13,14 +13,8 @@
     <packaging>pom</packaging>
     <name>apicurio-registry-distro-docker-compose</name>
 
-    <properties>
-         <tar.long.file.mode>gnu</tar.long.file.mode>
-    </properties>
-
     <build>
-
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -53,21 +47,7 @@
                     <skip>true</skip>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
-
-    <profiles>
-
-        <profile>
-            <id>native</id>
-            <build>
-                <plugins>
-
-                </plugins>
-            </build>
-        </profile>
-
-    </profiles>
 
 </project>

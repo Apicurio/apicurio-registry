@@ -20,7 +20,6 @@ import io.apicurio.registry.common.proto.Cmmn;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
 import io.apicurio.registry.storage.proto.Str;
-import io.apicurio.registry.utils.PropertiesUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ConsumerActions;
@@ -35,19 +34,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
 
 /**
  * @author Ales Justin
  */
 @ApplicationScoped
 public class KafkaRegistryConfiguration {
-
-    @Produces
-    public Properties properties(InjectionPoint ip) {
-        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
-        return PropertiesUtil.properties(kp);
-    }
 
     @Produces
     @ApplicationScoped

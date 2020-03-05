@@ -104,11 +104,19 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
 
     protected final S serviceForKey(K key) {
         StreamsMetadata smeta = streams.metadataForKey(storeName, key, keySerde.serializer());
+        if (smeta == null) {
+            throw new InvalidStateStoreException(
+                "StreamsMetadata is null?! " +
+                "Store-name: " + storeName + " " +
+                "Key: " + key
+            );
+        }
         if (smeta == StreamsMetadata.NOT_AVAILABLE) {
             throw new InvalidStateStoreException(
                 "StreamsMetadata is currently unavailable. " +
                 "This can occur during rebalance operations. " +
-                "Store-name: " + storeName
+                "Store-name: " + storeName + " " +
+                "Key: " + key
             );
         }
         return serviceForHostInfo(smeta.hostInfo());

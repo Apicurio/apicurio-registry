@@ -2,6 +2,7 @@ package io.apicurio.registry.rest;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import javax.ws.rs.Consumes;
@@ -300,6 +301,17 @@ public interface ArtifactsResource {
   CompletionStage<ArtifactMetaData> createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
+
+  /**
+   * Returns a list of ids of all artifacts in the registry.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   */
+  @GET
+  @Produces("application/json")
+  Set<String> getArtifactIds();  
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the

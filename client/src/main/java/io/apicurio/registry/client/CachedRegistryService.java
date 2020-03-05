@@ -17,11 +17,7 @@
 package io.apicurio.registry.client;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -137,6 +133,11 @@ class CachedRegistryService implements RegistryService {
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;
         });
+    }
+
+    @Override
+    public Set<String> getArtifactIds() {
+        return getDelegate().getArtifactIds();
     }
 
     @Override

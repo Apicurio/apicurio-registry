@@ -890,6 +890,32 @@
                 "summary": "Create artifact",
                 "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This will typically be in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry will attempt to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, the artifact type can be indicated by explicitly specifying the type using \nthe `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's \n`Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
                 "x-codegen-async": true
+            },
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Returns the ids of the artifacts in the registry."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactIds",
+                "summary": "List all artifact ids",
+                "description": "Returns a list of ids of all artifacts in the registry."
             }
         },
         "/artifacts/{artifactId}": {

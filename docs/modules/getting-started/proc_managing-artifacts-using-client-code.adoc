@@ -2,14 +2,15 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="managing-artifacts-using-client-code"]
-= Managing artifacts using {registry} client application code
+= Managing artifacts in a Java client application
 
-You can also manage artifacts using client application code written in Java. For example, this includes creating new artifacts in the registry. 
+You can also manage artifacts in the registry using a Java client application. The {registry} Java client classes  enable you to create, read, update, or delete artifacts in the registry. 
 
 .Prerequisites
 
-* You must have implemented a {registry} client application in Java 
-* {registry} must be installed and running in your environment
+* See xref:client-serde[]
+* You must have implemented a Kafka client application that uses {registry} serializer/deserializer classes for a supported artifact type. 
+* {registry} must be installed and running in your environment.
 
 .Procedure
 
@@ -17,8 +18,8 @@ You can also manage artifacts using client application code written in Java. For
 +
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1", <1>
-  "https//my-cluster-service-registry-myproject.example.com");
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+  "https//my-cluster-service-registry-myproject.example.com"); <1>
    try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
    {
     String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
@@ -35,8 +36,8 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
     }
  }
 ----
-<1> Create the registry client properties. You can create properties for more than one registry node.
-<2> Check to see if the schema already exists based on the artifact ID.
+<1> Configure the client application with the Service Registry URL in the client properties. You can create properties for more than one registry node.
+<2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
 <3> Create the new schema artifact in the registry.
 
 .Additional resources

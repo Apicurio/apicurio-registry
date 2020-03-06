@@ -3,9 +3,9 @@
 [id="installing-the-registry"]
 = Installing {registry}
 
-This chapter explains how to install and run {registry} with the following storage:
-
 ifdef::apicurio-registry[]
+This chapter explains how to install and run {registry} with the following storage options:
+
 .Docker
 * xref:installing-registry-in-memory-storage[]
 * xref:installing-registry-jpa-storage[]
@@ -18,6 +18,8 @@ ifdef::apicurio-registry[]
 endif::[]
  
 ifdef::rh-service-registry[]
+This chapter explains how to set up storage in AMQ Streams and how to install and run {registry}:
+
 * xref:setting-up-kafka-kubernetes-storage[]
 * xref:installing-registry-kafka-kubernetes-storage[]
 endif::[]
@@ -29,6 +31,8 @@ ifdef::apicurio-registry[]
 .Additional resources
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 endif::[]
+
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage, for example, Kafka cluster configuration, and on the number and type of artifacts stored in the registry.
 
 //INCLUDES
 ifdef::apicurio-registry[]

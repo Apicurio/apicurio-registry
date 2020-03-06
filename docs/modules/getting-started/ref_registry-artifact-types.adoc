@@ -3,7 +3,7 @@
 [id="registry-artifact-types"]
 
 = Supported artifact types
-You can manage the following artifact types in the registry:
+You can store and manage the following artifact types in {registry}:
 
 [%header,cols=2*] 
 |===

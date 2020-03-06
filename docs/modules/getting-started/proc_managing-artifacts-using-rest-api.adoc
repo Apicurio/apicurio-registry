@@ -4,18 +4,18 @@
 [id="managing-artifacts-using-rest-api"]
 = Managing artifacts using the Registry REST API
 
-The Registry REST API enables client applications to manage artifacts in the registry. This API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. 
+The Registry REST API enables client applications to manage artifacts in the registry, for example, in a CI/CD pipeline deployed in production. This REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. 
 
-This chapter shows an example of using the Registry REST API to create and retrieve a simple Apache Avro schema artifact in the registry.
+This chapter shows simple curl-based examples of using the Registry REST API to create and retrieve a Apache Avro schema artifact in the registry. 
 
 .Prerequisites
 
-* See xref:registry-rest-api[]
-* {registry} must be installed and running in your environment
+* See xref:registry-rest-api[].
+* {registry} must be installed and running in your environment. For details, see xref:installing-the-registry[].
 
 .Procedure
 
-. Create an artifact in the registry using the `/artifacts` API method. The following example `curl` command creates a simple Avro schema artifact for a share price application:
+. Create an artifact in the registry using the `/artifacts` operation. The following example `curl` command creates a simple Avro schema artifact for a share price application:
 +
 [source,bash]
 ----
@@ -23,12 +23,12 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 ----
 ifdef::apicurio-registry[]
 +
-In this example, `MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `http://localhost:8080/artifacts`.
+`MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `http://localhost:8080/artifacts`.
 endif::[]
 
 ifdef::rh-service-registry[]
 +
-In this example, `MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+`MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was created. For example:

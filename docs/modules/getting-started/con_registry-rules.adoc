@@ -3,7 +3,7 @@
 [id="registry-rules"]
 
 = Rules for registry content
-To govern content evolution, you can configure optional rules for artifacts added to the registry, as a post-installation step. All rules configured for an artifact must pass before a new artifact version can be uploaded to the registry. The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
+To govern content evolution in the registry, you can configure optional rules for artifacts added to the registry, as a post-installation step. Any rules configured for an artifact must pass before a new artifact version can be uploaded to the registry. The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
 
 * Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
 * Valid syntax, but semantics violate company standards

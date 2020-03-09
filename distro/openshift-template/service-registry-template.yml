@@ -92,8 +92,10 @@ objects:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
-          - name: APPLICATION_SERVER
-            value: "$(POD_IP):9000"
+          - name: APPLICATION_SERVER_HOST
+            value: "$(POD_IP)"
+          - name: APPLICATION_SERVER_PORT
+            value: 9000
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}

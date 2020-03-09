@@ -224,6 +224,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public boolean isAlive() {
+        return (streams.state() != KafkaStreams.State.ERROR);
+    }
+
+    @Override
     public void updateArtifactState(String artifactId, ArtifactState state) {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {

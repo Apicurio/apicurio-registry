@@ -105,7 +105,7 @@
 
 		<!-- Schema types -->
 		<avro.version>1.9.2</avro.version>
-		<json-schema-validator.version>1.0.31</json-schema-validator.version>
+		<json-schema-validator.version>1.0.32</json-schema-validator.version>
 		<wire-schema.version>3.0.2</wire-schema.version>
 		<protobuf.version>3.11.4</protobuf.version>
 

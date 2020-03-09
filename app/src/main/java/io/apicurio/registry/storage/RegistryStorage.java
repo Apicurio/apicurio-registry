@@ -47,6 +47,17 @@ public interface RegistryStorage {
     }
 
     /**
+     * Is the storage alive?
+     * <p>
+     * By default it's true.
+     *
+     * @return true if yes, false if no
+     */
+    default boolean isAlive() {
+        return true;
+    }
+
+    /**
      * Update artifact state.
      *
      * @param artifactId

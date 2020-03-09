@@ -171,9 +171,13 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             long globalId = properties.toGlobalId(offset, context.partition());
 
             data = apply(artifactId, value, data, globalId, offset);
-            store.put(artifactId, data);
-            // dispatch
-            dispatcher.apply(artifactId, data);
+            if (data != null) {
+                store.put(artifactId, data);
+                // dispatch
+                dispatcher.apply(artifactId, data);
+            } else {
+                store.delete(artifactId);
+            }
 
             Str.ActionType action = value.getType();
             switch (action) {
@@ -351,10 +355,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         builder.setArtifacts((int) (version - 1), Str.ArtifactValue.getDefaultInstance());
                     }
                 } else {
-                    for (int i = 0; i < builder.getArtifactsCount(); i++) {
-                        // as deleted ... already deleted will be deleted "again" .. ?!
-                        builder.setArtifacts(i, Str.ArtifactValue.getDefaultInstance());
-                    }
+                    return null; // this will remove artifacts from the store
                 }
             }
             return builder.build();

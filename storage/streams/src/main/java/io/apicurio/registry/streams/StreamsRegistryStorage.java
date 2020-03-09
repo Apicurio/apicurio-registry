@@ -198,6 +198,19 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
     }
 
+    private boolean exists(String artifactId) {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            for (int i = 0; i < data.getArtifactsCount(); i++) {
+                Str.ArtifactValue artifact = data.getArtifacts(i);
+                if (isValid(artifact)) {
+                    return true; // we found a valid one
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public boolean isReady() {
         // first a quick local check
@@ -312,11 +325,15 @@ public class StreamsRegistryStorage implements RegistryStorage {
         Set<String> ids = new TreeSet<>();
         try (CloseableIterator<String> iter = storageStore.allKeys()) {
             while (iter.hasNext()) {
-                ids.add(iter.next());
+                String artifactId = iter.next();
+                // a bit costly ...
+                if (exists(artifactId)) {
+                    ids.add(artifactId);
+                }
             }
-            ids.remove(GLOBAL_RULES_ID);
-            return ids;
         }
+        ids.remove(GLOBAL_RULES_ID);
+        return ids;
     }
 
     @Override

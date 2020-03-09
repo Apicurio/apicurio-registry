@@ -60,21 +60,27 @@ ifdef::apicurio-registry[]
 $ oc get services | grep .*kafka-bootstrap
 ----
 
-. Create a new OpenShift application with the following parameters: 
+. Create a new OpenShift application using the `oc new-app` command. For example:
 +
+[source,bash]
+----
+$ oc new-app apicurio-registry-template-streams.yml \ 
+   -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 \
+   -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com \ 
+   -p APPLICATION_ID=my-kafka-streams-app
+----
++
+You must specify the following arguments: 
+
 ** `apicurio-registry-template-streams`: The OpenShift template file for {registry}.
 ** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your OpenShift cluster, followed by the Kafka broker port. For example: `my-cluster-kafka-bootstrap:9092`.  
 ** `REGISTRY_ROUTE`: The name of the OpenShift route to expose {registry}, which is based on your OpenShift cluster environment, For example: `my-cluster-service-registry-myproject.example.com`.
 ** `APPLICATION_ID`: The name of your Kafka Streams application. For example: `my-kafka-streams-app`. 
++
+You can also specify the following environment variables using the `-e` option:
+
 ** `APPLICATION_SERVER_HOST`: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
 ** `APPLICATION_SERVER_PORT`: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
-+
-The following command shows an example: 
-+
-[source,bash]
-----
-$ oc new-app apicurio-registry-template-streams.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com -p APPLICATION_ID=my-kafka-streams-app
-----
 
 endif::[]
 
@@ -88,23 +94,29 @@ link:https://github.com/Apicurio/apicurio-registry/blob/1.1.x-redhat/distro/open
 ----
 $ oc get services | grep .*kafka-bootstrap
 ----
+. Create a new OpenShift application using the `oc new-app` command. For example:
++
+[source,bash]
+----
+$ oc new-app service-registry-template.yml \
+   -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 \ 
+   -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com \ 
+   -p APPLICATION_ID=my-kafka-streams-app
+----
++
+You must specify the following arguments: 
 
-. Create a new OpenShift application with the following parameters: 
 ** `service-registry-template.yml`: The OpenShift template file for {registry}.
 ** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your OpenShift cluster, followed by the Kafka broker port. For example: `my-cluster-kafka-bootstrap:9092`.  
 ** `REGISTRY_ROUTE`: The name of the OpenShift route to expose {registry}, which is based on your OpenShift cluster environment. For example: `my-cluster-service-registry-myproject.example.com`.
 ** `APPLICATION_ID`: The name of your AMQ Streams application. For example: `my-kafka-streams-app`. 
-** `APPLICATION_SERVER_HOST`: The IP address of your AMQ Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
-** `APPLICATION_SERVER_PORT`: The port number of your AMQ Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
 +
-The following command shows an example:  
-+
-[source,bash]
-----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com -p APPLICATION_ID=my-kafka-streams-app
-----
-+
-You should see output such as the following when complete: 
+You can also specify the following environment variables using the `-e` option:
+
+** `APPLICATION_SERVER_HOST`: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
+** `APPLICATION_SERVER_PORT`: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
+
+. Verify the command output when commplete. For example: 
 +
 ----
 Deploying template "myproject/service-registry" for "service-registry-template.yml" to project myproject

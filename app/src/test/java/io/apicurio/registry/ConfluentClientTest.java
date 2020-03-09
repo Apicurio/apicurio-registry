@@ -139,6 +139,36 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testDelete() throws Exception {
+        SchemaRegistryClient client = buildClient();
+
+        String subject = generateArtifactId();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        int id = client.register(subject, schema);
+        client.reset();
+
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema2 = client.getById(id);
+            Assertions.assertNotNull(schema2);
+            return schema2;
+        });
+
+        Collection<String> subjects = client.getAllSubjects();
+        Assertions.assertTrue(subjects.contains(subject));
+
+        client.deleteSubject(subject);
+
+        retry(() -> {
+            // delete can be async
+            Collection<String> all = client.getAllSubjects();
+            Assertions.assertFalse(all.contains(subject));
+            return null;
+        });
+    }
+
+    @Test
     public void testConverter_PreRegisterSchema() {
         String subject = generateArtifactId();
         String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);

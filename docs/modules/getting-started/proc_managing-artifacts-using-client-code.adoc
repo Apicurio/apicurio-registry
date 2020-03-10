@@ -41,4 +41,5 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
 <3> Create the new schema artifact in the registry.
 
 .Additional resources
-* For more details on Kafka client applications, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+* For more details on Kafka client applications, see: link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+* For an example application, see https://github.com/Apicurio/apicurio-registry-demo.

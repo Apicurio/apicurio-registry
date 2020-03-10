@@ -71,6 +71,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -107,6 +108,9 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Inject
     ProducerActions<Long, StorageSnapshot> snapshotProducer;
+
+    @Inject
+    Supplier<Boolean> livenessCheck;
 
     private volatile long offset = 0;
 
@@ -372,6 +376,11 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     public boolean isReady() {
         // should be good enough, as other nodes will get the msgs after they join Kafka broker
         return (executor != null);
+    }
+
+    @Override
+    public boolean isAlive() {
+        return livenessCheck.get();
     }
 
     @Override

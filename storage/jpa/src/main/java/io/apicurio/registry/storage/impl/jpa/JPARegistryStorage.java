@@ -46,14 +46,16 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceException;
-import javax.persistence.TypedQuery;
-import javax.transaction.Transactional;
-import java.util.function.Function;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static java.util.Objects.requireNonNull;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -63,10 +65,14 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static java.util.Objects.requireNonNull;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import java.util.function.Function;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.PersistenceException;
+import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
@@ -209,6 +215,12 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     // ========================================================================
+
+    @Override
+    @Transactional
+    public boolean isAlive() {
+        return (getGlobalRules() != null);
+    }
 
     @Override
     @Transactional

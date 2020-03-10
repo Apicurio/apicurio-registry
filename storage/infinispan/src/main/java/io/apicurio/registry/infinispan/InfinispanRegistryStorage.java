@@ -24,17 +24,25 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.infinispan.configuration.cache.CacheMode;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
+import org.infinispan.health.ClusterHealth;
+import org.infinispan.health.HealthStatus;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.util.function.SerializableBiFunction;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -136,11 +144,17 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         //noinspection unchecked
         return (SerializableBiFunction) ((id, m) -> (m == null) ? new ConcurrentHashMap<>() : m);
     }
-    
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override // make it serializable
     protected BiFunction<String, Map<String, String>, Map<String, String>> rulesLookupFn() {
         //noinspection unchecked
         return (SerializableBiFunction) ((id, m) -> (m == null) ? new ConcurrentHashMap<>() : m);
+    }
+
+    @Override
+    public boolean isAlive() {
+        ClusterHealth health = manager.getHealth().getClusterHealth();
+        return (health.getHealthStatus() != HealthStatus.DEGRADED);
     }
 }

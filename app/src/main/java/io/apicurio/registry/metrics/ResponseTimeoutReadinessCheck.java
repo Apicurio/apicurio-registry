@@ -1,9 +1,15 @@
 package io.apicurio.registry.metrics;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.health.HealthCheck;
+import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Readiness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
@@ -12,13 +18,6 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.ext.Provider;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.health.HealthCheck;
-import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Readiness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -85,11 +84,11 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
                     suspectSuper();
                 }
             } catch (DateTimeParseException ex) {
-                log.error("Value '%s' of header '%s' is the wrong format!", requestStart, HEADER_NAME);
+                log.error("Value '{}' of header '{}' is the wrong format!", requestStart, HEADER_NAME);
             }
 
         } else {
-            log.warn("Expected header '%s' not found.", HEADER_NAME);
+            log.warn("Expected header '{}' not found.", HEADER_NAME);
         }
     }
 

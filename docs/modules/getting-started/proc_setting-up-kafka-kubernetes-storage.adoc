@@ -35,7 +35,7 @@ endif::[]
 
 ifdef::rh-service-registry[]
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have downloaded AMQ Streams from the Red Hat customer portal or already have AMQ Streams installed.
+* You must have downloaded AMQ Streams from the Red Hat customer portal, or already have AMQ Streams installed.
 endif::[]
 
 .Procedure
@@ -131,7 +131,7 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-. If you do not already have AMQ Streams installed, install AMQ Streams on your OpenShift cluster. For example, enter the following command from the AMQ Streams download directory:
+. If you do not already have AMQ Streams installed, install AMQ Streams on your OpenShift cluster. For example, enter the following command from your AMQ Streams download directory:
 +
 [source,bash]
 ----
@@ -143,7 +143,7 @@ oc apply -f install/cluster-operator/
 [source,bash]
 ----
 $ cat << EOF | oc create -f -
-apiVersion: kafka.strimzi.io/v1alpha1
+apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 metadata: 
  name: my-cluster

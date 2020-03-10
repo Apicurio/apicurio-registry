@@ -23,12 +23,12 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 ----
 ifdef::apicurio-registry[]
 +
-`MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `http://localhost:8080/artifacts`.
+`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `http://localhost:8080/artifacts`.
 endif::[]
 
 ifdef::rh-service-registry[]
 +
-`MY-REGISTRY-URL` refers to the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was created. For example:

@@ -27,7 +27,7 @@ public class PersistenceExceptionLivenessInterceptor {
         } catch (Exception ex) {
             Set<Class<? extends Exception>> ignored = RegistryExceptionMapper.getIgnored();
             if (!ignored.contains(ex.getClass())) { // suspect and rethrow unless ignored
-                check.suspectSuper();
+                check.suspectWithException(ex);
             }
             throw ex;
         }

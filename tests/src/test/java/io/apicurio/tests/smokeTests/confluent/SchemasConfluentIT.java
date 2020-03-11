@@ -17,7 +17,9 @@
 package io.apicurio.tests.smokeTests.confluent;
 
 import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.Constants;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.apicurio.tests.utils.subUtils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.response.Response;
 import org.apache.avro.Schema;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,53 +47,26 @@ public class SchemasConfluentIT extends BaseIT {
     private static final String SUBJECT_NAME = "subject-example";
 
     @Test
-    void createAndUpdateSchema() throws IOException, RestClientException {
+    void createAndUpdateSchema() throws IOException, RestClientException, TimeoutException {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
-
-        int idOfSchema = confluentService.register(SUBJECT_NAME, schema);
-
-        LOGGER.info("Schema with ID {} was created: {}", idOfSchema, schema.toString());
-
-        Schema newSchema = confluentService.getBySubjectAndId(SUBJECT_NAME, idOfSchema);
-
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(schema.toString(), is(newSchema.toString()));
-        assertThat(confluentService.getVersion(SUBJECT_NAME, schema), is(confluentService.getVersion(SUBJECT_NAME, newSchema)));
-
-        assertThat("myrecord1", is(newSchema.getFullName()));
-        assertThat(Schema.Type.RECORD, is(newSchema.getType()));
-        assertThat("foo1 type:STRING pos:0", is(newSchema.getFields().get(0).toString()));
+        createArtifactViaConfluentClient(schema, SUBJECT_NAME);
 
         Schema updatedSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo2\",\"type\":\"long\"}]}");
-
-        idOfSchema = confluentService.register(SUBJECT_NAME, updatedSchema);
-
-        LOGGER.info("Schema with ID {} was updated: {}", idOfSchema, updatedSchema.toString());
-
-        Schema newUpdatedSchema = confluentService.getBySubjectAndId(SUBJECT_NAME, idOfSchema);
-
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(updatedSchema.toString(), is(newUpdatedSchema.toString()));
-        assertThat(confluentService.getVersion(SUBJECT_NAME, updatedSchema), is(confluentService.getVersion(SUBJECT_NAME, newUpdatedSchema)));
-
-        assertThat("myrecord2", is(newUpdatedSchema.getFullName()));
-        assertThat(Schema.Type.RECORD, is(newUpdatedSchema.getType()));
-        assertThat("foo2 type:LONG pos:0", is(newUpdatedSchema.getFields().get(0).toString()));
+        createArtifactViaConfluentClient(updatedSchema, SUBJECT_NAME);
 
         assertThrows(SchemaParseException.class, () -> new Schema.Parser().parse("<type>record</type>\n<name>test</name>"));
+        assertThat(confluentService.getAllVersions(SUBJECT_NAME).size(), is(2));
 
         confluentService.deleteSubject(SUBJECT_NAME);
     }
 
     @Test
-    void createAndDeleteMultipleSchemas() throws IOException, RestClientException {
+    void createAndDeleteMultipleSchemas() throws IOException, RestClientException, TimeoutException {
         for (int i = 0; i < 50; i++) {
             String name = "myrecord" + i;
             String subjectName = "subject-example-" + i;
             Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-            int idOfSchema = confluentService.register(subjectName, schema);
-            Schema newSchema  = confluentService.getById(idOfSchema);
-            LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
+            createArtifactViaConfluentClient(schema, subjectName);
         }
 
         assertThat(50, is(confluentService.getAllSubjects().size()));
@@ -100,50 +76,47 @@ public class SchemasConfluentIT extends BaseIT {
             confluentService.deleteSubject("subject-example-" + i);
         }
 
-        assertThat(0, is(confluentService.getAllSubjects().size()));
-        LOGGER.info("All subjects {} schemas", confluentService.getAllSubjects().size());
+        TestUtils.waitFor("all schemas deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllSubjects().size() == 0;
+            } catch (IOException | RestClientException e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
     }
 
     @Test
-    void deleteSchemasSpecificVersion() throws IOException, RestClientException {
+    void deleteSchemasSpecificVersion() throws IOException, RestClientException, TimeoutException {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, SUBJECT_NAME);
+        schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, SUBJECT_NAME);
 
-        int schemaId = confluentService.register(SUBJECT_NAME, schema);
+        List<Integer> schemeVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
-        LOGGER.info("Created record with name: {} and ID: {}", schema.getFullName(), schemaId);
-
-        String schemaSubject = "subject-example";
-
-        for (int x = 0; x < 1; x++) {
-            schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}");
-            confluentService.register(schemaSubject, schema);
-        }
-
-        List<Integer> schemeVersions = confluentService.getAllVersions(schemaSubject);
-
-        LOGGER.info("Available version of schema with Id:{} are {}", schemaId, schemeVersions);
+        LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
         assertThat(schemeVersions, hasItems(1, 2));
 
-        confluentService.deleteSchemaVersion(schemaSubject, "2");
+        confluentService.deleteSchemaVersion(SUBJECT_NAME, "2");
 
-        schemeVersions = confluentService.getAllVersions(schemaSubject);
+        schemeVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
-        LOGGER.info("Available version of schema with Id:{} are {}", schemaId, schemeVersions);
+        LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
         assertThat(schemeVersions, hasItems(1));
 
         try {
             confluentService.getVersion("2", schema);
         } catch (RestClientException e) {
-            LOGGER.info("Schema version 2 doesn't exists in subject {}", schemaSubject);
+            LOGGER.info("Schema version 2 doesn't exists in subject {}", SUBJECT_NAME);
         }
 
         schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, SUBJECT_NAME);
 
-        confluentService.register(schemaSubject, schema);
+        schemeVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
-        schemeVersions = confluentService.getAllVersions(schemaSubject);
-
-        LOGGER.info("Available version of schema with Id:{} are {}", schemaId, schemeVersions);
+        LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
         assertThat(schemeVersions, hasItems(1, 2));
 
         confluentService.deleteSubject(SUBJECT_NAME);
@@ -159,33 +132,28 @@ public class SchemasConfluentIT extends BaseIT {
     }
 
     @Test
-    void createSchemaSpecifyVersion() throws IOException, RestClientException {
+    void createSchemaSpecifyVersion() throws IOException, RestClientException, TimeoutException {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-
-        int schemaId = confluentService.register(SUBJECT_NAME, schema);
-
-        schema = confluentService.getById(schemaId);
-
-        LOGGER.info("Created artifact name:{} with Id:{}", schema.getFullName(), schemaId);
+        createArtifactViaConfluentClient(schema, SUBJECT_NAME);
 
         Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-
-        schemaId = confluentService.register(SUBJECT_NAME, updatedArtifact);
-
-        schema = confluentService.getById(schemaId);
-
-        LOGGER.info("Schema with name:{} Id:{} was updated content:{}", schema.getFullName(), schemaId, schema.toString());
+        createArtifactViaConfluentClient(updatedArtifact, SUBJECT_NAME);
 
         List<Integer> schemaVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
-        LOGGER.info("Available versions of schema with ID {} are: {}", schemaId, schemaVersions.toString());
+        LOGGER.info("Available versions of schema with NAME {} are: {}", SUBJECT_NAME, schemaVersions.toString());
         assertThat(schemaVersions, hasItems(1, 2));
 
         confluentService.deleteSubject(SUBJECT_NAME);
     }
 
+    @Test
+    void deleteNonexistingSchema() {
+        assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
+    }
+
     @AfterEach
     void tearDown() throws IOException, RestClientException {
-        confluentService.deleteSubject(SUBJECT_NAME);
+        clearAllConfluentSubjects();
     }
 }

@@ -55,7 +55,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroConfluentSerDesFail(TestInfo testInfo) throws IOException, RestClientException {
+    void testAvroConfluentSerDesFail(TestInfo testInfo) throws IOException, RestClientException, TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = "myrecordconfluent2";
         String schemaKey = "key1";
@@ -68,7 +68,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroConfluentSerDesWrongStrategyTopic(TestInfo testInfo) throws IOException, RestClientException {
+    void testAvroConfluentSerDesWrongStrategyTopic(TestInfo testInfo) throws IOException, RestClientException, TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = "myrecordconfluent3";
         String schemaKey = "key1";
@@ -81,7 +81,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     }
 
     @Test
-    void testAvroConfluentSerDesWrongStrategyRecord(TestInfo testInfo) throws IOException, RestClientException {
+    void testAvroConfluentSerDesWrongStrategyRecord(TestInfo testInfo) throws IOException, RestClientException, TimeoutException {
         String topicName = "topic-" + testInfo.getTestMethod().get().getName();
         String subjectName = topicName + "-value";
         String schemaKey = "key1";

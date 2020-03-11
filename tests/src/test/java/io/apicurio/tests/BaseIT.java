@@ -185,12 +185,22 @@ public abstract class BaseIT implements TestSeparator, Constants {
             });
     }
 
-    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
+    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
         int idOfSchema = confluentService.register(artifactName, schema);
-        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(schema.toString(), is(newSchema.toString()));
-        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                try {
+                    Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+                    LOGGER.info("Checking that created schema is equal to the get schema");
+                    assertThat(schema.toString(), is(newSchema.toString()));
+                    assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
+                    return true;
+                } catch (IOException | RestClientException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            });
     }
 
     public void updateArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
@@ -201,7 +211,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
     }
 
-    private static void clearAllConfluentSubjects() throws IOException, RestClientException {
+    protected static void clearAllConfluentSubjects() throws IOException, RestClientException {
         List<String> confluentSubjects = (List<String>) confluentService.getAllSubjects();
         for (String confluentSubject : confluentSubjects) {
             LOGGER.info("Deleting confluent schema {}", confluentSubject);

@@ -32,17 +32,9 @@ jobs:
           name: Verify (Standard)
           command: ./mvnw -Pjpa test package
       - run:
-          name: Start Registry for QE Tests
-          command: java -Dquarkus.log.console.level=DEBUG -Dquarkus.log.category."io".level=DEBUG -jar ./app/target/apicurio-registry-app-1.1.2-SNAPSHOT-runner.jar
-          background: true
-      - run:
           name: Run QE Tests
           command: |
             ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true
-          environment:
-            - REGISTRY_PORT: "8080"
-            - REGISTRY_URL: "localhost"
-            - EXTERNAL_REGISTRY: "true"
 
       - run:
           name: Save test results

@@ -97,9 +97,11 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     @AfterAll
     static void afterAll(TestInfo info) throws Exception {
-        registry.stop();
-        Thread.sleep(3000);
-        storeRegistryLog(info.getTestClass().get().getCanonicalName());
+        if (!RegistryFacade.EXTERNAL_REGISTRY.equals(Boolean.TRUE.toString())) {
+            registry.stop();
+            Thread.sleep(3000);
+            storeRegistryLog(info.getTestClass().get().getCanonicalName());
+        }
         apicurioService.close();
     }
 

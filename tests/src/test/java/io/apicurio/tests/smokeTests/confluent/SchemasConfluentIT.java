@@ -98,26 +98,29 @@ public class SchemasConfluentIT extends BaseIT {
         LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
         assertThat(schemeVersions, hasItems(1, 2));
 
-        confluentService.deleteSchemaVersion(SUBJECT_NAME, "2");
-
         schemeVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
         LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
         assertThat(schemeVersions, hasItems(1));
 
-        try {
-            confluentService.getVersion("2", schema);
-        } catch (RestClientException e) {
-            LOGGER.info("Schema version 2 doesn't exists in subject {}", SUBJECT_NAME);
-        }
-
         schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, SUBJECT_NAME);
+
+        confluentService.deleteSchemaVersion(SUBJECT_NAME, "2");
+
+        TestUtils.waitFor("all specific schema version deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllVersions(SUBJECT_NAME).size() == 2;
+            } catch (IOException | RestClientException e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
 
         schemeVersions = confluentService.getAllVersions(SUBJECT_NAME);
 
         LOGGER.info("Available version of schema with name:{} are {}", SUBJECT_NAME, schemeVersions);
-        assertThat(schemeVersions, hasItems(1, 2));
+        assertThat(schemeVersions, hasItems(1, 3));
 
         confluentService.deleteSubject(SUBJECT_NAME);
     }

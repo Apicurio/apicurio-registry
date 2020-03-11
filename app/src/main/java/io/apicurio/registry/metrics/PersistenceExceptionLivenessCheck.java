@@ -8,6 +8,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Fail liveness check if the number of exceptions thrown by storage is too high.
@@ -17,9 +19,9 @@ import org.eclipse.microprofile.health.Liveness;
 @ApplicationScoped
 @Liveness
 @Default
-public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck {
+public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck, LivenessCheck {
 
-//    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessCheck.class);
+    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessCheck.class);
 
     /**
      * Maximum number of exceptions raised by storage implementation,
@@ -57,5 +59,19 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
                 .withData("errorCount", errorCounter)
                 .state(up)
                 .build();
+    }
+
+    @Override
+    public void suspect(String reason) {
+        log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck: {}", reason);
+        super.suspectSuper();
+        log.info("After this event, the error counter is {} out of the maximum {} allowed.", errorCounter, configErrorThreshold);
+    }
+
+    @Override
+    public void suspectWithException(Throwable reason) {
+        log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck because of an Exception: ", reason);
+        super.suspectSuper();
+        log.info("After this event, the error counter is {} out of the maximum {} allowed.", errorCounter, configErrorThreshold);
     }
 }

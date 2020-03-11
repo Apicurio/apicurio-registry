@@ -48,7 +48,7 @@ public class PersistenceExceptionLivenessInterceptor {
             return context.proceed();
         } catch (Exception ex) {
             if (!IGNORED.contains(ex.getClass())) { // suspect and rethrow unless ignored
-                check.suspectSuper();
+                check.suspectWithException(ex);
             }
             throw ex;
         }

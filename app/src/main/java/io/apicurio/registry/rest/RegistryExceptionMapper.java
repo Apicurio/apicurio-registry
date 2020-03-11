@@ -81,7 +81,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     public Response toResponse(Throwable t) {
         int code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
         if (code == HTTP_INTERNAL_ERROR) {
-            liveness.suspect();
+            liveness.suspectWithException(t);
 	    log.error(t.getMessage(), t);
         }
         Error error = toError(t, code);

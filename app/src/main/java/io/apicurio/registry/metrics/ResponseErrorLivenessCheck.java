@@ -8,6 +8,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -15,9 +17,9 @@ import org.eclipse.microprofile.health.Liveness;
 @ApplicationScoped
 @Liveness
 @Default
-public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck {
+public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck, LivenessCheck {
 
-//    private static final Logger log = LoggerFactory.getLogger(ResponseErrorLivenessCheck.class);
+    private static final Logger log = LoggerFactory.getLogger(ResponseErrorLivenessCheck.class);
 
     /**
      * Maximum number of HTTP 5xx errors returned to the user
@@ -47,10 +49,6 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
         init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
     }
 
-    public synchronized void suspect() {
-        suspectSuper();
-    }
-
     @Override
     public synchronized HealthCheckResponse call() {
         callSuper();
@@ -59,5 +57,19 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
                 .withData("errorCount", errorCounter)
                 .state(up)
                 .build();
+    }
+
+    @Override
+    public void suspect(String reason) {
+        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck: {}", reason);
+        super.suspectSuper();
+        log.info("After this event, the error counter is {} out of the maximum {} allowed.", errorCounter, configErrorThreshold);
+    }
+
+    @Override
+    public void suspectWithException(Throwable reason) {
+        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an Exception: ", reason);
+        super.suspectSuper();
+        log.info("After this event, the error counter is {} out of the maximum {} allowed.", errorCounter, configErrorThreshold);
     }
 }

@@ -101,7 +101,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
-            liveness.suspectWithException();
+            liveness.suspectWithException(t);
             log.error(t.getMessage(), t);
         }
 

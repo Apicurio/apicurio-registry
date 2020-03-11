@@ -26,10 +26,7 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
@@ -192,6 +189,14 @@ public class ArtifactsResourceImpl implements ArtifactsResource {
         Objects.requireNonNull(data.getState());
         storage.updateArtifactState(artifactId, data.getState());
     }
+
+    /**
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactIds()
+     */
+    @Override
+    public Set<String> getArtifactIds() {
+        return storage.getArtifactIds();
+    }    
 
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.beans.UpdateState)

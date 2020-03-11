@@ -68,7 +68,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
 
     @Override
     public void suspectWithException(Throwable reason) {
-        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an Exception: ", reason);
+        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ", reason);
         super.suspectSuper();
         log.info("After this event, the error counter is {} out of the maximum {} allowed.", errorCounter, configErrorThreshold);
     }

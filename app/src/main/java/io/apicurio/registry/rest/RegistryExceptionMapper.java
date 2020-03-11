@@ -35,11 +35,14 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -56,22 +59,28 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
 
-    private static final Map<Class<?>, Integer> CODE_MAP = new HashMap<>();
+    private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
     @Inject
     ResponseErrorLivenessCheck liveness;
 
     static {
-        CODE_MAP.put(AlreadyExistsException.class, HTTP_CONFLICT);
-        CODE_MAP.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
-        CODE_MAP.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
-        CODE_MAP.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        CODE_MAP.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
-        CODE_MAP.put(NotFoundException.class, HTTP_NOT_FOUND);
-        CODE_MAP.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
-        CODE_MAP.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
-        CODE_MAP.put(RuleViolationException.class, HTTP_BAD_REQUEST);
-        CODE_MAP.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
+        Map<Class<? extends Exception>, Integer> map = new HashMap<>();
+        map.put(AlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(BadRequestException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
+        map.put(NotFoundException.class, HTTP_NOT_FOUND);
+        map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(RuleViolationException.class, HTTP_BAD_REQUEST);
+        map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
+        CODE_MAP = Collections.unmodifiableMap(map);
+    }
+
+    public static Set<Class<? extends Exception>> getIgnored() {
+        return CODE_MAP.keySet();
     }
 
     /**
@@ -79,16 +88,27 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
-        int code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
-        if (code == HTTP_INTERNAL_ERROR) {
-            liveness.suspectWithException(t);
-	    log.error(t.getMessage(), t);
+        Response.ResponseBuilder builder;
+        int code;
+        if (t instanceof WebApplicationException) {
+            WebApplicationException wae = (WebApplicationException) t;
+            Response response = wae.getResponse();
+            builder = Response.fromResponse(response);
+            code = response.getStatus();
+        } else {
+            code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
+            builder = Response.status(code);
         }
+
+        if (code == HTTP_INTERNAL_ERROR) {
+            liveness.suspectWithException();
+            log.error(t.getMessage(), t);
+        }
+
         Error error = toError(t, code);
-        return Response.status(code)
-                .type(MediaType.APPLICATION_JSON)
-                .entity(error)
-                .build();
+        return builder.type(MediaType.APPLICATION_JSON)
+                      .entity(error)
+                      .build();
     }
 
     private static Error toError(Throwable t, int code) {

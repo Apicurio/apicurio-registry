@@ -40,6 +40,7 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -79,16 +80,27 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
-        int code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
+        Response.ResponseBuilder builder;
+        int code;
+        if (t instanceof WebApplicationException) {
+            WebApplicationException wae = (WebApplicationException) t;
+            Response response = wae.getResponse();
+            builder = Response.fromResponse(response);
+            code = response.getStatus();
+        } else {
+            code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
+            builder = Response.status(code);
+        }
+
         if (code == HTTP_INTERNAL_ERROR) {
             liveness.suspect();
-	    log.error(t.getMessage(), t);
+            log.error(t.getMessage(), t);
         }
+
         Error error = toError(t, code);
-        return Response.status(code)
-                .type(MediaType.APPLICATION_JSON)
-                .entity(error)
-                .build();
+        return builder.type(MediaType.APPLICATION_JSON)
+                      .entity(error)
+                      .build();
     }
 
     private static Error toError(Throwable t, int code) {

@@ -35,6 +35,7 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
@@ -56,7 +57,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
 
-    private static final Map<Class<?>, Integer> CODE_MAP = new HashMap<>();
+    private static final Map<Class<? extends Throwable>, Integer> CODE_MAP = new HashMap<>();
 
     @Inject
     ResponseErrorLivenessCheck liveness;
@@ -72,6 +73,10 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         CODE_MAP.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP.put(RuleViolationException.class, HTTP_BAD_REQUEST);
         CODE_MAP.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
+    }
+
+    public static Map<Class<? extends Throwable>, Integer> getCodeMap() {
+        return Collections.unmodifiableMap(CODE_MAP);
     }
 
     /**

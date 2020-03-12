@@ -64,22 +64,32 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             CompletionStage<ArtifactMetaData> cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
-            ArtifactMetaData amd = ConcurrentUtil.result(cs);
+            ArtifactMetaData amd1 = ConcurrentUtil.result(cs);
 
             retry(() -> {
-                service.getArtifactMetaDataByGlobalId(amd.getGlobalId());
+                service.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
+                return null;
+            });
+
+            cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+            ArtifactMetaData amd2 = ConcurrentUtil.result(cs);
+
+            retry(() -> {
+                service.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
                 return null;
             });
 
             List<Integer> versions1 = client.getAllVersions(subject);
-            Assertions.assertEquals(2, versions1.size());
+            Assertions.assertEquals(3, versions1.size());
             Assertions.assertTrue(versions1.contains(1));
             Assertions.assertTrue(versions1.contains(2));
+            Assertions.assertTrue(versions1.contains(3));
 
             List<Long> versions2 = service.listArtifactVersions(subject);
-            Assertions.assertEquals(2, versions2.size());
+            Assertions.assertEquals(3, versions2.size());
             Assertions.assertTrue(versions2.contains(1L));
             Assertions.assertTrue(versions2.contains(2L));
+            Assertions.assertTrue(versions2.contains(3L));
 
             client.deleteSchemaVersion(subject, "1");
 
@@ -93,14 +103,35 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             });
 
             versions1 = client.getAllVersions(subject);
-            Assertions.assertEquals(1, versions1.size());
+            Assertions.assertEquals(2, versions1.size());
             Assertions.assertFalse(versions1.contains(1));
             Assertions.assertTrue(versions1.contains(2));
+            Assertions.assertTrue(versions1.contains(3));
+
+            versions2 = service.listArtifactVersions(subject);
+            Assertions.assertEquals(2, versions2.size());
+            Assertions.assertFalse(versions2.contains(1L));
+            Assertions.assertTrue(versions2.contains(2L));
+            Assertions.assertTrue(versions2.contains(3L));
+
+            service.deleteArtifactVersion(2, subject);
+
+            retry(() -> {
+                try {
+                    service.getArtifactVersionMetaData(2, subject);
+                    Assertions.fail();
+                } catch (Exception ignored) {
+                }
+                return null;
+            });
+
+            versions1 = client.getAllVersions(subject);
+            Assertions.assertEquals(1, versions1.size());
+            Assertions.assertTrue(versions1.contains(3));
 
             versions2 = service.listArtifactVersions(subject);
             Assertions.assertEquals(1, versions2.size());
-            Assertions.assertFalse(versions2.contains(1L));
-            Assertions.assertTrue(versions2.contains(2L));
+            Assertions.assertTrue(versions2.contains(3L));
         }
     }
 

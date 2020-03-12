@@ -18,6 +18,10 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -30,11 +34,74 @@ import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+
 @QuarkusTest
 public class SerdeMixTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
         return new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
+    }
+
+    @Test
+    public void testVersions() throws Exception {
+        SchemaRegistryClient client = buildClient();
+
+        String subject = generateArtifactId();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        int id = client.register(subject, schema);
+        client.reset();
+
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema2 = client.getById(id);
+            Assertions.assertNotNull(schema2);
+            return schema2;
+        });
+
+        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+            CompletionStage<ArtifactMetaData> cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+            ArtifactMetaData amd = ConcurrentUtil.result(cs);
+
+            retry(() -> {
+                service.getArtifactMetaDataByGlobalId(amd.getGlobalId());
+                return null;
+            });
+
+            List<Integer> versions1 = client.getAllVersions(subject);
+            Assertions.assertEquals(2, versions1.size());
+            Assertions.assertTrue(versions1.contains(1));
+            Assertions.assertTrue(versions1.contains(2));
+
+            List<Long> versions2 = service.listArtifactVersions(subject);
+            Assertions.assertEquals(2, versions2.size());
+            Assertions.assertTrue(versions2.contains(1L));
+            Assertions.assertTrue(versions2.contains(2L));
+
+            client.deleteSchemaVersion(subject, "1");
+
+            retry(() -> {
+                try {
+                    service.getArtifactVersionMetaData(1, subject);
+                    Assertions.fail();
+                } catch (Exception ignored) {
+                }
+                return null;
+            });
+
+            versions1 = client.getAllVersions(subject);
+            Assertions.assertEquals(1, versions1.size());
+            Assertions.assertFalse(versions1.contains(1));
+            Assertions.assertTrue(versions1.contains(2));
+
+            versions2 = service.listArtifactVersions(subject);
+            Assertions.assertEquals(1, versions2.size());
+            Assertions.assertFalse(versions2.contains(1L));
+            Assertions.assertTrue(versions2.contains(2L));
+        }
     }
 
     @Test

@@ -148,7 +148,7 @@
         <version.jar.plugin>3.2.0</version.jar.plugin>
 		<version.checkstyle.plugin>3.1.1</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
-        <version.dependency.plugin>3.1.1</version.dependency.plugin>
+        <version.dependency.plugin>3.1.2</version.dependency.plugin>
         <version.assembly.plugin>3.2.0</version.assembly.plugin>
 		<!-- Plugin Deps -->
 		<version.puppycrawl>8.30</version.puppycrawl>

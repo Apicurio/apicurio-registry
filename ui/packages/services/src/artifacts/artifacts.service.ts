@@ -15,23 +15,10 @@
  * limitations under the License.
  */
 
-
-export class Artifact {
-
-    public id: string;
-    public name: string;
-    public description: string;
-    public createdOn: Date;
-    public createdBy: string;
-    public type: string;
-
-    constructor() {
-        this.id = "";
-        this.name = "";
-        this.description = "";
-        this.createdOn = new Date();
-        this.createdBy = "";
-        this.type = "";
-    }
+/**
+ * The artifacts service.  Used to query the backend search API to fetch lists of
+ * artifacts and also details about individual artifacs.
+ */
+export class ArtifactsService {
 
 }

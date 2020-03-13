@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {ConfigService} from "./config";
+import {ArtifactsService} from "./artifacts";
 
+/**
+ * Class that provides access to all of the services in the application.
+ */
+export class Services {
 
-export class Artifact {
-
-    public id: string;
-    public name: string;
-    public description: string;
-    public createdOn: Date;
-    public createdBy: string;
-    public type: string;
-
-    constructor() {
-        this.id = "";
-        this.name = "";
-        this.description = "";
-        this.createdOn = new Date();
-        this.createdBy = "";
-        this.type = "";
+    public static getConfigService(): ConfigService {
+        return Services.config;
     }
+
+    public static getArtifactsService(): ArtifactsService {
+        return Services.artifacts;
+    }
+
+    private static config: ConfigService = new ConfigService();
+    private static artifacts: ArtifactsService = new ArtifactsService();
 
 }

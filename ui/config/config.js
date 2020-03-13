@@ -1,4 +1,4 @@
-var ApicurioConfig = {
+var ApicurioRegistryConfig = {
     mode: "dev",
     artifacts: {
         type: "rest",

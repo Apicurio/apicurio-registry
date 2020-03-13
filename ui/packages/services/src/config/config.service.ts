@@ -15,19 +15,18 @@
  * limitations under the License.
  */
 
-import { ConfigType } from './config.type';
+import {ConfigType} from './config.type';
 
 const DEFAULT_CONFIG: ConfigType = {
-  artifacts: {
-    url: "http://localhost:8080/",
-    type: "rest"
-  },
-  features: {
-  },
-  mode: "dev",
-  ui: {
-    uiUrl: "http://localhost:8888/"
-  }
+    artifacts: {
+        type: "rest",
+        url: "http://localhost:8080/"
+    },
+    features: {},
+    mode: "dev",
+    ui: {
+        uiUrl: "http://localhost:8888/"
+    }
 };
 
 /**
@@ -35,38 +34,38 @@ const DEFAULT_CONFIG: ConfigType = {
  * that is typically included via JSONP.
  */
 export class ConfigService {
-  private config: ConfigType;
+    private config: ConfigType;
 
-  constructor() {
-    const w: any = window;
-    if (w.ApicurioRegistryConfig) {
-      this.config = w.ApicurioRegistryConfig;
-      console.info("[ConfigService] Found app config.");
-    } else {
-      console.error("[ConfigService] App config not found! (using default)");
-      this.config = DEFAULT_CONFIG;
+    constructor() {
+        const w: any = window;
+        if (w.ApicurioRegistryConfig) {
+            this.config = w.ApicurioRegistryConfig;
+            console.info("[ConfigService] Found app config.");
+        } else {
+            console.error("[ConfigService] App config not found! (using default)");
+            this.config = DEFAULT_CONFIG;
+        }
     }
-  }
 
-  public artifactsType(): string {
-    if (!this.config.artifacts) {
-      return null;
+    public artifactsType(): string {
+        if (!this.config.artifacts) {
+            return null;
+        }
+        return this.config.artifacts.type;
     }
-    return this.config.artifacts.type;
-  }
 
-  public artifactsUrl(): string {
-    if (!this.config.artifacts) {
-      return null;
+    public artifactsUrl(): string {
+        if (!this.config.artifacts) {
+            return null;
+        }
+        return this.config.artifacts.url;
     }
-    return this.config.artifacts.url;
-  }
 
-  public uiUrl(): string {
-    if (!this.config.ui || !this.config.ui.url) {
-      return "";
+    public uiUrl(): string {
+        if (!this.config.ui || !this.config.ui.url) {
+            return "";
+        }
+        return this.config.ui.url;
     }
-    return this.config.ui.url;
-  }
 
 }

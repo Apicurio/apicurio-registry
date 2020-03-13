@@ -15,23 +15,5 @@
  * limitations under the License.
  */
 
-
-export class Artifact {
-
-    public id: string;
-    public name: string;
-    public description: string;
-    public createdOn: Date;
-    public createdBy: string;
-    public type: string;
-
-    constructor() {
-        this.id = "";
-        this.name = "";
-        this.description = "";
-        this.createdOn = new Date();
-        this.createdBy = "";
-        this.type = "";
-    }
-
-}
+export * from './header'
+export * from './sidebar'

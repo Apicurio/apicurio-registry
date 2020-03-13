@@ -15,23 +15,18 @@
  * limitations under the License.
  */
 
+import React from "react";
+import { Text, TextContent } from "@patternfly/react-core";
 
-export class Artifact {
-
-    public id: string;
-    public name: string;
-    public description: string;
-    public createdOn: Date;
-    public createdBy: string;
-    public type: string;
-
-    constructor() {
-        this.id = "";
-        this.name = "";
-        this.description = "";
-        this.createdOn = new Date();
-        this.createdBy = "";
-        this.type = "";
-    }
-
-}
+/**
+ * The artifacts page.
+ * @constructor
+ */
+export const Artifacts: React.FunctionComponent<any> = () => {
+  return (
+    <TextContent>
+      <Text component="h1">Artifacts</Text>
+      <Text component="p">Coming Soon...</Text>
+    </TextContent>
+  );
+};

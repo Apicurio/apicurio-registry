@@ -17,17 +17,20 @@
 
 import React from 'react';
 import {
+    Brand,
     Button,
     ButtonVariant,
+    PageHeader,
     Toolbar,
     ToolbarGroup,
     ToolbarItem
 } from '@patternfly/react-core';
-import {CogIcon} from '@patternfly/react-icons';
+import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_200px.png';
+import {CogIcon} from "@patternfly/react-icons";
 
-// TODO: Need to add accessibility to the toolbar (see: http://patternfly-react.surge.sh/patternfly-4/demos/pagelayout)
+const showNavToogle: boolean = true;
 
-export const AppToolbar = (
+const HeaderToolbar = (
     <Toolbar>
         <ToolbarGroup>
             <ToolbarItem>
@@ -39,4 +42,12 @@ export const AppToolbar = (
     </Toolbar>
 );
 
-export default AppToolbar;
+export const Header: React.FunctionComponent<any> = (props) => {
+    return (<PageHeader
+        logo={<Brand src={ brandImg } alt="Apicurio" />}
+        toolbar={HeaderToolbar}
+        showNavToggle = {showNavToogle}
+      />);
+}
+
+export default Header;

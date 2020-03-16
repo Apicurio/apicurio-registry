@@ -2,9 +2,9 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="managing-artifacts-using-maven-plugin"]
-= Managing artifacts using the {registry} Maven plugin
+= Managing artifacts using the {registry} Maven plug-in
 
-{registry} provides a Maven plugin to enable you to upload or download registry artifacts as part of your development build. For example, this plugin is useful for testing and validation that your schema updates are compatible with client applications.
+{registry} provides a Maven plug-in to enable you to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
 
 .Prerequisites
 
@@ -74,4 +74,4 @@
 <3> You can download multiple artifacts to a specified directory using the artifact ID.
 
 .Additional resources
- * For more details on the Maven plugin, see https://github.com/Apicurio/apicurio-registry-demo.
+ * For more details on the Maven plug-in, see https://github.com/Apicurio/apicurio-registry-demo.

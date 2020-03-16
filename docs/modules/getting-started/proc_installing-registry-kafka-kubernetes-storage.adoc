@@ -22,7 +22,7 @@ This topic explains how to install and run {registry} with storage in Red Hat AM
 The following versions are supported:
 
 * AMQ Streams 1.4 or 1.3
-* OpenShift 4.x or 3.11   
+* OpenShift 4.3, 4.2, or 3.11    
 endif::[]
 
 .Prerequisites

@@ -90,16 +90,19 @@ public abstract class BaseIT implements TestSeparator, Constants {
         LOGGER.info("Registry app is running on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
         RestAssured.defaultParser = Parser.JSON;
         confluentService = new CachedSchemaRegistryClient("http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/ccompat", 3);
-        apicurioService = RegistryClient.create("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+        apicurioService = RegistryClient.cached("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
 
         clearAllConfluentSubjects();
     }
 
     @AfterAll
-    static void afterAll(TestInfo info) throws InterruptedException {
-        registry.stop();
-        Thread.sleep(3000);
-        storeRegistryLog(info.getTestClass().get().getCanonicalName());
+    static void afterAll(TestInfo info) throws Exception {
+        if (!RegistryFacade.EXTERNAL_REGISTRY.equals(Boolean.TRUE.toString())) {
+            registry.stop();
+            Thread.sleep(3000);
+            storeRegistryLog(info.getTestClass().get().getCanonicalName());
+        }
+        apicurioService.close();
     }
 
     private static void storeRegistryLog(String className) {
@@ -184,12 +187,22 @@ public abstract class BaseIT implements TestSeparator, Constants {
             });
     }
 
-    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
+    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
         int idOfSchema = confluentService.register(artifactName, schema);
-        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(schema.toString(), is(newSchema.toString()));
-        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                try {
+                    Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+                    LOGGER.info("Checking that created schema is equal to the get schema");
+                    assertThat(schema.toString(), is(newSchema.toString()));
+                    assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
+                    return true;
+                } catch (IOException | RestClientException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            });
     }
 
     public void updateArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
@@ -200,7 +213,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
     }
 
-    private static void clearAllConfluentSubjects() throws IOException, RestClientException {
+    protected static void clearAllConfluentSubjects() throws IOException, RestClientException {
         List<String> confluentSubjects = (List<String>) confluentService.getAllSubjects();
         for (String confluentSubject : confluentSubjects) {
             LOGGER.info("Deleting confluent schema {}", confluentSubject);

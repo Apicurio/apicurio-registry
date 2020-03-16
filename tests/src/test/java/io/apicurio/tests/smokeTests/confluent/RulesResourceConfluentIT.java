@@ -57,5 +57,6 @@ public class RulesResourceConfluentIT extends BaseIT {
 
         LOGGER.info("Checking 'Invalid avro format' and expected code {}", 400);
         GlobalRuleUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
+        confluentService.deleteSubject(schemeSubject);
     }
 }

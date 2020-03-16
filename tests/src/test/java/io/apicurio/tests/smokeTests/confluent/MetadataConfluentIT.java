@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,18 +38,19 @@ public class MetadataConfluentIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
 
     @Test
-    void getAndUpdateMetadataOfSchema() throws IOException, RestClientException {
+    void getAndUpdateMetadataOfSchema() throws IOException, RestClientException, TimeoutException {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         String schemaSubject = "schema-example";
 
+        createArtifactViaConfluentClient(schema, schemaSubject);
         int schemaId = confluentService.register(schemaSubject, schema);
 
         schema = confluentService.getById(schemaId);
-        SchemaMetadata schemaMetadata = confluentService.getSchemaMetadata(schemaSubject, schemaId);
+        SchemaMetadata schemaMetadata = confluentService.getSchemaMetadata(schemaSubject, 1);
 
-        LOGGER.info("Scheme name:{} has following metadata:{}", schema.getFullName(), schemaMetadata.getSchema());
+        LOGGER.info("Scheme name: {} has following metadata: {}", schema.getFullName(), schemaMetadata.getSchema());
 
-        assertThat(schemaMetadata.getId(), is(1));
+        assertThat(schemaMetadata.getId(), is(schemaId));
         assertThat(schemaMetadata.getVersion(), is(1));
         assertThat("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}", is(schemaMetadata.getSchema()));
         // IMPORTANT NOTE: we can not test schema metadata, because they are mapping on the same endpoint when we are creating the schema...

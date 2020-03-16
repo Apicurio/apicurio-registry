@@ -33,9 +33,7 @@ jobs:
           command: ./mvnw -Pjpa test package
       - run:
           name: Run QE Tests
-          command: |
-            ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true
-
+          command: ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true
       - run:
           name: Save test results
           command: |

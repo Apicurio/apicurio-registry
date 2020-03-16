@@ -174,9 +174,9 @@ Event-based producer applications can use serializers to encode messages that co
 The {registry} Maven repository and source code distributions include the serializer/deserializer implementations for these message types, which client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
 
 ifdef::rh-service-registry[]
-//.Further resources
-//For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
-//link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+.Additional resources
+For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
 endif::[]
 
 [id="registry-demo"]

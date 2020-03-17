@@ -15,5 +15,6 @@
  * limitations under the License.
  */
 
+export * from './artifacts';
 export * from './config';
-export * from './services';
+export * from './logger';

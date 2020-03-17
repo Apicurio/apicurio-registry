@@ -16,17 +16,50 @@
  */
 
 import React from "react";
-import { Text, TextContent } from "@patternfly/react-core";
+import {
+    Button,
+    EmptyState,
+    EmptyStateBody,
+    EmptyStateIcon,
+    EmptyStateVariant,
+    PageSection,
+    PageSectionVariants,
+    Title
+} from '@patternfly/react-core';
+import {ArtifactsPageHeader} from "./components/pageheader";
+import {ArtifactsToolbar} from "./components/toolbar";
+import {PlusCircleIcon} from "@patternfly/react-icons";
+import "./artifacts.css";
 
 /**
  * The artifacts page.
- * @constructor
  */
-export const Artifacts: React.FunctionComponent<any> = () => {
-  return (
-    <TextContent>
-      <Text component="h1">Artifacts</Text>
-      <Text component="p">Coming Soon...</Text>
-    </TextContent>
-  );
-};
+export class Artifacts extends React.Component {
+
+    public render(): React.ReactElement {
+        return (
+            <React.Fragment>
+                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
+                    <ArtifactsPageHeader/>
+                </PageSection>
+                <PageSection variant={PageSectionVariants.light} noPadding={true}>
+                    <ArtifactsToolbar/>
+                </PageSection>
+                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                    <EmptyState variant={EmptyStateVariant.full}>
+                        <EmptyStateIcon icon={PlusCircleIcon} />
+                        <Title headingLevel="h5" size="lg">
+                            No Artifacts Found!
+                        </Title>
+                        <EmptyStateBody>
+                            There are currently no artifacts in the registry.  You may want to upload something by clicking
+                            the button below.
+                        </EmptyStateBody>
+                        <Button variant="primary">Upload Artifact</Button>
+                    </EmptyState>
+                </PageSection>
+            </React.Fragment>
+        );
+    }
+
+}

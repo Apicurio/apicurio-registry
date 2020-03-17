@@ -16,11 +16,7 @@
  */
 
 import React, {Component} from "react";
-import {
-    Page,
-    PageSectionVariants,
-    PageSection
-} from "@patternfly/react-core";
+import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route} from 'react-router-dom';
 import * as Pages from './pages';
 import {Header} from "./components/header";
@@ -36,15 +32,10 @@ export default class App extends Component {
     };
 
     public render() {
-        const section = (
-            <PageSection variant={PageSectionVariants.light}>
-                <Route path='/' exact={true} component={Pages.Artifacts}/>
-                <Route path='/dashboard' exact={true} component={Pages.Artifacts}/>
-            </PageSection>
-        );
         return (
             <Router>
                 <Page
+                    className="pf-m-redhat-font"
                     isManagedSidebar={true}
                     header={<Header/>}
                     sidebar={
@@ -55,7 +46,8 @@ export default class App extends Component {
                         />
                     }
                 >
-                    {section}
+                    <Route path='/' exact={true} component={Pages.Artifacts}/>
+                    <Route path='/artifacts' exact={true} component={Pages.Artifacts}/>
                 </Page>
             </Router>
         );

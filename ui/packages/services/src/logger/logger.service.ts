@@ -15,12 +15,26 @@
  * limitations under the License.
  */
 
-export type ConfigType = {
-    mode: string,
-    artifacts: {
-        url: string,
-        type: string
-    },
-    features: any,
-    ui: any
-};
+
+/**
+ * A simple logger service.
+ */
+export class LoggerService {
+
+    public debug(message?: any, ...optionalParams: any[]): void {
+        console.debug(message, optionalParams);
+    }
+
+    public info(message?: any, ...optionalParams: any[]): void {
+        console.info(message, optionalParams);
+    }
+
+    public warn(message?: any, ...optionalParams: any[]): void {
+        console.warn(message, optionalParams);
+    }
+
+    public error(message?: any, ...optionalParams: any[]): void {
+        console.error(message, optionalParams);
+    }
+
+}

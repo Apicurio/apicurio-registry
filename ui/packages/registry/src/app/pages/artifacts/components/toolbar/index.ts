@@ -15,12 +15,4 @@
  * limitations under the License.
  */
 
-export type ConfigType = {
-    mode: string,
-    artifacts: {
-        url: string,
-        type: string
-    },
-    features: any,
-    ui: any
-};
+export * from './toolbar'

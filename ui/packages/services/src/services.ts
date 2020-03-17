@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {ConfigService} from "./config";
 import {ArtifactsService} from "./artifacts";
+import {ConfigService} from "./config";
+import {LoggerService} from "./logger";
 
 /**
  * Class that provides access to all of the services in the application.
  */
 export class Services {
 
-    public static getConfigService(): ConfigService {
-        return Services.config;
-    }
-
     public static getArtifactsService(): ArtifactsService {
         return Services.artifacts;
     }
 
-    private static config: ConfigService = new ConfigService();
+    public static getConfigService(): ConfigService {
+        return Services.config;
+    }
+
+    public static getLoggerService(): LoggerService {
+        return Services.logger;
+    }
+
     private static artifacts: ArtifactsService = new ArtifactsService();
+    private static config: ConfigService = new ConfigService();
+    private static logger: LoggerService = new LoggerService();
 
 }

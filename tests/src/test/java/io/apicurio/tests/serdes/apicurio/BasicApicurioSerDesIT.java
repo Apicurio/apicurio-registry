@@ -16,13 +16,17 @@
 
 package io.apicurio.tests.serdes.apicurio;
 
-import static io.apicurio.tests.Constants.CLUSTER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
+import com.google.protobuf.Descriptors;
+import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.Constants;
+import io.apicurio.tests.serdes.KafkaClients;
+import io.apicurio.tests.serdes.proto.MsgTypes;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.apicurio.tests.utils.subUtils.TestUtils;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,16 +34,12 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import com.google.protobuf.Descriptors;
+import static io.apicurio.tests.Constants.CLUSTER;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.apicurio.registry.common.proto.Serde;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.serdes.KafkaClients;
-import io.apicurio.tests.serdes.proto.MsgTypes;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
@@ -182,6 +182,13 @@ public class BasicApicurioSerDesIT extends BaseIT {
 
         ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.JSON, artifactId, IoUtil.toStream(jsonSchema));
         LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
+
+        TestUtils.waitFor(
+            "Artifact not registered",
+            Constants.POLL_INTERVAL,
+            Constants.TIMEOUT_GLOBAL,
+            () -> apicurioService.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
+        );
 
         KafkaClients.produceJsonSchemaApicurioMessages(topicName, subjectName, 10).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeJsonSchemaApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);

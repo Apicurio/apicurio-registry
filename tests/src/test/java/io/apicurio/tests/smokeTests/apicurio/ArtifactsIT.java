@@ -15,6 +15,24 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.vertx.core.json.JsonObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
@@ -29,28 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
-
 import javax.ws.rs.WebApplicationException;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.UpdateState;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.vertx.core.json.JsonObject;
 
 @Tag(SMOKE)
 class ArtifactsIT extends BaseIT {
@@ -125,7 +122,6 @@ class ArtifactsIT extends BaseIT {
     }
 
     @Test
-    @Disabled("It's currently failing from some unknown reason")
     void deleteArtifactSpecificVersion() {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = "deleteArtifactSpecificVersionId";

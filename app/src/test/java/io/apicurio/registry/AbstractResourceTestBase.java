@@ -65,15 +65,22 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) {
         given()
             .when()
-                .contentType(CT_JSON)
-                .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
-                .body(artifactContent)
-                .post("/artifacts")
+            .contentType(CT_JSON)
+            .header("X-Registry-ArtifactId", artifactId)
+            .header("X-Registry-ArtifactType", artifactType.name())
+            .body(artifactContent)
+            .post("/artifacts")
             .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
+            .statusCode(200)
+            .body("id", equalTo(artifactId))
+            .body("type", equalTo(artifactType.name()));
+    }
+
+    protected static void retry(Runnable runnable) throws Exception {
+        retry(() -> {
+            runnable.run();
+            return null;
+        });
     }
 
     protected static <T> T retry(Callable<T> callable) throws Exception {

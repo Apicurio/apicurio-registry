@@ -16,15 +16,14 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -39,78 +38,72 @@ import java.util.stream.LongStream;
 @QuarkusTest
 public class RegistryClientTest extends AbstractResourceTestBase {
 
-    @Test
-    public void testSmoke() throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            service.deleteAllGlobalRules();
+    @RegistryServiceTest
+    public void testSmoke(RegistryService service) {
+        service.deleteAllGlobalRules();
+    }
+
+    @RegistryServiceTest
+    public void testAsyncCRUD(RegistryService service) throws Exception {
+        String artifactId = generateArtifactId();
+        try {
+            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);
+            ConcurrentUtil.result(csResult);
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName("myname");
+            service.updateArtifactMetaData(artifactId, emd);
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals("myname", artifactMetaData.getName());
+            });
+
+            stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
+            csResult = service.updateArtifact(artifactId, ArtifactType.JSON, stream);
+            ConcurrentUtil.result(csResult);
+        } finally {
+            service.deleteArtifact(artifactId);
         }
     }
 
-    @Test
-    public void testAsyncCRUD() throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            String artifactId = generateArtifactId();
-            try {
-                ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-                CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);
-                ConcurrentUtil.result(csResult);
+    @RegistryServiceTest
+    void deleteArtifactSpecificVersion(RegistryService service) throws Exception {
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+        String artifactId = generateArtifactId();
+        ConcurrentUtil.result(service.createArtifact(ArtifactType.AVRO, artifactId, artifactData));
 
-                EditableMetaData emd = new EditableMetaData();
-                emd.setName("myname");
-                service.updateArtifactMetaData(artifactId, emd);
-                retry(() -> {
-                    ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
-                    Assertions.assertNotNull(artifactMetaData);
-                    Assertions.assertEquals("myname", artifactMetaData.getName());
-                });
-
-                stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
-                csResult = service.updateArtifact(artifactId, ArtifactType.JSON, stream);
-                ConcurrentUtil.result(csResult);
-            } finally {
-                service.deleteArtifact(artifactId);
-            }
+        for (int x = 0; x < 9; x++) {
+            String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
+            artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
+            ConcurrentUtil.result(service.updateArtifact(artifactId, ArtifactType.AVRO, artifactData));
         }
-    }
 
-    @Test
-    void deleteArtifactSpecificVersion() throws Exception {
-        try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
-            ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-            String artifactId = generateArtifactId();
-            ConcurrentUtil.result(service.createArtifact(ArtifactType.AVRO, artifactId, artifactData));
+        retry(() -> {
+            List<Long> artifactVersions = service.listArtifactVersions(artifactId);
+            List<Long> expectedVersions = LongStream.range(1, 11).boxed().collect(Collectors.toList());
+            Assertions.assertEquals(artifactVersions, expectedVersions);
+        });
 
-            for (int x = 0; x < 9; x++) {
-                String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
-                artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-                ConcurrentUtil.result(service.updateArtifact(artifactId, ArtifactType.AVRO, artifactData));
-            }
+        service.deleteArtifactVersion(4, artifactId);
 
-            retry(() -> {
-                List<Long> artifactVersions = service.listArtifactVersions(artifactId);
-                List<Long> expectedVersions = LongStream.range(1, 11).boxed().collect(Collectors.toList());
-                Assertions.assertEquals(artifactVersions, expectedVersions);
-            });
+        retry(() -> {
+            List<Long> artifactVersions = service.listArtifactVersions(artifactId);
+            List<Long> expectedVersions = LongStream.range(1, 11).boxed().filter(l -> l != 4).collect(Collectors.toList());
+            Assertions.assertEquals(artifactVersions, expectedVersions);
+        });
 
-            service.deleteArtifactVersion(4, artifactId);
+        assertWebError(404, () -> service.getArtifactVersion(4, artifactId));
 
-            retry(() -> {
-                List<Long> artifactVersions = service.listArtifactVersions(artifactId);
-                List<Long> expectedVersions = LongStream.range(1, 11).boxed().filter(l -> l != 4).collect(Collectors.toList());
-                Assertions.assertEquals(artifactVersions, expectedVersions);
-            });
+        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+        service.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
 
-            assertWebError(404, () -> service.getArtifactVersion(4, artifactId));
-
-            artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-            service.updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
-
-            retry(() -> {
-                List<Long> artifactVersions = service.listArtifactVersions(artifactId);
-                List<Long> expectedVersions = LongStream.range(1, 12).boxed().filter(l -> l != 4).collect(Collectors.toList());
-                Assertions.assertEquals(artifactVersions, expectedVersions);
-            });
-        }
+        retry(() -> {
+            List<Long> artifactVersions = service.listArtifactVersions(artifactId);
+            List<Long> expectedVersions = LongStream.range(1, 12).boxed().filter(l -> l != 4).collect(Collectors.toList());
+            Assertions.assertEquals(artifactVersions, expectedVersions);
+        });
     }
 
 }

@@ -16,8 +16,8 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -32,7 +32,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -45,8 +44,8 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         return new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
     }
 
-    @Test
-    public void testVersions() throws Exception {
+    @RegistryServiceTest
+    public void testVersions(RegistryService service) throws Exception {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
@@ -62,81 +61,79 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             return schema2;
         });
 
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
-            ArtifactMetaData amd1 = ConcurrentUtil.result(cs);
+        CompletionStage<ArtifactMetaData> cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd1 = ConcurrentUtil.result(cs);
 
-            retry(() -> {
-                service.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
-                return null;
-            });
+        retry(() -> {
+            service.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
+            return null;
+        });
 
-            cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
-            ArtifactMetaData amd2 = ConcurrentUtil.result(cs);
+        cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd2 = ConcurrentUtil.result(cs);
 
-            retry(() -> {
-                service.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
-                return null;
-            });
+        retry(() -> {
+            service.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
+            return null;
+        });
 
-            List<Integer> versions1 = client.getAllVersions(subject);
-            Assertions.assertEquals(3, versions1.size());
-            Assertions.assertTrue(versions1.contains(1));
-            Assertions.assertTrue(versions1.contains(2));
-            Assertions.assertTrue(versions1.contains(3));
+        List<Integer> versions1 = client.getAllVersions(subject);
+        Assertions.assertEquals(3, versions1.size());
+        Assertions.assertTrue(versions1.contains(1));
+        Assertions.assertTrue(versions1.contains(2));
+        Assertions.assertTrue(versions1.contains(3));
 
-            List<Long> versions2 = service.listArtifactVersions(subject);
-            Assertions.assertEquals(3, versions2.size());
-            Assertions.assertTrue(versions2.contains(1L));
-            Assertions.assertTrue(versions2.contains(2L));
-            Assertions.assertTrue(versions2.contains(3L));
+        List<Long> versions2 = service.listArtifactVersions(subject);
+        Assertions.assertEquals(3, versions2.size());
+        Assertions.assertTrue(versions2.contains(1L));
+        Assertions.assertTrue(versions2.contains(2L));
+        Assertions.assertTrue(versions2.contains(3L));
 
-            client.deleteSchemaVersion(subject, "1");
+        client.deleteSchemaVersion(subject, "1");
 
-            retry(() -> {
-                try {
-                    service.getArtifactVersionMetaData(1, subject);
-                    Assertions.fail();
-                } catch (Exception ignored) {
-                }
-                return null;
-            });
+        retry(() -> {
+            try {
+                service.getArtifactVersionMetaData(1, subject);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+            return null;
+        });
 
-            versions1 = client.getAllVersions(subject);
-            Assertions.assertEquals(2, versions1.size());
-            Assertions.assertFalse(versions1.contains(1));
-            Assertions.assertTrue(versions1.contains(2));
-            Assertions.assertTrue(versions1.contains(3));
+        versions1 = client.getAllVersions(subject);
+        Assertions.assertEquals(2, versions1.size());
+        Assertions.assertFalse(versions1.contains(1));
+        Assertions.assertTrue(versions1.contains(2));
+        Assertions.assertTrue(versions1.contains(3));
 
-            versions2 = service.listArtifactVersions(subject);
-            Assertions.assertEquals(2, versions2.size());
-            Assertions.assertFalse(versions2.contains(1L));
-            Assertions.assertTrue(versions2.contains(2L));
-            Assertions.assertTrue(versions2.contains(3L));
+        versions2 = service.listArtifactVersions(subject);
+        Assertions.assertEquals(2, versions2.size());
+        Assertions.assertFalse(versions2.contains(1L));
+        Assertions.assertTrue(versions2.contains(2L));
+        Assertions.assertTrue(versions2.contains(3L));
 
-            service.deleteArtifactVersion(2, subject);
+        service.deleteArtifactVersion(2, subject);
 
-            retry(() -> {
-                try {
-                    service.getArtifactVersionMetaData(2, subject);
-                    Assertions.fail();
-                } catch (Exception ignored) {
-                }
-                return null;
-            });
+        retry(() -> {
+            try {
+                service.getArtifactVersionMetaData(2, subject);
+                Assertions.fail();
+            } catch (Exception ignored) {
+            }
+            return null;
+        });
 
-            versions1 = client.getAllVersions(subject);
-            Assertions.assertEquals(1, versions1.size());
-            Assertions.assertTrue(versions1.contains(3));
+        versions1 = client.getAllVersions(subject);
+        Assertions.assertEquals(1, versions1.size());
+        Assertions.assertTrue(versions1.contains(3));
 
-            versions2 = service.listArtifactVersions(subject);
-            Assertions.assertEquals(1, versions2.size());
-            Assertions.assertTrue(versions2.contains(3L));
-        }
+        versions2 = service.listArtifactVersions(subject);
+        Assertions.assertEquals(1, versions2.size());
+        Assertions.assertTrue(versions2.contains(3L));
     }
 
-    @Test
-    public void testSerdeMix() throws Exception {
+    @RegistryServiceTest
+    public void testSerdeMix(RegistryService service) throws Exception {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
@@ -147,23 +144,21 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
 
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(service).asConfluent();
-            try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
-                byte[] bytes = serializer1.serialize(subject, record);
+        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(service).asConfluent();
+        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
+            byte[] bytes = serializer1.serialize(subject, record);
 
-                waitForSchema(service, bytes, bb -> (long) bb.getInt());
+            waitForSchema(service, bytes, bb -> (long) bb.getInt());
 
-                GenericData.Record ir = deserializer1.deserialize(subject, bytes);
-                Assertions.assertEquals("somebar", ir.get("bar").toString());
-            }
+            GenericData.Record ir = deserializer1.deserialize(subject, bytes);
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
 
-            AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(service).asConfluent();
-            try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
-                byte[] bytes = serializer2.serialize(subject, record);
-                GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
-                Assertions.assertEquals("somebar", ir.get("bar").toString());
-            }
+        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(service).asConfluent();
+        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
+            byte[] bytes = serializer2.serialize(subject, record);
+            GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
 

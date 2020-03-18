@@ -18,8 +18,8 @@ package io.apicurio.registry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -46,7 +46,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -65,21 +64,23 @@ import java.util.function.Function;
 @QuarkusTest
 public class RegistryConverterTest extends AbstractResourceTestBase {
 
-    @Test
-    public void testConfiguration() throws Exception {
+    @RegistryServiceTest
+    public void testConfiguration(RegistryService service) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(
-                ArtifactType.AVRO,
-                "test-myrecord4",
-                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
-            );
-            ArtifactMetaData amd = ConcurrentUtil.result(csa);
-            // wait for global id store to populate (in case of Kafka / Streams)
-            ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-            Assertions.assertNotNull(amdById);
-        }
+        String artifactId = generateArtifactId();
+
+        CompletionStage<ArtifactMetaData> csa = service.createArtifact(
+            ArtifactType.AVRO,
+            artifactId + "-myrecord4",
+            new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
+        );
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        // clear any cache
+        service.reset();
+        // wait for global id store to populate (in case of Kafka / Streams)
+        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -95,8 +96,8 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         byte[] bytes;
         try {
             converter.configure(config, true);
-            bytes = converter.fromConnectData("test", null, record);
-            record = (GenericData.Record) converter.toConnectData("test", bytes).value();
+            bytes = converter.fromConnectData(artifactId, null, record);
+            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
             Assertions.assertEquals("somebar", record.get("bar").toString());
         } finally {
             converter.close();
@@ -108,8 +109,8 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         converter = new SchemalessConverter<>();
         try {
             converter.configure(config, true);
-            bytes = converter.fromConnectData("test", null, record);
-            record = (GenericData.Record) converter.toConnectData("test", bytes).value();
+            bytes = converter.fromConnectData(artifactId, null, record);
+            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
             Assertions.assertEquals("somebar", record.get("bar").toString());
         } finally {
             converter.close();
@@ -121,45 +122,44 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         converter = new SchemalessConverter<>();
         try {
             converter.configure(config, true);
-            bytes = converter.fromConnectData("test", null, record);
-            record = (GenericData.Record) converter.toConnectData("test", bytes).value();
+            bytes = converter.fromConnectData(artifactId, null, record);
+            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
             Assertions.assertEquals("somebar", record.get("bar").toString());
         } finally {
             converter.close();
         }
     }
 
-    @Test
-    public void testAvro() throws Exception {
-        try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
-            try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-                 AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
+    @RegistryServiceTest
+    public void testAvro(RegistryService service) throws Exception {
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
+             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
 
-                AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-                Converter converter = new AvroConverter<>(serializer, deserializer, avroData);
+            AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+            Converter converter = new AvroConverter<>(serializer, deserializer, avroData);
 
-                org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-                                                                       .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-                                                                       .build();
-                Struct struct = new Struct(sc);
-                struct.put("bar", "somebar");
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                   .build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
 
-                String subject = generateArtifactId();
+            String subject = generateArtifactId();
 
-                byte[] bytes = converter.fromConnectData(subject, sc, struct);
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
-                // some impl details ...
-                waitForSchema(service, bytes);
+            // some impl details ...
+            waitForSchema(service, bytes);
 
-                Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
-                Assertions.assertEquals("somebar", ir.get("bar").toString());
-            }
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
 
-    @Test
-    public void testPrettyJson() throws Exception {
+    @RegistryServiceTest
+    public void testPrettyJson(RegistryService service) throws Exception {
         testJson(
+            service,
             new PrettyFormatStrategy(),
             input -> {
                 try {
@@ -173,9 +173,10 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         );
     }
 
-    @Test
-    public void testCompactJson() throws Exception {
+    @RegistryServiceTest
+    public void testCompactJson(RegistryService service) throws Exception {
         testJson(
+            service,
             new CompactFormatStrategy(),
             input -> {
                 ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
@@ -184,28 +185,26 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         );
     }
 
-    private void testJson(FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            try (ExtJsonConverter converter = new ExtJsonConverter(service)
-                .setGlobalIdStrategy(new AutoRegisterIdStrategy<>())
-                .setFormatStrategy(formatStrategy)) {
-                converter.configure(Collections.emptyMap(), false);
+    private void testJson(RegistryService service, FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
+        try (ExtJsonConverter converter = new ExtJsonConverter(service)
+            .setGlobalIdStrategy(new AutoRegisterIdStrategy<>())
+            .setFormatStrategy(formatStrategy)) {
+            converter.configure(Collections.emptyMap(), false);
 
-                org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-                                                                       .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-                                                                       .build();
-                Struct struct = new Struct(sc);
-                struct.put("bar", "somebar");
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                   .build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
 
-                byte[] bytes = converter.fromConnectData("extjson", sc, struct);
+            byte[] bytes = converter.fromConnectData("extjson", sc, struct);
 
-                // some impl details ...
-                waitForSchemaCustom(service, bytes, fn);
+            // some impl details ...
+            waitForSchemaCustom(service, bytes, fn);
 
-                //noinspection rawtypes
-                Map ir = (Map) converter.toConnectData("extjson", bytes).value();
-                Assertions.assertEquals("somebar", ir.get("bar").toString());
-            }
+            //noinspection rawtypes
+            Map ir = (Map) converter.toConnectData("extjson", bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
 }

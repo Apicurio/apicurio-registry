@@ -15,36 +15,32 @@
  * limitations under the License.
  */
 
-import React, {Component} from "react";
+import React from "react";
 import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route} from 'react-router-dom';
 import * as Pages from './pages';
 import {Header} from "./components/header";
-import {Sidebar} from "./components/sidebar";
 
 /**
  * The main application class.
  */
-export default class App extends Component {
-    public state = {
-        activeMenuGroup: "",
-        activeMenuGroupItem: ""
-    };
+export default class App extends React.PureComponent {
+
+    constructor(props: any) {
+        super(props);
+        this.state = {
+            activeMenuGroup: "",
+            activeMenuGroupItem: ""
+        };
+    }
 
     public render() {
         return (
             <Router>
                 <Page
                     className="pf-m-redhat-font"
-                    isManagedSidebar={true}
+                    isManagedSidebar={false}
                     header={<Header/>}
-                    sidebar={
-                        <Sidebar
-                            activeMenuGroup={this.state.activeMenuGroup}
-                            activeMenuGroupItem={this.state.activeMenuGroupItem}
-                            onSelect={this.onNavSelect}
-                        />
-                    }
                 >
                     <Route path='/' exact={true} component={Pages.Artifacts}/>
                     <Route path='/artifacts' exact={true} component={Pages.Artifacts}/>
@@ -52,11 +48,4 @@ export default class App extends Component {
             </Router>
         );
     }
-
-    private onNavSelect = ({groupId, itemId}: any) => {
-        this.setState({
-            activeMenuGroup: groupId,
-            activeMenuGroupItem: itemId
-        });
-    };
 }

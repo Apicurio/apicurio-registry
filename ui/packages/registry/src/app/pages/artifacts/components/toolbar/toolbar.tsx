@@ -36,17 +36,25 @@ import {
 import {SearchIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
 import "./toolbar.css";
 
+/**
+ * Properties
+ */
+export interface ArtifactsToolbarProps {
+
+}
+
+/**
+ * State
+ */
 export interface ArtifactsToolbarState {
     filterIsExpanded: boolean;
     filterSelection: string;
 }
 
-export interface ArtifactsToolbarProperties {}
-
 /**
  * Models the toolbar for the Artifacts page.
  */
-export class ArtifactsToolbar extends React.PureComponent<ArtifactsToolbarProperties, ArtifactsToolbarState> {
+export class ArtifactsToolbar extends React.PureComponent<ArtifactsToolbarProps, ArtifactsToolbarState> {
 
     private filterOptions: any[] = [
         {value: "Everything", disabled: false, isPlaceholder: false},
@@ -55,7 +63,7 @@ export class ArtifactsToolbar extends React.PureComponent<ArtifactsToolbarProper
         {value: 'Labels', disabled: false}
     ];
 
-    constructor(props: Readonly<ArtifactsToolbarProperties>) {
+    constructor(props: Readonly<ArtifactsToolbarProps>) {
         super(props);
         this.state = {
             filterIsExpanded: false,

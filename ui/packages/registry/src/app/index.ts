@@ -15,5 +15,6 @@
  * limitations under the License.
  */
 
-export * from './pageheader';
-export * from './toolbar';
+export * from './app';
+export * from './pages';
+export * from './components';

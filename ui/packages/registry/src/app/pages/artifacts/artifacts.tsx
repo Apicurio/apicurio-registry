@@ -31,10 +31,29 @@ import {ArtifactsToolbar} from "./components/toolbar";
 import {PlusCircleIcon} from "@patternfly/react-icons";
 import "./artifacts.css";
 
+
+/**
+ * Properties
+ */
+export interface ArtifactsProps {
+
+}
+
+/**
+ * State
+ */
+export interface ArtifactsState {
+}
+
 /**
  * The artifacts page.
  */
-export class Artifacts extends React.Component {
+export class Artifacts extends React.Component<ArtifactsProps, ArtifactsState> {
+
+    constructor(props: Readonly<ArtifactsProps>) {
+        super(props);
+        this.state = {};
+    }
 
     public render(): React.ReactElement {
         return (

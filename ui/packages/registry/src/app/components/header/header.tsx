@@ -16,38 +16,14 @@
  */
 
 import React from 'react';
-import {
-    Brand,
-    Button,
-    ButtonVariant,
-    PageHeader,
-    Toolbar,
-    ToolbarGroup,
-    ToolbarItem
-} from '@patternfly/react-core';
+import {Brand, PageHeader} from '@patternfly/react-core';
 import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_200px.png';
-import {CogIcon} from "@patternfly/react-icons";
 
-const showNavToogle: boolean = true;
-
-const HeaderToolbar = (
-    <Toolbar>
-        <ToolbarGroup>
-            <ToolbarItem>
-                <Button id="settings-cog" aria-label="Settings actions" variant={ButtonVariant.plain}>
-                    <CogIcon/>
-                </Button>
-            </ToolbarItem>
-        </ToolbarGroup>
-    </Toolbar>
-);
-
-export const Header: React.FunctionComponent<any> = (props) => {
+export const Header: React.FunctionComponent<any> = () => {
     return (<PageHeader
-        logo={<Brand src={ brandImg } alt="Apicurio" />}
-        toolbar={HeaderToolbar}
-        showNavToggle = {showNavToogle}
-      />);
+        logo={<Brand src={brandImg} alt="Apicurio"/>}
+        showNavToggle={false}
+    />);
 }
 
 export default Header;

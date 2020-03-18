@@ -21,17 +21,14 @@ import {BrowserRouter as Router, Route} from 'react-router-dom';
 import * as Pages from './pages';
 import {Header} from "./components/header";
 
+
 /**
  * The main application class.
  */
-export default class App extends React.PureComponent {
+export default class App extends React.PureComponent<{}, {}> {
 
-    constructor(props: any) {
+    constructor(props: Readonly<any>) {
         super(props);
-        this.state = {
-            activeMenuGroup: "",
-            activeMenuGroupItem: ""
-        };
     }
 
     public render() {

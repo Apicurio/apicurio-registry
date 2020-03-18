@@ -16,15 +16,16 @@
  */
 import React from "react";
 import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
-import {Services} from "@apicurio/registry-services/src";
+import {LoggerService} from "@apicurio/registry-services";
 
+const loggerService:LoggerService = new LoggerService();
 /**
  * Models the page header for the Artifacts page.
  */
 export class ArtifactsPageHeader extends React.PureComponent {
 
     public render(): React.ReactElement {
-        Services.getLoggerService().info("[ArtifactsPageHeader] Rendering");
+        loggerService.info("[ArtifactsPageHeader] Rendering");
         return (
             <Flex className="example-border">
                 <FlexItem>

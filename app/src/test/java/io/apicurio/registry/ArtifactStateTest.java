@@ -16,20 +16,8 @@
 
 package io.apicurio.registry;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletionStage;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -38,170 +26,174 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletionStage;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
  */
 @QuarkusTest
 public class ArtifactStateTest extends AbstractResourceTestBase {
-    
+
     private static final UpdateState toUpdateState(ArtifactState state) {
         UpdateState us = new UpdateState();
         us.setState(state);
         return us;
     }
 
-    @Test
-    public void testSmoke() throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
+    @RegistryServiceTest
+    public void testSmoke(RegistryService service) throws Exception {
+        String artifactId = generateArtifactId();
 
-            String artifactId = generateArtifactId();
+        CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
+            ArtifactType.JSON,
+            artifactId,
+            new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+        );
+        ConcurrentUtil.result(a1);
 
-            CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
-                ArtifactType.JSON,
-                artifactId,
-                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
-            );
-            ConcurrentUtil.result(a1);
+        CompletionStage<ArtifactMetaData> a2 = service.updateArtifact(
+            artifactId,
+            ArtifactType.JSON,
+            new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
+        );
+        ConcurrentUtil.result(a2);
 
-            CompletionStage<ArtifactMetaData> a2 = service.updateArtifact(
-                artifactId,
-                ArtifactType.JSON,
-                new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
-            );
-            ConcurrentUtil.result(a2);
+        CompletionStage<ArtifactMetaData> a3 = service.updateArtifact(
+            artifactId,
+            ArtifactType.JSON,
+            new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
+        );
+        ConcurrentUtil.result(a3);
 
-            CompletionStage<ArtifactMetaData> a3 = service.updateArtifact(
-                artifactId,
-                ArtifactType.JSON,
-                new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
-            );
-            ConcurrentUtil.result(a3);
+        ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
+        Assertions.assertEquals(3, amd.getVersion());
 
-            ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
-            Assertions.assertEquals(3, amd.getVersion());
+        // disable latest
+        service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DISABLED));
 
-            // disable latest
-            service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DISABLED));
+        // retries are here due to possible async nature of storage; e.g. Kafka, Streams, ...
 
-            // retries are here due to possible async nature of storage; e.g. Kafka, Streams, ...
+        retry(() -> {
+                  VersionMetaData tvmd = service.getArtifactVersionMetaData(3, artifactId);
+                  Assertions.assertEquals(3, tvmd.getVersion());
+                  Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
+                  return null;
+              }
+        );
 
-            retry(() -> {
-                      VersionMetaData tvmd = service.getArtifactVersionMetaData(3, artifactId);
-                      Assertions.assertEquals(3, tvmd.getVersion());
-                      Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
-                      return null;
-                  }
-            );
+        retry(() -> {
+                  ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                  Assertions.assertEquals(2, tamd.getVersion()); // should still be latest active (aka 2)
+                  Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
+                  Assertions.assertNull(tamd.getDescription());
+                  return null;
+              }
+        );
 
-            retry(() -> {
-                      ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(2, tamd.getVersion()); // should still be latest active (aka 2)
-                      Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
-                      Assertions.assertNull(tamd.getDescription());
-                      return null;
-                  }
-            );
+        EditableMetaData emd = new EditableMetaData();
+        String description = "Testing artifact state";
+        emd.setDescription(description);
 
-            EditableMetaData emd = new EditableMetaData();
-            String description = "Testing artifact state";
-            emd.setDescription(description);
+        // cannot get, update disabled artifact
+        assertWebError(400, () -> service.getArtifactVersion(3, artifactId));
+        assertWebError(400, () -> service.updateArtifactVersionMetaData(3, artifactId, emd));
 
-            // cannot get, update disabled artifact
-            assertWebError(400, () -> service.getArtifactVersion(3, artifactId));
-            assertWebError(400, () -> service.updateArtifactVersionMetaData(3, artifactId, emd));
+        service.updateArtifactMetaData(artifactId, emd);
 
-            service.updateArtifactMetaData(artifactId, emd);
+        retry(() -> {
+                  ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                  Assertions.assertEquals(2, tamd.getVersion()); // should still be latest (aka 2)
+                  Assertions.assertEquals(description, tamd.getDescription());
+                  return null;
+              }
+        );
 
-            retry(() -> {
-                      ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(2, tamd.getVersion()); // should still be latest (aka 2)
-                      Assertions.assertEquals(description, tamd.getDescription());
-                      return null;
-                  }
-            );
+        service.updateArtifactVersionState(3, artifactId, toUpdateState(ArtifactState.DEPRECATED));
 
-            service.updateArtifactVersionState(3, artifactId, toUpdateState(ArtifactState.DEPRECATED));
+        retry(() -> {
+            ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+            Assertions.assertEquals(3, tamd.getVersion()); // should be back to v3
+            Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
+            Assertions.assertNull(tamd.getDescription());
 
-            retry(() -> {
-                ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                Assertions.assertEquals(3, tamd.getVersion()); // should be back to v3
-                Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
-                Assertions.assertNull(tamd.getDescription());
+            Response avr = service.getLatestArtifact(artifactId);
+            Assertions.assertEquals(200, avr.getStatus());
+            avr = service.getArtifactVersion(2, artifactId);
+            Assertions.assertEquals(200, avr.getStatus());
 
-                Response avr = service.getLatestArtifact(artifactId);
-                Assertions.assertEquals(200, avr.getStatus());
-                avr = service.getArtifactVersion(2, artifactId);
-                Assertions.assertEquals(200, avr.getStatus());
+            // cannot go back from deprecated ...
+            assertWebError(400, () -> service.updateArtifactState(artifactId, toUpdateState(ArtifactState.ENABLED)));
+            return null;
+        });
 
-                // cannot go back from deprecated ...
-                assertWebError(400, () -> service.updateArtifactState(artifactId, toUpdateState(ArtifactState.ENABLED)));
-                return null;
-            });
+        service.updateArtifactMetaData(artifactId, emd); // should be allowed for deprecated
 
-            service.updateArtifactMetaData(artifactId, emd); // should be allowed for deprecated
+        retry(() -> {
+                  ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                  Assertions.assertEquals(3, tamd.getVersion()); // should still be latest (aka 3)
+                  Assertions.assertEquals(description, tamd.getDescription());
 
-            retry(() -> {
-                      ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(3, tamd.getVersion()); // should still be latest (aka 3)
-                      Assertions.assertEquals(description, tamd.getDescription());
+                  VersionMetaData tvmd = service.getArtifactVersionMetaData(1, artifactId);
+                  Assertions.assertNull(tvmd.getDescription());
 
-                      VersionMetaData tvmd = service.getArtifactVersionMetaData(1, artifactId);
-                      Assertions.assertNull(tvmd.getDescription());
+                  return null;
+              }
+        );
 
-                      return null;
-                  }
-            );
+        service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DELETED));
 
-            service.updateArtifactState(artifactId, toUpdateState(ArtifactState.DELETED));
-
-            retry(() -> {
-                      ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
-                      Assertions.assertEquals(2, tamd.getVersion());
-                      Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
-                      return null;
-                  }
-            );
-        }
+        retry(() -> {
+                  ArtifactMetaData tamd = service.getArtifactMetaData(artifactId);
+                  Assertions.assertEquals(2, tamd.getVersion());
+                  Assertions.assertEquals(ArtifactState.ENABLED, tamd.getState());
+                  return null;
+              }
+        );
     }
-    
-    @Test
-    void testEnableDisableArtifact() throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            String artifactId = generateArtifactId();
 
-            // Create the artifact
-            CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
-                ArtifactType.JSON,
-                artifactId,
-                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
-            );
-            ArtifactMetaData md = ConcurrentUtil.result(a1);
-            
-            // Get the meta-data
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
-            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+    @RegistryServiceTest
+    void testEnableDisableArtifact(RegistryService service) {
+        String artifactId = generateArtifactId();
 
-            // Set to disabled
-            UpdateState state = new UpdateState();
-            state.setState(ArtifactState.DISABLED);
-            service.updateArtifactState(artifactId, state);
-            
-            // Get the meta-data again - should be a 404
-            try {
-                service.getArtifactMetaData(artifactId);
-            } catch (WebApplicationException e) {
-                assertEquals(404, e.getResponse().getStatus());
-            }
-            
-            // Now re-enable the artifact
-            state.setState(ArtifactState.ENABLED);
-            service.updateArtifactState(artifactId, state);
+        // Create the artifact
+        CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
+            ArtifactType.JSON,
+            artifactId,
+            new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+        );
+        ArtifactMetaData md = ConcurrentUtil.result(a1);
 
-            // Get the meta-data
-            actualMD = service.getArtifactMetaData(artifactId);
-            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+        // Get the meta-data
+        ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+        assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+
+        // Set to disabled
+        UpdateState state = new UpdateState();
+        state.setState(ArtifactState.DISABLED);
+        service.updateArtifactState(artifactId, state);
+
+        // Get the meta-data again - should be a 404
+        try {
+            service.getArtifactMetaData(artifactId);
+        } catch (WebApplicationException e) {
+            assertEquals(404, e.getResponse().getStatus());
         }
+
+        // Now re-enable the artifact
+        state.setState(ArtifactState.ENABLED);
+        service.updateArtifactState(artifactId, state);
+
+        // Get the meta-data
+        actualMD = service.getArtifactMetaData(artifactId);
+        assertEquals(md.getGlobalId(), actualMD.getGlobalId());
     }
-    
+
 }

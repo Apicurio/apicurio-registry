@@ -21,13 +21,13 @@ import {
     DataToolbar,
     DataToolbarContent,
     DataToolbarItem,
+    Dropdown,
+    DropdownItem,
+    DropdownToggle,
     Flex,
     FlexItem,
     FlexModifiers,
-    InputGroup,
-    Select,
-    SelectOption,
-    SelectVariant,
+    InputGroup, Text, TextContent,
     TextInput,
     Toolbar,
     ToolbarGroup,
@@ -40,7 +40,7 @@ import "./toolbar.css";
  * Properties
  */
 export interface ArtifactsToolbarProps {
-
+    artifactsCount: number
 }
 
 /**
@@ -73,52 +73,42 @@ export class ArtifactsToolbar extends React.PureComponent<ArtifactsToolbarProps,
 
     public render(): React.ReactElement {
         return (
-            <Flex className="artifacts-toolbar">
-                <FlexItem>
-                    <DataToolbar id="artifacts-toolbar-1">
-                        <DataToolbarContent>
-                            <DataToolbarItem>
-                                <InputGroup>
-                                    <DataToolbarItem className="tbi-filter-type">
-                                        <Select
-                                            variant={SelectVariant.single}
-                                            aria-label="Select Input"
-                                            onToggle={this.onFilterToggle}
-                                            onSelect={this.onFilterSelect}
-                                            selections={this.state.filterSelection}
-                                            isExpanded={this.state.filterIsExpanded}
-                                        >
-                                            {this.filterOptions.map((option, index) => (
-                                                <SelectOption
-                                                    isDisabled={option.disabled}
-                                                    key={index}
-                                                    value={option.value}
-                                                />
-                                            ))}
-                                        </Select>
-                                    </DataToolbarItem>
-                                    <TextInput name="textInput1" id="textInput1" type="search"
-                                               aria-label="search input example"/>
-                                    <Button variant={ButtonVariant.control}
-                                            aria-label="search button for search input">
-                                        <SearchIcon/>
-                                    </Button>
-                                </InputGroup>
-                            </DataToolbarItem>
-                            <DataToolbarItem>
-                                <Button variant="plain" aria-label="edit"><SortAlphaDownIcon/></Button>
-                            </DataToolbarItem>
-                        </DataToolbarContent>
-                    </DataToolbar>
-                </FlexItem>
-                <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                    <Toolbar>
-                        <ToolbarGroup>
-                            <ToolbarItem>13 Artifacts Found</ToolbarItem>
-                        </ToolbarGroup>
-                    </Toolbar>
-                </FlexItem>
-            </Flex>
+            <DataToolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
+                <DataToolbarContent>
+                    <DataToolbarItem className="filter-item">
+                        <InputGroup>
+                            <Dropdown
+                                onSelect={this.onFilterSelect}
+                                toggle={
+                                    <DropdownToggle onToggle={this.onFilterToggle}>
+                                        {this.state.filterSelection ? this.state.filterSelection : 'Everything'}
+                                    </DropdownToggle>
+                                }
+                                isOpen={this.state.filterIsExpanded}
+                                dropdownItems={[
+                                    <DropdownItem key="everything" component="button">Everything</DropdownItem>,
+                                    <DropdownItem key="name" component="button">Name</DropdownItem>,
+                                    <DropdownItem key="description" component="button">Description</DropdownItem>
+                                ]}
+                            />
+                            <TextInput name="textInput1" id="textInput1" type="search"
+                                       aria-label="search input example"/>
+                            <Button variant={ButtonVariant.control}
+                                    aria-label="search button for search input">
+                                <SearchIcon/>
+                            </Button>
+                        </InputGroup>
+                    </DataToolbarItem>
+                    <DataToolbarItem className="sort-icon-item">
+                        <Button variant="plain" aria-label="edit"><SortAlphaDownIcon/></Button>
+                    </DataToolbarItem>
+                    <DataToolbarItem className="artifact-count-item">
+                        <TextContent>
+                            <Text>{ this.props.artifactsCount } Artifacts Found</Text>
+                        </TextContent>
+                    </DataToolbarItem>
+                </DataToolbarContent>
+            </DataToolbar>
         );
     }
 
@@ -130,11 +120,12 @@ export class ArtifactsToolbar extends React.PureComponent<ArtifactsToolbarProps,
         this.setState(newState);
     };
 
-    private onFilterSelect = (event: any, selection: any): void => {
+    private onFilterSelect = (event: React.SyntheticEvent<HTMLDivElement>): void => {
+        const value: string|null = event.currentTarget.textContent;
         const newState: any = {
             ...this.state,
             filterIsExpanded: false,
-            filterSelection: selection
+            filterSelection: value
         };
         this.setState(newState);
     }

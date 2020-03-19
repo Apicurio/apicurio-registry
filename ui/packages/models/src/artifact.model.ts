@@ -18,6 +18,15 @@
 
 export class Artifact {
 
+    public static create(id: string, type: string, name: string, description: string): Artifact {
+        const artifact: Artifact = new Artifact();
+        artifact.id = id;
+        artifact.type = type;
+        artifact.name = name;
+        artifact.description = description;
+        return artifact;
+    }
+
     public id: string;
     public name: string;
     public description: string;

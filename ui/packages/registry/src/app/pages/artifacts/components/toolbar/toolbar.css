@@ -3,6 +3,15 @@
     padding-right: 24px;
 }
 
+.artifacts-toolbar > div {
+    width: 100%;
+}
+
 #artifacts-toolbar-1 .tbi-filter-type {
     margin-right: 0;
+}
+
+#artifacts-toolbar-1 .artifact-count-item {
+    flex-grow: 1;
+    text-align: right;
 }

@@ -16,20 +16,14 @@
  */
 
 import React from "react";
-import {
-    Button,
-    EmptyState,
-    EmptyStateBody,
-    EmptyStateIcon,
-    EmptyStateVariant,
-    PageSection,
-    PageSectionVariants,
-    Title
-} from '@patternfly/react-core';
+import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
 import {ArtifactsToolbar} from "./components/toolbar";
-import {PlusCircleIcon} from "@patternfly/react-icons";
 import "./artifacts.css";
+import {ArtifactsEmptyState} from "./components/empty";
+import {Artifact} from "@apicurio/registry-models";
+import {Services} from "@apicurio/registry-services";
+import {ArtifactList} from "./components/artifactList";
 
 
 /**
@@ -43,16 +37,26 @@ export interface ArtifactsProps {
  * State
  */
 export interface ArtifactsState {
+    artifacts: Artifact[];
+    isLoading: boolean;
 }
 
 /**
  * The artifacts page.
  */
-export class Artifacts extends React.Component<ArtifactsProps, ArtifactsState> {
+export class Artifacts extends React.PureComponent<ArtifactsProps, ArtifactsState> {
 
     constructor(props: Readonly<ArtifactsProps>) {
         super(props);
-        this.state = {};
+        this.state = {
+            artifacts: [],
+            isLoading: true
+        };
+        Services.getArtifactsService().getArtifacts().then( artifacts => {
+            this.onArtifactsLoaded(artifacts);
+        }).then(error => {
+            // TODO handle errors!
+        });
     }
 
     public render(): React.ReactElement {
@@ -62,23 +66,31 @@ export class Artifacts extends React.Component<ArtifactsProps, ArtifactsState> {
                     <ArtifactsPageHeader/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} noPadding={true}>
-                    <ArtifactsToolbar/>
+                    <ArtifactsToolbar artifactsCount={this.state.artifacts.length} />
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
-                    <EmptyState variant={EmptyStateVariant.full}>
-                        <EmptyStateIcon icon={PlusCircleIcon} />
-                        <Title headingLevel="h5" size="lg">
-                            No Artifacts Found!
-                        </Title>
-                        <EmptyStateBody>
-                            There are currently no artifacts in the registry.  You may want to upload something by clicking
-                            the button below.
-                        </EmptyStateBody>
-                        <Button variant="primary">Upload Artifact</Button>
-                    </EmptyState>
+                    {
+                        this.state.isLoading ?
+                            <Flex>
+                                <FlexItem><Spinner size="lg" /></FlexItem>
+                                <FlexItem><span>Loading, please wait...</span></FlexItem>
+                            </Flex>
+                        : this.state.artifacts.length === 0 ?
+                            <ArtifactsEmptyState isFiltered={false}/>
+                        :
+                            <ArtifactList artifacts={this.state.artifacts} />
+                    }
                 </PageSection>
             </React.Fragment>
         );
+    }
+    
+    private onArtifactsLoaded(artifacts: Artifact[]): void {
+        this.setState({
+            ...this.state,
+            artifacts,
+            isLoading: false
+        });
     }
 
 }

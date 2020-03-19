@@ -15,10 +15,20 @@
  * limitations under the License.
  */
 
+import {Artifact} from "@apicurio/registry-models";
+
 /**
  * The artifacts service.  Used to query the backend search API to fetch lists of
- * artifacts and also details about individual artifacs.
+ * artifacts and also details about individual artifacts.
  */
 export class ArtifactsService {
+
+    public getArtifacts(): Promise<Artifact[]> {
+        return Promise.resolve([
+            Artifact.create("1", "OPENAPI", "My First API", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
+            Artifact.create("2", "ASYNCAPI", "Eventing API #1", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."),
+            Artifact.create("3", "AVRO", "Invoice Type", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.")
+        ]);
+    }
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ext;
+package io.apicurio.registry.utils.tests;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
@@ -29,6 +29,7 @@ import org.junit.platform.commons.util.AnnotationUtils;
 
 import static java.util.Collections.singletonList;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -40,7 +41,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     public boolean supportsTestTemplate(ExtensionContext context) {
         return context.getTestMethod().map(method -> {
             Class<?>[] parameterTypes = method.getParameterTypes();
-            return (parameterTypes.length > 0 && RegistryService.class.equals(parameterTypes[0]));
+            return Arrays.asList(parameterTypes).contains(RegistryService.class);
         }).orElse(false);
     }
 
@@ -48,17 +49,21 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext context) {
         RegistryServiceTest rst = AnnotationUtils.findAnnotation(context.getRequiredTestMethod(), RegistryServiceTest.class)
                                                  .orElseThrow(IllegalStateException::new); // should be there
+
+        String registryUrl = TestUtils.getRegistryUrl(rst);
+
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
         RegistryServiceWrapper plain = store.getOrComputeIfAbsent(
             "plain_client",
-            k -> new RegistryServiceWrapper(k, RegistryClient.create(rst.value())),
+            k -> new RegistryServiceWrapper(k, RegistryClient.create(registryUrl)),
             RegistryServiceWrapper.class
         );
         RegistryServiceWrapper cached = store.getOrComputeIfAbsent(
             "cached_client",
-            k -> new RegistryServiceWrapper(k, RegistryClient.cached(rst.value())),
+            k -> new RegistryServiceWrapper(k, RegistryClient.cached(registryUrl)),
             RegistryServiceWrapper.class
         );
+
         return Stream.of(
             new RegistryServiceTestTemplateInvocationContext(plain),
             new RegistryServiceTestTemplateInvocationContext(cached)
@@ -98,8 +103,8 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         }
 
         @Override
-        public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-            return parameterContext.getIndex() == 0;
+        public boolean supportsParameter(ParameterContext pc, ExtensionContext extensionContext) throws ParameterResolutionException {
+            return (pc.getParameter().getType() == RegistryService.class);
         }
 
         @Override

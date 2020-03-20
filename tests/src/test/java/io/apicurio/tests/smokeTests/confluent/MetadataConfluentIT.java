@@ -16,6 +16,7 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -25,12 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 @Tag(SMOKE)
 public class MetadataConfluentIT extends BaseIT {
@@ -40,10 +41,9 @@ public class MetadataConfluentIT extends BaseIT {
     @Test
     void getAndUpdateMetadataOfSchema() throws IOException, RestClientException, TimeoutException {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        String schemaSubject = "schema-example";
+        String schemaSubject = TestUtils.generateArtifactId();
 
-        createArtifactViaConfluentClient(schema, schemaSubject);
-        int schemaId = confluentService.register(schemaSubject, schema);
+        int schemaId = createArtifactViaConfluentClient(schema, schemaSubject);
 
         schema = confluentService.getById(schemaId);
         SchemaMetadata schemaMetadata = confluentService.getSchemaMetadata(schemaSubject, 1);

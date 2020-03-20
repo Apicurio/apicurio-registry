@@ -17,7 +17,6 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
@@ -25,10 +24,13 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
 import java.util.concurrent.CompletionStage;

@@ -32,6 +32,8 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -155,7 +157,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         retry(() -> {
             HealthUtils.assertIsReady();
             HealthUtils.assertIsLive();
-            return null;
         });
 
         String subject = generateArtifactId();

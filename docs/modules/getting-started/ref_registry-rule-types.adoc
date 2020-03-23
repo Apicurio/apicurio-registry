@@ -4,6 +4,7 @@
 = Supported rule types
 You can specify the following rule types to govern content evolution in the registry: 
 
+.{registry} rule types
 [%header,cols=2*] 
 |===
 |Type

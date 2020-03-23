@@ -5,6 +5,7 @@
 = Supported artifact types
 You can store and manage the following artifact types in {registry}:
 
+.{registry} artifact types
 [%header,cols=2*] 
 |===
 |Type

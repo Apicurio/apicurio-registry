@@ -15,4 +15,5 @@
  * limitations under the License.
  */
 
-export * from './header'
+export * from './header';
+export * from './baseComponent';

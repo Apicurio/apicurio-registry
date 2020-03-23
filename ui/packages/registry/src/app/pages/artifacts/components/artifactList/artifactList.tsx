@@ -26,8 +26,8 @@ import {
     DataListItemRow
 } from '@patternfly/react-core';
 import {Artifact} from "@apicurio/registry-models";
-import {AlertIcon} from "@patternfly/react-core/dist/js/components/Alert/AlertIcon";
 import "./artifactList.css";
+import {ArtifactTypeIcon} from "./artifactTypeIcon";
 
 /**
  * Properties
@@ -40,7 +40,6 @@ export interface ArtifactListProps {
  * State
  */
 export interface ArtifactListState {
-    artifacts: Artifact[];
 }
 
 
@@ -52,41 +51,54 @@ export class ArtifactList extends React.PureComponent<ArtifactListProps, Artifac
     constructor(props: Readonly<ArtifactListProps>) {
         super(props);
         this.state = {
-            artifacts: props.artifacts
         };
     }
 
     public render(): React.ReactElement {
         return (
             <DataList aria-label="List of artifacts" className="artifact-list">
-                <DataListItemRow className="artifact-list-item">
-                    <DataListCheck aria-labelledby="check-action-item2" name="artifact-item-check" />
-                    <DataListItemCells
-                        dataListCells={[
-                            <DataListCell key="type icon" className="type-icon-cell">
-                                <AlertIcon variant="info" className="type-icon" />
-                            </DataListCell>,
-                            <DataListCell width={5} key="main content" className="content-cell">
-                                <div className="artifact-title">Artifact Title</div>
-                                <div className="artifact-description">Description content. Dolor sit amet, consectetur adipisicing elit, sed do eiusmod. Dolor sit amet, consectetur adipisicing elit, sed do eiusmod. Dolor sit amet, consectetur adipisicing elit, sed do eiusmod.</div>
-                                <div className="artifact-tags">
-                                    <Badge isRead={true}>tag-1</Badge>
-                                    <Badge isRead={true}>tag-2</Badge>
-                                    <Badge isRead={true}>tag-3</Badge>
-                                </div>
-                            </DataListCell>
-                        ]}
-                    />
-                    <DataListAction
-                        id="check-action-action2"
-                        aria-labelledby="check-action-item2 check-action-action2"
-                        aria-label="Actions"
-                    >
-                        <Button variant="secondary">View Artifact</Button>
-                    </DataListAction>
-                </DataListItemRow>
+                {
+                    this.props.artifacts.map( artifact => {
+                        const row: any =
+                            <DataListItemRow className="artifact-list-item" key={artifact.id}>
+                                <DataListCheck aria-labelledby="check-action-item2" name="artifact-item-check" />
+                                <DataListItemCells
+                                    dataListCells={[
+                                        <DataListCell key="type icon" className="type-icon-cell">
+                                            <ArtifactTypeIcon type={artifact.type}/>
+                                        </DataListCell>,
+                                        <DataListCell key="main content" className="content-cell">
+                                            <div className="artifact-title">{artifact.name}</div>
+                                            <div className="artifact-description">{artifact.description}</div>
+                                            <div className="artifact-tags">
+                                                {
+                                                    this.labels(artifact).map( label => {
+                                                        const badge: any =
+                                                            <Badge key={label} isRead={true}>{label}</Badge>;
+                                                        return badge;
+                                                    })
+                                                }
+                                            </div>
+                                        </DataListCell>
+                                    ]}
+                                />
+                                <DataListAction
+                                    id="artifact-actions"
+                                    aria-labelledby="artifact-actions"
+                                    aria-label="Actions"
+                                >
+                                    <Button variant="secondary">View Artifact</Button>
+                                </DataListAction>
+                            </DataListItemRow>
+                        return row;
+                    })
+                }
             </DataList>
         );
+    }
+
+    private labels(artifact: Artifact): string[] {
+        return artifact.labels ? artifact.labels : [];
     }
 
 }

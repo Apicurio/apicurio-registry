@@ -3,6 +3,7 @@
 
 .artifact-list .artifact-list-item {
     background-color: white;
+    margin-bottom: 2px;
 }
 
 .artifact-list .artifact-list-item .type-icon-cell {

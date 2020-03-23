@@ -18,12 +18,15 @@
 
 export class Artifact {
 
-    public static create(id: string, type: string, name: string, description: string): Artifact {
+    public static create(id: string, type: string, name: string, description: string, labels?: string[]): Artifact {
         const artifact: Artifact = new Artifact();
         artifact.id = id;
         artifact.type = type;
         artifact.name = name;
         artifact.description = description;
+        if (labels) {
+            artifact.labels = labels;
+        }
         return artifact;
     }
 
@@ -33,6 +36,7 @@ export class Artifact {
     public createdOn: Date;
     public createdBy: string;
     public type: string;
+    public labels: string[];
 
     constructor() {
         this.id = "";
@@ -41,6 +45,7 @@ export class Artifact {
         this.createdOn = new Date();
         this.createdBy = "";
         this.type = "";
+        this.labels = [];
     }
 
 }

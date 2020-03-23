@@ -16,14 +16,16 @@
  */
 
 import React from "react";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
+import {Flex, FlexItem, PageSection, PageSectionVariants, Pagination, Spinner} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
 import {ArtifactsToolbar} from "./components/toolbar";
 import "./artifacts.css";
 import {ArtifactsEmptyState} from "./components/empty";
-import {Artifact} from "@apicurio/registry-models";
-import {Services} from "@apicurio/registry-services";
+import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
+import {PureComponent} from "../../components";
+import {Artifact} from "@apicurio/registry-models";
+import {Paging} from "@apicurio/registry-services/src";
 
 
 /**
@@ -37,26 +39,34 @@ export interface ArtifactsProps {
  * State
  */
 export interface ArtifactsState {
-    artifacts: Artifact[];
+    criteria: GetArtifactsCriteria;
     isLoading: boolean;
+    paging: Paging;
+    results: ArtifactsSearchResults | null;
 }
 
 /**
  * The artifacts page.
  */
-export class Artifacts extends React.PureComponent<ArtifactsProps, ArtifactsState> {
+export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
 
     constructor(props: Readonly<ArtifactsProps>) {
         super(props);
         this.state = {
-            artifacts: [],
-            isLoading: true
+            criteria: {
+                sortAscending: true,
+                type: "Everything",
+                value: "",
+            },
+            isLoading: true,
+            paging: {
+                page: 1,
+                pageSize: 10
+            },
+            results: null
         };
-        Services.getArtifactsService().getArtifacts().then( artifacts => {
-            this.onArtifactsLoaded(artifacts);
-        }).then(error => {
-            // TODO handle errors!
-        });
+
+        this.search();
     }
 
     public render(): React.ReactElement {
@@ -66,31 +76,93 @@ export class Artifacts extends React.PureComponent<ArtifactsProps, ArtifactsStat
                     <ArtifactsPageHeader/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} noPadding={true}>
-                    <ArtifactsToolbar artifactsCount={this.state.artifacts.length} />
+                    <ArtifactsToolbar artifactsCount={this.totalArtifactsCount()} onChange={this.onFilterChange}/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
                         this.state.isLoading ?
                             <Flex>
-                                <FlexItem><Spinner size="lg" /></FlexItem>
+                                <FlexItem><Spinner size="lg"/></FlexItem>
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
                             </Flex>
-                        : this.state.artifacts.length === 0 ?
+                        : this.artifactsCount() === 0 ?
                             <ArtifactsEmptyState isFiltered={false}/>
                         :
-                            <ArtifactList artifacts={this.state.artifacts} />
+                            <React.Fragment>
+                                <ArtifactList artifacts={this.artifacts()}/>
+                                <Pagination
+                                    variant="bottom"
+                                    dropDirection="up"
+                                    itemCount={this.totalArtifactsCount()}
+                                    perPage={3}
+                                    page={1}
+                                    onSetPage={this.onSetPage}
+                                    widgetId="artifact-list-pagination"
+                                    className="artifact-list-pagination"
+                                />
+                            </React.Fragment>
                     }
                 </PageSection>
             </React.Fragment>
         );
     }
-    
-    private onArtifactsLoaded(artifacts: Artifact[]): void {
-        this.setState({
-            ...this.state,
-            artifacts,
-            isLoading: false
+
+    private onArtifactsLoaded(results: ArtifactsSearchResults): void {
+        this.setMultiState({
+            isLoading: false,
+            results
         });
     }
+
+    private artifacts(): Artifact[] {
+        if (this.state.results) {
+            return this.state.results.artifacts;
+        }
+        return [];
+    }
+
+    private artifactsCount(): number {
+        if (this.state.results) {
+            return this.state.results.artifacts.length;
+        }
+        return 0;
+    }
+
+    private totalArtifactsCount(): number {
+        if (this.state.results) {
+            return this.state.results.count;
+        }
+        return 0;
+    }
+
+    private onFilterChange = (criteria: GetArtifactsCriteria): void => {
+        this.setMultiState({
+            criteria,
+            isLoading: true
+        });
+        this.search();
+    };
+
+    private search(): void {
+        const criteria: GetArtifactsCriteria = this.state.criteria;
+        const paging: Paging = this.state.paging;
+
+        Services.getArtifactsService().getArtifacts(criteria, paging).then(results => {
+            this.onArtifactsLoaded(results);
+        }).then(error => {
+            // TODO handle errors!
+        });
+    }
+
+    private onSetPage = (event: any, newPage: number, perPage?: number): void => {
+        this.setMultiState({
+            isLoading: true,
+            paging: {
+                page: newPage,
+                pageSize: perPage ? perPage : this.state.paging.pageSize
+            }
+        });
+        this.search();
+    };
 
 }

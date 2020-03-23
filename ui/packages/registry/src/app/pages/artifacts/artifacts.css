@@ -1,3 +1,11 @@
 .ps_artifacts-header {
     border-bottom: 1px solid #ddd;
 }
+
+.artifact-list-pagination {
+    margin-top: 12px;
+}
+
+.artifact-list-pagination .pf-c-pagination__nav-page-select > input {
+    background: transparent;
+}

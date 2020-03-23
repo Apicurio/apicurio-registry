@@ -19,7 +19,7 @@ You can also manage artifacts in the registry using a Java client application. T
 [source,java,subs="+quotes,attributes"]
 ----
 String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
-  "https//my-cluster-service-registry-myproject.example.com"); <1>
+  "https://my-cluster-service-registry-myproject.example.com"); <1>
    try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
    {
     String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";

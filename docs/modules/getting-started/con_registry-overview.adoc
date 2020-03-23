@@ -3,7 +3,7 @@
 [id="registry-overview"]
 = {registry} overview
 
-{registry} is a datastore for standard event schemas and API designs. {registry} enables you to decouple the structure of your data from your applications and to share and manage your data structures and API descriptions at runtime using a REST interface. 
+{registry} is a datastore for standard event schemas and API designs. You can use {registry} to decouple the structure of your data from your applications and to share and manage your data structures and API descriptions at runtime using a REST interface. 
 
 For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required by services deployed in production and can register new schemas required for new services.
 
@@ -67,7 +67,7 @@ When a schema or API contract is added as an artifact in the registry, client ap
 
 [id="registry-rest-api"]
 == Registry REST API
-The Registry REST API enables client applications to manage the artifacts in the registry. It provides create, read, update, and delete operations for the following:
+Using the Registry REST API, client applications can manage the artifacts in {registry}. This API provides create, read, update, and delete operations for:
 
 Artifacts::
 Manage the schema and API design artifacts stored in the registry. You can also manage the lifecycle state of an artifact: enabled, disabled, or deprecated. 
@@ -83,7 +83,7 @@ Configure rules to govern the content evolution of a specific artifact to preven
 For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 .Compatibility with other schema registries
-The {registry} REST API is compatible with the Confluent schema registry REST APIs. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
+The {registry} REST API is compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
 ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
@@ -144,8 +144,8 @@ ifdef::apicurio-registry[]
 endif::[]
 
 ifdef::rh-service-registry[]
-{registry} is available as follows:
 
+.{registry} distributions
 [%header,cols=2*] 
 |===
 |Distribution
@@ -181,7 +181,7 @@ endif::[]
 
 [id="registry-demo"]
 == Registry demonstration
-{registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer gets the Avro schema from the registry at runtime and then uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+{registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
 
 This demonstration also provides simple examples of both Avro and JSON Schema serialization/deserialization with storage in Apache Kafka:
 https://github.com/Apicurio/apicurio-registry-demo/tree/master/src/main/java/io/apicurio/registry/demo/simple

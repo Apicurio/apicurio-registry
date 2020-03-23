@@ -45,7 +45,7 @@ link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tec
 +
 [source,bash]
 ----
-$ oc create -f 11223344_service-registry-secret.yaml --namespace=my-project
+$ oc create -f 11223344_service-registry-secret.yaml --namespace=myproject
 ----
 endif::[]
 

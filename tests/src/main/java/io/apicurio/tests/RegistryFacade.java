@@ -25,8 +25,8 @@ import java.util.concurrent.CompletionException;
 public class RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
 
-    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.1.2-SNAPSHOT-runner.jar";
-    public static final String REGISTRY_JAR_PATH = System.getenv().getOrDefault("REGISTRY_JAR_PATH", DEFAULT_REGISTRY_JAR_PATH);
+    private static final String REGISTRY_JAR_PATH_FORMAT = "../app/target/apicurio-registry-app-%s-runner.jar";
+    private static final String REGISTRY_JAR_PATH = System.getenv().get("REGISTRY_JAR_PATH");
 
     private Exec executor = new Exec();
 
@@ -34,7 +34,12 @@ public class RegistryFacade {
      * Method for start registries from jar file. New process is created.
      */
     public void start() {
-        LOGGER.info("Starting Registry app from: {}", REGISTRY_JAR_PATH);
+        String path = REGISTRY_JAR_PATH;
+        if (path == null) {
+            String version = System.getProperty("project.version");
+            path = String.format(REGISTRY_JAR_PATH_FORMAT, version);
+        }
+        LOGGER.info("Starting Registry app from: {}", path);
 
         CompletableFuture.supplyAsync(() -> {
             try {

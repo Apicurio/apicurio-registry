@@ -24,8 +24,11 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -33,6 +36,7 @@ import javax.inject.Inject;
  * Implements the {@link RulesService} interface.
  *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @ApplicationScoped
 public class RulesServiceImpl implements RulesService {
@@ -66,7 +70,7 @@ public class RulesServiceImpl implements RulesService {
         ContentHandle currentArtifactContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
-            currentArtifactContent = currentArtifact.content;
+            currentArtifactContent = currentArtifact.getContent();
         }
         for (RuleType ruleType : rules) {
             RuleConfigurationDto configurationDto = useGlobalRules ?
@@ -88,7 +92,7 @@ public class RulesServiceImpl implements RulesService {
         ContentHandle currentArtifactContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
-            currentArtifactContent = currentArtifact.content;
+            currentArtifactContent = currentArtifact.getContent();
         }
         applyRule(artifactId, artifactType, currentArtifactContent, artifactContent, ruleType, ruleConfiguration);
     }
@@ -108,5 +112,20 @@ public class RulesServiceImpl implements RulesService {
         RuleExecutor executor = factory.createExecutor(ruleType);
         RuleContext context = new RuleContext(artifactId, artifactType, ruleConfiguration, currentContent, updatedContent);
         executor.execute(context);
+    }
+
+
+    @Override
+    public void applyRule(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+            throws RuleViolationException {
+        StoredArtifact versionContent = storage.getArtifactVersion(artifactId, artifactVersion);
+        // Get the rules for this artifact
+        Set<RuleType> ruleTypes = new HashSet<>();
+        ruleTypes.addAll(storage.getGlobalRules());
+        ruleTypes.addAll(storage.getArtifactRules(artifactId));
+        for (RuleType ruleType : ruleTypes) {
+            RuleConfigurationDto configurationDto = storage.getArtifactRule(artifactId, ruleType);
+            applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
+        }
     }
 }

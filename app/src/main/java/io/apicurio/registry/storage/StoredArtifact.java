@@ -25,8 +25,19 @@ import lombok.Value;
  */
 @Value
 @Builder
-public class StoredArtifact {
-    public ContentHandle content;
-    public Long version;
-    public Long id; // TODO Which ID is this?
+public class StoredArtifact { // TODO rename this to ArtifactVersion
+
+    private Long id; // TODO Which ID is this?
+
+    // TODO add artifactId
+
+    private Long version;
+
+    // TODO Can the CH be used multiple times?
+    private ContentHandle content;
+
+    //  Assuming global
+    public Long getGlobalId() {
+        return id;
+    }
 }

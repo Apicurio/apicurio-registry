@@ -16,22 +16,27 @@
 
 package io.apicurio.registry.ccompat.dto;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public class RegisterSchemaResponse {
+@JsonAutoDetect(isGetterVisibility = NONE)
+@NoArgsConstructor // required for Jackson
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode
+@ToString
+public class SchemaContent {
 
-    private long id;
-
-    @JsonProperty("id")
-    public long getId() {
-        return id;
-    }
-
-    @JsonProperty("id")
-    public void setId(long id) {
-        this.id = id;
-    }
+    @JsonProperty("schema")
+    private String schema;
 }

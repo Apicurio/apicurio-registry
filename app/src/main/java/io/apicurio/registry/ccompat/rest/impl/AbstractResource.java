@@ -14,31 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.dto;
+package io.apicurio.registry.ccompat.rest.impl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public class SchemaString {
+public abstract class AbstractResource {
 
-    private String schemaString;
+    @Inject
+    RegistryStorageFacade facade;
 
-    public SchemaString() {
-    }
-
-    public SchemaString(String schemaString) {
-        this.schemaString = schemaString;
-    }
-
-    @JsonProperty("schema")
-    public String getSchemaString() {
-        return schemaString;
-    }
-
-    @JsonProperty("schema")
-    public void setSchemaString(String schemaString) {
-        this.schemaString = schemaString;
-    }
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 }

@@ -17,27 +17,34 @@
 package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @ApplicationScoped
 public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
@@ -46,84 +53,144 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Current
     RegistryStorage storage;
 
-    private static Schema toSchema(String subject, StoredArtifact storedArtifact) {
-        return new Schema(
-            subject,
-            storedArtifact.version.intValue(),
-            storedArtifact.id.intValue(),
-            storedArtifact.content.content()
-        );
-    }
 
-    public Set<String> listSubjects() {
-        return storage.getArtifactIds();
+    public List<String> getSubjects() {
+        // TODO maybe not necessary...
+        return new ArrayList<>(storage.getArtifactIds());
     }
 
     @Override
-    public SortedSet<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.deleteArtifact(subject);
+    public List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.deleteArtifact(subject)
+                .stream()
+                .map(FacadeConverter::convertUnsigned)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public String getSchema(Integer id) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersion(id).content.content();
+    public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
+        try {
+            return FacadeConverter.convert(storage.getArtifactVersion(globalId));
+            // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
+        } catch (ArtifactNotFoundException ex) {
+            throw new SchemaNotFoundException(ex);
+        }
     }
 
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        try {
-            long version = Long.parseLong(versionString);
-            return toSchema(subject, storage.getArtifactVersion(subject, version));
-        } catch (NumberFormatException e) {
-            // return latest
-            return toSchema(subject, storage.getArtifact(subject));
-        }
+        return parseVersionString(subject, versionString,
+                version -> FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version)));
     }
 
     @Override
-    public List<Integer> listVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersions(subject)
-                      .stream()
-                      .map(Long::intValue)
-                      .collect(Collectors.toList());
+                .stream()
+                .map(FacadeConverter::convertUnsigned)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException {
+    public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
         // TODO -- handle deleted?
-        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema));
+        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema.getSchema()));
         StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
-        return toSchema(subject, storedArtifact);
+        return FacadeConverter.convert(subject, storedArtifact);
     }
 
     @Override
-    public CompletionStage<Long> registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto metadata = null;
-        try {
-            metadata = storage.getArtifactMetaData(subject);
-        } catch (ArtifactNotFoundException ignored) {
-        }
-        CompletionStage<ArtifactMetaDataDto> cs;
-        if (metadata == null) {
-            cs = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
-        } else {
-            cs = storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
-        }
-        return cs.thenApply(ArtifactMetaDataDto::getGlobalId);
+    public CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+
+        // TODO Should this creation and updating of an artifact be a different operation?
+        // TODO method that returns a completion stage should not throw an exception
+        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema);
+
+        return artifactMeta.thenApply(ArtifactMetaDataDto::getGlobalId);
     }
 
     @Override
-    public long deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        try {
-            long version = Long.parseLong(versionString);
+    public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return FacadeConverter.convertUnsigned(parseVersionString(subject, versionString, version -> {
             storage.deleteArtifactVersion(subject, version);
             return version;
-        } catch (NumberFormatException e) {
-            // delete latest
+        }));
+    }
+
+    @Override
+    public void createOrUpdateArtifactRule(String subject, RuleType type, RuleConfigurationDto dto) {
+        if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY)) {
+            storage.createArtifactRule(subject, RuleType.COMPATIBILITY, dto);
+        } else {
+            storage.updateArtifactRule(subject, RuleType.COMPATIBILITY, dto);
+        }
+    }
+
+    @Override
+    public void createOrUpdateGlobalRule(RuleType type, RuleConfigurationDto dto) {
+        if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
+            storage.createGlobalRule(RuleType.COMPATIBILITY, dto);
+        } else {
+            storage.updateGlobalRule(RuleType.COMPATIBILITY, dto);
+        }
+    }
+
+    private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema) {
+        if (!doesArtifactExist(subject)) {
+            return storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+        } else {
+            return storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+        }
+    }
+
+    /**
+     * Given a version string:
+     * - if it's an <b>integer</b>, use that;
+     * - if it's a string "latest", find out and use the subject's (artifact's) latest version;
+     * - otherwise throw an IllegalArgumentException.
+     * On success, call the "then" function with the parsed version (MUST NOT be null) and return it's result.
+     * Optionally provide an "else" function that will receive the exception that would be otherwise thrown.
+     */
+    public <T> T parseVersionString(String subject, String versionString, Function<Long, T> then) {
+        long version;
+        if ("latest".equals(versionString)) {
             SortedSet<Long> versions = storage.getArtifactVersions(subject);
-            Long latestVersion = versions.last();
-            storage.deleteArtifactVersion(subject, latestVersion);
-            return latestVersion.intValue();
+            version = versions.last();
+        } else {
+            try {
+                version = Integer.parseUnsignedInt(versionString); // required by the spec, ignoring the possible leading "+"
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Illegal version format: " + versionString, e);
+            }
+        }
+        return then.apply(version);
+    }
+
+
+    private boolean doesArtifactExist(String artifactId) {
+        try {
+            storage.getArtifact(artifactId);
+            return true;
+        } catch (ArtifactNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    private boolean doesArtifactRuleExist(String artifactId, RuleType type) {
+        try {
+            storage.getArtifactRule(artifactId, type);
+            return true;
+        } catch (RuleNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    private boolean doesGlobalRuleExist(RuleType type) {
+        try {
+            storage.getGlobalRule(type);
+            return true;
+        } catch (RuleNotFoundException ignored) {
+            return false;
         }
     }
 }

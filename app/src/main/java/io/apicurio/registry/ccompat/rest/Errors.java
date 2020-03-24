@@ -20,13 +20,19 @@ import javax.ws.rs.NotFoundException;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public class Errors {
     public static void noSuchSubject(String subject) {
-        throw new NotFoundException(String .format("No such subject: %s", subject));
+        throw new NotFoundException("No such subject: " + subject);
+
     }
 
     public static void schemaNotFound(Integer id) {
-        throw new NotFoundException(String .format("No content with id: %s", id));
+        throw new NotFoundException("No content with globalId: " + id);
+    }
+
+    public static void operationNotSupported() {
+        throw new NotFoundException("Operation not supported.");
     }
 }

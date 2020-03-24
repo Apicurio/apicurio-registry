@@ -76,6 +76,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
         map.put(RuleViolationException.class, HTTP_BAD_REQUEST);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(IllegalArgumentException.class, 422);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

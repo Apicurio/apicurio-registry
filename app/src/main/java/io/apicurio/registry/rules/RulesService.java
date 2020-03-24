@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 /**
@@ -26,6 +26,7 @@ import io.apicurio.registry.types.RuleType;
  * any rules configured for the artifact.
  *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public interface RulesService {
 
@@ -54,6 +55,18 @@ public interface RulesService {
      */
     void applyRule(String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
                    RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
-    throws RuleViolationException;
+            throws RuleViolationException;
 
+
+    /**
+     * Applies configured rules to the content update, relative to ANY artifact version.
+     *
+     * @param artifactId
+     * @param artifactVersion
+     * @param artifactType
+     * @param updatedContent
+     * @throws RuleViolationException
+     */
+    void applyRule(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+            throws RuleViolationException;
 }

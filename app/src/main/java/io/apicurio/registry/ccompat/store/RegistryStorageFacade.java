@@ -17,39 +17,66 @@
 package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 /**
+ * Note: This facade is only expected to be used for AVRO artifact type.
+ *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public interface RegistryStorageFacade {
-    Set<String> listSubjects();
 
-    SortedSet<Long> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException;
-
-    String getSchema(Integer id) throws ArtifactNotFoundException, RegistryStorageException;;
-
-    Schema getSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;;
-
-    List<Integer> listVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException;
-
-    Schema findSchemaWithSubject(String subject, boolean checkDeletedSchema, String schema) throws ArtifactNotFoundException, RegistryStorageException;;
+    List<String> getSubjects();
 
     /**
-     * @return global id as future
+     * @return List of <b>schema versions</b> in the deleted subject
      */
-    CompletionStage<Long> registerSchema(String subject, Integer id, Integer version, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException;
+
 
     /**
-     * @return schema version as long
+     * Create a new schema in the given subject.
+     *
+     * @return globalId as a future
      */
-    long deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+
+
+    SchemaContent getSchemaContent(int globalId) throws SchemaNotFoundException, RegistryStorageException;
+
+
+    Schema getSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+
+    List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException;
+
+
+    Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException;
+
+
+    /**
+     * @return schema version
+     *
+     * @throws java.lang.IllegalArgumentException if the version string is not an int or "latest"
+     */
+    int deleteSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+
+    void createOrUpdateArtifactRule(String subject, RuleType type, RuleConfigurationDto dto);
+
+    void createOrUpdateGlobalRule(RuleType type, RuleConfigurationDto dto);
+
+    <T> T parseVersionString(String subject, String versionString, Function<Long, T> then);
 }

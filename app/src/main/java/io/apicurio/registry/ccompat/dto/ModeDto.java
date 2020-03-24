@@ -16,23 +16,28 @@
 
 package io.apicurio.registry.ccompat.dto;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
+@JsonAutoDetect(isGetterVisibility = NONE)
+@NoArgsConstructor // required for Jackson
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode
+@ToString
 public class ModeDto {
 
+    @JsonProperty("mode")
     private String mode;
-
-    @JsonProperty("mode")
-    public String getMode() {
-        return this.mode;
-    }
-
-    @JsonProperty("mode")
-    public void setMode(String mode) {
-        this.mode = mode;
-    }
-
 }

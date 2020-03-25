@@ -19,38 +19,31 @@ import io.apicurio.tests.executor.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Future;
 
 public class RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
 
-    public static final String DEFAULT_REGISTRY_JAR_PATH = "../app/target/apicurio-registry-app-1.1.2-SNAPSHOT-runner.jar";
-    public static final String DEFAULT_REGISTRY_PORT = "8080";
-    public static final String DEFAULT_REGISTRY_URL = "localhost";
-
-    public static final String REGISTRY_JAR_PATH = System.getenv().getOrDefault("REGISTRY_JAR_PATH", DEFAULT_REGISTRY_JAR_PATH);
-    public static final String REGISTRY_PORT = System.getenv().getOrDefault("REGISTRY_PORT", DEFAULT_REGISTRY_PORT);
-    public static final String REGISTRY_URL = System.getenv().getOrDefault("REGISTRY_URL", DEFAULT_REGISTRY_URL);
-    public static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "");
+    private static final String REGISTRY_JAR_PATH_FORMAT = "../app/target/apicurio-registry-app-%s-runner.jar";
+    private static final String REGISTRY_JAR_PATH = System.getenv().get("REGISTRY_JAR_PATH");
 
     private Exec executor = new Exec();
-
-    private Future<Boolean> registries;
 
     /**
      * Method for start registries from jar file. New process is created.
      */
     public void start() {
-        LOGGER.info("Starting Registry app from: {}", REGISTRY_JAR_PATH);
+        String path = REGISTRY_JAR_PATH;
+        if (path == null) {
+            String version = System.getProperty("project.version");
+            path = String.format(REGISTRY_JAR_PATH_FORMAT, version);
+        }
+        LOGGER.info("Starting Registry app from: {}", path);
 
-        registries = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture.supplyAsync(() -> {
             try {
-                int timeout = executor.execute("java", "-Dquarkus.log.console.level=DEBUG", "-Dquarkus.log.category.\"io\".level=DEBUG", "-jar", REGISTRY_JAR_PATH);
+                int timeout = executor.execute("java", "-Dquarkus.http.port=8081", "-Dquarkus.log.console.level=DEBUG", "-Dquarkus.log.category.\"io\".level=DEBUG", "-jar", REGISTRY_JAR_PATH);
                 return timeout == 0;
             } catch (Exception e) {
                 throw new CompletionException(e);
@@ -73,22 +66,5 @@ public class RegistryFacade {
 
     public String getRegistryStdErr() {
         return executor.stdErr();
-    }
-
-    /**
-     * Method which try connection to registries. It's used as a initial check for registries availability.
-     * @return true if registries are ready for use, false in other cases
-     */
-    public static boolean isReachable() {
-        LOGGER.info("Trying to connect to {}:{}", REGISTRY_URL, REGISTRY_PORT);
-
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(REGISTRY_URL, Integer.parseInt(REGISTRY_PORT)), 5_000);
-            LOGGER.info("Client is able to connect to Registry instance");
-            return  true;
-        } catch (IOException ex) {
-            LOGGER.warn("Cannot connect to Registry instance: {}", ex.getMessage());
-            return false; // Either timeout or unreachable or failed DNS lookup.
-        }
     }
 }

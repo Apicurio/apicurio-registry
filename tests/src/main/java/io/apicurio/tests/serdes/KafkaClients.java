@@ -16,14 +16,33 @@
 
 package io.apicurio.tests.serdes;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
+import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
+import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
+import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
+import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
+import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
+import io.apicurio.registry.utils.serde.JsonSchemaSerDeConstants;
+import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
+import io.apicurio.registry.utils.serde.ProtobufKafkaSerializer;
+import io.apicurio.registry.utils.serde.strategy.RecordIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.serdes.json.Msg;
+import io.apicurio.tests.serdes.json.ValidMessage;
+import io.apicurio.tests.serdes.proto.MsgTypes;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import io.confluent.kafka.serializers.subject.RecordNameStrategy;
+import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+import io.confluent.kafka.serializers.subject.TopicRecordNameStrategy;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -40,33 +59,13 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Message;
-
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
-import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.utils.serde.JsonSchemaSerDeConstants;
-import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
-import io.apicurio.registry.utils.serde.ProtobufKafkaSerializer;
-import io.apicurio.registry.utils.serde.strategy.RecordIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
-import io.apicurio.tests.RegistryFacade;
-import io.apicurio.tests.serdes.json.Msg;
-import io.apicurio.tests.serdes.json.ValidMessage;
-import io.apicurio.tests.serdes.proto.MsgTypes;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
-import io.confluent.kafka.serializers.subject.RecordNameStrategy;
-import io.confluent.kafka.serializers.subject.TopicNameStrategy;
-import io.confluent.kafka.serializers.subject.TopicRecordNameStrategy;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("unchecked")
 public class KafkaClients {
@@ -86,10 +85,11 @@ public class KafkaClients {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer);
         // Schema Registry location.
         if (valueSerializer.contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/ccompat");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryUrl() + "/ccompat");
+            props.putIfAbsent(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy);
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryUrl());
             props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, artifactIdStrategy);
         }
 
@@ -112,9 +112,9 @@ public class KafkaClients {
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
         //Schema registry location.
         if (valueDeserializer.contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/ccompat");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryUrl() + "/ccompat");
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryUrl());
         }
         return new KafkaConsumer<>(props);
     }
@@ -145,7 +145,7 @@ public class KafkaClients {
 
     private static CompletableFuture<Integer> produceMessages(String topicName, String subjectName, Schema schema, int messageCount, String keySerializer, String valueSerializer, String artifactIdStrategy, String... schemaKeys) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
-            Producer<Object, Object> producer = (Producer<Object, Object>) KafkaClients.createProducer(keySerializer, valueSerializer, topicName, artifactIdStrategy);
+            Producer<Object, Object> producer = (Producer<Object, Object>) createProducer(keySerializer, valueSerializer, topicName, artifactIdStrategy);
 
             int producedMessages = 0;
 
@@ -251,7 +251,7 @@ public class KafkaClients {
 
                     ProducerRecord<Object, Msg> producedRecord = new ProducerRecord<>(topicName, subjectName, message);
                     producer.send(producedRecord);
-                    LOGGER.debug("++++++++++++++++++ Produced a message in kafka!");
+                    LOGGER.debug("++++++++++++++++++ Produced a message in Kafka!");
                 }
 
                 LOGGER.info("Produced {} messages", producedMessages);
@@ -317,7 +317,7 @@ public class KafkaClients {
 
     public static CompletableFuture<Integer> produceProtobufMessages(String topicName, String subjectName, int messageCount) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
-            Producer<Object, Message> producer = (Producer<Object, Message>) KafkaClients.createProducer(StringSerializer.class.getName(), 
+            Producer<Object, Message> producer = (Producer<Object, Message>) createProducer(StringSerializer.class.getName(),
                     ProtobufKafkaSerializer.class.getName(), topicName, SimpleTopicIdStrategy.class.getName());
             LOGGER.debug("++++++++++++++++++ Producer created.");
 
@@ -333,7 +333,7 @@ public class KafkaClients {
 
                     ProducerRecord<Object, Message> producedRecord = new ProducerRecord<>(topicName, subjectName, msg);
                     producer.send(producedRecord);
-                    LOGGER.debug("++++++++++++++++++ Produced a message in kafka!");
+                    LOGGER.debug("++++++++++++++++++ Produced a message in Kafka!");
                 }
 
                 LOGGER.info("Produced {} messages", producedMessages);

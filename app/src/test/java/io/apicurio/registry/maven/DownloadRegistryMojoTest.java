@@ -18,9 +18,9 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.ext.RegistryServiceTest;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;

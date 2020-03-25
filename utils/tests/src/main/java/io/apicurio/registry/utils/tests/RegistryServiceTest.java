@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ext;
+package io.apicurio.registry.utils.tests;
 
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,4 +40,11 @@ public @interface RegistryServiceTest {
      * @return the url
      */
     String value() default "http://localhost:8081";
+
+    /**
+     * Limit the registry to local app.
+     *
+     * @return false to allow external lookup, true otherwise
+     */
+    boolean localOnly() default true;
 }

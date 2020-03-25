@@ -22,7 +22,7 @@ This topic explains how to install and run {registry} with storage in Red Hat AM
 The following versions are supported:
 
 * AMQ Streams 1.4 or 1.3
-* OpenShift 4.x or 3.11   
+* OpenShift 4.3, 4.2, or 3.11    
 endif::[]
 
 .Prerequisites
@@ -45,7 +45,7 @@ link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tec
 +
 [source,bash]
 ----
-$ oc create -f 11223344_service-registry-secret.yaml --namespace=my-project
+$ oc create -f 11223344_service-registry-secret.yaml --namespace=myproject
 ----
 endif::[]
 
@@ -116,7 +116,7 @@ You can also specify the following environment variables using the `-e` option:
 ** `APPLICATION_SERVER_HOST`: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
 ** `APPLICATION_SERVER_PORT`: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
 
-. Verify the command output when commplete. For example: 
+. Verify the command output when complete. For example: 
 +
 ----
 Deploying template "myproject/service-registry" for "service-registry-template.yml" to project myproject
@@ -146,11 +146,11 @@ Deploying template "myproject/service-registry" for "service-registry-template.y
 ----
 endif::[]
 
-. Run `oc status` to view your {registry} installation on OpenShift. 
+. Enter `oc status` to view your {registry} installation on OpenShift. 
 
 .Additional resources
 * For sample REST API requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
-* For details on registry demo applications: 
+* For details on example client applications: 
 ** https://github.com/Apicurio/apicurio-registry-demo
 ifdef::rh-service-registry[]
 ** link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry]

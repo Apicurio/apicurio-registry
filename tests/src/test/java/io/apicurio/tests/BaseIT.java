@@ -16,6 +16,26 @@
 
 package io.apicurio.tests;
 
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.interfaces.TestSeparator;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
+import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -29,34 +49,11 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import org.apache.avro.Schema;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.tests.interfaces.TestSeparator;
-import io.apicurio.tests.utils.subUtils.TestUtils;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.restassured.RestAssured;
-import io.restassured.parsing.Parser;
 
 public abstract class BaseIT implements TestSeparator, Constants {
 
@@ -65,7 +62,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
     private static RegistryFacade registry = new RegistryFacade();
 
     protected static SchemaRegistryClient confluentService;
-    protected static RegistryService apicurioService;
 
 
     protected final String resourceToString(String resourceName) {
@@ -79,27 +75,29 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        if (!RegistryFacade.REGISTRY_URL.equals(RegistryFacade.DEFAULT_REGISTRY_URL) || RegistryFacade.EXTERNAL_REGISTRY.equals("")) {
+        if (!TestUtils.isExternalRegistry()) {
             registry.start();
         } else {
-            LOGGER.info("Going to use already running registries on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
+            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryUrl());
         }
-        TestUtils.waitFor("Cannot connect to registries on " + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + " in timeout!",
-                          Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, RegistryFacade::isReachable);
-        RestAssured.baseURI = "http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT;
-        LOGGER.info("Registry app is running on {}:{}", RegistryFacade.REGISTRY_URL, RegistryFacade.REGISTRY_PORT);
+        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryUrl() + " in timeout!",
+                          Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
+        RestAssured.baseURI = TestUtils.getRegistryUrl();
+        LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
-        confluentService = new CachedSchemaRegistryClient("http://" + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT + "/ccompat", 3);
-        apicurioService = RegistryClient.create("http://"  + RegistryFacade.REGISTRY_URL + ":" + RegistryFacade.REGISTRY_PORT);
+        confluentService = new CachedSchemaRegistryClient(RestAssured.baseURI + "/ccompat", 3);
 
         clearAllConfluentSubjects();
     }
 
     @AfterAll
-    static void afterAll(TestInfo info) throws InterruptedException {
-        registry.stop();
-        Thread.sleep(3000);
-        storeRegistryLog(info.getTestClass().get().getCanonicalName());
+    static void afterAll(TestInfo info) throws Exception {
+        if (!TestUtils.isExternalRegistry()) {
+            registry.stop();
+            Thread.sleep(3000);
+            //noinspection OptionalGetWithoutIsPresent
+            storeRegistryLog(info.getTestClass().get().getCanonicalName());
+        }
     }
 
     private static void storeRegistryLog(String className) {
@@ -109,6 +107,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         File logDir = new File("target/logs/" + className + "-" + currentDate);
 
         if (!logDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
             logDir.mkdirs();
         }
 
@@ -116,35 +115,36 @@ public abstract class BaseIT implements TestSeparator, Constants {
         TestUtils.writeFile(logDir + "/registries-stderr.log", registry.getRegistryStdErr());
     }
 
-    protected Map<String, String> createMultipleArtifacts(int count) {
+    protected Map<String, String> createMultipleArtifacts(RegistryService apicurioService, int count) throws Exception {
         Map<String, String> idMap = new HashMap<>();
 
         for (int x = 0; x < count; x++) {
             String name = "myrecord" + x;
-            String artifactId = String.valueOf(x);
+            String artifactId = TestUtils.generateArtifactId();
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
-            ConcurrentUtil.result(csResult);
 
-            ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+            // Make sure artifact is fully registered
+            ArtifactMetaData amd = ConcurrentUtil.result(csResult);
+            TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
-            LOGGER.info("Created record with name: {} and ID: {}", artifactMetaData.getName(), artifactMetaData.getId());
-            idMap.put(name, artifactMetaData.getId());
+            LOGGER.info("Created record with name: {} and ID: {}", amd.getName(), amd.getId());
+            idMap.put(name, amd.getId());
         }
 
         return idMap;
     }
 
-    protected void deleteMultipleArtifacts(Map<String, String> idMap) {
-        for (Map.Entry entry : idMap.entrySet()) {
-            apicurioService.deleteArtifact(entry.getValue().toString());
+    protected void deleteMultipleArtifacts(RegistryService apicurioService, Map<String, String> idMap) {
+        for (Map.Entry<String, String> entry : idMap.entrySet()) {
+            apicurioService.deleteArtifact(entry.getValue());
             LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());
         }
     }
 
-    public void createArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
+    public void createArtifactViaApicurioClient(RegistryService apicurioService, Schema schema, String artifactName) throws TimeoutException {
         CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
                 ArtifactType.AVRO,
                 artifactName,
@@ -164,7 +164,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
             });
     }
 
-    public void updateArtifactViaApicurioClient(Schema schema, String artifactName) throws TimeoutException {
+    public void updateArtifactViaApicurioClient(RegistryService apicurioService, Schema schema, String artifactName) throws TimeoutException {
         CompletionStage<ArtifactMetaData> csa = apicurioService.updateArtifact(
                 artifactName,
                 ArtifactType.AVRO,
@@ -174,6 +174,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         EditableMetaData editableMetaData = new EditableMetaData();
         editableMetaData.setName(artifactName);
         apicurioService.updateArtifactMetaData(artifactName, editableMetaData);
+        apicurioService.reset(); // clear cache
         // wait for global id store to populate (in case of Kafka / Streams)
         TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
             () -> {
@@ -184,25 +185,28 @@ public abstract class BaseIT implements TestSeparator, Constants {
             });
     }
 
-    public void createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
+    public int createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
         int idOfSchema = confluentService.register(artifactName, schema);
-        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(schema.toString(), is(newSchema.toString()));
-        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+        confluentService.reset(); // clear cache
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
+            () -> {
+                try {
+                    Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+                    LOGGER.info("Checking that created schema is equal to the get schema");
+                    assertThat(schema.toString(), is(newSchema.toString()));
+                    assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
+                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
+                    return true;
+                } catch (IOException | RestClientException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            });
+        return idOfSchema;
     }
 
-    public void updateArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException {
-        int idOfSchema = confluentService.register(artifactName, schema);
-        Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
-        LOGGER.info("Checking that created schema is equal to the get schema");
-        assertThat(schema.toString(), is(newSchema.toString()));
-        assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
-    }
-
-    private static void clearAllConfluentSubjects() throws IOException, RestClientException {
-        List<String> confluentSubjects = (List<String>) confluentService.getAllSubjects();
-        for (String confluentSubject : confluentSubjects) {
+    protected static void clearAllConfluentSubjects() throws IOException, RestClientException {
+        for (String confluentSubject : confluentService.getAllSubjects()) {
             LOGGER.info("Deleting confluent schema {}", confluentSubject);
             confluentService.deleteSubject(confluentSubject);
         }

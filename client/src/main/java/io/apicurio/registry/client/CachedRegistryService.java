@@ -16,20 +16,6 @@
 
 package io.apicurio.registry.client;
 
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import javax.enterprise.inject.Vetoed;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -38,6 +24,15 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.enterprise.inject.Vetoed;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
@@ -48,7 +43,6 @@ class CachedRegistryService implements RegistryService {
 
     private final RegistryService delegate;
 
-    private final Map<String, NavigableMap<Integer, ArtifactMetaData>> amds = new ConcurrentHashMap<>();
     private final Map<String, Map<String, ArtifactMetaData>> cmds = new ConcurrentHashMap<>();
     private final Map<String, Map<Integer, VersionMetaData>> vmds = new ConcurrentHashMap<>();
     private final Map<Long, ArtifactMetaData> globalAMD = new ConcurrentHashMap<>();
@@ -73,20 +67,16 @@ class CachedRegistryService implements RegistryService {
 
     @Override
     public void reset() {
-        amds.clear();
+        cmds.clear();
         vmds.clear();
         globalAMD.clear();
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        NavigableMap<Integer, ArtifactMetaData> map = amds.computeIfAbsent(artifactId, id -> new TreeMap<>());
-        if (map.isEmpty()) {
-            ArtifactMetaData amd = getDelegate().getArtifactMetaData(artifactId);
-            map.put(amd.getVersion(), amd);
-            globalAMD.put(amd.getGlobalId(), amd);
-        }
-        return map.lastEntry().getValue();
+        ArtifactMetaData amd = getDelegate().getArtifactMetaData(artifactId);
+        globalAMD.put(amd.getGlobalId(), amd);
+        return amd;
     }
     
     /**
@@ -95,7 +85,7 @@ class CachedRegistryService implements RegistryService {
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         String content = IoUtil.toString(data);
-        Map<String, ArtifactMetaData> map = cmds.computeIfAbsent(artifactId, id -> new TreeMap<>());
+        Map<String, ArtifactMetaData> map = cmds.computeIfAbsent(artifactId, id -> new ConcurrentHashMap<>());
         return map.computeIfAbsent(content, c -> {
             InputStream copy = IoUtil.toStream(content);
             ArtifactMetaData amd = getDelegate().getArtifactMetaDataByContent(artifactId, copy);
@@ -119,21 +109,9 @@ class CachedRegistryService implements RegistryService {
     }
 
     @Override
-    public List<Long> listArtifactVersions(String artifactId) {
-        NavigableMap<Integer, ArtifactMetaData> map = amds.get(artifactId);
-        if (map != null) {
-            return map.keySet().stream().map(Long::new).collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, InputStream data) {
         CompletionStage<ArtifactMetaData> cs = getDelegate().createArtifact(xRegistryArtifactType, xRegistryArtifactId, data);
         return cs.thenApply(amd -> {
-            NavigableMap<Integer, ArtifactMetaData> map = amds.computeIfAbsent(xRegistryArtifactId, id -> new TreeMap<>());
-            map.put(amd.getVersion(), amd);
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;
         });
@@ -143,8 +121,6 @@ class CachedRegistryService implements RegistryService {
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         CompletionStage<ArtifactMetaData> cs = getDelegate().updateArtifact(artifactId, xRegistryArtifactType, data);
         return cs.thenApply(amd -> {
-            NavigableMap<Integer, ArtifactMetaData> map = amds.computeIfAbsent(artifactId, id -> new TreeMap<>());
-            map.put(amd.getVersion(), amd);
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;
         });
@@ -186,6 +162,11 @@ class CachedRegistryService implements RegistryService {
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream content) {
         // no sense in caching this
         getDelegate().testUpdateArtifact(artifactId, xRegistryArtifactType, content);
+    }
+
+    @Override
+    public List<Long> listArtifactVersions(String artifactId) {
+        return getDelegate().listArtifactVersions(artifactId);
     }
 
     // ---- Auto reset

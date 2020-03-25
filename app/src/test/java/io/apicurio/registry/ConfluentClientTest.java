@@ -16,9 +16,11 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.support.HealthUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -29,6 +31,8 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -141,6 +145,19 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     @Test
     public void testDelete() throws Exception {
         SchemaRegistryClient client = buildClient();
+
+        String nonExisting = generateArtifactId();
+        try {
+            client.deleteSubject(nonExisting);
+            Assertions.fail();
+        } catch (RestClientException e) {
+            Assertions.assertEquals(404, e.getStatus());
+        }
+
+        retry(() -> {
+            HealthUtils.assertIsReady();
+            HealthUtils.assertIsLive();
+        });
 
         String subject = generateArtifactId();
 

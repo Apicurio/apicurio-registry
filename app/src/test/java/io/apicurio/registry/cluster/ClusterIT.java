@@ -1,11 +1,11 @@
 package io.apicurio.registry.cluster;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.cluster.support.ClusterUtils;
-import io.apicurio.registry.cluster.support.HealthResponse;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.support.HealthResponse;
+import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Test;
 import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Properties;
@@ -51,11 +49,7 @@ public class ClusterIT {
     }
 
     private void testReadiness(int port) throws Exception {
-        URL url = new URL(String.format("http://localhost:%s/health/ready", port));
-        try (InputStream stream = url.openStream()) {
-            HealthResponse hr = new ObjectMapper().readValue(stream, HealthResponse.class);
-            Assertions.assertEquals(HealthResponse.Status.UP, hr.status);
-        }
+        HealthUtils.assertHealthCheck(port, HealthUtils.Type.READY, HealthResponse.Status.UP);
     }
 
     @Test

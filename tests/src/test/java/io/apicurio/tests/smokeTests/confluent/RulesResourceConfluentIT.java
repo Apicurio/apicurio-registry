@@ -16,16 +16,14 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 import static io.apicurio.tests.Constants.SMOKE;
 
@@ -35,19 +33,19 @@ public class RulesResourceConfluentIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
 
     @Test
-    void compatibilityGlobalRules() throws IOException, RestClientException {
+    void compatibilityGlobalRules() throws Exception {
         GlobalRuleUtils.createGlobalCompatibilityConfig("FULL");
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
-        String schemeSubject = "subject-example";
-        int schemaId = confluentService.register(schemeSubject, schema);
+        String schemeSubject = TestUtils.generateArtifactId();
+        int schemaId = createArtifactViaConfluentClient(schema, schemeSubject);
 
         confluentService.getById(schemaId);
 
         Schema newSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
-        confluentService.register(schemeSubject, newSchema);
+        createArtifactViaConfluentClient(newSchema, schemeSubject);
 
         LOGGER.info("Checking 'Compability with same scheme' and expected code {}", 200);
         GlobalRuleUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", schemeSubject, 200);
@@ -57,5 +55,7 @@ public class RulesResourceConfluentIT extends BaseIT {
 
         LOGGER.info("Checking 'Invalid avro format' and expected code {}", 400);
         GlobalRuleUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
+
+        confluentService.deleteSubject(schemeSubject);
     }
 }

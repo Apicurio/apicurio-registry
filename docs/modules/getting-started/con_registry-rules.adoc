@@ -18,9 +18,9 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied.
+NOTE: If no rules are configured for an artifact, the set of any currently configured global rules are applied.
 
 == How rules work
-Each rule is simply a name and some optional configuration. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule might use  a `Map<String,String>`, or a compatibility rule might use a single property of `BACKWARD` for compatibility with existing versions.
+Each rule has a name and optional configuration information. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule might use  a `Map<String,String>`, or a compatibility rule might use a single property of `BACKWARD` for compatibility with existing versions.
 
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.

@@ -17,17 +17,16 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -48,27 +47,25 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         this.mojo.registryUrl = "http://localhost:8081";
     }
 
-    @Test
-    public void testCompatibility() throws Exception {
+    @RegistryServiceTest
+    public void testCompatibility(RegistryService service) throws Exception {
         String artifactId = generateArtifactId();
 
-        try (RegistryService client = RegistryClient.create(mojo.registryUrl)) {
-            Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
-                                                       " \"type\": \"record\"," +
-                                                       " \"name\": \"user\"," +
-                                                       " \"fields\": [" +
-                                                       "     {\"name\": \"name\", \"type\": \"string\"}," +
-                                                       "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
-                                                       " ]" +
-                                                       "}");
-            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-            cs.toCompletableFuture().get();
+        Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
+                                                  " \"type\": \"record\"," +
+                                                  " \"name\": \"user\"," +
+                                                  " \"fields\": [" +
+                                                  "     {\"name\": \"name\", \"type\": \"string\"}," +
+                                                  "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
+                                                  " ]" +
+                                                  "}");
+        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        cs.toCompletableFuture().get();
 
-            Rule rule = new Rule();
-            rule.setType(RuleType.COMPATIBILITY);
-            rule.setConfig("BACKWARD");
-            client.createArtifactRule(artifactId, rule);
-        }
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        service.createArtifactRule(artifactId, rule);
 
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +

@@ -8,8 +8,8 @@
 This chapter provides details on different approaches to managing artifacts in {registry}:
 
 * xref:managing-artifacts-using-rest-api[]
-//* xref:managing-artifacts-using-maven-plugin[]
-//* xref:managing-artifacts-using-client-code[]
+* xref:managing-artifacts-using-maven-plugin[]
+* xref:managing-artifacts-using-client-code[]
 
 //INCLUDES
 include::../../modules/getting-started/proc_managing-artifacts-using-rest-api.adoc[leveloffset=+1]

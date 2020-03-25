@@ -1,0 +1,45 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="managing-artifacts-using-client-code"]
+= Managing artifacts in a Java client application
+
+You can also manage artifacts in the registry using a Java client application. The {registry} Java client classes  enable you to create, read, update, or delete artifacts in the registry. 
+
+.Prerequisites
+
+* See xref:client-serde[]
+* You must have implemented a client application in Java that imports the {registry} client classes: `io.apicurio.registry.client.RegistryClient` 
+* {registry} must be installed and running in your environment.
+
+.Procedure
+
+* Update your client application to create a new artifact in the registry. The following example shows creating an Apache Avro schema artifact from a Kafka producer client application:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+  "https://my-cluster-service-registry-myproject.example.com"); <1>
+   try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
+   {
+    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
+    try {
+     service.getArtifactMetaData(artifactId); <2>
+    } 
+    catch (WebApplicationException e) {
+     CompletionStage < ArtifactMetaData > csa = service.createArtifact( <3>
+        ArtifactType.AVRO,
+        artifactId,
+         new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
+        );
+    csa.toCompletableFuture().get();
+    }
+ }
+----
+<1> Configure the client application with the Service Registry URL in the client properties. You can create properties for more than one registry node.
+<2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
+<3> Create the new schema artifact in the registry.
+
+.Additional resources
+* For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
+* For more details on Kafka client applications, see: link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].

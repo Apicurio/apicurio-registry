@@ -171,9 +171,13 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             long globalId = properties.toGlobalId(offset, context.partition());
 
             data = apply(artifactId, value, data, globalId, offset);
-            store.put(artifactId, data);
-            // dispatch
-            dispatcher.apply(artifactId, data);
+            if (data != null) {
+                store.put(artifactId, data);
+                // dispatch
+                dispatcher.apply(artifactId, data);
+            } else {
+                store.delete(artifactId);
+            }
 
             Str.ActionType action = value.getType();
             switch (action) {
@@ -351,10 +355,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         builder.setArtifacts((int) (version - 1), Str.ArtifactValue.getDefaultInstance());
                     }
                 } else {
-                    for (int i = 0; i < builder.getArtifactsCount(); i++) {
-                        // as deleted ... already deleted will be deleted "again" .. ?!
-                        builder.setArtifacts(i, Str.ArtifactValue.getDefaultInstance());
-                    }
+                    return null; // this will remove artifacts from the store
                 }
             }
             return builder.build();
@@ -399,12 +400,12 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                 Str.ArtifactValue previous = builder.getArtifacts(count - 1); // last one
                 Map<String, String> prevContents = previous.getMetadataMap();
                 if (prevContents != null) {
-                    contents.put(MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
+                    checkNull(artifactId, version, contents, MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
                     if (prevContents.containsKey(MetaDataKeys.NAME)) {
-                        contents.put(MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
+                        checkNull(artifactId, version, contents, MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
                     }
                     if (prevContents.containsKey(MetaDataKeys.DESCRIPTION)) {
-                        contents.put(MetaDataKeys.DESCRIPTION, prevContents.get(MetaDataKeys.DESCRIPTION));
+                        checkNull(artifactId, version, contents, MetaDataKeys.DESCRIPTION, prevContents.get(MetaDataKeys.DESCRIPTION));
                     }
                 }
             }
@@ -412,6 +413,14 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             avb.putAllMetadata(contents);
 
             builder.addArtifacts(avb);
+        }
+
+        private static void checkNull(String artifactId, int version, Map<String, String> contents, String key, String value) {
+            if (key != null && value != null) {
+                contents.put(key, value);
+            } else {
+                log.warn("Metadata - null key {} or value {} - [{} ({})]", key, value, artifactId, version);
+            }
         }
 
     }

@@ -17,6 +17,7 @@ import io.apicurio.registry.types.ArtifactType;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
+    "id",
     "version",
     "name",
     "description",
@@ -29,9 +30,12 @@ import io.apicurio.registry.types.ArtifactType;
 public class VersionMetaData {
 
     /**
-     * 
      * (Required)
-     * 
+     */
+    @JsonProperty("id")
+    private String id;
+    /**
+     * (Required)
      */
     @JsonProperty("version")
     private Integer version;
@@ -40,7 +44,7 @@ public class VersionMetaData {
     @JsonProperty("description")
     private String description;
     /**
-     * 
+     *
      * (Required)
      * 
      */
@@ -86,7 +90,25 @@ public class VersionMetaData {
     /**
      * 
      * (Required)
-     * 
+     *
+     */
+    @JsonProperty("id")
+    public String getId() {
+        return id;
+    }
+
+    /**
+     *
+     * (Required)
+     *
+     */
+    @JsonProperty("id")
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /**
+     * (Required)
      */
     @JsonProperty("version")
     public Integer getVersion() {
@@ -94,9 +116,7 @@ public class VersionMetaData {
     }
 
     /**
-     * 
      * (Required)
-     * 
      */
     @JsonProperty("version")
     public void setVersion(Integer version) {

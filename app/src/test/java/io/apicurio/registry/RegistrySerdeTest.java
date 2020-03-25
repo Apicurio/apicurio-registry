@@ -18,7 +18,6 @@ package io.apicurio.registry;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
@@ -40,13 +39,16 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -60,61 +62,59 @@ import java.util.concurrent.CompletionStage;
 @QuarkusTest
 public class RegistrySerdeTest extends AbstractResourceTestBase {
 
-    @Test
-    public void testFindBySchema() throws Exception {
+    @RegistryServiceTest
+    public void testFindBySchema(RegistryService service) throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-            ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
-            retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
-            Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-            GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
-            Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
-        }
+        Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
     }
 
-    @Test
-    public void testGetOrCreate() throws Exception {
+    @RegistryServiceTest
+    public void testGetOrCreate(RegistryService service) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            String artifactId = generateArtifactId();
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-            ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        String artifactId = generateArtifactId();
+        CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
-            retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
-            Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-            GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
-            Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertNotNull(service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
 
-            artifactId = generateArtifactId(); // new
-            long id = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
+        artifactId = generateArtifactId(); // new
+        long id = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
 
-            retry(() -> service.getArtifactMetaDataByGlobalId(id));
+        retry(() -> service.getArtifactMetaDataByGlobalId(id));
 
-            Assertions.assertEquals(id, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
-        }
+        Assertions.assertEquals(id, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
     }
 
     @SuppressWarnings("unchecked")
-    @Test
-    public void testConfiguration() throws Exception {
+    @RegistryServiceTest
+    public void testConfiguration(RegistryService service) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> csa = service.createArtifact(
-                ArtifactType.AVRO,
-                "test-myrecord3",
-                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
-            );
-            ArtifactMetaData amd = ConcurrentUtil.result(csa);
-            // wait for global id store to populate (in case of Kafka / Streams)
-            ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-            Assertions.assertNotNull(amdById);
-        }
+        String artifactId = generateArtifactId();
+
+        CompletionStage<ArtifactMetaData> csa = service.createArtifact(
+            ArtifactType.AVRO,
+            artifactId + "-myrecord3",
+            new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
+        );
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        // reset any cache
+        service.reset();
+        // wait for global id store to populate (in case of Kafka / Streams)
+        ArtifactMetaData amdById = retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
@@ -128,107 +128,102 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                                                                                                .loadClass(AvroKafkaSerializer.class.getName())
                                                                                                .newInstance();
         serializer.configure(config, true);
-        byte[] bytes = serializer.serialize("test", record);
+        byte[] bytes = serializer.serialize(artifactId, record);
 
         Deserializer<GenericData.Record> deserializer = (Deserializer<GenericData.Record>) getClass().getClassLoader()
                                                                                                      .loadClass(AvroKafkaDeserializer.class.getName())
                                                                                                      .newInstance();
         deserializer.configure(config, true);
 
-        record = deserializer.deserialize("test", bytes);
+        record = deserializer.deserialize(artifactId, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
         config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class);
         config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class);
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class);
         serializer.configure(config, true);
-        bytes = serializer.serialize("test", record);
+        bytes = serializer.serialize(artifactId, record);
         deserializer.configure(config, true);
-        record = deserializer.deserialize("test", bytes);
+        record = deserializer.deserialize(artifactId, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
         config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class.getName());
         config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class.getName());
         serializer.configure(config, true);
-        bytes = serializer.serialize("test", record);
+        bytes = serializer.serialize(artifactId, record);
         deserializer.configure(config, true);
-        record = deserializer.deserialize("test", bytes);
+        record = deserializer.deserialize(artifactId, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
         serializer.close();
         deserializer.close();
     }
 
-    @Test
-    public void testAvro() throws Exception {
+    @RegistryServiceTest
+    public void testAvro(RegistryService service) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
-            try (Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-                 Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
+        try (Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
 
-                GenericData.Record record = new GenericData.Record(schema);
-                record.put("bar", "somebar");
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
 
-                String subject = generateArtifactId();
+            String subject = generateArtifactId();
 
-                byte[] bytes = serializer.serialize(subject, record);
+            byte[] bytes = serializer.serialize(subject, record);
 
-                // some impl details ...
-                waitForSchema(service, bytes);
+            // some impl details ...
+            waitForSchema(service, bytes);
 
-                GenericData.Record ir = deserializer.deserialize(subject, bytes);
+            GenericData.Record ir = deserializer.deserialize(subject, bytes);
 
-                Assertions.assertEquals("somebar", ir.get("bar").toString());
-            }
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
 
-    @Test
-    public void testAvroReflect() throws Exception {
-        try (RegistryService service = RegistryClient.cached("http://localhost:8081")) {
-            try (Serializer<Tester> serializer = new AvroKafkaSerializer<Tester>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>())
-                                                                                         .setAvroDatumProvider(new ReflectAvroDatumProvider<>());
-                 Deserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(service).setAvroDatumProvider(new ReflectAvroDatumProvider<>())) {
+    @RegistryServiceTest
+    public void testAvroReflect(RegistryService service) throws Exception {
+        try (Serializer<Tester> serializer = new AvroKafkaSerializer<Tester>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>())
+                                                                                     .setAvroDatumProvider(new ReflectAvroDatumProvider<>());
+             Deserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(service).setAvroDatumProvider(new ReflectAvroDatumProvider<>())) {
 
-                Tester tester = new Tester("Apicurio");
-                byte[] bytes = serializer.serialize("tester", tester);
+            String artifactId = generateArtifactId();
 
-                waitForSchema(service, bytes);
+            Tester tester = new Tester("Apicurio");
+            byte[] bytes = serializer.serialize(artifactId, tester);
 
-                tester = deserializer.deserialize("tester", bytes);
+            waitForSchema(service, bytes);
 
-                Assertions.assertEquals("Apicurio", tester.getName());
-            }
+            tester = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals("Apicurio", tester.getName());
         }
     }
 
-    @Test
-    public void testProto() throws Exception {
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-                 Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(service)) {
+    @RegistryServiceTest
+    public void testProto(RegistryService service) throws Exception {
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
+             Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(service)) {
 
-                TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+            TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
 
-                String subject = generateArtifactId();
+            String subject = generateArtifactId();
 
-                byte[] bytes = serializer.serialize(subject, record);
+            byte[] bytes = serializer.serialize(subject, record);
 
-                waitForSchema(service, bytes);
+            waitForSchema(service, bytes);
 
-                DynamicMessage dm = deserializer.deserialize(subject, bytes);
-                Descriptors.Descriptor descriptor = dm.getDescriptorForType();
+            DynamicMessage dm = deserializer.deserialize(subject, bytes);
+            Descriptors.Descriptor descriptor = dm.getDescriptorForType();
 
-                Descriptors.FieldDescriptor lsb = descriptor.findFieldByName("lsb");
-                Assertions.assertNotNull(lsb);
-                Assertions.assertEquals(2L, dm.getField(lsb));
+            Descriptors.FieldDescriptor lsb = descriptor.findFieldByName("lsb");
+            Assertions.assertNotNull(lsb);
+            Assertions.assertEquals(2L, dm.getField(lsb));
 
-                Descriptors.FieldDescriptor msb = descriptor.findFieldByName("msb");
-                Assertions.assertNotNull(msb);
-                Assertions.assertEquals(1L, dm.getField(msb));
-            }
-
+            Descriptors.FieldDescriptor msb = descriptor.findFieldByName("msb");
+            Assertions.assertNotNull(msb);
+            Assertions.assertEquals(1L, dm.getField(msb));
         }
     }
 }

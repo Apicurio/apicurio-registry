@@ -16,7 +16,6 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.Person;
@@ -25,11 +24,13 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
 import java.util.concurrent.CompletionStage;
@@ -40,54 +41,52 @@ import java.util.concurrent.CompletionStage;
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
 
-    @Test
-    public void testSchema() throws Exception {
+    @RegistryServiceTest
+    public void testSchema(RegistryService service) throws Exception {
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
-            CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.JSON, artifactId, jsonSchema);
-            ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.JSON, artifactId, jsonSchema);
+        ArtifactMetaData amd = ConcurrentUtil.result(cs);
 
-            // make sure we have schema registered
-            service.reset();
-            retry(() -> service.getArtifactByGlobalId(amd.getGlobalId()));
+        // make sure we have schema registered
+        service.reset();
+        retry(() -> service.getArtifactByGlobalId(amd.getGlobalId()));
 
-            Person person = new Person("Ales", "Justin", 23);
+        Person person = new Person("Ales", "Justin", 23);
 
-            JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(service, true);
-            serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
+        JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(service, true);
+        serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
 
-            Headers headers = new RecordHeaders();
-            byte[] bytes = serializer.serialize(artifactId, headers, person);
+        Headers headers = new RecordHeaders();
+        byte[] bytes = serializer.serialize(artifactId, headers, person);
 
-            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(service, true);
+        JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(service, true);
 
-            person = deserializer.deserialize(artifactId, headers, bytes);
+        person = deserializer.deserialize(artifactId, headers, bytes);
 
-            Assertions.assertEquals("Ales", person.getFirstName());
-            Assertions.assertEquals("Justin", person.getLastName());
-            Assertions.assertEquals(23, person.getAge());
+        Assertions.assertEquals("Ales", person.getFirstName());
+        Assertions.assertEquals("Justin", person.getLastName());
+        Assertions.assertEquals(23, person.getAge());
 
-            person.setAge(-1);
+        person.setAge(-1);
 
-            try {
-                serializer.serialize(artifactId, new RecordHeaders(), person);
-                Assertions.fail();
-            } catch (Exception ignored) {
-            }
+        try {
+            serializer.serialize(artifactId, new RecordHeaders(), person);
+            Assertions.fail();
+        } catch (Exception ignored) {
+        }
 
-            serializer.setValidationEnabled(false); // disable validation
-            // create invalid person bytes
-            bytes = serializer.serialize(artifactId, headers, person);
+        serializer.setValidationEnabled(false); // disable validation
+        // create invalid person bytes
+        bytes = serializer.serialize(artifactId, headers, person);
 
-            try {
-                deserializer.deserialize(artifactId, headers, bytes);
-                Assertions.fail();
-            } catch (Exception ignored) {
-            }
+        try {
+            deserializer.deserialize(artifactId, headers, bytes);
+            Assertions.fail();
+        } catch (Exception ignored) {
         }
     }
 }

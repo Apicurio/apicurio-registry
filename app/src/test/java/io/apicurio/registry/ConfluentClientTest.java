@@ -16,9 +16,11 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.support.HealthUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -29,6 +31,8 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -136,6 +140,49 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        SchemaRegistryClient client = buildClient();
+
+        String nonExisting = generateArtifactId();
+        try {
+            client.deleteSubject(nonExisting);
+            Assertions.fail();
+        } catch (RestClientException e) {
+            Assertions.assertEquals(404, e.getStatus());
+        }
+
+        retry(() -> {
+            HealthUtils.assertIsReady();
+            HealthUtils.assertIsLive();
+        });
+
+        String subject = generateArtifactId();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        int id = client.register(subject, schema);
+        client.reset();
+
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema2 = client.getById(id);
+            Assertions.assertNotNull(schema2);
+            return schema2;
+        });
+
+        Collection<String> subjects = client.getAllSubjects();
+        Assertions.assertTrue(subjects.contains(subject));
+
+        client.deleteSubject(subject);
+
+        retry(() -> {
+            // delete can be async
+            Collection<String> all = client.getAllSubjects();
+            Assertions.assertFalse(all.contains(subject));
+            return null;
+        });
     }
 
     @Test

@@ -5,10 +5,11 @@
 = Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter provides an overview of {registry} features and explains the optional rules used to govern registry content:
+This chapter introduces {registry} concepts and features and provides details on the supported artifact types that are stored in the registry:
 
 * xref:registry-overview[]
-* xref:registry-rules[]
+* xref:registry-artifact-types[]
+
 
 
 ifdef::rh-service-registry[]
@@ -23,5 +24,3 @@ endif::[]
 //INCLUDES
 include::../../modules/getting-started/con_registry-overview.adoc[leveloffset=+1]
 include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
-include::../../modules/getting-started/con_registry-rules.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]

@@ -86,6 +86,12 @@ objects:
             value: ${KAFKA_BOOTSTRAP_SERVERS}
           - name: APPLICATION_ID
             value: ${APPLICATION_ID}
+          - name: APPLICATION_SERVER_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: APPLICATION_SERVER_PORT
+            value: "9000"
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}

@@ -23,6 +23,7 @@ import io.apicurio.registry.search.common.Search;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -31,6 +32,13 @@ import java.util.concurrent.CompletionStage;
  */
 public class NoopSearchClient implements SearchClient {
     private static final SearchResults INSTANCE = new NoopSearchResults();
+
+    public NoopSearchClient() {
+    }
+
+    public NoopSearchClient(Properties properties) {
+        // to be used in config
+    }
 
     @Override
     public CompletionStage<Boolean> initialize(boolean reset) {

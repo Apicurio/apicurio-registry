@@ -17,10 +17,10 @@ import io.apicurio.registry.streams.distore.proto.KeyValueStoreGrpc;
 import io.apicurio.registry.streams.utils.ForeachActionDispatcher;
 import io.apicurio.registry.streams.utils.Lifecycle;
 import io.apicurio.registry.streams.utils.LoggingStateRestoreListener;
+import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.PropertiesUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -43,13 +43,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Singleton;
 
 /**
@@ -66,12 +65,6 @@ public class StreamsRegistryConfiguration {
             } catch (Exception ignored) {
             }
         }
-    }
-
-    @Produces
-    public Properties properties(InjectionPoint ip) {
-        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
-        return PropertiesUtil.properties(kp);
     }
 
     @Produces
@@ -219,6 +212,44 @@ public class StreamsRegistryConfiguration {
         close(service);
     }
 
+    @Produces
+    @Singleton
+    public StateService stateServiceImpl(KafkaStreams streams) {
+        return new StateService(streams);
+    }
+
+    @Produces
+    @Singleton
+    public LocalService<AsyncBiFunctionService.WithSerdes<Void, Void, KafkaStreams.State>> localStateService(
+        StateService localService
+    ) {
+        return new LocalService<>(
+            StateService.NAME,
+            localService
+        );
+    }
+
+    @Produces
+    @ApplicationScoped
+    @Current
+    public AsyncBiFunctionService<Void, Void, KafkaStreams.State> stateService(
+        KafkaStreams streams,
+        HostInfo storageLocalHost,
+        LocalService<AsyncBiFunctionService.WithSerdes<Void, Void, KafkaStreams.State>> localStateService
+    ) {
+        return new DistributedAsyncBiFunctionService<>(
+            streams,
+            storageLocalHost,
+            "stateStore",
+            localStateService,
+            new DefaultGrpcChannelProvider()
+        );
+    }
+
+    public void destroyStateService(@Observes ShutdownEvent event, @Current AsyncBiFunctionService<Void, Void, KafkaStreams.State> service) {
+        close(service);
+    }
+
     // gRPC server
 
     @Produces
@@ -311,9 +342,12 @@ public class StreamsRegistryConfiguration {
     @Produces
     @Singleton
     public AsyncBiFunctionServiceGrpc.AsyncBiFunctionServiceImplBase storageAsyncBiFunctionServiceGrpcImpl(
-        LocalService<AsyncBiFunctionService.WithSerdes<String, Long, Str.Data>> localAsyncBiFunctionService
+        LocalService<AsyncBiFunctionService.WithSerdes<String, Long, Str.Data>> localWaitForDataService,
+        LocalService<AsyncBiFunctionService.WithSerdes<Void, Void, KafkaStreams.State>> localStateService
     ) {
-        return new AsyncBiFunctionServiceGrpcLocalDispatcher(Collections.singleton(localAsyncBiFunctionService));
+        return new AsyncBiFunctionServiceGrpcLocalDispatcher(
+            Arrays.asList(localWaitForDataService, localStateService)
+        );
     }
 
 }

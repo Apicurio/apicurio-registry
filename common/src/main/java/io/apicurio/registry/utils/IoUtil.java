@@ -129,6 +129,10 @@ public class IoUtil {
     public static InputStream toStream(String content) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }
+    
+    public static InputStream toStream(byte [] content) {
+        return new ByteArrayInputStream(content);
+    }
 
     public static long copy(InputStream input, OutputStream output) throws IOException {
         final byte[] buffer = new byte[8192];

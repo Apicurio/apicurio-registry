@@ -34,7 +34,6 @@ jobs:
       - run:
           name: Run QE Tests
           command: ./mvnw verify -Pall -pl tests -Dmaven.javadoc.skip=true
-
       - run:
           name: Save test results
           command: |

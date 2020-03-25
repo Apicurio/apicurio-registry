@@ -16,6 +16,10 @@
 
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.io.Closeable;
@@ -36,11 +40,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.logging.Logger;
+import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
  */
 public class RegistryClient {
+    private static final Logger log = Logger.getLogger(RegistryClient.class.getName());
 
     private static BiFunction<Method, Throwable, Throwable> UNWRAPPER;
 
@@ -115,6 +123,12 @@ public class RegistryClient {
         return UNWRAPPER.apply(method, t);
     }
 
+    private static void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Object version) {
+        if (stateSupplier.get() == ArtifactState.DEPRECATED) {
+            log.warning(String.format("Artifact %s [%s] is deprecated", artifactId, version));
+        }
+    }
+
     private static class ServiceProxy implements InvocationHandler {
 
         private final Map<Class<?>, Object> targets = new ConcurrentHashMap<>();
@@ -149,10 +163,11 @@ public class RegistryClient {
                                 executor.shutdown();
                             }
                         }
+                        return null;
                     } else if ("reset".equals(methodName)) {
                         // do nothing
+                        return null;
                     }
-                    return null; // close/reset are void
                 }
 
                 if (closed.get()) {
@@ -171,6 +186,20 @@ public class RegistryClient {
                     return cs.exceptionally((Function<Throwable, Object>) t -> {
                         throw new CompletionException(unwrap(method, t));
                     });
+                } else if (result instanceof ArtifactMetaData) {
+                    ArtifactMetaData amd = (ArtifactMetaData) result;
+                    checkIfDeprecated(amd::getState, amd.getId(), amd.getVersion());
+                } else if (result instanceof VersionMetaData) {
+                    VersionMetaData vmd = (VersionMetaData) result;
+                    checkIfDeprecated(vmd::getState, vmd.getId(), vmd.getVersion());
+                } else if (result instanceof Response) {
+                    Response response = (Response) result;
+                    String isDeprecated = response.getHeaderString(Headers.DEPRECATED);
+                    if (isDeprecated != null) {
+                        String id = response.getHeaderString(Headers.ARTIFACT_ID);
+                        String version = response.getHeaderString(Headers.VERSION);
+                        checkIfDeprecated(() -> ArtifactState.DEPRECATED, id, version);
+                    }
                 }
                 return result;
             } catch (InvocationTargetException e) {

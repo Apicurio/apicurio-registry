@@ -4,6 +4,8 @@ import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.cluster.support.ClusterUtils;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.support.HealthResponse;
+import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -44,6 +46,19 @@ public class ClusterIT {
     @AfterAll
     public static void stopCluster() {
         ClusterUtils.stopCluster();
+    }
+
+    private void testReadiness(int port) throws Exception {
+        HealthUtils.assertHealthCheck(port, HealthUtils.Type.READY, HealthResponse.Status.UP);
+    }
+
+    @Test
+    public void testReadiness() throws Exception {
+        Properties properties = getClusterProperties();
+        Assumptions.assumeTrue(properties != null);
+
+        testReadiness(8080);
+        testReadiness(8081);
     }
 
     @Test

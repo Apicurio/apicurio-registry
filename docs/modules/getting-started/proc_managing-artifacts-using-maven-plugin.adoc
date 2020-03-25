@@ -1,0 +1,77 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="managing-artifacts-using-maven-plugin"]
+= Managing artifacts using the {registry} Maven plug-in
+
+{registry} provides a Maven plug-in to enable you to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
+
+.Prerequisites
+
+* {registry} must be installed and running in your environment
+* Maven must be installed and configured in your environment
+
+.Procedure
+
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to upload an artifact. The following example shows registering an Apache Avro schema artifact:
++
+[source,xml]
+----
+<plugin>
+<groupId>io.apicurio</groupId>
+<artifactId>apicurio-registry-maven-plugin</artifactId>
+<version>${registry.version}</version>
+<executions>
+  <execution>
+    <phase>generate-sources</phase>
+    <goals>
+      <goal>register</goal> <1>
+    </goals>
+    <configuration>
+      <registryUrl>https://my-cluster-service-registry-myproject.example.com</registryUrl> <2>
+      <artifactType>AVRO</artifactType> 
+      <artifacts>
+        <schema1>${project.basedir}/schemas/schema1.avsc</schema1> <3>
+      </artifacts>
+    </configuration>
+  </execution>
+</executions>
+</plugin>
+----
++
+<1> Specify `register` as the execution goal to upload an artifact to the registry.
+<2> You must specify the {registry} URL.
+<3> You can upload multiple artifacts using the artifact ID and location. 
+
+. You can also update your Maven `pom.xml` file to download a previously registered artifact:
++
+[source,xml]
+----
+<plugin>
+<groupId>io.apicurio</groupId>
+<artifactId>apicurio-registry-maven-plugin</artifactId>
+<version>${registry.version}</version>
+<executions>   
+  <execution>
+    <phase>generate-sources</phase> 
+    <goals>
+      <goal>download</goal> <1>
+    </goals>
+    <configuration>
+      <registryUrl>https://my-cluster-service-registry-myproject.example.com</registryUrl> <2>
+          <ids>
+            <param1>schema1</param1> <3>
+          </ids>
+      <outputDirectory>${project.build.directory}</outputDirectory>
+   </configuration>
+ </execution>
+</executions>   
+</plugin>
+----
++
+<1> Specify `download` as the execution goal.
+<2> You must specify the {registry} URL.
+<3> You can download multiple artifacts to a specified directory using the artifact ID.
+
+.Additional resources
+ * For more details on the Maven plug-in, see https://github.com/Apicurio/apicurio-registry-demo.

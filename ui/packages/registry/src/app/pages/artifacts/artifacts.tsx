@@ -18,28 +18,28 @@
 import React from "react";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Pagination, Spinner} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
-import {ArtifactsToolbar} from "./components/toolbar";
 import "./artifacts.css";
-import {ArtifactsEmptyState} from "./components/empty";
 import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
 import {Artifact} from "@apicurio/registry-models";
 import {Paging} from "@apicurio/registry-services/src";
 import {PageComponent, PageProps, PageState} from "../basePage";
+import {ArtifactsPageToolbar} from "./components/toolbar";
+import {ArtifactsPageEmptyState} from "./components/empty";
 
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactsProps extends PageProps {
+export interface ArtifactsPageProps extends PageProps {
 
 }
 
 /**
  * State
  */
-export interface ArtifactsState extends PageState {
+export interface ArtifactsPageState extends PageState {
     criteria: GetArtifactsCriteria;
     isLoading: boolean;
     paging: Paging;
@@ -49,9 +49,9 @@ export interface ArtifactsState extends PageState {
 /**
  * The artifacts page.
  */
-export class Artifacts extends PageComponent<ArtifactsProps, ArtifactsState> {
+export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPageState> {
 
-    constructor(props: Readonly<ArtifactsProps>) {
+    constructor(props: Readonly<ArtifactsPageProps>) {
         super(props);
     }
 
@@ -62,7 +62,7 @@ export class Artifacts extends PageComponent<ArtifactsProps, ArtifactsState> {
                     <ArtifactsPageHeader/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} noPadding={true}>
-                    <ArtifactsToolbar artifactsCount={this.totalArtifactsCount()} onChange={this.onFilterChange}/>
+                    <ArtifactsPageToolbar artifactsCount={this.totalArtifactsCount()} onChange={this.onFilterChange}/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
@@ -72,7 +72,7 @@ export class Artifacts extends PageComponent<ArtifactsProps, ArtifactsState> {
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
                             </Flex>
                         : this.artifactsCount() === 0 ?
-                            <ArtifactsEmptyState isFiltered={false}/>
+                            <ArtifactsPageEmptyState isFiltered={false}/>
                         :
                             <React.Fragment>
                                 <ArtifactList artifacts={this.artifacts()}/>
@@ -94,7 +94,7 @@ export class Artifacts extends PageComponent<ArtifactsProps, ArtifactsState> {
         );
     }
 
-    protected initializeState(): ArtifactsState {
+    protected initializeState(): ArtifactsPageState {
         return {
             criteria: {
                 sortAscending: true,

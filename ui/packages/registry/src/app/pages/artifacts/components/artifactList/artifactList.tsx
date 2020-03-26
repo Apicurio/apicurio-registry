@@ -28,6 +28,7 @@ import {
 import {Artifact} from "@apicurio/registry-models";
 import "./artifactList.css";
 import {ArtifactTypeIcon} from "./artifactTypeIcon";
+import {Link} from "react-router-dom";
 
 /**
  * Properties
@@ -86,7 +87,7 @@ export class ArtifactList extends React.PureComponent<ArtifactListProps, Artifac
                                     aria-labelledby="artifact-actions"
                                     aria-label="Actions"
                                 >
-                                    <Button variant="secondary">View Artifact</Button>
+                                    <Link className="pf-c-button pf-m-secondary" to={ `/artifacts/${artifact.id}` }>View Artifact</Link>
                                 </DataListAction>
                             </DataListItemRow>
                         return row;

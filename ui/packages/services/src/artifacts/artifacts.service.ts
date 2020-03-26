@@ -86,8 +86,6 @@ export class ArtifactsService {
         const end: number = start + paging.pageSize;
         artifacts = artifacts.slice(start, end);
 
-        // TODO also implement filtering by the criteria
-
         return new Promise<ArtifactsSearchResults>(resolve => {
             setTimeout(() => {
                 const results: ArtifactsSearchResults = {

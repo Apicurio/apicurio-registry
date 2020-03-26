@@ -20,12 +20,14 @@ import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} 
 /**
  * Properties
  */
+// tslint:disable-next-line:no-empty-interface
 export interface ArtifactsPageHeaderProps {
 }
 
 /**
  * State
  */
+// tslint:disable-next-line:no-empty-interface
 export interface ArtifactsPageHeaderState {
 }
 

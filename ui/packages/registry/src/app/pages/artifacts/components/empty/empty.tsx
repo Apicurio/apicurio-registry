@@ -21,28 +21,25 @@ import {PlusCircleIcon} from "@patternfly/react-icons";
 /**
  * Properties
  */
-export interface ArtifactsEmptyStateProps {
+export interface ArtifactsPageEmptyStateProps {
     isFiltered: boolean;
 }
 
 /**
  * State
  */
-export interface ArtifactsEmptyStateState {
-    isFiltered: boolean;
+// tslint:disable-next-line:no-empty-interface
+export interface ArtifactsPageEmptyStateState {
 }
 
 
 /**
  * Models the empty state for the Artifacts page (when there are no artifacts).
  */
-export class ArtifactsEmptyState extends React.PureComponent<ArtifactsEmptyStateProps, ArtifactsEmptyStateState> {
+export class ArtifactsPageEmptyState extends React.PureComponent<ArtifactsPageEmptyStateProps, ArtifactsPageEmptyStateState> {
 
-    constructor(props: Readonly<ArtifactsEmptyStateProps>) {
+    constructor(props: Readonly<ArtifactsPageEmptyStateProps>) {
         super(props);
-        this.state = {
-            isFiltered: props.isFiltered
-        };
     }
 
     public render(): React.ReactElement {
@@ -53,7 +50,7 @@ export class ArtifactsEmptyState extends React.PureComponent<ArtifactsEmptyState
                     No Artifacts Found!
                 </Title>
                 {
-                    this.state.isFiltered ?
+                    this.props.isFiltered ?
                         <EmptyStateBody>
                             No artifacts match your filter settings.  Change your filter or perhaps Upload a new
                             artifact.

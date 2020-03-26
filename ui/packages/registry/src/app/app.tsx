@@ -18,8 +18,9 @@
 import React from "react";
 import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route} from 'react-router-dom';
-import * as Pages from './pages';
 import {Header} from "./components/header";
+import {ArtifactsPage} from "./pages/artifacts";
+import {ArtifactPage} from "./pages/artifacts/artifact";
 
 
 /**
@@ -39,8 +40,9 @@ export default class App extends React.PureComponent<{}, {}> {
                     isManagedSidebar={false}
                     header={<Header/>}
                 >
-                    <Route path='/' exact={true} component={Pages.Artifacts}/>
-                    <Route path='/artifacts' exact={true} component={Pages.Artifacts}/>
+                    <Route path='/' exact={true} component={ArtifactsPage}/>
+                    <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
+                    <Route path='/artifacts/:artifactId' exact={true} component={ArtifactPage}/>
                 </Page>
             </Router>
         );

@@ -37,7 +37,7 @@ import {GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 /**
  * Properties
  */
-export interface ArtifactsToolbarProps {
+export interface ArtifactsPageToolbarProps {
     artifactsCount: number|null;
     onChange: (criteria: GetArtifactsCriteria) => void
 }
@@ -45,7 +45,7 @@ export interface ArtifactsToolbarProps {
 /**
  * State
  */
-export interface ArtifactsToolbarState {
+export interface ArtifactsPageToolbarState {
     filterIsExpanded: boolean;
     filterSelection: string;
     filterValue: string;
@@ -55,9 +55,9 @@ export interface ArtifactsToolbarState {
 /**
  * Models the toolbar for the Artifacts page.
  */
-export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, ArtifactsToolbarState> {
+export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProps, ArtifactsPageToolbarState> {
 
-    constructor(props: Readonly<ArtifactsToolbarProps>) {
+    constructor(props: Readonly<ArtifactsPageToolbarProps>) {
         super(props);
         this.state = {
             ascending: true,
@@ -123,14 +123,14 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
     }
 
     private onFilterToggle = (isExpanded: boolean): void => {
-        Services.getLoggerService().debug("[ArtifactsToolbar] Toggling filter dropdown.");
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggling filter dropdown.");
         this.setSingleState("filterIsExpanded", isExpanded);
     };
 
     private onFilterSelect = (event: React.SyntheticEvent<HTMLDivElement>|undefined): void => {
         const value: string|null = event ? event.currentTarget.textContent : null;
-        Services.getLoggerService().debug("[ArtifactsToolbar] Setting filter type to: %s", value);
-        this.setMultiState({
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter type to: %s", value);
+        this.setState({
             filterIsExpanded: false,
             filterSelection: value
         });
@@ -138,12 +138,12 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
     };
 
     private onFilterValueChange = (value: any): void => {
-        Services.getLoggerService().debug("[ArtifactsToolbar] Setting filter value: %o", value);
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter value: %o", value);
         this.setSingleState("filterValue", value);
     };
 
     private onFilterSubmit = (event: any|undefined): void => {
-        Services.getLoggerService().debug("[ArtifactsToolbar] Filter SUBMIT!");
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Filter SUBMIT!");
         this.fireOnChange();
         if (event) {
             event.preventDefault();
@@ -151,7 +151,7 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
     };
 
     private onToggleAscending = (): void => {
-        Services.getLoggerService().debug("[ArtifactsToolbar] Toggle the ascending flag.");
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
         const sortAscending: boolean = !this.state.ascending;
         this.setSingleState("ascending", sortAscending);
         this.fireOnChange({sortAscending});

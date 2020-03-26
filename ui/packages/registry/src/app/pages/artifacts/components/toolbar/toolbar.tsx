@@ -134,7 +134,7 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
             filterIsExpanded: false,
             filterSelection: value
         });
-        this.change();
+        this.fireOnChange({type: value});
     };
 
     private onFilterValueChange = (value: any): void => {
@@ -144,7 +144,7 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
 
     private onFilterSubmit = (event: any|undefined): void => {
         Services.getLoggerService().debug("[ArtifactsToolbar] Filter SUBMIT!");
-        this.change();
+        this.fireOnChange();
         if (event) {
             event.preventDefault();
         }
@@ -152,17 +152,20 @@ export class ArtifactsToolbar extends PureComponent<ArtifactsToolbarProps, Artif
 
     private onToggleAscending = (): void => {
         Services.getLoggerService().debug("[ArtifactsToolbar] Toggle the ascending flag.");
-        this.setSingleState("ascending", !this.state.ascending);
-        this.change();
+        const sortAscending: boolean = !this.state.ascending;
+        this.setSingleState("ascending", sortAscending);
+        this.fireOnChange({sortAscending});
     };
 
-    private change(): void {
+    private fireOnChange(overrides: any = {}): void {
         if (this.props.onChange) {
             const criteria: GetArtifactsCriteria = {
                 sortAscending: this.state.ascending,
                 type: this.state.filterSelection,
-                value: this.state.filterValue
+                value: this.state.filterValue,
+                ...overrides
             };
+
             this.props.onChange(criteria);
         }
     }

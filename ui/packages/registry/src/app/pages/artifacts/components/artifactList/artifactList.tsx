@@ -61,7 +61,6 @@ export class ArtifactList extends React.PureComponent<ArtifactListProps, Artifac
                     this.props.artifacts.map( artifact => {
                         const row: any =
                             <DataListItemRow className="artifact-list-item" key={artifact.id}>
-                                <DataListCheck aria-labelledby="check-action-item2" name="artifact-item-check" />
                                 <DataListItemCells
                                     dataListCells={[
                                         <DataListCell key="type icon" className="type-icon-cell">

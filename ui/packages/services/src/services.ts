@@ -18,25 +18,46 @@ import {ArtifactsService} from "./artifacts";
 import {ConfigService} from "./config";
 import {LoggerService} from "./logger";
 
+interface AllServices {
+    artifacts: ArtifactsService;
+    config: ConfigService;
+    logger: LoggerService;
+}
+
 /**
  * Class that provides access to all of the services in the application.
  */
 export class Services {
 
     public static getArtifactsService(): ArtifactsService {
-        return Services.artifacts;
+        return Services.all.artifacts;
     }
 
     public static getConfigService(): ConfigService {
-        return Services.config;
+        return Services.all.config;
     }
 
     public static getLoggerService(): LoggerService {
-        return Services.logger;
+        return Services.all.logger;
     }
 
-    private static artifacts: ArtifactsService = new ArtifactsService();
-    private static config: ConfigService = new ConfigService();
-    private static logger: LoggerService = new LoggerService();
+    private static all: any = {
+        artifacts: new ArtifactsService(),
+        config: new ConfigService(),
+        logger: new LoggerService()
+    };
+
+    // tslint:disable-next-line:member-ordering member-access
+    static _intialize(): void {
+        Object.keys(Services.all).forEach( svcToInjectIntoName => {
+            const svcToInjectInto: any = Services.all[svcToInjectIntoName];
+            Object.keys(Services.all).filter(key => key !== svcToInjectIntoName).forEach(injectableSvcKey => {
+                if (svcToInjectInto[injectableSvcKey] !== undefined && svcToInjectInto[injectableSvcKey] === null) {
+                    svcToInjectInto[injectableSvcKey] = Services.all[injectableSvcKey];
+                }
+            })
+        });
+    }
 
 }
+Services._intialize();

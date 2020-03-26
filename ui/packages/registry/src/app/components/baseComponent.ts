@@ -35,7 +35,6 @@ export abstract class PureComponent<Props, State, SS = {}> extends React.PureCom
     protected setMultiState(newState: any): void {
         Services.getLoggerService().debug("[PureComponent] Setting multi-state: %o", newState);
         this.setState({
-            ...this.state,
             ...newState
         });
     }

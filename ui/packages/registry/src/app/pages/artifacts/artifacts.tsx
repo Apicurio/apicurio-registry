@@ -23,22 +23,23 @@ import "./artifacts.css";
 import {ArtifactsEmptyState} from "./components/empty";
 import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
-import {PureComponent} from "../../components";
 import {Artifact} from "@apicurio/registry-models";
 import {Paging} from "@apicurio/registry-services/src";
+import {PageComponent, PageProps, PageState} from "../basePage";
 
 
 /**
  * Properties
  */
-export interface ArtifactsProps {
+// tslint:disable-next-line:no-empty-interface
+export interface ArtifactsProps extends PageProps {
 
 }
 
 /**
  * State
  */
-export interface ArtifactsState {
+export interface ArtifactsState extends PageState {
     criteria: GetArtifactsCriteria;
     isLoading: boolean;
     paging: Paging;
@@ -48,25 +49,10 @@ export interface ArtifactsState {
 /**
  * The artifacts page.
  */
-export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
+export class Artifacts extends PageComponent<ArtifactsProps, ArtifactsState> {
 
     constructor(props: Readonly<ArtifactsProps>) {
         super(props);
-        this.state = {
-            criteria: {
-                sortAscending: true,
-                type: "Everything",
-                value: "",
-            },
-            isLoading: true,
-            paging: {
-                page: 1,
-                pageSize: 10
-            },
-            results: null
-        };
-
-        this.search();
     }
 
     public render(): React.ReactElement {
@@ -94,9 +80,10 @@ export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
                                     variant="bottom"
                                     dropDirection="up"
                                     itemCount={this.totalArtifactsCount()}
-                                    perPage={3}
-                                    page={1}
+                                    perPage={this.state.paging.pageSize}
+                                    page={this.state.paging.page}
                                     onSetPage={this.onSetPage}
+                                    onPerPageSelect={this.onPerPageSelect}
                                     widgetId="artifact-list-pagination"
                                     className="artifact-list-pagination"
                                 />
@@ -105,6 +92,26 @@ export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
                 </PageSection>
             </React.Fragment>
         );
+    }
+
+    protected initializeState(): ArtifactsState {
+        return {
+            criteria: {
+                sortAscending: true,
+                type: "Everything",
+                value: "",
+            },
+            isLoading: true,
+            paging: {
+                page: 1,
+                pageSize: 10
+            },
+            results: null
+        };
+    }
+
+    protected postConstruct(): void {
+        this.search();
     }
 
     private onArtifactsLoaded(results: ArtifactsSearchResults): void {
@@ -140,13 +147,10 @@ export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
             criteria,
             isLoading: true
         });
-        this.search();
+        this.search(criteria);
     };
 
-    private search(): void {
-        const criteria: GetArtifactsCriteria = this.state.criteria;
-        const paging: Paging = this.state.paging;
-
+    private search(criteria: GetArtifactsCriteria = this.state.criteria, paging: Paging = this.state.paging): void {
         Services.getArtifactsService().getArtifacts(criteria, paging).then(results => {
             this.onArtifactsLoaded(results);
         }).then(error => {
@@ -155,14 +159,27 @@ export class Artifacts extends PureComponent<ArtifactsProps, ArtifactsState> {
     }
 
     private onSetPage = (event: any, newPage: number, perPage?: number): void => {
+        const paging: Paging = {
+            page: newPage,
+            pageSize: perPage ? perPage : this.state.paging.pageSize
+        };
         this.setMultiState({
             isLoading: true,
-            paging: {
-                page: newPage,
-                pageSize: perPage ? perPage : this.state.paging.pageSize
-            }
+            paging
         });
-        this.search();
+        this.search(undefined, paging);
     };
+
+    private onPerPageSelect = (event: any, newPerPage: number): void => {
+        const paging: Paging = {
+            page: this.state.paging.page,
+            pageSize: newPerPage
+        };
+        this.setMultiState({
+            isLoading: true,
+            paging
+        });
+        this.search(undefined, paging);
+    }
 
 }

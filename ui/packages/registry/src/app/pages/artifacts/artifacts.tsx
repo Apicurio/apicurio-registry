@@ -16,7 +16,16 @@
  */
 
 import React from "react";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Pagination, Spinner} from '@patternfly/react-core';
+import {
+    Button,
+    Flex,
+    FlexItem,
+    Modal,
+    PageSection,
+    PageSectionVariants,
+    Pagination,
+    Spinner
+} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
 import "./artifacts.css";
 import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
@@ -41,7 +50,7 @@ export interface ArtifactsPageProps extends PageProps {
  */
 export interface ArtifactsPageState extends PageState {
     criteria: GetArtifactsCriteria;
-    isLoading: boolean;
+    isUploadModalOpen: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
 }
@@ -59,7 +68,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return (
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactsPageHeader/>
+                    <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} noPadding={true}>
                     <ArtifactsPageToolbar artifactsCount={this.totalArtifactsCount()} onChange={this.onFilterChange}/>
@@ -72,7 +81,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
                             </Flex>
                         : this.artifactsCount() === 0 ?
-                            <ArtifactsPageEmptyState isFiltered={false}/>
+                            <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={false}/>
                         :
                             <React.Fragment>
                                 <ArtifactList artifacts={this.artifacts()}/>
@@ -90,6 +99,25 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                             </React.Fragment>
                     }
                 </PageSection>
+                <Modal
+                    title="Modal Header"
+                    isOpen={this.state.isUploadModalOpen}
+                    onClose={this.onUploadModalClose}
+                    actions={[
+                        <Button key="confirm" variant="primary" onClick={this.onUploadModalClose}>
+                            Confirm
+                        </Button>,
+                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>
+                            Cancel
+                        </Button>
+                    ]}
+                >
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
+                    magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+                    pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+                    est laborum.
+                </Modal>
             </React.Fragment>
         );
     }
@@ -102,6 +130,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 value: "",
             },
             isLoading: true,
+            isUploadModalOpen: false,
             paging: {
                 page: 1,
                 pageSize: 10
@@ -110,9 +139,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         };
     }
 
-    protected postConstruct(): void {
+    protected loadPageData(): void {
         this.search();
     }
+
+    private onUploadArtifact = (): void => {
+        this.setSingleState("isUploadModalOpen", true);
+    };
+
+    private onUploadModalClose = (): void => {
+        this.setSingleState("isUploadModalOpen", false);
+    };
 
     private onArtifactsLoaded(results: ArtifactsSearchResults): void {
         this.setMultiState({

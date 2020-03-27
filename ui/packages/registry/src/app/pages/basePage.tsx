@@ -16,21 +16,22 @@
  */
 
 import React from "react";
-import {PureComponent} from "../components";
+import {PureComponent, PureComponentProps, PureComponentState} from "../components";
 
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface PageProps {
-
+export interface PageProps extends PureComponentProps {
 }
 
 /**
  * State
  */
-export interface PageState {
+// tslint:disable-next-line:no-empty-interface
+export interface PageState extends PureComponentState {
+    isLoading: boolean;
 }
 
 
@@ -41,14 +42,12 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected constructor(props: Readonly<P>) {
         super(props);
-        this.state = this.initializeState();
-        this.postConstruct();
+        this.loadPageData();
     }
 
-    protected abstract initializeState(): S;
-
-    protected postConstruct(): void {
-
+    protected loadPageData(): void {
+        // Default implementation assumes the page does not need to load any data.
+        this.setSingleState("isLoading", false);
     }
 
 }

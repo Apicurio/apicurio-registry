@@ -31,13 +31,13 @@ import {
 } from '@patternfly/react-core';
 import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
 import "./toolbar.css";
-import {PureComponent} from "../../../../components";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 
 /**
  * Properties
  */
-export interface ArtifactsPageToolbarProps {
+export interface ArtifactsPageToolbarProps extends PureComponentProps {
     artifactsCount: number|null;
     onChange: (criteria: GetArtifactsCriteria) => void
 }
@@ -45,7 +45,7 @@ export interface ArtifactsPageToolbarProps {
 /**
  * State
  */
-export interface ArtifactsPageToolbarState {
+export interface ArtifactsPageToolbarState extends PureComponentState {
     filterIsExpanded: boolean;
     filterSelection: string;
     filterValue: string;
@@ -59,12 +59,6 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     constructor(props: Readonly<ArtifactsPageToolbarProps>) {
         super(props);
-        this.state = {
-            ascending: true,
-            filterIsExpanded: false,
-            filterSelection: "",
-            filterValue: ""
-        };
     }
 
     public render(): React.ReactElement {
@@ -122,13 +116,22 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         );
     }
 
+    protected initializeState(): ArtifactsPageToolbarState {
+        return {
+            ascending: true,
+            filterIsExpanded: false,
+            filterSelection: "",
+            filterValue: ""
+        };
+    }
+
     private onFilterToggle = (isExpanded: boolean): void => {
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggling filter dropdown.");
         this.setSingleState("filterIsExpanded", isExpanded);
     };
 
     private onFilterSelect = (event: React.SyntheticEvent<HTMLDivElement>|undefined): void => {
-        const value: string|null = event ? event.currentTarget.textContent : null;
+        const value: string = event && event.currentTarget && event.currentTarget.textContent ? event.currentTarget.textContent : "";
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter type to: %s", value);
         this.setState({
             filterIsExpanded: false,

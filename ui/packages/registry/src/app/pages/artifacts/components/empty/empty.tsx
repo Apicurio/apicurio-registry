@@ -17,26 +17,28 @@
 import React from "react";
 import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title} from '@patternfly/react-core';
 import {PlusCircleIcon} from "@patternfly/react-icons";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 
 /**
  * Properties
  */
-export interface ArtifactsPageEmptyStateProps {
+export interface ArtifactsPageEmptyStateProps extends PureComponentProps {
     isFiltered: boolean;
+    onUploadArtifact: () => void;
 }
 
 /**
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactsPageEmptyStateState {
+export interface ArtifactsPageEmptyStateState extends PureComponentState {
 }
 
 
 /**
  * Models the empty state for the Artifacts page (when there are no artifacts).
  */
-export class ArtifactsPageEmptyState extends React.PureComponent<ArtifactsPageEmptyStateProps, ArtifactsPageEmptyStateState> {
+export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptyStateProps, ArtifactsPageEmptyStateState> {
 
     constructor(props: Readonly<ArtifactsPageEmptyStateProps>) {
         super(props);
@@ -61,9 +63,13 @@ export class ArtifactsPageEmptyState extends React.PureComponent<ArtifactsPageEm
                             clicking the button below.
                         </EmptyStateBody>
                 }
-                <Button variant="primary">Upload Artifact</Button>
+                <Button variant="primary" onClick={this.props.onUploadArtifact}>Upload Artifact</Button>
             </EmptyState>
         );
+    }
+
+    protected initializeState(): ArtifactsPageEmptyStateState {
+        return {};
     }
 
 }

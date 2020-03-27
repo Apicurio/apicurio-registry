@@ -19,7 +19,6 @@ import React from "react";
 import {PageSection, PageSectionVariants} from '@patternfly/react-core';
 import "./artifact.css";
 import {PageComponent, PageProps, PageState} from "../../basePage";
-import {Services} from "@apicurio/registry-services";
 
 
 /**
@@ -27,14 +26,13 @@ import {Services} from "@apicurio/registry-services";
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ArtifactPageProps extends PageProps {
-
 }
 
 /**
  * State
  */
+// tslint:disable-next-line:no-empty-interface
 export interface ArtifactPageState extends PageState {
-    isLoading: boolean;
 }
 
 /**
@@ -63,9 +61,6 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         return {
             isLoading: false
         };
-    }
-
-    protected postConstruct(): void {
     }
 
 }

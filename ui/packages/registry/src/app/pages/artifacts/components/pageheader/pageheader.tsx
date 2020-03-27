@@ -16,31 +16,32 @@
  */
 import React from "react";
 import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactsPageHeaderProps {
+export interface ArtifactsPageHeaderProps extends PureComponentProps {
+    onUploadArtifact: () => void;
 }
 
 /**
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactsPageHeaderState {
+export interface ArtifactsPageHeaderState extends PureComponentState {
 }
 
 
 /**
  * Models the page header for the Artifacts page.
  */
-export class ArtifactsPageHeader extends React.PureComponent<ArtifactsPageHeaderProps, ArtifactsPageHeaderState> {
+export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps, ArtifactsPageHeaderState> {
 
     constructor(props: Readonly<ArtifactsPageHeaderProps>) {
         super(props);
-        this.state = {
-        };
     }
 
     public render(): React.ReactElement {
@@ -52,10 +53,13 @@ export class ArtifactsPageHeader extends React.PureComponent<ArtifactsPageHeader
                     </TextContent>
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                    <Button variant="primary">Upload Artifact</Button>
+                    <Button variant="primary" onClick={this.props.onUploadArtifact}>Upload Artifact</Button>
                 </FlexItem>
             </Flex>
         );
     }
 
+    protected initializeState(): ArtifactsPageHeaderState {
+        return {};
+    }
 }

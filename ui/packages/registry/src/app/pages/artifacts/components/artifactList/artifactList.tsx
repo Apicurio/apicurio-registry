@@ -17,11 +17,9 @@
 import React from "react";
 import {
     Badge,
-    Button,
     DataList,
     DataListAction,
     DataListCell,
-    DataListCheck,
     DataListItemCells,
     DataListItemRow
 } from '@patternfly/react-core';
@@ -29,30 +27,30 @@ import {Artifact} from "@apicurio/registry-models";
 import "./artifactList.css";
 import {ArtifactTypeIcon} from "./artifactTypeIcon";
 import {Link} from "react-router-dom";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 
 /**
  * Properties
  */
-export interface ArtifactListProps {
+export interface ArtifactListProps extends PureComponentProps {
     artifacts: Artifact[];
 }
 
 /**
  * State
  */
-export interface ArtifactListState {
+// tslint:disable-next-line:no-empty-interface
+export interface ArtifactListState extends PureComponentState {
 }
 
 
 /**
  * Models the list of artifacts.
  */
-export class ArtifactList extends React.PureComponent<ArtifactListProps, ArtifactListState> {
+export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListState> {
 
     constructor(props: Readonly<ArtifactListProps>) {
         super(props);
-        this.state = {
-        };
     }
 
     public render(): React.ReactElement {
@@ -95,6 +93,10 @@ export class ArtifactList extends React.PureComponent<ArtifactListProps, Artifac
                 }
             </DataList>
         );
+    }
+
+    protected initializeState(): ArtifactListState {
+        return {};
     }
 
     private labels(artifact: Artifact): string[] {

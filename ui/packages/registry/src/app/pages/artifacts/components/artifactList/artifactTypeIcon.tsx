@@ -16,25 +16,27 @@
  */
 import React from "react";
 import "./artifactTypeIcon.css";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 
 /**
  * Properties
  */
-export interface ArtifactTypeIconProps {
+export interface ArtifactTypeIconProps extends PureComponentProps {
     type: string;
 }
 
 /**
  * State
  */
-export interface ArtifactTypeIconState {
+// tslint:disable-next-line:no-empty-interface
+export interface ArtifactTypeIconState extends PureComponentState {
 }
 
 
 /**
  * Models the list of artifacts.
  */
-export class ArtifactTypeIcon extends React.PureComponent<ArtifactTypeIconProps, ArtifactTypeIconState> {
+export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, ArtifactTypeIconState> {
 
     constructor(props: Readonly<ArtifactTypeIconProps>) {
         super(props);
@@ -44,6 +46,10 @@ export class ArtifactTypeIcon extends React.PureComponent<ArtifactTypeIconProps,
         return (
             <div className={this.getClassNames()}/>
         );
+    }
+
+    protected initializeState(): ArtifactTypeIconState {
+        return {};
     }
 
     private getClassNames(): string {

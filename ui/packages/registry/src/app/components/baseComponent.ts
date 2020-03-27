@@ -17,13 +17,31 @@
 import React from "react";
 import {Services} from "@apicurio/registry-services";
 
+
+// tslint:disable-next-line:no-empty-interface
+export interface PureComponentProps {
+}
+
+// tslint:disable-next-line:no-empty-interface
+export interface PureComponentState {
+}
+
+
 /**
  * Base class for all Apicurio Registry UI components.
  */
-export abstract class PureComponent<Props, State, SS = {}> extends React.PureComponent<Props, State, SS> {
+export abstract class PureComponent<P extends PureComponentProps, S extends PureComponentState, SS = {}> extends React.PureComponent<P, S, SS> {
 
-    protected constructor(properties: Readonly<Props>) {
+    protected constructor(properties: Readonly<P>) {
         super(properties);
+        this.state = this.initializeState();
+        this.postConstruct();
+    }
+
+    protected abstract initializeState(): S;
+
+    protected postConstruct(): void {
+        // Can optionally be overridden by subclasses.
     }
 
     protected setSingleState(key: string, value: any): void {

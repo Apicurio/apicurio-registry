@@ -35,7 +35,7 @@ import {Paging} from "@apicurio/registry-services/src";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
-import {UploadArtifactForm, UploadArtifactFormData} from "./components/uploadForm";
+import {UploadArtifactForm} from "./components/uploadForm";
 
 
 /**
@@ -84,7 +84,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
                             </Flex>
                         : this.artifactsCount() === 0 ?
-                            <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={false}/>
+                            <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
                             <React.Fragment>
                                 <ArtifactList artifacts={this.artifacts()}/>
@@ -197,6 +197,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             this.search();
         });
     };
+
+    private isFiltered(): boolean {
+        return !!this.state.criteria.value;
+    }
 
     private search(): void {
         Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.content;
+package io.apicurio.registry.types.provider;
+
+import io.apicurio.registry.types.ArtifactType;
 
 /**
- * Canonicalize some content!  This means converting content to its canonical form for
- * the purpose of comparison.  Should remove things like formatting and should sort 
- * fields when ordering is not important.
- * 
- * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
-public interface ContentCanonicalizer {
-    
-    /**
-     * Called to convert the given content to its canonical form.
-     * @param content
-     */
-    public ContentHandle canonicalize(ContentHandle content);
-
+public interface ArtifactTypeUtilProviderFactory {
+    ArtifactTypeUtilProvider getArtifactTypeAdapter(ArtifactType type);
 }

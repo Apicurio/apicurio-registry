@@ -19,9 +19,12 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import java.util.Collections;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * Rule executor for the "Compatibility" rule.  The Compatibility Rule is responsible
@@ -33,14 +36,18 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class CompatibilityRuleExecutor implements RuleExecutor {
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     /**
      * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)
      */
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
         CompatibilityLevel level = CompatibilityLevel.valueOf(context.getConfiguration());
-        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(context.getArtifactType());
-        if (!adapter.isCompatibleWith(
+        ArtifactTypeUtilProvider adapter = factory.getArtifactTypeAdapter(context.getArtifactType());
+        CompatibilityChecker checker = adapter.getCompatibilityChecker();
+        if (!checker.isCompatibleWith(
             level,
             Collections.singletonList(context.getCurrentContent()),
             context.getUpdatedContent())

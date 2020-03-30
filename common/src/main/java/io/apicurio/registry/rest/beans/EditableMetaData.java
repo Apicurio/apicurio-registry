@@ -1,6 +1,7 @@
 
 package io.apicurio.registry.rest.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "name",
     "description"
 })
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EditableMetaData {
 
     @JsonProperty("name")

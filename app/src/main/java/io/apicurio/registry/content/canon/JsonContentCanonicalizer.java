@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -37,7 +36,7 @@ public class JsonContentCanonicalizer implements ContentCanonicalizer {
     private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     /**
-     * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {

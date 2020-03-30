@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.content.canon;
+package io.apicurio.registry.content.extract;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.beans.EditableMetaData;
 
 /**
- * A canonicalizer that passes through the content unchanged.
- * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
-public class NoOpContentCanonicalizer implements ContentCanonicalizer {
-    
-    /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
-     */
-    @Override
-    public ContentHandle canonicalize(ContentHandle content) {
-        return content;
+public class NoopContentExtractor implements ContentExtractor {
+    public static final ContentExtractor INSTANCE = new NoopContentExtractor();
+
+    private NoopContentExtractor() {
     }
 
+    public EditableMetaData extract(ContentHandle content) {
+        return null;
+    }
 }

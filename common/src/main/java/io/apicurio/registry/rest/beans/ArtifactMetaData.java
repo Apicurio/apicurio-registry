@@ -1,6 +1,7 @@
 
 package io.apicurio.registry.rest.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -29,6 +30,7 @@ import io.apicurio.registry.types.ArtifactType;
     "globalId",
     "state"
 })
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ArtifactMetaData {
 
     @JsonProperty("name")

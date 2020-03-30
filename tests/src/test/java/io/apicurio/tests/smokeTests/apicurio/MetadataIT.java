@@ -134,7 +134,7 @@ class MetadataIT extends BaseIT {
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is(1));
         assertThat(versionMetaData.getType().value(), is("AVRO"));
-        assertThat(versionMetaData.getName(), nullValue());
+        assertThat(versionMetaData.getName(), is("myrecord1"));
         assertThat(versionMetaData.getDescription(),  nullValue());
     }
 }

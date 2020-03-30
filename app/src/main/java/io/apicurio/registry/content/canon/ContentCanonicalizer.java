@@ -14,25 +14,23 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validity;
+package io.apicurio.registry.content.canon;
 
 import io.apicurio.registry.content.ContentHandle;
 
 /**
- * Validates content.  Syntax and semantic validations are possible based on configuration.  An
- * implementation of this interface should exist for each content-type supported by the registry.
- *
+ * Canonicalize some content!  This means converting content to its canonical form for
+ * the purpose of comparison.  Should remove things like formatting and should sort 
+ * fields when ordering is not important.
+ * 
  * @author eric.wittmann@gmail.com
  */
-public interface ContentValidator {
-
+public interface ContentCanonicalizer {
+    
     /**
-     * Called to validate the given content.
-     *
-     * @param level           the level
-     * @param artifactContent the content
-     * @throws InvalidContentException for any invalid content
+     * Called to convert the given content to its canonical form.
+     * @param content
      */
-    void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException;
+    public ContentHandle canonicalize(ContentHandle content);
 
 }

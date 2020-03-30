@@ -16,23 +16,35 @@
 
 package io.apicurio.registry.content;
 
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.types.ArtifactType;
+import javax.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
-class ContentCanonicalizerFactoryTest {
+@QuarkusTest
+public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
+    private ContentCanonicalizer getContentCanonicalizer(ArtifactType type) {
+        ArtifactTypeUtilProvider adapter = factory.getArtifactTypeAdapter(type);
+        return adapter.getContentCanonicalizer();
+    }
+
     @Test
     void testOpenAPI() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.OPENAPI);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.OPENAPI);
         
         String before = "{\r\n" + 
                 "    \"openapi\": \"3.0.2\",\r\n" + 
@@ -52,13 +64,9 @@ class ContentCanonicalizerFactoryTest {
         Assertions.assertEquals(expected, actual);
     }
 
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
     @Test
     void testAvro() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.AVRO);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.AVRO);
         
         String before = "{\r\n" + 
                 "     \"type\": \"record\",\r\n" + 
@@ -77,13 +85,9 @@ class ContentCanonicalizerFactoryTest {
         Assertions.assertEquals(expected, actual);
     }
 
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
     @Test
     void testProtobuf() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.PROTOBUF);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.PROTOBUF);
         
         String before = "message SearchRequest {\r\n" + 
                 "  required string query = 1;\r\n" + 
@@ -97,13 +101,9 @@ class ContentCanonicalizerFactoryTest {
         Assertions.assertEquals(expected, actual);
     }
 
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
     @Test
     void testGraphQL() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.GRAPHQL);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.GRAPHQL);
         
         String before = "type Query {\r\n" + 
                 "  bookById(id: ID): Book \r\n" + 
@@ -144,14 +144,9 @@ class ContentCanonicalizerFactoryTest {
         Assertions.assertEquals(expected, actual);
     }
     
-
-    /**
-     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
-     */
     @Test
     void testKafkaConnect() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.KCONNECT);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.KCONNECT);
         
         String before = "{\r\n" + 
                 "    \"type\": \"struct\",\r\n" + 

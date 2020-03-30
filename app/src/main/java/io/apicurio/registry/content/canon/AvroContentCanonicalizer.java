@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -49,7 +48,7 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
     };
 
     /**
-     * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {

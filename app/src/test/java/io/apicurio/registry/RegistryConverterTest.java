@@ -52,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,7 +73,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
             CompletionStage<ArtifactMetaData> csa = service.createArtifact(
                 ArtifactType.AVRO,
                 "test-myrecord4",
-                new ByteArrayInputStream(schema.toString().getBytes())
+                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
             );
             ArtifactMetaData amd = ConcurrentUtil.result(csa);
             // wait for global id store to populate (in case of Kafka / Streams)
@@ -164,7 +165,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
                     JsonNode root = mapper.readTree(input);
-                    return root.get("id").asLong();
+                    return root.get("schemaId").asLong();
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

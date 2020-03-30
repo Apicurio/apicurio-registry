@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -57,7 +58,7 @@ class ArtifactsIT extends BaseIT {
 
         String artifactId = "createAndUpdateArtifactId1";
 
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
@@ -66,7 +67,7 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Artifact with name:{} and content:{} was created", response.getString("name"), response.toString());
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
-        artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes());
+        artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
         String invalidArtifactId = "createAndUpdateArtifactId2";
 
         try {
@@ -76,7 +77,7 @@ class ArtifactsIT extends BaseIT {
             assertThat("{\"message\":\"Syntax violation for Avro artifact.\",\"error_code\":400}", is(e.getResponse().readEntity(String.class)));
         }
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes());
+        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
@@ -115,7 +116,7 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void deleteArtifactSpecificVersion() {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = "deleteArtifactSpecificVersionId";
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
@@ -126,7 +127,7 @@ class ArtifactsIT extends BaseIT {
 
         for (int x = 0; x < 9; x++) {
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
-            artifactData = new ByteArrayInputStream(artifactDefinition.getBytes());
+            artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
             LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         }
@@ -151,7 +152,7 @@ class ArtifactsIT extends BaseIT {
             assertThat("{\"message\":\"No version '4' found for artifact with ID 'deleteArtifactSpecificVersionId'.\",\"error_code\":404}", is(e.getResponse().readEntity(String.class)));
         }
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes());
+        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
@@ -165,7 +166,7 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void createNonAvroArtifact() {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = "artifactWithNonAvroFormatId";
 
         CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, artifactData);
@@ -182,12 +183,12 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void createArtifactSpecificVersion() {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = "createArtifactSpecificVersionId";
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes());
+        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
 
@@ -199,15 +200,15 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void testDuplicatedArtifact() {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = "duplicateArtifactId";
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes());
+        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
 
         try {
-            metaData = ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
+            ArtifactUtils.createArtifact(apicurioService, artifactId, artifactData);
         } catch (WebApplicationException e) {
             assertThat("{\"message\":\"An artifact with ID 'duplicateArtifactId' already exists.\",\"error_code\":409}", is(e.getResponse().readEntity(String.class)));
         }

@@ -35,6 +35,7 @@ public class ArtifactTypeAdapterFactory {
         ADAPTERS.put(ArtifactType.PROTOBUF, new ProtobufArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.PROTOBUF_FD, new ProtobufFdArtifactTypeAdapter());
         ADAPTERS.put(ArtifactType.JSON, new JsonArtifactTypeAdapter());
+        ADAPTERS.put(ArtifactType.KCONNECT, NoopArtifactTypeAdapter.INSTANCE);
         ADAPTERS.put(ArtifactType.OPENAPI, NoopArtifactTypeAdapter.INSTANCE);
         ADAPTERS.put(ArtifactType.ASYNCAPI, NoopArtifactTypeAdapter.INSTANCE);
         ADAPTERS.put(ArtifactType.GRAPHQL, NoopArtifactTypeAdapter.INSTANCE);

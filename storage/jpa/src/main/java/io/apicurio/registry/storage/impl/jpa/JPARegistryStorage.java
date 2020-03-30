@@ -430,6 +430,7 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     @Override
+    @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             Artifact artifact = _getArtifact(id, null);
@@ -635,6 +636,7 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     @Override
+    @Transactional
     public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         requireNonNull(artifactId);
         try {

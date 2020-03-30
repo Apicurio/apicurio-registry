@@ -1,0 +1,28 @@
+// Metadata created by nebel
+
+[id="registry-artifact-types"]
+
+== Supported artifact types
+You can manage the following artifact types in the registry:
+
+[%header,cols=2*] 
+|===
+|Type
+|Description
+|`ASYNCAPI`
+|AsyncAPI specification
+|`AVRO`
+|Apache Avro schema
+|`GRAPHQL`
+|GraphQL schema
+|`JSON`
+|JSON Schema
+|`KCONNECT`
+|Apache Kafka Connect schema
+|`OPENAPI`
+|OpenAPI specification
+|`PROTOBUF`
+|Google protocol buffers schema
+|`PROTOBUF_FD`
+|Google protocol buffers file descriptor
+|===

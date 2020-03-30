@@ -119,7 +119,7 @@ public class ApiServiceImpl implements ApiService {
 
     public SchemaInfo apiSchemasSchemaidGet(String schemaid)
     throws ArtifactNotFoundException {
-        StoredArtifact artifact = storage.getArtifact(schemaid);
+        storage.getArtifact(schemaid);
         SchemaInfo info = new SchemaInfo();
         info.setId(schemaid);
         info.setEnabled(true);

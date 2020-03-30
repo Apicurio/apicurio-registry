@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -47,7 +48,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         try (RegistryService service = RegistryClient.create("http://localhost:8081")) {
             String artifactId = generateArtifactId();
             try {
-                ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
+                ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
                 CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, stream);
                 ConcurrentUtil.result(csResult);
 
@@ -61,7 +62,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     return null;
                 });
 
-                stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes());
+                stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
                 csResult = service.updateArtifact(artifactId, ArtifactType.JSON, stream);
                 ConcurrentUtil.result(csResult);
             } finally {

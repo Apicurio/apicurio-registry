@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -58,8 +59,8 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
             Schema valueSchema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
             File keySchemaFile = new File(this.tempDirectory, keySubject + ".avsc");
             File valueSchemaFile = new File(this.tempDirectory, valueSubject + ".avsc");
-            writeContent(keySchemaFile, keySchema.toString(true).getBytes());
-            writeContent(valueSchemaFile, valueSchema.toString(true).getBytes());
+            writeContent(keySchemaFile, keySchema.toString(true).getBytes(StandardCharsets.UTF_8));
+            writeContent(valueSchemaFile, valueSchema.toString(true).getBytes(StandardCharsets.UTF_8));
             idToFile.put(keySubject, keySchemaFile);
             expectedVersions.put(keySubject, version);
             idToFile.put(valueSubject, valueSchemaFile);

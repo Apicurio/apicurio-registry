@@ -79,6 +79,8 @@ public final class ArtifactTypeUtil {
             if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")) {
                 return ArtifactType.JSON;
             }
+            // Kafka Connect??
+            // TODO detect Kafka Connect schemas
             // Avro
             return ArtifactType.AVRO;
         } catch (Exception e) {

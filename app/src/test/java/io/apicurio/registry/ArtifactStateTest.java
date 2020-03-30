@@ -17,6 +17,7 @@
 package io.apicurio.registry;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletionStage;
 
 import javax.ws.rs.core.Response;
@@ -56,21 +57,21 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
             CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
                 ArtifactType.JSON,
                 artifactId,
-                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes())
+                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
             );
             ConcurrentUtil.result(a1);
 
             CompletionStage<ArtifactMetaData> a2 = service.updateArtifact(
                 artifactId,
                 ArtifactType.JSON,
-                new ByteArrayInputStream("\"type\": \"int\"".getBytes())
+                new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
             );
             ConcurrentUtil.result(a2);
 
             CompletionStage<ArtifactMetaData> a3 = service.updateArtifact(
                 artifactId,
                 ArtifactType.JSON,
-                new ByteArrayInputStream("\"type\": \"float\"".getBytes())
+                new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
             );
             ConcurrentUtil.result(a3);
 

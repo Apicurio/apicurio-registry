@@ -38,27 +38,35 @@ public class ArtifactMetaData {
     /**
      * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("createdOn")
     private long createdOn;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("modifiedBy")
     private String modifiedBy;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("modifiedOn")
     private long modifiedOn;
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("id")
     @JsonPropertyDescription("")
@@ -152,7 +160,9 @@ public class ArtifactMetaData {
     }
 
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(long createdOn) {
@@ -160,7 +170,9 @@ public class ArtifactMetaData {
     }
 
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("modifiedBy")
     public String getModifiedBy() {
@@ -188,7 +200,9 @@ public class ArtifactMetaData {
     }
 
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("modifiedOn")
     public void setModifiedOn(long modifiedOn) {
@@ -196,7 +210,9 @@ public class ArtifactMetaData {
     }
 
     /**
+     * 
      * (Required)
+     * 
      */
     @JsonProperty("id")
     public String getId() {

@@ -28,13 +28,12 @@ import io.apicurio.registry.types.RuleType;
  */
 @Path("/artifacts")
 public interface ArtifactsResource {
-
   /**
    * Gets the metadata for an artifact in the registry.  The returned metadata will include
    * both generated (read-only) and editable metadata (such as name and description).
-   * <p>
+   *
    * This operation can fail for the following reasons:
-   * <p>
+   *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    */
@@ -275,6 +274,7 @@ public interface ArtifactsResource {
    * * Protobuf (`PROTOBUF`)
    * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
    * * GraphQL (`GRAPHQL`)
@@ -329,6 +329,7 @@ public interface ArtifactsResource {
    * * Protobuf (`PROTOBUF`)
    * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
    * * GraphQL (`GRAPHQL`)
@@ -399,6 +400,7 @@ public interface ArtifactsResource {
    * * Protobuf (`PROTOBUF`)
    * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
    * * GraphQL (`GRAPHQL`)
@@ -444,6 +446,7 @@ public interface ArtifactsResource {
    * * Protobuf (`PROTOBUF`)
    * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
    * * OpenAPI (`OPENAPI`)
    * * AsyncAPI (`ASYNCAPI`)
    * * GraphQL (`GRAPHQL`)
@@ -473,7 +476,7 @@ public interface ArtifactsResource {
 
   /**
    * Updates the state of the artifact.  This can be used to, for example, mark the latest
-   * version of an Artifact as `DEPRECATED`.  The operation will change the state of the
+   * version of an artifact as `DEPRECATED`.  The operation will change the state of the
    * latest version of the artifact.  If multiple versions exist, only the most recent will
    * be changed.
    *
@@ -500,7 +503,7 @@ public interface ArtifactsResource {
   void updateArtifactState(@PathParam("artifactId") String artifactId, UpdateState data);
 
   /**
-   * Used to update the state of a specific version of an Artifact.  For example, this can
+   * Used to update the state of a specific version of an artifact.  For example, this can
    * be used to "disable" a specific version.
    *
    * The following state changes are supported:

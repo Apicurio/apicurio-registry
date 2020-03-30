@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-distro</artifactId>
-        <version>1.1.1-SNAPSHOT</version>
+        <version>1.1.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -17,6 +17,7 @@
         <version.jersey>2.29.1</version.jersey>
         <version.geronimo.config>1.2.2</version.geronimo.config>
         <distro.version.kafka>2.4.0</distro.version.kafka>
+        <tar.long.file.mode>gnu</tar.long.file.mode>
     </properties>
 
     <dependencyManagement>
@@ -66,7 +67,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>${version.assembly.plugin}</version>
                 <executions>
                     <execution>
                         <id>default</id>
@@ -80,6 +80,7 @@
                             <descriptors>
                                 <descriptor>src/assembly/${assembly.descriptor}.xml</descriptor>
                             </descriptors>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
                     </execution>
                 </executions>

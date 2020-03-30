@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
@@ -54,7 +55,7 @@ public class ClusterIT {
         RegistryService client2 = RegistryClient.create("http://localhost:8081");
 
         String artifactId = UUID.randomUUID().toString();
-        ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes());
+        ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
         client1.createArtifact(ArtifactType.JSON, artifactId, stream);
         try {
             Thread.sleep(1000); // dummy wait

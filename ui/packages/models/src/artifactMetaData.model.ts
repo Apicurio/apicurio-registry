@@ -15,7 +15,19 @@
  * limitations under the License.
  */
 
-export * from './pageheader';
-export * from './toolbar';
-export * from './empty';
-export * from './uploadForm';
+
+export class ArtifactMetaData {
+
+    public id: string;
+    public name: string|null;
+    public description: string|null;
+    public type: string;
+    public version: number;
+    public createdBy: string;
+    public createdOn: Date;
+    public modifiedBy: string;
+    public modifiedOn: Date;
+    public globalId: number;
+    public state: string;
+
+}

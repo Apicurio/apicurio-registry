@@ -15,8 +15,16 @@
  * limitations under the License.
  */
 
-import {Artifact} from "@apicurio/registry-models";
+import {Artifact, ArtifactMetaData} from "@apicurio/registry-models";
 import {LoggerService} from "../logger";
+
+
+export interface CreateArtifactData {
+    type: string;
+    name: string|null;
+    description: string|null;
+    content: string;
+}
 
 export interface GetArtifactsCriteria {
     type: string;
@@ -47,6 +55,7 @@ export class ArtifactsService {
     private logger: LoggerService = null;
 
     private readonly allArtifacts: Artifact[];
+    private readonly artifactContent: any;
 
     constructor() {
         const artifacts: Artifact[] = [
@@ -60,6 +69,40 @@ export class ArtifactsService {
             );
         }
         this.allArtifacts = artifacts;
+    }
+
+    public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
+        if (!data.name) {
+            data.name = "New Artifact";
+        }
+        if (!data.description) {
+            data.description = "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+        }
+        if (!data.type) {
+            data.type = "AVRO";
+        }
+
+        const artifactId: string = "" + (this.allArtifacts.length + 1);
+        const newArtifact: Artifact = Artifact.create(artifactId, data.type, data.name, data.description, []);
+        this.allArtifacts.push(newArtifact);
+        this.artifactContent[artifactId] = data.content;
+
+        const metaData: ArtifactMetaData = new ArtifactMetaData();
+        metaData.id = artifactId;
+        metaData.createdOn = new Date();
+        metaData.createdBy = "user";
+        metaData.name = data.name;
+        metaData.description = data.description;
+        metaData.globalId = 1;
+        metaData.state = "ENABLED";
+        metaData.type = data.type;
+        metaData.version = 1;
+
+        return new Promise<ArtifactMetaData>(resolve => {
+            setTimeout(() => {
+                resolve(metaData);
+            }, 500);
+        });
     }
 
     public getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {

@@ -44,17 +44,17 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
         // Can optionally be overridden by subclasses.
     }
 
-    protected setSingleState(key: string, value: any): void {
+    protected setSingleState(key: string, value: any, callback?: () => void): void {
         const newState: any = {};
         newState[key] = value;
-        this.setMultiState(newState);
+        this.setMultiState(newState, callback);
     }
 
-    protected setMultiState(newState: any): void {
+    protected setMultiState(newState: any, callback?: () => void): void {
         Services.getLoggerService().debug("[PureComponent] Setting multi-state: %o", newState);
         this.setState({
             ...newState
-        });
+        }, callback);
     }
 
 }

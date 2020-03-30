@@ -28,13 +28,14 @@ import {
 } from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
 import "./artifacts.css";
-import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
+import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
 import {Artifact} from "@apicurio/registry-models";
 import {Paging} from "@apicurio/registry-services/src";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
+import {UploadArtifactForm, UploadArtifactFormData} from "./components/uploadForm";
 
 
 /**
@@ -51,8 +52,10 @@ export interface ArtifactsPageProps extends PageProps {
 export interface ArtifactsPageState extends PageState {
     criteria: GetArtifactsCriteria;
     isUploadModalOpen: boolean;
+    isUploadFormValid: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
+    uploadFormData: CreateArtifactData | null;
 }
 
 /**
@@ -100,23 +103,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     }
                 </PageSection>
                 <Modal
-                    title="Modal Header"
+                    title="Upload Artifact"
+                    isLarge={true}
                     isOpen={this.state.isUploadModalOpen}
                     onClose={this.onUploadModalClose}
+                    className="upload-artifact-modal"
                     actions={[
-                        <Button key="confirm" variant="primary" onClick={this.onUploadModalClose}>
-                            Confirm
-                        </Button>,
-                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>
-                            Cancel
-                        </Button>
+                        <Button key="upload" variant="primary" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>
                     ]}
                 >
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-                    magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                    consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-                    pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
-                    est laborum.
+                    <UploadArtifactForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />
                 </Modal>
             </React.Fragment>
         );
@@ -130,12 +127,14 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 value: "",
             },
             isLoading: true,
+            isUploadFormValid: false,
             isUploadModalOpen: false,
             paging: {
                 page: 1,
                 pageSize: 10
             },
-            results: null
+            results: null,
+            uploadFormData: null
         };
     }
 
@@ -157,6 +156,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             results
         });
     }
+
+    private doUploadArtifact = (): void => {
+        this.onUploadModalClose();
+        if (this.state.uploadFormData !== null) {
+            Services.getArtifactsService().createArtifact(this.state.uploadFormData).then(metaData => {
+                // TODO handle async response!
+            }).catch( error => {
+                // TODO handle the error!!
+            });
+        }
+    };
 
     private artifacts(): Artifact[] {
         if (this.state.results) {
@@ -183,12 +193,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setMultiState({
             criteria,
             isLoading: true
+        }, () => {
+            this.search();
         });
-        this.search(criteria);
     };
 
-    private search(criteria: GetArtifactsCriteria = this.state.criteria, paging: Paging = this.state.paging): void {
-        Services.getArtifactsService().getArtifacts(criteria, paging).then(results => {
+    private search(): void {
+        Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
             this.onArtifactsLoaded(results);
         }).then(error => {
             // TODO handle errors!
@@ -203,8 +214,9 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setMultiState({
             isLoading: true,
             paging
+        }, () => {
+            this.search();
         });
-        this.search(undefined, paging);
     };
 
     private onPerPageSelect = (event: any, newPerPage: number): void => {
@@ -215,8 +227,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setMultiState({
             isLoading: true,
             paging
+        }, () => {
+            this.search();
         });
-        this.search(undefined, paging);
-    }
+    };
+
+    private onUploadFormValid = (isValid: boolean): void => {
+        this.setSingleState("isUploadFormValid", isValid);
+    };
+
+    private onUploadFormChange = (data: CreateArtifactData): void => {
+        this.setSingleState("uploadFormData", data);
+    };
 
 }

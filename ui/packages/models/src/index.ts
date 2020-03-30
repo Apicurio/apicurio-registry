@@ -16,3 +16,5 @@
  */
 
 export * from './artifact.model';
+export * from './artifactMetaData.model';
+export * from './versionMetaData.model';

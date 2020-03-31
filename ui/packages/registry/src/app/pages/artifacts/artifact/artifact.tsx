@@ -16,11 +16,14 @@
  */
 
 import React from "react";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
+import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, Tab, Tabs} from '@patternfly/react-core';
 import "./artifact.css";
 import {PageComponent, PageProps, PageState} from "../../basePage";
 import {ArtifactPageHeader} from "./components/pageheader";
 import {RedocStandalone} from "redoc";
+import AceEditor from "react-ace";
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-tomorrow";
 
 
 /**
@@ -35,6 +38,7 @@ export interface ArtifactPageProps extends PageProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ArtifactPageState extends PageState {
+    activeTabKey: number;
     artifactContent: object | undefined;
 }
 
@@ -53,15 +57,41 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactPageHeader onUploadVersion={console.info} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection variant={PageSectionVariants.default} isFilled={true} noPadding={true}>
                     {
                         this.state.isLoading ?
                             <Flex>
                                 <FlexItem><Spinner size="lg"/></FlexItem>
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
                             </Flex>
-                        :
-                            <RedocStandalone spec={this.state.artifactContent} />
+                            :
+                            <Tabs unmountOnExit={true} isFilled={true} activeKey={this.state.activeTabKey} onSelect={this.handleTabClick}>
+                                <Tab eventKey={0} title="Artifact Info">
+                                    <AceEditor
+                                        mode="json"
+                                        theme="tomorrow"
+                                        name="artifactContent"
+                                        fontSize={14}
+                                        showPrintMargin={false}
+                                        showGutter={true}
+                                        highlightActiveLine={false}
+                                        value={this.getArtifactContent()}
+                                        setOptions={{
+                                            enableBasicAutocompletion: false,
+                                            enableLiveAutocompletion: false,
+                                            enableSnippets: false,
+                                            showLineNumbers: true,
+                                            tabSize: 2,
+                                        }}
+                                    />
+                                </Tab>
+                                <Tab eventKey={1} title="API Documentation">
+                                    <RedocStandalone spec={this.state.artifactContent} />
+                                </Tab>
+                                <Tab eventKey={2} title="Versions">
+                                    <h1>Versions</h1>
+                                </Tab>
+                            </Tabs>
                     }
                 </PageSection>
             </React.Fragment>
@@ -70,6 +100,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
 
     protected initializeState(): ArtifactPageState {
         return {
+            activeTabKey: 0,
             artifactContent: undefined,
             isLoading: true
         };
@@ -901,6 +932,18 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
                 isLoading: false
             });
         }, 500);
+    }
+
+    private handleTabClick = (event: any, tabIndex: any): void => {
+        this.setSingleState("activeTabKey", tabIndex);
+    };
+
+    private getArtifactContent(): string {
+        if (this.state.artifactContent != null) {
+            return JSON.stringify(this.state.artifactContent, null, 4);
+        } else {
+            return "";
+        }
     }
 
 }

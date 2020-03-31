@@ -70,6 +70,10 @@
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
         </dependency>
+       <dependency>
+		    <groupId>commons-io</groupId>
+		    <artifactId>commons-io</artifactId>
+	   </dependency>
         
         <!-- Kafka Connect -->
         <dependency>

@@ -1,0 +1,72 @@
+/*
+ * Copyright 2020 JBoss Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.rules.validity;
+
+import java.io.File;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import org.apache.commons.io.FileUtils;
+import io.apicurio.registry.content.ContentHandle;
+
+/**
+ * @author cfoskin@redhat.com
+ */
+@ApplicationScoped
+public class XsdContentValidator implements ContentValidator {
+
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
+     *      io.apicurio.registry.content.ContentHandle)
+     */
+    @Override
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+            try {
+                // just try to parse it
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                // the builder.parse requires a file - maybe there is a better way to do it than creating a tmp file 
+                File targetFile = new File("src/main/resources/targetFile.tmp");
+                FileUtils.copyInputStreamToFile(artifactContent.stream(), targetFile); 
+                builder.parse(targetFile);
+                FileUtils.deleteQuietly(targetFile);
+
+                if (level == ValidityLevel.FULL) {
+                    // full validation for XSD
+                    File validXmlFile = new File(getClass().getClassLoader()
+                            .getResource("validity/xml-schema.xsd").getFile());
+                    Source validXmlSource = new StreamSource(validXmlFile);
+                    SchemaFactory schemaFactory = SchemaFactory
+                            .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                    //create the validator based on the XSD for XSD
+                    Validator validator = schemaFactory.newSchema(validXmlSource).newValidator();
+                    Source artifactSource = new StreamSource(artifactContent.stream());
+                    validator.validate(artifactSource);
+                }
+            } catch (Exception e) {
+                throw new InvalidContentException("Syntax violation for XSD Schema artifact.", e);
+            }
+        }
+    }
+}

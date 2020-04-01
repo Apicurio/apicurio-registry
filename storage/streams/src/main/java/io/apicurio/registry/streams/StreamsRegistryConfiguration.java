@@ -20,6 +20,7 @@ import io.apicurio.registry.streams.utils.LoggingStateRestoreListener;
 import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
@@ -95,9 +96,10 @@ public class StreamsRegistryConfiguration {
     @Singleton
     public KafkaStreams storageStreams(
         StreamsProperties properties,
-        ForeachAction<? super String, ? super Str.Data> dataDispatcher
+        ForeachAction<? super String, ? super Str.Data> dataDispatcher,
+        ArtifactTypeUtilProviderFactory factory
     ) {
-        Topology topology = new StreamsTopologyProvider(properties, dataDispatcher).get();
+        Topology topology = new StreamsTopologyProvider(properties, dataDispatcher, factory).get();
 
         KafkaStreams streams = new KafkaStreams(topology, properties.getProperties());
         streams.setGlobalStateRestoreListener(new LoggingStateRestoreListener());

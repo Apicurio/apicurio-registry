@@ -16,12 +16,14 @@
 
 package io.apicurio.registry.rules.validity;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -30,7 +32,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 public class ValidityRuleExecutor implements RuleExecutor {
 
     @Inject
-    ContentValidatorFactory factory;
+    ArtifactTypeUtilProviderFactory factory;
     
     /**
      * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)
@@ -39,7 +41,8 @@ public class ValidityRuleExecutor implements RuleExecutor {
     public void execute(RuleContext context) throws RuleViolationException {
         try {
             ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
-            ContentValidator validator = factory.createValidator(context.getArtifactType());
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
+            ContentValidator validator = provider.getContentValidator();
             validator.validate(level, context.getUpdatedContent());
         } catch (InvalidContentException e) {
             throw new RuleViolationException(e.getMessage(), e);

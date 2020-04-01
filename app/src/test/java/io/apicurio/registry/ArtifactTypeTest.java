@@ -16,39 +16,48 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter;
-import io.apicurio.registry.rules.compatibility.ArtifactTypeAdapterFactory;
+import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
  */
-public class ArtifactTypeTest { // no need to extend TestBase
+@QuarkusTest
+public class ArtifactTypeTest extends AbstractRegistryTestBase {
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     @Test
     public void testAvro() {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         ArtifactType avro = ArtifactType.AVRO;
-        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(avro);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
+        CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString));
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2));
     }
 
     @Test
     public void testJson() {
         String jsonString = "{\"name\":\"foobar\"}";
         ArtifactType json = ArtifactType.JSON;
-        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(json);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
+        CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString));
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString));
     }
 
     @Test
@@ -71,9 +80,10 @@ public class ArtifactTypeTest { // no need to extend TestBase
                       "}\n";
 
         ArtifactType protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeAdapter adapter = ArtifactTypeAdapterFactory.toAdapter(protobuf);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));
 
         String data2 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -95,7 +105,7 @@ public class ArtifactTypeTest { // no need to extend TestBase
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertTrue(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2));
+        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2));
 
         String data3 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -114,6 +124,6 @@ public class ArtifactTypeTest { // no need to extend TestBase
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertFalse(adapter.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3));
+        Assertions.assertFalse(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3));
     }
 }

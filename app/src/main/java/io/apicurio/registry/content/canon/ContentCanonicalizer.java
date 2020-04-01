@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.content;
+package io.apicurio.registry.content.canon;
+
+import io.apicurio.registry.content.ContentHandle;
 
 /**
  * Canonicalize some content!  This means converting content to its canonical form for

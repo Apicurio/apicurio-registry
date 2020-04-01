@@ -16,27 +16,19 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.common.proto.Serde;
-import io.apicurio.registry.content.ContentHandle;
-
 import java.util.List;
 
 /**
  * @author Ales Justin
  */
-public class ProtobufFdArtifactTypeAdapter implements ArtifactTypeAdapter {
-    @Override
-    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
-        try {
-            Serde.Schema.parseFrom(proposedArtifact.bytes());
-            return true;
-        } catch (Exception ignore) {
-        }
-        return false;
-    }
+public class NoopCompatibilityChecker implements CompatibilityChecker {
+    public static CompatibilityChecker INSTANCE = new NoopCompatibilityChecker();
 
+    /**
+     * @see CompatibilityChecker#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     */
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
-        throw new UnsupportedOperationException("String content not supported!"); // should not be called ...
+        return true;
     }
 }

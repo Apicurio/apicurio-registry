@@ -1,7 +1,6 @@
 package io.apicurio.registry.streams;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
-import io.apicurio.registry.content.ContentCanonicalizerFactory;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -25,6 +24,8 @@ import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -105,7 +106,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     AsyncBiFunctionService<Void, Void, KafkaStreams.State> stateFunction;
 
     @Inject
-    ContentCanonicalizerFactory ccFactory;
+    ArtifactTypeUtilProviderFactory factory;
 
     private Submitter submitter = new Submitter(this::send);
 
@@ -356,7 +357,8 @@ public class StreamsRegistryStorage implements RegistryStorage {
         if (data != null) {
             // Create a canonicalizer for the artifact based on its type, and then 
             // canonicalize the inbound content
-            ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             ContentHandle canonicalContent = canonicalizer.canonicalize(content);
             byte[] canonicalBytes = canonicalContent.bytes();
 

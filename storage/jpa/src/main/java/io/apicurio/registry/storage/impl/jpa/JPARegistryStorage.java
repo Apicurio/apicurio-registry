@@ -16,11 +16,12 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
-import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -42,6 +43,8 @@ import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -53,6 +56,7 @@ import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
 import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
 import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
@@ -83,13 +87,13 @@ import javax.transaction.Transactional;
 public class JPARegistryStorage implements RegistryStorage {
 
     @Inject
-    ContentCanonicalizerFactory ccFactory;
-
-    @Inject
     EntityManager entityManager;
 
     @Inject
     JPAEntityMapper mapper;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     private long _getNextArtifactVersion(String artifactId) {
         requireNonNull(artifactId);
@@ -214,6 +218,20 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
+    private void extractMetaData(ArtifactType artifactType, ContentHandle content, MetaDataMapperUpdater mdmu) {
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        EditableMetaData emd = extractor.extract(content);
+        if (extractor.isExtracted(emd)) {
+            if (!isEmpty(emd.getName())) {
+                mdmu.update(MetaDataKeys.NAME, emd.getName());
+            }
+            if (!isEmpty(emd.getDescription())) {
+                mdmu.update(MetaDataKeys.DESCRIPTION, emd.getDescription());
+            }
+        }
+    }
+
     // ========================================================================
 
     @Override
@@ -258,12 +276,15 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-            ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+            MetaDataMapperUpdater mdmu = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
-                .update(MetaDataKeys.TYPE, artifactType.value())
-                .persistUpdate(entityManager, artifactId, nextVersion)
-                .update(artifact)
-                .toArtifactMetaDataDto();
+                .update(MetaDataKeys.TYPE, artifactType.value());
+
+            extractMetaData(artifactType, content, mdmu);
+
+            ArtifactMetaDataDto amdd = mdmu.persistUpdate(entityManager, artifactId, nextVersion)
+                                           .update(artifact)
+                                           .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -349,14 +370,17 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
-            ArtifactMetaDataDto amdd = new MetaDataMapperUpdater()
+            MetaDataMapperUpdater mdmu = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                 .update(MetaDataKeys.TYPE, artifactType.value())
                 // copy name and description .. if previous version (still) exists
-                .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME, MetaDataKeys.DESCRIPTION)
-                .persistUpdate(entityManager, artifactId, nextVersion)
-                .update(artifact)
-                .toArtifactMetaDataDto();
+                .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME, MetaDataKeys.DESCRIPTION);
+
+            extractMetaData(artifactType, content, mdmu);
+
+            ArtifactMetaDataDto amdd = mdmu.persistUpdate(entityManager, artifactId, nextVersion)
+                                           .update(artifact)
+                                           .toArtifactMetaDataDto();
             return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -408,7 +432,8 @@ public class JPARegistryStorage implements RegistryStorage {
 
             // Create a canonicalizer for the artifact based on its type, and then 
             // canonicalize the inbound content
-            ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             ContentHandle canonicalContent = canonicalizer.canonicalize(content);
             byte[] canonicalBytes = canonicalContent.bytes();
 

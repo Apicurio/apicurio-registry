@@ -16,19 +16,27 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.content.ContentHandle;
+
 import java.util.List;
 
 /**
  * @author Ales Justin
- * @author Jonathan Halliday
  */
-public class JsonArtifactTypeAdapter implements ArtifactTypeAdapter {
-    
-    /**
-     * @see io.apicurio.registry.rules.compatibility.ArtifactTypeAdapter#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
-     */
+public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
+    @Override
+    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+        try {
+            Serde.Schema.parseFrom(proposedArtifact.bytes());
+            return true;
+        } catch (Exception ignore) {
+        }
+        return false;
+    }
+
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
-        return existingSchemas.isEmpty() || existingSchemas.get(0).equals(proposedSchema);
+        throw new UnsupportedOperationException("String content not supported!"); // should not be called ...
     }
 }

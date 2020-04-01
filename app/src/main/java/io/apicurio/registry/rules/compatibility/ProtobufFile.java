@@ -49,7 +49,7 @@ import java.util.Set;
  * @author Jonathan Halliday
  * @author Ales Justin
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
- * @see ProtobufArtifactTypeAdapter
+ * @see ProtobufCompatibilityChecker
  */
 public class ProtobufFile {
 

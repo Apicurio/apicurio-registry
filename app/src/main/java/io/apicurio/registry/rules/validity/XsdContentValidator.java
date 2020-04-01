@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.rules.validity;
 
-import java.io.File;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -25,8 +23,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-import org.apache.commons.io.FileUtils;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -43,26 +39,17 @@ public class XsdContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                // just try to parse it
+                // try to parse it
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder builder = factory.newDocumentBuilder();
-                // the builder.parse requires a file - maybe there is a better way to do it than creating a tmp file 
-                File targetFile = new File("src/main/resources/targetFile.tmp");
-                FileUtils.copyInputStreamToFile(artifactContent.stream(), targetFile); 
-                builder.parse(targetFile);
-                FileUtils.deleteQuietly(targetFile);
+                builder.parse(artifactContent.stream());
 
                 if (level == ValidityLevel.FULL) {
-                    // full validation for XSD
-                    File validXmlFile = new File(getClass().getClassLoader()
-                            .getResource("validity/xml-schema.xsd").getFile());
-                    Source validXmlSource = new StreamSource(validXmlFile);
+                    // validate that its a valid schema
+                    Source source = new StreamSource(artifactContent.stream());
                     SchemaFactory schemaFactory = SchemaFactory
                             .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                    //create the validator based on the XSD for XSD
-                    Validator validator = schemaFactory.newSchema(validXmlSource).newValidator();
-                    Source artifactSource = new StreamSource(artifactContent.stream());
-                    validator.validate(artifactSource);
+                    schemaFactory.newSchema(source);
                 }
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XSD Schema artifact.", e);

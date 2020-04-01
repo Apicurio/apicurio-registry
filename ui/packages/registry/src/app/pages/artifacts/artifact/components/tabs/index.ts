@@ -15,5 +15,7 @@
  * limitations under the License.
  */
 
-export * from './pageheader';
-export * from './tabs';
+export * from './content';
+export * from './documentation';
+export * from './info';
+export * from './versions';

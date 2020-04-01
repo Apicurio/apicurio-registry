@@ -69,6 +69,7 @@ export class ArtifactsService {
             );
         }
         this.allArtifacts = artifacts;
+        this.artifactContent = {};
     }
 
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {

@@ -1,0 +1,3 @@
+.artifact-page-tabs .pf-c-tabs__item pf-m-current > button::before {
+    border-bottom-color: transparent;
+}

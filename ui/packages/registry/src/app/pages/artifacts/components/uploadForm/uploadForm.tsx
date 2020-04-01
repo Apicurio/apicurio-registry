@@ -140,7 +140,6 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         );
     }
 
-
     protected initializeState(): UploadArtifactFormState {
         return {
             content: "",

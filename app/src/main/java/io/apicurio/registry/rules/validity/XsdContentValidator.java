@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rules.validity;
 
+import java.io.InputStream;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -38,18 +40,20 @@ public class XsdContentValidator implements ContentValidator {
     @Override
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
-            try {
+            try (InputStream stream = artifactContent.stream()) {
                 // try to parse it
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder builder = factory.newDocumentBuilder();
-                builder.parse(artifactContent.stream());
+                builder.parse(stream);
 
                 if (level == ValidityLevel.FULL) {
-                    // validate that its a valid schema
-                    Source source = new StreamSource(artifactContent.stream());
-                    SchemaFactory schemaFactory = SchemaFactory
-                            .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                    schemaFactory.newSchema(source);
+                    try (InputStream semanticStream = artifactContent.stream()) {
+                        // validate that its a valid schema
+                        Source source = new StreamSource(semanticStream);
+                        SchemaFactory schemaFactory = SchemaFactory
+                                .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                        schemaFactory.newSchema(source);
+                    }
                 }
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XSD Schema artifact.", e);

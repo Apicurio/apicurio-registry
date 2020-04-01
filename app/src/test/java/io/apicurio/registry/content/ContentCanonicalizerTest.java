@@ -24,7 +24,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import javax.inject.Inject;
 
 /**
@@ -166,5 +165,18 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         Assertions.assertEquals(expected, actual);
     }
 
+    /**
+    * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+    */
+    @Test
+    void testXsd() {
+       ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
+       ContentCanonicalizer canonicalizer = factory.create(ArtifactType.XSD);
 
+       ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
+       String expected = resourceToString("xml-schema-expected.xsd");
+       
+       String actual = canonicalizer.canonicalize(content).content();
+       Assertions.assertEquals(expected, actual);
+    }
 }

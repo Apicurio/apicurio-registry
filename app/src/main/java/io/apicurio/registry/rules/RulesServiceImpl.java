@@ -16,21 +16,20 @@
 
 package io.apicurio.registry.rules;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.Arrays;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * Implements the {@link RulesService} interface.

@@ -17,7 +17,7 @@
 package io.apicurio.registry.ccompat.rest.impl;
 
 import io.apicurio.registry.ccompat.dto.ModeDto;
-import io.apicurio.registry.ccompat.rest.Errors;
+import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.registry.ccompat.rest.ModeResource;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -27,7 +27,6 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.interceptor.Interceptors;
-import javax.ws.rs.core.HttpHeaders;
 
 import static io.apicurio.registry.metrics.MetricIDs.*;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;

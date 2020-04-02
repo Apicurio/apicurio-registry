@@ -18,8 +18,13 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -53,6 +58,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    RulesService rulesService;
 
     public List<String> getSubjects() {
         // TODO maybe not necessary...
@@ -69,12 +76,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        try {
-            return FacadeConverter.convert(storage.getArtifactVersion(globalId));
-            // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
-        } catch (ArtifactNotFoundException ex) {
-            throw new SchemaNotFoundException(ex);
-        }
+        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
+        // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
     }
 
     @Override
@@ -136,11 +139,29 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema) {
-        if (!doesArtifactExist(subject)) {
-            return storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
-        } else {
-            return storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+        CompletionStage<ArtifactMetaDataDto> res;
+        try {
+            if (!doesArtifactExist(subject)) {
+                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                res = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema))
+                        .thenApply(r -> {
+                            storage.createArtifactRule(subject, RuleType.VALIDITY,
+                                    RuleConfigurationDto.builder().configuration(ValidityLevel.FULL.name()).build()
+                            );
+                            return r;
+                        });
+            } else {
+                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.UPDATE);
+                res = storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+            }
+        } catch (RuleViolationException ex) {
+            if (ex.getRuleType() == RuleType.VALIDITY) {
+                throw new UnprocessableEntityException(ex.getMessage(), ex);
+            } else {
+                throw new ConflictException(ex.getMessage(), ex);
+            }
         }
+        return res;
     }
 
     /**

@@ -22,9 +22,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * <p/>
  * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
  *
- * Compatibility warning:
- * - Schema deleted using {@link SubjectVersionsResource#deleteSchemaVersion(java.lang.String, java.lang.String)}
- *   should still be accessible using global ID. This guarantee is not kept in our implementation.
+ *
  *
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>

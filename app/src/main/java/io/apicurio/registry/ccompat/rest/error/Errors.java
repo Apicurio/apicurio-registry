@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.error;
 
 import javax.ws.rs.NotFoundException;
 
@@ -23,14 +23,6 @@ import javax.ws.rs.NotFoundException;
  * @author Jakub Senko <jsenko@redhat.com>
  */
 public class Errors {
-    public static void noSuchSubject(String subject) {
-        throw new NotFoundException("No such subject: " + subject);
-
-    }
-
-    public static void schemaNotFound(Integer id) {
-        throw new NotFoundException("No content with globalId: " + id);
-    }
 
     public static void operationNotSupported() {
         throw new NotFoundException("Operation not supported.");

@@ -75,7 +75,9 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
 
-    private void updateCompatibilityLevel(CompatibilityLevelDto.Level level, Consumer<RuleConfigurationDto> updater, Runnable deleter) {
+    private void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
+                                          Consumer<RuleConfigurationDto> updater,
+                                          Runnable deleter) {
         if (level == CompatibilityLevelDto.Level.NONE) {
             // delete the rule
             deleter.run();

@@ -77,13 +77,13 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
         // Invalid
-//        given()
-//            .when()
-//                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-//                .body(SCHEMA_INVALID_WRAPPED)
-//                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
-//            .then()
-//                .statusCode(422);
+        given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_INVALID_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then()
+                .statusCode(422);
     }
 
     /**

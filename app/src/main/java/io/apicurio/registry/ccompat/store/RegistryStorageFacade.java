@@ -18,7 +18,6 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -54,7 +53,7 @@ public interface RegistryStorageFacade {
     CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
-    SchemaContent getSchemaContent(int globalId) throws SchemaNotFoundException, RegistryStorageException;
+    SchemaContent getSchemaContent(int globalId) throws RegistryStorageException;
 
 
     Schema getSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;

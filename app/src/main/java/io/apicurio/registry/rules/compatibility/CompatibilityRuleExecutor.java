@@ -19,6 +19,7 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
@@ -53,7 +54,8 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
             context.getUpdatedContent())
         ) {
             throw new RuleViolationException(String.format("Incompatible artifact: %s [%s]",
-                                                           context.getArtifactId(), context.getArtifactType()));
+                                                           context.getArtifactId(), context.getArtifactType()),
+                    RuleType.COMPATIBILITY, context.getConfiguration());
         }
     }
 

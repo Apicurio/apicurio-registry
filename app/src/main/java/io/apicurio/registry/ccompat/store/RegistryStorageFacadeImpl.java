@@ -38,14 +38,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -185,6 +185,26 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             }
         }
         return then.apply(version);
+    }
+
+    @Override
+    public RuleConfigurationDto getGlobalRule(RuleType ruleType) {
+        return storage.getGlobalRule(ruleType);
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType ruleType) {
+        storage.deleteGlobalRule(ruleType);
+    }
+
+    @Override
+    public void deleteArtifactRule(String subject, RuleType ruleType) {
+        storage.deleteArtifactRule(subject, ruleType);
+    }
+
+    @Override
+    public RuleConfigurationDto getArtifactRule(String subject, RuleType ruleType) {
+        return storage.getArtifactRule(subject, ruleType);
     }
 
 

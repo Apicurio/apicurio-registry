@@ -19,7 +19,6 @@ package io.apicurio.registry.ccompat.rest.impl;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.CompatibilityResource;
-import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -35,7 +34,13 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
@@ -54,16 +59,13 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Inject
     RulesService rules;
 
-    @Inject
-    RegistryStorageFacade storage;
-
     @Override
     public CompatibilityCheckResponse testCompatibilityBySubjectName(
             String subject,
             String versionString,
             SchemaContent request) throws Exception {
 
-        CompatibilityCheckResponse result = storage.parseVersionString(subject, versionString, version -> {
+        CompatibilityCheckResponse result = facade.parseVersionString(subject, versionString, version -> {
             // TODO are we safe to assume AVRO?
             try {
                 rules.applyRule(subject, version, ArtifactType.AVRO, ContentHandle.create(request.getSchema()));

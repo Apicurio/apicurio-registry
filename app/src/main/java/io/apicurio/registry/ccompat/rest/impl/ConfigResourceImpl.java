@@ -18,12 +18,10 @@ package io.apicurio.registry.ccompat.rest.impl;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.rest.ConfigResource;
-import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.types.RuleType;
@@ -31,7 +29,6 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -56,12 +53,6 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {
-
-    @Inject
-    RegistryStorageFacade facade;
-
-    @Inject
-    RegistryStorage storage;
 
 
     private CompatibilityLevelDto getCompatibilityLevel(Supplier<String> supplyLevel) {
@@ -101,7 +92,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     public CompatibilityLevelDto getGlobalCompatibilityLevel() {
         return getCompatibilityLevel(() ->
-                storage.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
+                facade.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }
 
 
@@ -111,7 +102,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
         updateCompatibilityLevel(request.getCompatibilityLevel(),
                 dto -> facade.createOrUpdateGlobalRule(RuleType.COMPATIBILITY, dto),
-                () -> storage.deleteGlobalRule(RuleType.COMPATIBILITY));
+                () -> facade.deleteGlobalRule(RuleType.COMPATIBILITY));
         return request;
     }
 
@@ -122,13 +113,13 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             CompatibilityLevelDto request) {
         updateCompatibilityLevel(request.getCompatibilityLevel(),
                 dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto),
-                () -> storage.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
+                () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
         return request;
     }
 
     @Override
     public CompatibilityLevelDto getSubjectCompatibilityLevel(String subject) {
         return getCompatibilityLevel(() ->
-                storage.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
     }
 }

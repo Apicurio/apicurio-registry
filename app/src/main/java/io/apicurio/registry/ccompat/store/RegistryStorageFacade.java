@@ -78,4 +78,12 @@ public interface RegistryStorageFacade {
     void createOrUpdateGlobalRule(RuleType type, RuleConfigurationDto dto);
 
     <T> T parseVersionString(String subject, String versionString, Function<Long, T> then);
+
+    RuleConfigurationDto getGlobalRule(RuleType ruleType);
+
+    void deleteGlobalRule(RuleType ruleType);
+
+    void deleteArtifactRule(String subject, RuleType ruleType);
+
+    RuleConfigurationDto getArtifactRule(String subject, RuleType ruleType);
 }

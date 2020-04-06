@@ -17,6 +17,7 @@ public enum ArtifactType {
     GRAPHQL("GRAPHQL"),
     KCONNECT("KCONNECT"),
     XSD("XSD"),
+    XML("XML"),
     WSDL("WSDL");
     private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();

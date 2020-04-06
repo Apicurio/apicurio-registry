@@ -19,18 +19,15 @@ package io.apicurio.registry.rules.validity;
 import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.wsdl.factory.WSDLFactory;
-import javax.wsdl.xml.WSDLReader;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
- * @author cfoskin@redhat.com
+ * @author cfoskin@redhat.com This class can be used to validate plain XML and only does syntax validation
  */
 @ApplicationScoped
-public class WsdlContentValidator implements ContentValidator {
+public class XmlContentValidator implements ContentValidator {
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)
@@ -40,19 +37,13 @@ public class WsdlContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                factory.setNamespaceAware(true);
                 DocumentBuilder builder = factory.newDocumentBuilder();
                 // just try to parse it
-                Document wsdlDoc = builder.parse(stream);
-                if (level == ValidityLevel.FULL) {
-                    // validate that its a valid schema
-                    WSDLFactory wsdlFactory = WSDLFactory.newInstance();
-                    WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
-                    wsdlReader.readWSDL(null, wsdlDoc);
-                }
+                builder.parse(stream);
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for WSDL Schema artifact.", e);
+                throw new InvalidContentException("Syntax violation for XML Schema artifact.", e);
             }
         }
     }
+
 }

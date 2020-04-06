@@ -188,12 +188,25 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
         ContentCanonicalizer canonicalizer = factory.create(ArtifactType.WSDL);
 
-        ContentHandle content = resourceToContentHandle("wsdl-schema-before.wsdl");
-        String expected = resourceToString("wsdl-schema-expected.wsdl");
+        ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
+        String expected = resourceToString("wsdl-expected.wsdl");
         
         String actual = canonicalizer.canonicalize(content).content();
         Assertions.assertEquals(expected, actual);
      }
      
-     
+     /**
+      * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+      */
+      @Test
+      void testXml() {
+         ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
+         ContentCanonicalizer canonicalizer = factory.create(ArtifactType.XML);
+
+         ContentHandle content = resourceToContentHandle("xml-before.xml");
+         String expected = resourceToString("xml-expected.xml");
+         
+         String actual = canonicalizer.canonicalize(content).content();
+         Assertions.assertEquals(expected, actual);
+      }
 }

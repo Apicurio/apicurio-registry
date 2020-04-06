@@ -28,14 +28,16 @@ import io.apicurio.registry.content.ContentHandle;
 public class WsdlContentValidatorTest extends AbstractRegistryTestBase {
     @Test
     public void testValidSyntax() throws Exception {
-        ContentHandle content = resourceToContentHandle("wsdl-schema-valid.wsdl");
+        ContentHandle contentA = resourceToContentHandle("wsdl-valid.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA);
+        ContentHandle contentB = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB);
     }
 
     @Test
     public void testinValidSyntax() throws Exception {
-        ContentHandle content = resourceToContentHandle("wsdl-schema-invalid-syntax.wsdl");
+        ContentHandle content = resourceToContentHandle("wsdl-invalid-syntax.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
@@ -44,14 +46,14 @@ public class WsdlContentValidatorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testValidSemantics() throws Exception {
-        ContentHandle content = resourceToContentHandle("wsdl-schema-valid.wsdl");
+        ContentHandle content = resourceToContentHandle("wsdl-valid.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         validator.validate(ValidityLevel.FULL, content);
     }
     
     @Test
     public void testinValidSemantics() throws Exception {
-        ContentHandle content = resourceToContentHandle("wsdl-schema-invalid-semantics.wsdl");
+        ContentHandle content = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's

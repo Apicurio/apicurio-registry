@@ -25,39 +25,20 @@ import io.apicurio.registry.content.ContentHandle;
 /**
  * @author cfoskin@redhat.com
  */
-public class XsdContentValidatorTest extends AbstractRegistryTestBase {
+public class XmlContentValidatorTest extends AbstractRegistryTestBase {
     @Test
     public void testValidSyntax() throws Exception {
-        ContentHandle contentA = resourceToContentHandle("xml-schema-valid.xsd");
+        ContentHandle content = resourceToContentHandle("xml-valid.xml");
         XsdContentValidator validator = new XsdContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA);
-        ContentHandle contentB = resourceToContentHandle("xml-schema-invalid-semantics.xsd");
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testInvalidSyntax() throws Exception {
-        ContentHandle content = resourceToContentHandle("xml-schema-invalid-syntax.xsd");
+        ContentHandle content = resourceToContentHandle("xml-invalid-syntax.xml");
         XsdContentValidator validator = new XsdContentValidator();
         Assertions.assertThrows(InvalidContentException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
-
-    @Test
-    public void testValidSemantics() throws Exception {
-        ContentHandle content = resourceToContentHandle("xml-schema-valid.xsd");
-        XsdContentValidator validator = new XsdContentValidator();
-        validator.validate(ValidityLevel.FULL, content);
-    }
-
-    @Test
-    public void testInvalidSemantics() throws Exception {
-        ContentHandle content = resourceToContentHandle("xml-schema-invalid-semantics.xsd");
-        XsdContentValidator validator = new XsdContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content);
-        });
-    }
-
 }

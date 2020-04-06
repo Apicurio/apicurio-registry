@@ -32,7 +32,6 @@ import io.apicurio.registry.content.ContentHandle;
  */
 @ApplicationScoped
 public class XsdContentValidator implements ContentValidator {
-
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)

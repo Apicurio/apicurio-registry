@@ -18,8 +18,8 @@ package io.apicurio.registry.content.canon;
 
 import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;
-import org.apache.xml.security.Init;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.xml.security.Init;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
@@ -30,14 +30,17 @@ import io.apicurio.registry.content.ContentHandle;
 /**
  * @author cfoskin@redhat.com
  */
+
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 
+    static {
+        Init.init();
+    }
     /**
      * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {
-        Init.init(); // this library needs to be initialized using the static init()
         try {
             Canonicalizer canon = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
             String canonicalized = IoUtil.toString(canon.canonicalize(content.bytes()));

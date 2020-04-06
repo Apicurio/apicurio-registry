@@ -134,7 +134,7 @@ public class SchemasConfluentIT extends BaseIT {
 
         Response response = ArtifactUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
 
-        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.RegisterSchemaRequest), not marked as ignorable", is(response.body().print()));
+        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaContent), not marked as ignorable", is(response.body().print()));
     }
 
     @Test

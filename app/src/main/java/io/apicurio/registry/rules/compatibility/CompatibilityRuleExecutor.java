@@ -45,6 +45,9 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
      */
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
+        if(context.getCurrentContent() == null) {
+            return;
+        }
         CompatibilityLevel level = CompatibilityLevel.valueOf(context.getConfiguration());
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
         CompatibilityChecker checker = provider.getCompatibilityChecker();

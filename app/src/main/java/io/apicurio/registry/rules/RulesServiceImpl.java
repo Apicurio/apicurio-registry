@@ -27,9 +27,7 @@ import io.apicurio.registry.types.RuleType;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implements the {@link RulesService} interface.
@@ -119,10 +117,11 @@ public class RulesServiceImpl implements RulesService {
             throws RuleViolationException {
         StoredArtifact versionContent = storage.getArtifactVersion(artifactId, artifactVersion);
         // Get the rules for this artifact
-        Set<RuleType> ruleTypes = new HashSet<>();
-        ruleTypes.addAll(storage.getGlobalRules());
-        ruleTypes.addAll(storage.getArtifactRules(artifactId));
-        for (RuleType ruleType : ruleTypes) {
+        for (RuleType ruleType : storage.getGlobalRules()) {
+            RuleConfigurationDto configurationDto = storage.getGlobalRule(ruleType);
+            applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
+        }
+        for (RuleType ruleType : storage.getArtifactRules(artifactId)) {
             RuleConfigurationDto configurationDto = storage.getArtifactRule(artifactId, ruleType);
             applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
         }

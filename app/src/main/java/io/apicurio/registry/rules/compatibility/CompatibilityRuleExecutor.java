@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -23,9 +24,12 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
-import java.util.Collections;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import java.util.List;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 /**
  * Rule executor for the "Compatibility" rule.  The Compatibility Rule is responsible
@@ -45,20 +49,19 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
      */
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
-        if(context.getCurrentContent() == null) {
-            return;
-        }
         CompatibilityLevel level = CompatibilityLevel.valueOf(context.getConfiguration());
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
         CompatibilityChecker checker = provider.getCompatibilityChecker();
+        List<ContentHandle> existingArtifacts = context.getCurrentContent() != null
+            ? singletonList(context.getCurrentContent()) : emptyList();
         if (!checker.isCompatibleWith(
             level,
-            Collections.singletonList(context.getCurrentContent()),
+            existingArtifacts,
             context.getUpdatedContent())
         ) {
             throw new RuleViolationException(String.format("Incompatible artifact: %s [%s]",
-                                                           context.getArtifactId(), context.getArtifactType()),
-                    RuleType.COMPATIBILITY, context.getConfiguration());
+                context.getArtifactId(), context.getArtifactType()),
+                RuleType.COMPATIBILITY, context.getConfiguration());
         }
     }
 

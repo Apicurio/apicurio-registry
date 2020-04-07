@@ -18,13 +18,11 @@ package io.apicurio.registry.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.squareup.wire.schema.Location;
-import com.squareup.wire.schema.internal.parser.ProtoParser;
-
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.compatibility.ProtobufFile;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -106,7 +104,7 @@ public final class ArtifactTypeUtil {
 
     private static ArtifactType tryProto(ContentHandle content) {
         try {
-            ProtoParser.parse(Location.get(""), content.content());
+            ProtobufFile.toProtoFileElement(content.content());
             return ArtifactType.PROTOBUF;
         } catch (Exception e) {
             // Doesn't seem to be protobuf

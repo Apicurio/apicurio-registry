@@ -22,6 +22,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
@@ -32,6 +33,35 @@ import io.apicurio.registry.content.ContentHandle;
  */
 @ApplicationScoped
 public class XsdContentValidator implements ContentValidator {
+    private static ThreadLocal<SchemaFactory> threadLocalSchemaFactory = new ThreadLocal<SchemaFactory>() {
+        @Override
+        protected SchemaFactory initialValue() {
+            return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        }
+
+        public SchemaFactory get() {
+            return super.get();
+        }
+    };
+
+    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            DocumentBuilder builder = null;
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                builder = factory.newDocumentBuilder();
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            return builder;
+        }
+
+        public DocumentBuilder get() {
+            return super.get();
+        }
+    };
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)
@@ -41,17 +71,12 @@ public class XsdContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
                 // try to parse it
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
-                builder.parse(stream);
-
+                threadLocaldocBuilder.get().parse(stream);
                 if (level == ValidityLevel.FULL) {
                     try (InputStream semanticStream = artifactContent.stream()) {
                         // validate that its a valid schema
                         Source source = new StreamSource(semanticStream);
-                        SchemaFactory schemaFactory = SchemaFactory
-                                .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                        schemaFactory.newSchema(source);
+                        threadLocalSchemaFactory.get().newSchema(source);
                     }
                 }
             } catch (Exception e) {

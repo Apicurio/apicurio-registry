@@ -21,6 +21,8 @@ import java.io.InputStream;
 import javax.enterprise.context.ApplicationScoped;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -28,6 +30,25 @@ import io.apicurio.registry.content.ContentHandle;
  */
 @ApplicationScoped
 public class XmlContentValidator implements ContentValidator {
+
+    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            DocumentBuilder builder = null;
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                builder = factory.newDocumentBuilder();
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            return builder;
+        }
+
+        public DocumentBuilder get() {
+            return super.get();
+        }
+    };
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)
@@ -36,10 +57,8 @@ public class XmlContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
                 // just try to parse it
-                builder.parse(stream);
+                threadLocaldocBuilder.get().parse(stream);
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XML Schema artifact.", e);
             }

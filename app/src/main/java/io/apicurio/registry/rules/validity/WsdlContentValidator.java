@@ -19,10 +19,13 @@ package io.apicurio.registry.rules.validity;
 import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.wsdl.WSDLException;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.w3c.dom.Document;
 import io.apicurio.registry.content.ContentHandle;
 
@@ -31,6 +34,45 @@ import io.apicurio.registry.content.ContentHandle;
  */
 @ApplicationScoped
 public class WsdlContentValidator implements ContentValidator {
+
+    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            DocumentBuilder builder = null;
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(true);
+                builder = factory.newDocumentBuilder();
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            return builder;
+        }
+
+        public DocumentBuilder get() {
+            return super.get();
+        }
+    };
+
+    private static ThreadLocal<WSDLReader> threadLocalWsdlReader = new ThreadLocal<WSDLReader>() {
+        @Override
+        protected WSDLReader initialValue() {
+            WSDLReader wsdlReader = null;
+            try {
+                WSDLFactory wsdlFactory = WSDLFactory.newInstance();
+                wsdlReader = wsdlFactory.newWSDLReader();
+            } catch (WSDLException e) {
+                throw new RuntimeException(e);
+            }
+            return wsdlReader;
+
+        }
+
+        public WSDLReader get() {
+            return super.get();
+        }
+    };
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)
@@ -39,16 +81,11 @@ public class WsdlContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                factory.setNamespaceAware(true);
-                DocumentBuilder builder = factory.newDocumentBuilder();
                 // just try to parse it
-                Document wsdlDoc = builder.parse(stream);
+                Document wsdlDoc = threadLocaldocBuilder.get().parse(stream);
                 if (level == ValidityLevel.FULL) {
                     // validate that its a valid schema
-                    WSDLFactory wsdlFactory = WSDLFactory.newInstance();
-                    WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
-                    wsdlReader.readWSDL(null, wsdlDoc);
+                    threadLocalWsdlReader.get().readWSDL(null, wsdlDoc);
                 }
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for WSDL Schema artifact.", e);

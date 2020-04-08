@@ -232,6 +232,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
+    // TODO Clarify javadoc, each "artifact version" has a global ID.
     public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**

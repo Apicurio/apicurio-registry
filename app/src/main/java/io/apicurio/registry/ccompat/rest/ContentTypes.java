@@ -14,31 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.dto;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
+package io.apicurio.registry.ccompat.rest;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public class SchemaString {
+public final class ContentTypes {
 
-    private String schemaString;
+    public static final String JSON = "application/json";
+    public static final String OCTET_STREAM = "application/octet-stream";
 
-    public SchemaString() {
-    }
-
-    public SchemaString(String schemaString) {
-        this.schemaString = schemaString;
-    }
-
-    @JsonProperty("schema")
-    public String getSchemaString() {
-        return schemaString;
-    }
-
-    @JsonProperty("schema")
-    public void setSchemaString(String schemaString) {
-        this.schemaString = schemaString;
-    }
+    public static final String COMPAT_SCHEMA_REGISTRY_V1 = "application/vnd.schemaregistry.v1+json";
+    public static final String COMPAT_SCHEMA_REGISTRY_STABLE_LATEST = "application/vnd.schemaregistry+json";
 }

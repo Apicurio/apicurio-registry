@@ -14,27 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.error;
 
-import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
+import javax.ws.rs.NotFoundException;
 
 /**
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public abstract class AbstractResource {
+public class Errors {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    @Inject
-    RegistryStorageFacade facade;
-
-    protected void checkSubject(String subject) {
-        if (facade.listSubjects().contains(subject) == false) {
-            Errors.noSuchSubject(subject);
-        }
+    public static void operationNotSupported() {
+        throw new NotFoundException("Operation not supported.");
     }
 }

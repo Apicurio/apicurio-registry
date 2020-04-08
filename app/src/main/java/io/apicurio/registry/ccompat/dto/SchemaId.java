@@ -27,7 +27,6 @@ import lombok.ToString;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
@@ -36,8 +35,8 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 @Getter
 @EqualsAndHashCode
 @ToString
-public class ModeDto {
+public class SchemaId {
 
-    @JsonProperty("mode")
-    private String mode;
+    @JsonProperty("id")
+    private int id;
 }

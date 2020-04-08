@@ -34,16 +34,27 @@ public class RegistryFacade {
      * Method for start registries from jar file. New process is created.
      */
     public void start() {
-        String path = REGISTRY_JAR_PATH;
-        if (path == null) {
-            String version = System.getProperty("project.version");
-            path = String.format(REGISTRY_JAR_PATH_FORMAT, version);
-        }
-        LOGGER.info("Starting Registry app from: {}", path);
+
 
         CompletableFuture.supplyAsync(() -> {
             try {
-                int timeout = executor.execute("java", "-Dquarkus.http.port=8081", "-Dquarkus.log.console.level=DEBUG", "-Dquarkus.log.category.\"io\".level=DEBUG", "-jar", REGISTRY_JAR_PATH);
+                String path = REGISTRY_JAR_PATH;
+                if (path == null) {
+                    String version = System.getProperty("project.version"); // "1.2.0-SNAPSHOT";
+                    path = String.format(REGISTRY_JAR_PATH_FORMAT, version);
+                }
+                if (path == null) {
+                    throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +
+                        "This may happen if you are using an IDE to debug.");
+                }
+                LOGGER.info("Starting Registry app from: {}", path);
+
+                int timeout = executor.execute("java",
+                    // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
+                    "-Dquarkus.http.port=8081",
+                    "-Dquarkus.log.console.level=DEBUG",
+                    "-Dquarkus.log.category.\"io\".level=DEBUG",
+                    "-jar", path);
                 return timeout == 0;
             } catch (Exception e) {
                 throw new CompletionException(e);

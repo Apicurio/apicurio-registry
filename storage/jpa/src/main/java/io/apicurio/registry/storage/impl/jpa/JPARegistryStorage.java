@@ -95,6 +95,7 @@ public class JPARegistryStorage implements RegistryStorage {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
+    // TODO Could there be a race condition here? The new max+1 version is saved with a new artifact
     private long _getNextArtifactVersion(String artifactId) {
         requireNonNull(artifactId);
         Long latest = entityManager.createQuery(

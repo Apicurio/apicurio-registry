@@ -258,7 +258,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             contentType = ArtifactMediaTypes.PROTO;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.content, contentType);
+        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, metaData.getVersion(), builder);
         return builder.build();
     }
@@ -322,7 +322,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             contentType = ArtifactMediaTypes.PROTO;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.content, contentType);
+        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, artifactId, version, builder);
         return builder.build();
     }

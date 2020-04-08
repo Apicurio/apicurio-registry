@@ -17,6 +17,10 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.RuleType;
+import lombok.Getter;
+
+import java.util.Optional;
 
 /**
  * Exception thrown when a configured rule is violated, rejecting an artifact content
@@ -26,21 +30,30 @@ import io.apicurio.registry.types.RegistryException;
 public class RuleViolationException extends RegistryException {
     
     private static final long serialVersionUID = 8437151164241883773L;
+    
+    @Getter
+    private final RuleType ruleType;
+    
+    @Getter
+    private final Optional<String> ruleConfiguration;
 
     /**
      * Constructor.
-     * @param message
+     * @param ruleConfiguration is optional, can be null
      */
-    public RuleViolationException(String message) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration) {
         super(message);
+        this.ruleType = ruleType;
+        this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
     }
 
     /**
      * Constructor.
-     * @param message
-     * @param cause
+     * @param ruleConfiguration is optional, can be null
      */
-    public RuleViolationException(String message, Throwable cause) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Throwable cause) {
         super(message, cause);
+        this.ruleType = ruleType;
+        this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
     }
 }

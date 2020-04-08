@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.error;
+
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author Ales Justin
+ * This exception covers the following errors in the compat API:
+ * - 409 Conflict – Incompatible Avro schema
  */
-public final class RestConstants {
-    public static final String JSON = "application/json";
-    public static final String SR = "application/vnd.schemaregistry.v1+json";
+public class ConflictException extends RegistryException {
+
+    public ConflictException(String message) {
+        super(message);
+    }
+
+    public ConflictException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

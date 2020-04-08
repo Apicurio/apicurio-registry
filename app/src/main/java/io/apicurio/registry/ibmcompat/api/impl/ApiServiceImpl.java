@@ -72,7 +72,7 @@ public class ApiServiceImpl implements ApiService {
                           item.setId(id);
                           item.setEnabled(true);
                           SchemaVersion version = new SchemaVersion();
-                          version.setId(artifact.version.intValue());
+                          version.setId(artifact.getVersion().intValue()); // TODO not safe!
                           item.setLatest(version);
                       } catch (ArtifactNotFoundException e) {
                           // we can have deleted artifact ...
@@ -167,9 +167,9 @@ public class ApiServiceImpl implements ApiService {
         Schema schema = new Schema();
         schema.setId(schemaid);
         schema.setEnabled(true);
-        schema.setDefinition(artifact.content.content());
+        schema.setDefinition(artifact.getContent().content());
         SchemaVersion version = new SchemaVersion();
-        version.setId(artifact.version.intValue());
+        version.setId(artifact.getVersion().intValue()); // TODO not safe!
         schema.setVersion(version);
         return schema;
     }

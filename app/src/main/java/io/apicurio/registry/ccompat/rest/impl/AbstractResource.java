@@ -14,30 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.dto;
+package io.apicurio.registry.ccompat.rest.impl;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
  */
-@JsonAutoDetect(isGetterVisibility = NONE)
-@NoArgsConstructor // required for Jackson
-@AllArgsConstructor
-@Getter
-@EqualsAndHashCode
-@ToString
-public class ModeDto {
+public abstract class AbstractResource {
 
-    @JsonProperty("mode")
-    private String mode;
+    @Inject
+    RegistryStorageFacade facade;
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 }

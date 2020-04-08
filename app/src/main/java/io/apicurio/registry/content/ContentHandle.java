@@ -21,6 +21,7 @@ import java.io.InputStream;
 /**
  * @author Ales Justin
  */
+// TODO Can a single CH be used multiple times?
 public interface ContentHandle {
 
     static ContentHandle create(InputStream stream) {

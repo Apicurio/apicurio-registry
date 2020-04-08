@@ -45,60 +45,60 @@ import java.util.concurrent.TimeoutException;
 public class BasicApicurioSerDesIT extends BaseIT {
 
     @RegistryServiceTest(localOnly = false)
-    void testAvroApicurioSerDes(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException {
+    void testAvroApicurioSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordapicurio1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesTopicStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeAvroApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testAvroApicurioSerDesFail(RegistryService apicurioService) throws TimeoutException {
+    void testAvroApicurioSerDesFail(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = TestUtils.generateSubject();
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testAvroApicurioSerDesWrongStrategyTopic(RegistryService apicurioService) throws TimeoutException {
+    void testAvroApicurioSerDesWrongStrategyTopic(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = TestUtils.generateSubject();
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesTopicStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testAvroApicurioSerDesWrongStrategyRecord(RegistryService apicurioService) throws TimeoutException {
+    void testAvroApicurioSerDesWrongStrategyRecord(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordapicurio4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testEvolveAvroApicurio(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException {
+    void testEvolveAvroApicurio(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String recordName = TestUtils.generateSubject();
         String subjectName = topicName + "-" + recordName;
@@ -106,14 +106,14 @@ public class BasicApicurioSerDesIT extends BaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeAvroApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);
 
         String schemaKey2 = "key2";
         Schema schema2 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}");
-        updateArtifactViaApicurioClient(apicurioService, schema2, subjectName);
+        updateArtifactViaApicurioClient(service, schema2, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroApicurioMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -121,7 +121,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
 
         String schemaKey3 = "key3";
         Schema schema3 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}");
-        updateArtifactViaApicurioClient(apicurioService, schema3, subjectName);
+        updateArtifactViaApicurioClient(service, schema3, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesTopicRecordStrategy(topicName, subjectName, schema3, 10, schemaKey, schemaKey2, schemaKey3).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroApicurioMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
@@ -130,7 +130,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testAvroApicurioForMultipleTopics(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException {
+    void testAvroApicurioForMultipleTopics(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName1 = TestUtils.generateTopic();
         String topicName2 = TestUtils.generateTopic();
         String topicName3 = TestUtils.generateTopic();
@@ -141,7 +141,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         kafkaCluster.createTopic(topicName3, 1, 1);
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaApicurioClient(apicurioService, schema, subjectName);
+        createArtifactViaApicurioClient(service, schema, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName1, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName2, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -153,17 +153,17 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testJsonSchemaApicurioSerDes(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException {
+    void testJsonSchemaApicurioSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String jsonSchema = "{" +
-                "    \"$id\": \"https://example.com/message.schema.json\"," + 
-                "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," + 
-                "    \"required\": [" + 
-                "        \"message\"," + 
-                "        \"time\"" + 
-                "    ]," + 
-                "    \"type\": \"object\"," + 
-                "    \"properties\": {" + 
-                "        \"message\": {" + 
+                            "    \"$id\": \"https://example.com/message.schema.json\"," +
+                            "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
+                            "    \"required\": [" +
+                            "        \"message\"," +
+                            "        \"time\"" +
+                            "    ]," +
+                            "    \"type\": \"object\"," +
+                            "    \"properties\": {" +
+                            "        \"message\": {" +
                 "            \"description\": \"\"," + 
                 "            \"type\": \"string\"" + 
                 "        }," + 
@@ -178,15 +178,15 @@ public class BasicApicurioSerDesIT extends BaseIT {
         kafkaCluster.createTopic(artifactId, 1, 1);
         LOGGER.debug("++++++++++++++++++ Created topic: {}", artifactId);
 
-        ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.JSON, artifactId, IoUtil.toStream(jsonSchema));
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(service, ArtifactType.JSON, artifactId, IoUtil.toStream(jsonSchema));
         LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
-        apicurioService.reset();
+        service.reset();
 
         TestUtils.waitFor(
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> apicurioService.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
+            () -> service.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceJsonSchemaApicurioMessages(artifactId, subjectName, 10).get(5, TimeUnit.SECONDS);
@@ -203,7 +203,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testProtobufSerDes(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException {
+    void testProtobufSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         Serde.Schema protobufSchema = toSchemaProto(MsgTypes.Msg.newBuilder().build().getDescriptorForType().getFile());
         String artifactId = TestUtils.generateArtifactId();
 
@@ -211,16 +211,16 @@ public class BasicApicurioSerDesIT extends BaseIT {
         kafkaCluster.createTopic(artifactId, 1, 1);
         LOGGER.debug("++++++++++++++++++ Created topic: {}", artifactId);
 
-        ArtifactMetaData artifact = ArtifactUtils.createArtifact(apicurioService, ArtifactType.PROTOBUF_FD, 
-                artifactId, IoUtil.toStream(protobufSchema.toByteArray()));
+        ArtifactMetaData artifact = ArtifactUtils.createArtifact(service, ArtifactType.PROTOBUF_FD,
+                                                                 artifactId, IoUtil.toStream(protobufSchema.toByteArray()));
         LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
-        apicurioService.reset();
+        service.reset();
 
         TestUtils.waitFor(
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> apicurioService.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
+            () -> service.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceProtobufMessages(artifactId, subjectName, 100).get(5, TimeUnit.SECONDS);

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 
 /**
@@ -68,13 +69,13 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     }
 
     @RegistryServiceTest
-    public void testAvro(RegistryService service) {
+    public void testAvro(Supplier<RegistryService> supplier) {
         String artifactId = generateArtifactId();
 
         String name = generateArtifactId();
         String content = String.format(avroFormat, name);
 
-        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
 
@@ -83,7 +84,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         name = generateArtifactId();
         content = String.format(avroFormat, name);
 
-        cs = service.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
+        cs = supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
         amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
     }

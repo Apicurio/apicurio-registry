@@ -61,6 +61,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -69,10 +70,12 @@ import java.util.function.Function;
 public class RegistryConverterTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
-    public void testConfiguration(RegistryService service) throws Exception {
+    public void testConfiguration(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
         String artifactId = generateArtifactId();
+
+        RegistryService service = supplier.get();
 
         CompletionStage<ArtifactMetaData> csa = service.createArtifact(
             ArtifactType.AVRO,
@@ -135,7 +138,8 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    public void testAvro(RegistryService service) throws Exception {
+    public void testAvro(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService service = supplier.get();
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
              AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
 
@@ -161,9 +165,9 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    public void testPrettyJson(RegistryService service) throws Exception {
+    public void testPrettyJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
-            service,
+            supplier.get(),
             new PrettyFormatStrategy(),
             input -> {
                 try {
@@ -178,9 +182,9 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    public void testCompactJson(RegistryService service) throws Exception {
+    public void testCompactJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
-            service,
+            supplier.get(),
             new CompactFormatStrategy(),
             input -> {
                 ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);

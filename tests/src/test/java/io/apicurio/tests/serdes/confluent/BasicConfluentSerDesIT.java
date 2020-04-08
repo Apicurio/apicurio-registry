@@ -93,7 +93,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testEvolveAvroConfluent(RegistryService apicurioService) throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
+    void testEvolveAvroConfluent(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
         String topicName = TestUtils.generateTopic();
         String recordName = "myrecordconfluent5";
         String subjectName = topicName + "-" + recordName;
@@ -108,7 +108,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
 
         String schemaKey2 = "key2";
         Schema schema2 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}");
-        updateArtifactViaApicurioClient(apicurioService, schema2, subjectName);
+        updateArtifactViaApicurioClient(service, schema2, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -116,7 +116,7 @@ public class BasicConfluentSerDesIT extends BaseIT {
 
         String schemaKey3 = "key3";
         Schema schema3 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName +  "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}");
-        updateArtifactViaApicurioClient(apicurioService, schema3, subjectName);
+        updateArtifactViaApicurioClient(service, schema3, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema3, 10, schemaKey, schemaKey2, schemaKey3).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);

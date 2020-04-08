@@ -54,27 +54,27 @@ class ArtifactsIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
     @RegistryServiceTest(localOnly = false)
-    void createAndUpdateArtifact(RegistryService apicurioService) throws Exception {
+    void createAndUpdateArtifact(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
 
         LOGGER.info("Creating global rule:{}", rule.toString());
-        apicurioService.createGlobalRule(rule);
+        service.createGlobalRule(rule);
 
         // Make sure we have rule
-        TestUtils.retry(() -> apicurioService.getGlobalRuleConfig(rule.getType()));
+        TestUtils.retry(() -> service.getGlobalRuleConfig(rule.getType()));
 
         String artifactId = TestUtils.generateArtifactId();
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
-        JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
+        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.getString("name"), response);
 
@@ -84,25 +84,25 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertWebError(400, () -> ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, invalidArtifactId, iad));
+        TestUtils.assertWebError(400, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, invalidArtifactId, iad));
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
+        response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
-        List<Long> apicurioVersions = apicurioService.listArtifactVersions(artifactId);
+        List<Long> apicurioVersions = service.listArtifactVersions(artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems(1L, 2L));
 
-        response = new JsonObject(apicurioService.getArtifactVersion(1, artifactId).readEntity(String.class));
+        response = new JsonObject(service.getArtifactVersion(1, artifactId).readEntity(String.class));
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
 
@@ -110,61 +110,61 @@ class ArtifactsIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void createAndDeleteMultipleArtifacts(RegistryService apicurioService) throws Exception {
+    void createAndDeleteMultipleArtifacts(RegistryService service) throws Exception {
         LOGGER.info("Creating some artifacts...");
-        Map<String, String> idMap = createMultipleArtifacts(apicurioService, 10);
+        Map<String, String> idMap = createMultipleArtifacts(service, 10);
         LOGGER.info("Created  {} artifacts", idMap.size());
 
-        deleteMultipleArtifacts(apicurioService, idMap);
+        deleteMultipleArtifacts(service, idMap);
 
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
-            TestUtils.assertWebError(404, () -> apicurioService.getLatestArtifact(entry.getValue()), true);
+            TestUtils.assertWebError(404, () -> service.getLatestArtifact(entry.getValue()), true);
         }
     }
 
     @RegistryServiceTest(localOnly = false)
-    void deleteArtifactSpecificVersion(RegistryService apicurioService) throws Exception {
+    void deleteArtifactSpecificVersion(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
-        JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
+        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
 
         LOGGER.info("Created record with name:{} and content:{}", response.getString("name"), response.toString());
 
         for (int x = 0; x < 9; x++) {
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
             artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+            metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
             LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         }
 
         TestUtils.retry(() -> {
-            List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId);
+            List<Long> artifactVersions = service.listArtifactVersions(artifactId);
 
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L));
 
-            apicurioService.deleteArtifactVersion(4, artifactId);
+            service.deleteArtifactVersion(4, artifactId);
             LOGGER.info("Version 4 of artifact {} was deleted", artifactId);
 
-            artifactVersions = apicurioService.listArtifactVersions(artifactId);
+            artifactVersions = service.listArtifactVersions(artifactId);
 
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L, 3L, 5L, 6L, 7L, 8L, 9L, 10L));
             assertThat(artifactVersions, not(hasItems(4L)));
 
-            TestUtils.assertWebError(404, () -> apicurioService.getArtifactVersion(4, artifactId));
+            TestUtils.assertWebError(404, () -> service.getArtifactVersion(4, artifactId));
 
             ByteArrayInputStream bais = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, bais);
+            ArtifactMetaData amd = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, bais);
             LOGGER.info("Artifact with ID {} was updated: {}", artifactId, amd.toString());
 
-            artifactVersions = apicurioService.listArtifactVersions(artifactId);
+            artifactVersions = service.listArtifactVersions(artifactId);
 
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
 
@@ -174,18 +174,18 @@ class ArtifactsIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void createNonAvroArtifact(RegistryService apicurioService) throws Exception {
+    void createNonAvroArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, artifactData);
+        CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, artifactData);
         // Make sure artifact is fully registered
         ArtifactMetaData amd = ConcurrentUtil.result(csResult);
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        JsonObject response = new JsonObject(apicurioService.getLatestArtifact(artifactId).readEntity(String.class));
+        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
         assertThat(response.getString("type"), is("INVALID"));
@@ -193,149 +193,149 @@ class ArtifactsIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void createArtifactSpecificVersion(RegistryService apicurioService) throws Exception {
+    void createArtifactSpecificVersion(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully updated
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        List<Long> artifactVersions = apicurioService.listArtifactVersions(artifactId);
+        List<Long> artifactVersions = service.listArtifactVersions(artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
         assertThat(artifactVersions, hasItems(1L, 2L));
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testDuplicatedArtifact(RegistryService apicurioService) throws Exception {
+    void testDuplicatedArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, iad), true);
+        TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, iad), true);
     }
-    
+
     @RegistryServiceTest(localOnly = false)
-    void testDisableEnableArtifact(RegistryService apicurioService) throws Exception {
+    void testDisableEnableArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        
+
         // Create the artifact
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         // Verify
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
         });
 
         // Disable the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        apicurioService.updateArtifactState(artifactId, data);
+        service.updateArtifactState(artifactId, data);
         
         // Verify (expect 404)
-        TestUtils.assertWebError(404, () -> apicurioService.getArtifactMetaData(artifactId), true);
+        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId), true);
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
-        apicurioService.updateArtifactState(artifactId, data);
+        service.updateArtifactState(artifactId, data);
         
         // Verify
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
         });
     }
 
     @RegistryServiceTest(localOnly = false)
-    void testDisableEnableArtifactVersion(RegistryService apicurioService) throws Exception {
+    void testDisableEnableArtifactVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        
+
         // Create the artifact
-        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
 
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
 
         // Disable v3
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        apicurioService.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
 
         // Verify artifact
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertEquals(2, actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
         
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
-        apicurioService.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
 
         TestUtils.retry(() -> {
             // Verify artifact (now v3)
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertEquals(3, actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
-    
+
     @RegistryServiceTest(localOnly = false)
-    void testDeprecateArtifact(RegistryService apicurioService) throws Exception {
+    void testDeprecateArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        
+
         // Create the artifact
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         TestUtils.retry(() -> {
             // Verify
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
         });
@@ -343,66 +343,66 @@ class ArtifactsIT extends BaseIT {
         // Deprecate the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        apicurioService.updateArtifactState(artifactId, data);
+        service.updateArtifactState(artifactId, data);
 
         TestUtils.retry(() -> {
             // Verify (expect 404)
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
         });
     }
-    
+
     @RegistryServiceTest(localOnly = false)
-    void testDeprecateArtifactVersion(RegistryService apicurioService) throws Exception {
+    void testDeprecateArtifactVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        
+
         // Create the artifact
-        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
+        ArtifactMetaData v1MD = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
 
         // Update the artifact (v2)
-        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
+        ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
 
         // Update the artifact (v3)
-        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
+        ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
 
         // Deprecate v2
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        apicurioService.updateArtifactVersionState(v2MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(v2MD.getVersion(), artifactId, data);
 
         TestUtils.retry(() -> {
             // Verify artifact
-            ArtifactMetaData actualMD = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = apicurioService.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = apicurioService.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = apicurioService.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
 
     @RegistryServiceTest(localOnly = false)
-    void deleteNonexistingSchema(RegistryService apicurioService) {
-        TestUtils.assertWebError(404, () -> apicurioService.deleteArtifact("non-existing"));
+    void deleteNonexistingSchema(RegistryService service) {
+        TestUtils.assertWebError(404, () -> service.deleteArtifact("non-existing"));
     }
 
     @AfterEach
-    void deleteRules(RegistryService apicurioService) {
-        apicurioService.deleteAllGlobalRules();
+    void deleteRules(RegistryService service) {
+        service.deleteAllGlobalRules();
     }
 }
 

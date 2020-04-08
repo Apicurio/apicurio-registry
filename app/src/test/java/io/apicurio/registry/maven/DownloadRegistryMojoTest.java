@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -47,11 +48,11 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     }
 
     @RegistryServiceTest
-    public void testDownloadIds(RegistryService service) throws Exception {
+    public void testDownloadIds(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         cs.toCompletableFuture().get();
 
         mojo.ids = Collections.singleton(artifactId);

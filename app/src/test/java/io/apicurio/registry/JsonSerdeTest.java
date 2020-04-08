@@ -34,6 +34,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -42,28 +43,28 @@ import java.util.concurrent.CompletionStage;
 public class JsonSerdeTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
-    public void testSchema(RegistryService service) throws Exception {
+    public void testSchema(Supplier<RegistryService> supplier) throws Exception {
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.JSON, artifactId, jsonSchema);
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, jsonSchema);
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
 
         // make sure we have schema registered
-        service.reset();
-        retry(() -> service.getArtifactByGlobalId(amd.getGlobalId()));
+        supplier.get().reset();
+        retry(() -> supplier.get().getArtifactByGlobalId(amd.getGlobalId()));
 
         Person person = new Person("Ales", "Justin", 23);
 
-        JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(service, true);
+        JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(supplier.get(), true);
         serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
 
         Headers headers = new RecordHeaders();
         byte[] bytes = serializer.serialize(artifactId, headers, person);
 
-        JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(service, true);
+        JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(supplier.get(), true);
 
         person = deserializer.deserialize(artifactId, headers, bytes);
 

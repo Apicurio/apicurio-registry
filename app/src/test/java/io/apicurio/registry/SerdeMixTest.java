@@ -39,6 +39,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 @QuarkusTest
 public class SerdeMixTest extends AbstractResourceTestBase {
@@ -48,7 +49,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    public void testVersions(RegistryService service) throws Exception {
+    public void testVersions(Supplier<RegistryService> supplier) throws Exception {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
@@ -64,19 +65,19 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             return schema2;
         });
 
-        CompletionStage<ArtifactMetaData> cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         ArtifactMetaData amd1 = ConcurrentUtil.result(cs);
 
         retry(() -> {
-            service.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
+            supplier.get().getArtifactMetaDataByGlobalId(amd1.getGlobalId());
             return null;
         });
 
-        cs = service.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        cs = supplier.get().updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         ArtifactMetaData amd2 = ConcurrentUtil.result(cs);
 
         retry(() -> {
-            service.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
+            supplier.get().getArtifactMetaDataByGlobalId(amd2.getGlobalId());
             return null;
         });
 
@@ -86,7 +87,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        List<Long> versions2 = service.listArtifactVersions(subject);
+        List<Long> versions2 = supplier.get().listArtifactVersions(subject);
         Assertions.assertEquals(3, versions2.size());
         Assertions.assertTrue(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
@@ -96,7 +97,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         retry(() -> {
             try {
-                service.getArtifactVersionMetaData(1, subject);
+                supplier.get().getArtifactVersionMetaData(1, subject);
                 Assertions.fail();
             } catch (Exception ignored) {
             }
@@ -109,17 +110,17 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        versions2 = service.listArtifactVersions(subject);
+        versions2 = supplier.get().listArtifactVersions(subject);
         Assertions.assertEquals(2, versions2.size());
         Assertions.assertFalse(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
         Assertions.assertTrue(versions2.contains(3L));
 
-        service.deleteArtifactVersion(2, subject);
+        supplier.get().deleteArtifactVersion(2, subject);
 
         retry(() -> {
             try {
-                service.getArtifactVersionMetaData(2, subject);
+                supplier.get().getArtifactVersionMetaData(2, subject);
                 Assertions.fail();
             } catch (Exception ignored) {
             }
@@ -130,13 +131,13 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, versions1.size());
         Assertions.assertTrue(versions1.contains(3));
 
-        versions2 = service.listArtifactVersions(subject);
+        versions2 = supplier.get().listArtifactVersions(subject);
         Assertions.assertEquals(1, versions2.size());
         Assertions.assertTrue(versions2.contains(3L));
     }
 
     @RegistryServiceTest
-    public void testSerdeMix(RegistryService service) throws Exception {
+    public void testSerdeMix(Supplier<RegistryService> supplier) throws Exception {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
@@ -147,17 +148,17 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
 
-        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(service).asConfluent();
+        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(supplier.get()).asConfluent();
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            waitForSchema(service, bytes, bb -> (long) bb.getInt());
+            waitForSchema(supplier.get(), bytes, bb -> (long) bb.getInt());
 
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
 
-        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(service).asConfluent();
+        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(supplier.get()).asConfluent();
         try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
             byte[] bytes = serializer2.serialize(subject, record);
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);

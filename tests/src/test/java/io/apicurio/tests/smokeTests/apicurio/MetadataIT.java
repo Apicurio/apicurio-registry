@@ -45,16 +45,16 @@ class MetadataIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
     @RegistryServiceTest(localOnly = false)
-    void getAndUpdateMetadataOfArtifact(RegistryService apicurioService) throws Exception {
+    void getAndUpdateMetadataOfArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+        ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
         assertThat(artifactMetaData.getCreatedOn(), OrderingComparison.greaterThan(0L));
@@ -68,10 +68,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        apicurioService.updateArtifactMetaData(artifactId, emd);
+        service.updateArtifactMetaData(artifactId, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData amd = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -83,25 +83,25 @@ class MetadataIT extends BaseIT {
     }
 
     @RegistryServiceTest(localOnly = false)
-    void getAndUpdateMetadataOfArtifactSpecificVersion(RegistryService apicurioService) throws Exception {
+    void getAndUpdateMetadataOfArtifactSpecificVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.updateArtifact(apicurioService, ArtifactType.AVRO, artifactId, artifactUpdateData);
+        metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        VersionMetaData versionMetaData = apicurioService.getArtifactVersionMetaData(2, artifactId);
+        VersionMetaData versionMetaData = service.getArtifactVersionMetaData(2, artifactId);
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -113,10 +113,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        apicurioService.updateArtifactVersionMetaData(2, artifactId, emd);
+        service.updateArtifactVersionMetaData(2, artifactId, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData artifactMetaData = apicurioService.getArtifactMetaData(artifactId);
+            ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is(2));
             assertThat(artifactMetaData.getType().value(), is("AVRO"));
@@ -125,11 +125,11 @@ class MetadataIT extends BaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        apicurioService.deleteArtifactVersion(2, artifactId);
+        service.deleteArtifactVersion(2, artifactId);
 
-        TestUtils.assertWebError(404, () -> apicurioService.getArtifactVersionMetaData(2, artifactId), true);
+        TestUtils.assertWebError(404, () -> service.getArtifactVersionMetaData(2, artifactId), true);
 
-        versionMetaData = apicurioService.getArtifactVersionMetaData(1, artifactId);
+        versionMetaData = service.getArtifactVersionMetaData(1, artifactId);
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is(1));

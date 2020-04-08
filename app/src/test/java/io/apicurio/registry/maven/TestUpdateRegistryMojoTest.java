@@ -33,6 +33,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -48,7 +49,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     }
 
     @RegistryServiceTest
-    public void testCompatibility(RegistryService service) throws Exception {
+    public void testCompatibility(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
@@ -59,13 +60,13 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        CompletionStage<ArtifactMetaData> cs = service.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         cs.toCompletableFuture().get();
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        service.createArtifactRule(artifactId, rule);
+        supplier.get().createArtifactRule(artifactId, rule);
 
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +

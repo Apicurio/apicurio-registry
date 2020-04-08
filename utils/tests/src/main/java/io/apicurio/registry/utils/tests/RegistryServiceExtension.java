@@ -29,19 +29,55 @@ import org.junit.platform.commons.util.AnnotationUtils;
 
 import static java.util.Collections.singletonList;
 
-import java.util.Arrays;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
  * @author Ales Justin
  */
 public class RegistryServiceExtension implements TestTemplateInvocationContextProvider {
+
+    private enum ParameterType {
+        REGISTRY_SERVICE,
+        SUPPLIER,
+        UNSUPPORTED
+    }
+
+    private static ParameterType getParameterType(Type type) {
+        if (type instanceof Class) {
+            if (type == RegistryService.class) {
+                return ParameterType.REGISTRY_SERVICE;
+            }
+        } else if (type instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) type;
+            Type rawType = pt.getRawType();
+            if (rawType == RegistryService.class) {
+                return ParameterType.REGISTRY_SERVICE;
+            } else if (rawType == Supplier.class) {
+                Type[] arguments = pt.getActualTypeArguments();
+                if (arguments[0] == RegistryService.class) {
+                    return ParameterType.SUPPLIER;
+                }
+            }
+        }
+        return ParameterType.UNSUPPORTED;
+    }
+
     @Override
     public boolean supportsTestTemplate(ExtensionContext context) {
         return context.getTestMethod().map(method -> {
             Class<?>[] parameterTypes = method.getParameterTypes();
-            return Arrays.asList(parameterTypes).contains(RegistryService.class);
+            for (int i = 0; i < parameterTypes.length; i++) {
+                if (getParameterType(method.getGenericParameterTypes()[i]) != ParameterType.UNSUPPORTED) {
+                    return true;
+                }
+            }
+            return false;
         }).orElse(false);
     }
 
@@ -55,12 +91,12 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
         RegistryServiceWrapper plain = store.getOrComputeIfAbsent(
             "plain_client",
-            k -> new RegistryServiceWrapper(k, RegistryClient.create(registryUrl)),
+            k -> new RegistryServiceWrapper(k, "create", registryUrl),
             RegistryServiceWrapper.class
         );
         RegistryServiceWrapper cached = store.getOrComputeIfAbsent(
             "cached_client",
-            k -> new RegistryServiceWrapper(k, RegistryClient.cached(registryUrl)),
+            k -> new RegistryServiceWrapper(k, "cached", registryUrl),
             RegistryServiceWrapper.class
         );
 
@@ -72,11 +108,14 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static class RegistryServiceWrapper implements ExtensionContext.Store.CloseableResource {
         private String key;
-        private RegistryService service;
+        private String method;
+        private String registryUrl;
+        private volatile AutoCloseable service;
 
-        public RegistryServiceWrapper(String key, RegistryService service) {
+        public RegistryServiceWrapper(String key, String method, String registryUrl) {
             this.key = key;
-            this.service = service;
+            this.method = method;
+            this.registryUrl = registryUrl;
         }
 
         @Override
@@ -103,13 +142,52 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         }
 
         @Override
-        public boolean supportsParameter(ParameterContext pc, ExtensionContext extensionContext) throws ParameterResolutionException {
-            return (pc.getParameter().getType() == RegistryService.class);
+        public boolean supportsParameter(ParameterContext pc, ExtensionContext ec) throws ParameterResolutionException {
+            Parameter parameter = pc.getParameter();
+            return getParameterType(parameter.getParameterizedType()) != ParameterType.UNSUPPORTED;
         }
 
         @Override
-        public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-            return wrapper.service;
+        public Object resolveParameter(ParameterContext pc, ExtensionContext ec) throws ParameterResolutionException {
+            Parameter parameter = pc.getParameter();
+            ParameterType type = getParameterType(parameter.getParameterizedType());
+            switch (type) {
+                case REGISTRY_SERVICE: {
+                    return (wrapper.service = createRegistryService());
+                }
+                case SUPPLIER: {
+                    return (Supplier<Object>) () -> {
+                        if (wrapper.service == null) {
+                            try {
+                                ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+                                if (tccl == null || tccl == ExtensionContext.class.getClassLoader()) {
+                                    wrapper.service = createRegistryService();
+                                } else {
+                                    Class<?> clientClass = tccl.loadClass(RegistryClient.class.getName());
+                                    Method factoryMethod = clientClass.getMethod(wrapper.method, String.class);
+                                    wrapper.service = (AutoCloseable) factoryMethod.invoke(null, wrapper.registryUrl);
+                                }
+                            } catch (Exception e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }
+                        return wrapper.service;
+                    };
+                }
+                default:
+                    throw new IllegalStateException("Invalid parameter type: " + type);
+            }
+        }
+
+        private RegistryService createRegistryService() {
+            switch (wrapper.method) {
+                case "create":
+                    return RegistryClient.create(wrapper.registryUrl);
+                case "cached":
+                    return RegistryClient.cached(wrapper.registryUrl);
+                default:
+                    throw new IllegalArgumentException("Unsupported registry client method: " + wrapper.method);
+            }
         }
     }
 }

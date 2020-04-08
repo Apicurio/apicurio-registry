@@ -14,19 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.error;
 
-import javax.ws.rs.NotFoundException;
+import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author Ales Justin
- */
-public class Errors {
-    public static void noSuchSubject(String subject) {
-        throw new NotFoundException(String .format("No such subject: %s", subject));
-    }
-
-    public static void schemaNotFound(Integer id) {
-        throw new NotFoundException(String .format("No content with id: %s", id));
-    }
+public class OperationNotSupportedException extends RegistryException {
 }

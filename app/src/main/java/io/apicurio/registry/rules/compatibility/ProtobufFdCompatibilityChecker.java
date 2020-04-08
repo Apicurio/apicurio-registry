@@ -21,12 +21,17 @@ import io.apicurio.registry.content.ContentHandle;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * @author Ales Justin
  */
 public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
         try {
             Serde.Schema.parseFrom(proposedArtifact.bytes());
             return true;

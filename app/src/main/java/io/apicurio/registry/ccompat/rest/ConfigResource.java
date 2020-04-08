@@ -16,15 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.ConfigDto;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
+import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 
-import javax.interceptor.Interceptors;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -32,49 +25,100 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
+ * Note:
+ * <p/>
+ * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#config">API specification</a> is owned by Confluent.
+ *
+ * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
+ *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @Path("/ccompat/config")
-@Consumes({RestConstants.JSON, RestConstants.SR})
-@Produces({RestConstants.JSON, RestConstants.SR})
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@RestMetricsApply
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
-public class ConfigResource extends AbstractResource {
+@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Produces({COMPAT_SCHEMA_REGISTRY_V1})
+public interface ConfigResource {
 
-    @Path("/{subject}")
+
+    // ----- Path: /config -----
+
+    /**
+     * Get global compatibility level.
+     *
+     * Response:
+     *     - compatibility (string) – Global compatibility level. Will be one of
+     *         BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
+     *
+     * Status Codes:
+     *     500 Internal Server Error
+     *         Error code 50001 – Error in the backend data store
+     */
+    @GET
+    CompatibilityLevelDto getGlobalCompatibilityLevel();
+
+
+    /**
+     * Update global compatibility level.
+     *
+     * Request:
+     *     - compatibility (string) – New global compatibility level. Must be one of
+     *         BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
+     *
+     * Status Codes:
+     *     422 Unprocessable Entity
+     *         Error code 42203 – Invalid compatibility level
+     *     500 Internal Server Error
+     *         Error code 50001 – Error in the backend data store
+     */
     @PUT
-    public ConfigDto updateSubjectLevelConfig(
-        @PathParam("subject") String subject,
-        @Context HttpHeaders headers,
-        @NotNull ConfigDto request) {
-        return request;
-    }
+    CompatibilityLevelDto updateGlobalCompatibilityLevel(
+            @NotNull CompatibilityLevelDto request);
 
+
+    // ----- Path: /config/{subject} -----
+
+
+    /**
+     * Get compatibility level for a subject.
+     *
+     * @param subject (string) – Name of the subject
+     *
+     * Request:
+     *     - compatibility (string) – Compatibility level for the subject. Will be one of
+     *       BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
+     *
+     * Status Codes:
+     *     404 Not Found – Subject not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     */
     @Path("/{subject}")
     @GET
-    public ConfigDto getSubjectLevelConfig(@PathParam("subject") String subject) {
-        return null;
-    }
+    CompatibilityLevelDto getSubjectCompatibilityLevel(@PathParam("subject") String subject);
 
+    /**
+     * Update compatibility level for the specified subject.
+     *
+     * @param subject (string) – Name of the subject
+     *
+     * Request:
+     *     - compatibility (string) – New compatibility level for the subject. Must be one of
+     *       BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
+     *
+     * Status Codes:
+     *     422 Unprocessable Entity –
+     *         Error code 42203 – Invalid compatibility level
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     *         Error code 50003 – Error while forwarding the request to the primary
+     */
+    @Path("/{subject}")
     @PUT
-    public ConfigDto updateTopLevelConfig(
-        @Context HttpHeaders headers,
-        @NotNull ConfigDto request) {
-        return request;
-    }
-
-    @GET
-    public ConfigDto getTopLevelConfig() {
-        return null;
-    }
+    CompatibilityLevelDto updateSubjectCompatibilityLevel(
+            @PathParam("subject") String subject,
+            @NotNull CompatibilityLevelDto request);
 }

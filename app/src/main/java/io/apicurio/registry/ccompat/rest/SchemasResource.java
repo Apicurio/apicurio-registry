@@ -16,44 +16,50 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.SchemaString;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
 
-import javax.interceptor.Interceptors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
+ * Note:
+ * <p/>
+ * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#schemas">API specification</a> is owned by Confluent.
+ *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @Path("/ccompat/schemas")
-@Consumes({RestConstants.JSON, RestConstants.SR})
-@Produces({RestConstants.JSON, RestConstants.SR})
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@RestMetricsApply
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
-public class SchemasResource extends AbstractResource {
+@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Produces({COMPAT_SCHEMA_REGISTRY_V1})
+public interface SchemasResource {
 
+    // ----- Path: /schemas/ids/{globalId} -----
+
+    /**
+     * Get the schema string identified by the input ID.
+     *
+     * Parameters:
+     *
+     * @param id (int) – the globally unique identifier of the schema
+     *
+     * Response JSON Object:
+     *
+     *     schema (string) – Schema string identified by the ID
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40403 – Schema not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
     @GET
     @Path("/ids/{id}")
-    public SchemaString getSchema(@PathParam("id") Integer id) {
-        String schema = facade.getSchema(id);
-        if (schema == null) {
-            Errors.schemaNotFound(id);
-        }
-        return new SchemaString(schema);
-    }
+    SchemaContent getSchema(@PathParam("id") int id);
 }

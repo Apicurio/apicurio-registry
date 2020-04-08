@@ -16,17 +16,10 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
-import io.apicurio.registry.ccompat.dto.RegisterSchemaResponse;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.interceptor.Interceptors;
+import java.util.List;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -37,77 +30,195 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
+ * Note:
+ * <p/>
+ * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
+ *
+ *
+ *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @Path("/ccompat/subjects/{subject}/versions")
-@Consumes({RestConstants.JSON, RestConstants.SR})
-@Produces({RestConstants.JSON, RestConstants.SR})
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@RestMetricsApply
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
-public class SubjectVersionsResource extends AbstractResource {
+@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Produces({COMPAT_SCHEMA_REGISTRY_V1})
+public interface SubjectVersionsResource {
 
+    // ----- Path: /subjects/{subject}/versions -----
+
+    /**
+     * Get a list of versions registered under the specified subject.
+     * <p/>
+     * Parameters:
+     *
+     * <ul>
+     *   <li>subject (string) – the name of the subject</li>
+     * </ul>
+     *
+     * Response JSON Array of Objects:
+     * <ul>
+     *   <li>version (int) – version of the schema registered under this subject</li>
+     * </ul>
+     *
+     * Status Codes:
+     * <ul>
+     *   <li>404 Not Found
+     *     <ul>
+     *       <li>Error code 40401 – Subject not found</li>
+     *     </ul>
+     *   </li>
+     *   <li>500 Internal Server Error
+     *     <ul>
+     *       <li>Error code 50001 – Error in the backend datastore</li>
+     *     </ul>
+     *   </li>
+     * </ul>
+     */
+    @GET
+    List<Integer> listVersions(@PathParam("subject") String subject) throws Exception;
+
+    /**
+     * Register a new schema under the specified subject. If successfully registered,
+     * this returns the unique identifier of this schema in the registry.
+     * The returned identifier should be used to retrieve this schema from the schemas resource
+     * and <b>is different from the schema’s version</b> which is associated with the subject.
+     * If the same schema is registered under a different subject,
+     * the same identifier will be returned. However, the version of the schema
+     * may be different under different subjects.
+     *
+     * A schema should be compatible with the previously registered schema or schemas (if there are any) as per the configured compatibility level. The configured compatibility level can be obtained by issuing a GET http:get:: /config/(string: subject). If that returns null, then GET http:get:: /config
+     *
+     * When there are multiple instances of Schema Registry running in the same cluster, the schema registration request will be forwarded to one of the instances designated as the primary. If the primary is not available, the client will get an error code indicating that the forwarding has failed.
+     * Parameters:
+     *
+     *     subject (string) – Subject under which the schema will be registered
+     *
+     * Request JSON Object:
+     *
+     *
+     *     schema – The Avro schema string
+     *
+     * Status Codes:
+     *
+     *     409 Conflict – Incompatible Avro schema
+     *     422 Unprocessable Entity –
+     *         Error code 42201 – Invalid Avro schema
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     *         Error code 50002 – Operation timed out
+     *         Error code 50003 – Error while forwarding the request to the primary
+     */
+    @POST
+    void register(
+            @Suspended AsyncResponse response,
+            @PathParam("subject") String subject,
+            @NotNull SchemaContent request) throws Exception;
+
+
+    // ----- Path: /subjects/{subject}/versions/{version} -----
+
+
+    /**
+     * Get a specific version of the schema registered under this subject
+     * Parameters:
+     *
+     *     subject (string) – Name of the subject
+     *     version (versionId) – Version of the schema to be returned. Valid values for versionId are between [1,2^31-1] or the string “latest”. “latest” returns the last registered schema under the specified subject. Note that there may be a new latest schema that gets registered right after this request is served.
+     *
+     * Response JSON Object:
+     *
+     *
+     *     subject (string) – Name of the subject that this schema is registered under
+     *     globalId (int) – Globally unique identifier of the schema
+     *     version (int) – Version of the returned schema
+     *     schema (string) – The Avro schema string
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40401 – Subject not found
+     *         Error code 40402 – Version not found
+     *     422 Unprocessable Entity –
+     *         Error code 42202 – Invalid version
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     */
     @GET
     @Path("/{version}")
-    public Schema getSchemaByVersion(
-        @PathParam("subject") String subject,
-        @PathParam("version") String version) throws Exception {
+    Schema getSchemaByVersion(
+            @PathParam("subject") String subject,
+            @PathParam("version") String version) throws Exception;
 
-        return facade.getSchema(subject, version);
-    }
-
-    @GET
-    @Path("/{version}/content")
-    public String getSchemaOnly(
-        @PathParam("subject") String subject,
-        @PathParam("version") String version) throws Exception {
-
-        return getSchemaByVersion(subject, version).getSchema();
-    }
-
-    @GET
-    public List<Integer> listVersions(@PathParam("subject") String subject) throws Exception {
-        return facade.listVersions(subject);
-    }
-
-    @POST
-    public void register(
-        @Suspended AsyncResponse response,
-        @Context HttpHeaders headers,
-        @PathParam("subject") String subject,
-        @NotNull RegisterSchemaRequest request) throws Exception {
-
-        CompletionStage<Long> cs = facade.registerSchema(subject, request.getId(), request.getVersion(), request.getSchema());
-        cs.whenComplete((id, t) -> {
-            if (t != null) {
-                response.resume(t);
-            } else {
-                RegisterSchemaResponse registerSchemaResponse = new RegisterSchemaResponse();
-                registerSchemaResponse.setId(id);
-                response.resume(registerSchemaResponse);
-            }
-        });
-    }
-
+    /**
+     * Deletes a specific version of the schema registered under this subject.
+     * This only deletes the version and the schema ID remains intact
+     * making it still possible to decode data using the schema ID.
+     * This API is recommended to be used only in development environments
+     * or under extreme circumstances where-in, its required to delete
+     * a previously registered schema for compatibility purposes
+     * or re-register previously registered schema.
+     *
+     * Parameters:
+     *
+     *     subject (string) – Name of the subject
+     *     version (versionId) – Version of the schema to be deleted. Valid values for versionId are between [1,2^31-1] or the string “latest”. “latest” deletes the last registered schema under the specified subject. Note that there may be a new latest schema that gets registered right after this request is served.
+     *
+     * Response JSON Object:
+     *
+     *
+     *     int – Version of the deleted schema
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40401 – Subject not found
+     *         Error code 40402 – Version not found
+     *     422 Unprocessable Entity –
+     *         Error code 42202 – Invalid version
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     */
     @DELETE
     @Path("/{version}")
-    public void deleteSchemaVersion(
-        @Suspended AsyncResponse response,
-        @Context HttpHeaders headers,
-        @PathParam("subject") String subject,
-        @PathParam("version") String version) throws Exception {
+    int deleteSchemaVersion(
+            @PathParam("subject") String subject,
+            @PathParam("version") String version) throws Exception;
 
-        response.resume(facade.deleteSchema(subject, version));
-    }
+
+    // ----- Path: /subjects/{subject}/versions/{version}/schema -----
+
+
+    /**
+     * Get the avro schema for the specified version of this subject. The unescaped schema only is returned.
+     * Parameters:
+     *
+     *     subject (string) – Name of the subject
+     *     version (versionId) – Version of the schema to be returned. Valid values for versionId are between [1,2^31-1] or the string “latest”. “latest” returns the last registered schema under the specified subject. Note that there may be a new latest schema that gets registered right after this request is served.
+     *
+     * Response JSON Object:
+     *
+     *
+     *     schema (string) – The Avro schema string (unescaped)
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40401 – Subject not found
+     *         Error code 40402 – Version not found
+     *     422 Unprocessable Entity –
+     *         Error code 42202 – Invalid version
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     */
+    @GET
+    @Path("/{version}/schema")
+    String getSchemaOnly(
+            @PathParam("subject") String subject,
+            @PathParam("version") String version) throws Exception;
+
+
 }

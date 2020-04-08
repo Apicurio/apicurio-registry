@@ -80,7 +80,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
             contentType = ArtifactMediaTypes.PROTO;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.content, contentType);
+        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);
         return builder.build();
     }

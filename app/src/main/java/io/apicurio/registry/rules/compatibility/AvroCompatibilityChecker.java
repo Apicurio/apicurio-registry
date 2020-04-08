@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
@@ -36,6 +38,10 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
      */
     @Override
     public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
+        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
+        requireNonNull(existingSchemaStrings, "existingSchemaStrings MUST NOT be null");
+        requireNonNull(proposedSchemaString, "proposedSchemaString MUST NOT be null");
+
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
 
         if (schemaValidator == null) {

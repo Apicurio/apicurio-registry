@@ -21,6 +21,8 @@ import io.apicurio.registry.content.ContentHandle;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * An interface that is used to determine whether a proposed artifact's content is compatible
  * with older version(s) of the same content, based on a given compatibility level.
@@ -28,7 +30,20 @@ import java.util.stream.Collectors;
  * @author Ales Justin
  */
 public interface CompatibilityChecker {
+    /**
+     * @param compatibilityLevel MUST NOT be null
+     * @param existingArtifacts  MUST NOT be null and MUST NOT contain null elements,
+     *                           but may be empty if the rule is executed and the artifact does not exist
+     *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
+     * @param proposedArtifact   MUST NOT be null
+     */
     default boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
+        if (existingArtifacts.contains(null)) {
+            throw new IllegalStateException("existingArtifacts contains null element(s)");
+        }
         return isCompatibleWith(
             compatibilityLevel,
             existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
@@ -36,5 +51,12 @@ public interface CompatibilityChecker {
         );
     }
 
+    /**
+     * @param compatibilityLevel MUST NOT be null
+     * @param existingArtifacts  MUST NOT be null and MUST NOT contain null elements,
+     *                           but may be empty if the rule is executed and the artifact does not exist
+     *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
+     * @param proposedArtifact   MUST NOT be null
+     */
     boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);
 }

@@ -22,10 +22,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.wsdl.WSDLException;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.w3c.dom.Document;
 import io.apicurio.registry.content.ContentHandle;
 
@@ -33,26 +29,7 @@ import io.apicurio.registry.content.ContentHandle;
  * @author cfoskin@redhat.com
  */
 @ApplicationScoped
-public class WsdlContentValidator implements ContentValidator {
-
-    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
-        @Override
-        protected DocumentBuilder initialValue() {
-            DocumentBuilder builder = null;
-            try {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                factory.setNamespaceAware(true);
-                builder = factory.newDocumentBuilder();
-            } catch (ParserConfigurationException e) {
-                throw new RuntimeException(e);
-            }
-            return builder;
-        }
-
-        public DocumentBuilder get() {
-            return super.get();
-        }
-    };
+public class WsdlContentValidator extends XmlContentValidator {
 
     private static ThreadLocal<WSDLReader> threadLocalWsdlReader = new ThreadLocal<WSDLReader>() {
         @Override
@@ -65,7 +42,6 @@ public class WsdlContentValidator implements ContentValidator {
                 throw new RuntimeException(e);
             }
             return wsdlReader;
-
         }
 
         public WSDLReader get() {

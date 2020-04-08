@@ -20,9 +20,6 @@ import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
@@ -32,7 +29,7 @@ import io.apicurio.registry.content.ContentHandle;
  * @author cfoskin@redhat.com
  */
 @ApplicationScoped
-public class XsdContentValidator implements ContentValidator {
+public class XsdContentValidator extends XmlContentValidator {
     private static ThreadLocal<SchemaFactory> threadLocalSchemaFactory = new ThreadLocal<SchemaFactory>() {
         @Override
         protected SchemaFactory initialValue() {
@@ -40,24 +37,6 @@ public class XsdContentValidator implements ContentValidator {
         }
 
         public SchemaFactory get() {
-            return super.get();
-        }
-    };
-
-    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
-        @Override
-        protected DocumentBuilder initialValue() {
-            DocumentBuilder builder = null;
-            try {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                builder = factory.newDocumentBuilder();
-            } catch (ParserConfigurationException e) {
-                throw new RuntimeException(e);
-            }
-            return builder;
-        }
-
-        public DocumentBuilder get() {
             return super.get();
         }
     };

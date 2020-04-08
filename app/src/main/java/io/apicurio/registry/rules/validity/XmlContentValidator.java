@@ -31,12 +31,13 @@ import io.apicurio.registry.content.ContentHandle;
 @ApplicationScoped
 public class XmlContentValidator implements ContentValidator {
 
-    private static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
+    protected static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
         @Override
         protected DocumentBuilder initialValue() {
             DocumentBuilder builder = null;
             try {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(true);
                 builder = factory.newDocumentBuilder();
             } catch (ParserConfigurationException e) {
                 throw new RuntimeException(e);

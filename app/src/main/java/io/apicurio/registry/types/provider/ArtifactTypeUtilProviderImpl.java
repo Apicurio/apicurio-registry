@@ -29,7 +29,7 @@ import javax.inject.Inject;
  */
 @ApplicationScoped
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
-    private volatile Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
+    private Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
     @Inject
     Instance<ArtifactTypeUtilProvider> providers;
@@ -37,8 +37,8 @@ public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFac
     public ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type) {
         return map.computeIfAbsent(type, t ->
             providers.stream()
-                    .filter(a -> a.getArtifactType() == t)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("No such artifact type provider: " + t)));
+                     .filter(a -> a.getArtifactType() == t)
+                     .findFirst()
+                     .orElseThrow(() -> new IllegalStateException("No such artifact type provider: " + t)));
     }
 }

@@ -17,13 +17,17 @@
 
 import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
-
+import {Card, CardBody, CardFooter, CardHeader, Flex, FlexItem} from "@patternfly/react-core";
+import {ArtifactTypeIcon} from "../../../components/artifactList";
+import {ArtifactMetaData} from "@apicurio/registry-models";
+import "./info.css";
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
 export interface InfoTabContentProps extends PureComponentProps {
+    artifact: ArtifactMetaData;
 }
 
 /**
@@ -45,7 +49,47 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
 
     public render(): React.ReactElement {
         return (
-            <h1>Artifact Info</h1>
+            <Flex className="artifact-tab-content">
+                <FlexItem>
+                    <Card className="artifact-tab-content-card">
+                        <CardHeader>
+                            <Flex>
+                                <FlexItem><ArtifactTypeIcon type={this.props.artifact.type} /></FlexItem>
+                                <FlexItem><span>{this.props.artifact.name}</span></FlexItem>
+                            </Flex>
+                        </CardHeader>
+                        <CardBody className="body">
+                            <div className="description">{this.props.artifact.description}</div>
+                            <div className="metaData">
+                                <div className="metaDataItem">
+                                    <span className="label">Status</span>
+                                    <span className="value">{this.props.artifact.state}</span>
+                                </div>
+                                <div className="metaDataItem">
+                                    <span className="label">Created By</span>
+                                    <span className="value">{this.props.artifact.createdBy}</span>
+                                </div>
+                                <div className="metaDataItem">
+                                    <span className="label">Created On</span>
+                                    <span className="value">{this.props.artifact.createdOn.toLocaleString()}</span>
+                                </div>
+                                <div className="metaDataItem">
+                                    <span className="label">Modified By</span>
+                                    <span className="value">{this.props.artifact.modifiedBy}</span>
+                                </div>
+                                <div className="metaDataItem">
+                                    <span className="label">Modified On</span>
+                                    <span className="value">{this.props.artifact.modifiedOn.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </CardBody>
+                        <CardFooter>Footer</CardFooter>
+                    </Card>
+                </FlexItem>
+                <FlexItem>
+                    <div />
+                </FlexItem>
+            </Flex>
         );
     }
 

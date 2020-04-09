@@ -17,10 +17,10 @@
 
 import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
-import {Tab} from "@patternfly/react-core";
-// import AceEditor from "react-ace";
-// import "ace-builds/src-noconflict/mode-json";
-// import "ace-builds/src-noconflict/theme-tomorrow";
+import AceEditor from "react-ace";
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-tomorrow";
+import "./content.css";
 
 
 /**
@@ -28,6 +28,7 @@ import {Tab} from "@patternfly/react-core";
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ContentTabContentProps extends PureComponentProps {
+    artifactContent: string;
 }
 
 /**
@@ -35,6 +36,8 @@ export interface ContentTabContentProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ContentTabContentState extends PureComponentState {
+    editorWidth: string;
+    editorHeight: string;
 }
 
 
@@ -47,31 +50,51 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
         super(props);
     }
 
+    public componentDidMount(): void {
+        // TODO do this again whenever the browser is resized!
+        const elem: HTMLElement|null = document.getElementById("ace-wrapper");
+        if (elem) {
+            const height: number|null = elem.clientHeight;
+            if (height) {
+                this.setSingleState("editorHeight", height + "px");
+            }
+        }
+
+    }
+
     public render(): React.ReactElement {
         return (
-            <h1>Content goes in here</h1>
+            <div className="ace-wrapper" id="ace-wrapper">
+                <AceEditor
+                    mode="json"
+                    theme="tomorrow"
+                    name="artifactContent"
+                    className="artifactContent"
+                    width={this.state.editorWidth}
+                    height={this.state.editorHeight}
+                    fontSize={14}
+                    showPrintMargin={false}
+                    showGutter={true}
+                    highlightActiveLine={false}
+                    value={this.props.artifactContent}
+                    readOnly={true}
+                    setOptions={{
+                        enableBasicAutocompletion: false,
+                        enableLiveAutocompletion: false,
+                        enableSnippets: false,
+                        showLineNumbers: true,
+                        tabSize: 2,
+                    }}
+                />
+            </div>
         );
     }
 
     protected initializeState(): ContentTabContentState {
-        return {};
+        return {
+            editorHeight: "500px",
+            editorWidth: "100%"
+        };
     }
 }
 
-// {/*<AceEditor*/}
-// {/*    mode="json"*/}
-// {/*    theme="tomorrow"*/}
-// {/*    name="artifactContent"*/}
-// {/*    fontSize={14}*/}
-// {/*    showPrintMargin={false}*/}
-// {/*    showGutter={true}*/}
-// {/*    highlightActiveLine={false}*/}
-// {/*    value={this.getArtifactContent()}*/}
-// {/*    setOptions={{*/}
-// {/*        enableBasicAutocompletion: false,*/}
-// {/*        enableLiveAutocompletion: false,*/}
-// {/*        enableSnippets: false,*/}
-// {/*        showLineNumbers: true,*/}
-// {/*        tabSize: 2,*/}
-// {/*    }}*/}
-// {/*/>*/}

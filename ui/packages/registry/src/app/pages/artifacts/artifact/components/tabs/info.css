@@ -1,0 +1,33 @@
+.artifact-tab-content {
+    padding: 22px;
+}
+
+.artifact-tab-content .artifact-tab-content-card {
+    min-width: 450px;
+    max-width: 500px;
+}
+
+.artifact-tab-content .artifact-tab-content-card .body .description {
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.artifact-tab-content .artifact-tab-content-card .body .metaData {
+    font-size: 14px;
+}
+
+.artifact-tab-content .artifact-tab-content-card .body .metaData .metaDataItem {
+    width: 100%;
+}
+
+.artifact-tab-content .artifact-tab-content-card .body .metaData .label {
+    font-weight: bold;
+    padding-right: 8px;
+    text-align: right;
+    display: inline-block;
+    width: 100px;
+}
+.artifact-tab-content .artifact-tab-content-card .body .metaData .value {
+    display: inline-block;
+    white-space: nowrap;
+}

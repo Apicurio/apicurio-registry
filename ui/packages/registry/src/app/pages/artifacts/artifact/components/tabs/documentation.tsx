@@ -17,6 +17,7 @@
 
 import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
+import {RedocStandalone} from "redoc";
 
 
 /**
@@ -24,6 +25,7 @@ import {PureComponent, PureComponentProps, PureComponentState} from "../../../..
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ApiDocumentationTabContentProps extends PureComponentProps {
+    artifactContent: string;
 }
 
 /**
@@ -31,6 +33,7 @@ export interface ApiDocumentationTabContentProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface ApiDocumentationTabContentState extends PureComponentState {
+    parsedContent: any;
 }
 
 
@@ -45,11 +48,13 @@ export class ApiDocumentationTabContent extends PureComponent<ApiDocumentationTa
 
     public render(): React.ReactElement {
         return (
-            <h1>API documentation here!</h1>
+            <RedocStandalone spec={this.state.parsedContent} />
         );
     }
 
     protected initializeState(): ApiDocumentationTabContentState {
-        return {};
+        return {
+            parsedContent: JSON.parse(this.props.artifactContent)
+        };
     }
 }

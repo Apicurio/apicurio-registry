@@ -8,6 +8,9 @@ const PORT = process.env.PORT || "8888";
 module.exports = merge(common, {
   mode: "development",
   devtool: "eval-source-map",
+  output: {
+    publicPath: "/"
+  },
   devServer: {
     contentBase: "./dist",
     host: HOST,

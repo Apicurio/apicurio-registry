@@ -1,3 +1,14 @@
-.artifact-page-tabs .pf-c-tabs__item pf-m-current > button::before {
+div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__button::before {
     border-bottom-color: transparent;
+}
+
+.artifact-details-main {
+    display: flex;
+    flex-direction: column;
+}
+
+.artifact-details-main .pf-c-tab-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }

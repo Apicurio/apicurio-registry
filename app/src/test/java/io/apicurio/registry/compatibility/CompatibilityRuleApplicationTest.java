@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.compatibility;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
@@ -34,7 +34,7 @@ import javax.inject.Inject;
  * @author Jakub Senko <jsenko@redhat.com>
  */
 @QuarkusTest
-public class CompatibilityRuleApplicationTest extends AbstractRegistryTestBase {
+public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
 

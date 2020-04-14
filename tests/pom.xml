@@ -27,7 +27,7 @@
         <log4j.version>1.7.30</log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <javax-annotation-api.version>1.2</javax-annotation-api.version>
+        <javax-annotation-api.version>1.3.2</javax-annotation-api.version>
     </properties>
 
     <dependencies>

@@ -35,7 +35,8 @@ public class XsdContentValidator extends XmlContentValidator {
         protected SchemaFactory initialValue() {
             return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         }
-
+        
+        @Override
         public SchemaFactory get() {
             return super.get();
         }
@@ -47,17 +48,13 @@ public class XsdContentValidator extends XmlContentValidator {
      */
     @Override
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
-        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
-            try (InputStream stream = artifactContent.stream()) {
-                // try to parse it
-                threadLocaldocBuilder.get().parse(stream);
-                if (level == ValidityLevel.FULL) {
-                    try (InputStream semanticStream = artifactContent.stream()) {
-                        // validate that its a valid schema
-                        Source source = new StreamSource(semanticStream);
-                        threadLocalSchemaFactory.get().newSchema(source);
-                    }
-                }
+        super.validate(level, artifactContent);
+
+        if (level == ValidityLevel.FULL) {
+            try (InputStream semanticStream = artifactContent.stream()) {
+                // validate that its a valid schema
+                Source source = new StreamSource(semanticStream);
+                threadLocalSchemaFactory.get().newSchema(source);
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XSD Schema artifact.", e);
             }

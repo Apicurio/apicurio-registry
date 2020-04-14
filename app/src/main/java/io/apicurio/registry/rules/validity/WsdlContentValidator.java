@@ -43,7 +43,8 @@ public class WsdlContentValidator extends XmlContentValidator {
             }
             return wsdlReader;
         }
-
+        
+        @Override
         public WSDLReader get() {
             return super.get();
         }
@@ -57,7 +58,6 @@ public class WsdlContentValidator extends XmlContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                // just try to parse it
                 Document wsdlDoc = threadLocaldocBuilder.get().parse(stream);
                 if (level == ValidityLevel.FULL) {
                     // validate that its a valid schema

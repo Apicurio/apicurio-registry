@@ -71,14 +71,13 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.santuario</groupId>
-            <artifactId>xmlsec</artifactId>
-        </dependency>
-        <dependency>
             <groupId>wsdl4j</groupId>
             <artifactId>wsdl4j</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.santuario</groupId>
+            <artifactId>xmlsec</artifactId>
+        </dependency>
         <!-- Kafka Connect -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -88,7 +87,7 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
         </dependency>
-
+        
         <!-- GraphQL -->
         <dependency>
             <groupId>com.graphql-java</groupId>

@@ -44,7 +44,8 @@ public class XmlContentValidator implements ContentValidator {
             }
             return builder;
         }
-
+        
+        @Override
         public DocumentBuilder get() {
             return super.get();
         }
@@ -58,7 +59,6 @@ public class XmlContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                // just try to parse it
                 threadLocaldocBuilder.get().parse(stream);
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XML Schema artifact.", e);

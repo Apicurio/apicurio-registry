@@ -44,12 +44,18 @@ public class XmlContentValidator implements ContentValidator {
             }
             return builder;
         }
-        
+
         @Override
         public DocumentBuilder get() {
             return super.get();
         }
     };
+
+    /**
+     * Constructor.
+     */
+    public XmlContentValidator() {
+    }
 
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,

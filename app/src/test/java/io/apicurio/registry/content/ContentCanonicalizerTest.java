@@ -170,8 +170,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     */
     @Test
     void testXsd() {
-       ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-       ContentCanonicalizer canonicalizer = factory.create(ArtifactType.XSD);
+       ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XSD);
 
        ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
        String expected = resourceToString("xml-schema-expected.xsd");
@@ -185,8 +184,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
      */
      @Test
      void testWsdl() {
-        ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-        ContentCanonicalizer canonicalizer = factory.create(ArtifactType.WSDL);
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.WSDL);
 
         ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
         String expected = resourceToString("wsdl-expected.wsdl");
@@ -200,9 +198,8 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
       */
       @Test
       void testXml() {
-         ContentCanonicalizerFactory factory = new ContentCanonicalizerFactory();
-         ContentCanonicalizer canonicalizer = factory.create(ArtifactType.XML);
-
+         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XML);
+        
          ContentHandle content = resourceToContentHandle("xml-before.xml");
          String expected = resourceToString("xml-expected.xml");
          

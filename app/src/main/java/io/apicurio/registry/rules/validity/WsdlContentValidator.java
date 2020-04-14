@@ -43,12 +43,18 @@ public class WsdlContentValidator extends XmlContentValidator {
             }
             return wsdlReader;
         }
-        
+
         @Override
         public WSDLReader get() {
             return super.get();
         }
     };
+
+    /**
+     * Constructor.
+     */
+    public WsdlContentValidator() {
+    }
 
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,

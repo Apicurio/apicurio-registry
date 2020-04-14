@@ -43,6 +43,11 @@ public class XsdContentValidator extends XmlContentValidator {
     };
 
     /**
+     * Constructor.
+     */
+    public XsdContentValidator() {
+    }
+    /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
      *      io.apicurio.registry.content.ContentHandle)
      */

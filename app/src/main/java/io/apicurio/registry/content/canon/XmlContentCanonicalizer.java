@@ -24,20 +24,19 @@ import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
 import org.xml.sax.SAXException;
-import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
+ * A common XML content canonicalizer.
  * @author cfoskin@redhat.com
  */
-
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 
     static {
         Init.init();
     }
     /**
-     * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {

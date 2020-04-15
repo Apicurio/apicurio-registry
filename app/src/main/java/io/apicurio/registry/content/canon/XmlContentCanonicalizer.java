@@ -32,20 +32,36 @@ import io.apicurio.registry.content.ContentHandle;
  */
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 
+    private static ThreadLocal<Canonicalizer> xmlCanonicalizer = new ThreadLocal<Canonicalizer>() {
+        @Override
+        protected Canonicalizer initialValue() {
+            try {
+                return Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
+            } catch (InvalidCanonicalizerException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public Canonicalizer get() {
+            return super.get();
+        }
+    };
+
     static {
         Init.init();
     }
+
     /**
      * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {
         try {
-            Canonicalizer canon = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
+            Canonicalizer canon = xmlCanonicalizer.get();
             String canonicalized = IoUtil.toString(canon.canonicalize(content.bytes()));
             return ContentHandle.create(canonicalized);
-        } catch (InvalidCanonicalizerException | CanonicalizationException | ParserConfigurationException
-                | IOException | SAXException e) {
+        } catch (CanonicalizationException | ParserConfigurationException | IOException | SAXException e) {
         }
         return content;
     }

@@ -118,7 +118,7 @@
 		<infinispan.version>10.1.5.Final</infinispan.version>
 
 		<!-- gRPC -->
-		<grpc.version>1.28.0</grpc.version>
+		<grpc.version>1.28.1</grpc.version>
 
 		<!-- Confluent API / client -->
 		<confluent.version>5.4.1</confluent.version>

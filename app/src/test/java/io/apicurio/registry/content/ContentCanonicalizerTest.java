@@ -24,7 +24,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import javax.inject.Inject;
 
 /**
@@ -166,5 +165,45 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         Assertions.assertEquals(expected, actual);
     }
 
+    /**
+    * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+    */
+    @Test
+    void testXsd() {
+       ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XSD);
 
+       ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
+       String expected = resourceToString("xml-schema-expected.xsd");
+       
+       String actual = canonicalizer.canonicalize(content).content();
+       Assertions.assertEquals(expected, actual);
+    }
+    
+    /**
+     * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+     */
+     @Test
+     void testWsdl() {
+        ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.WSDL);
+
+        ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
+        String expected = resourceToString("wsdl-expected.wsdl");
+        
+        String actual = canonicalizer.canonicalize(content).content();
+        Assertions.assertEquals(expected, actual);
+     }
+     
+     /**
+      * Test method for {@link io.apicurio.registry.content.ContentCanonicalizerFactory#create(io.apicurio.registry.types.ArtifactType)}.
+      */
+      @Test
+      void testXml() {
+         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.XML);
+        
+         ContentHandle content = resourceToContentHandle("xml-before.xml");
+         String expected = resourceToString("xml-expected.xml");
+         
+         String actual = canonicalizer.canonicalize(content).content();
+         Assertions.assertEquals(expected, actual);
+      }
 }

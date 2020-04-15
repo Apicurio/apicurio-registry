@@ -70,7 +70,14 @@
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
         </dependency>
-        
+        <dependency>
+            <groupId>wsdl4j</groupId>
+            <artifactId>wsdl4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.santuario</groupId>
+            <artifactId>xmlsec</artifactId>
+        </dependency>
         <!-- Kafka Connect -->
         <dependency>
             <groupId>org.apache.kafka</groupId>

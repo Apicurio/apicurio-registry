@@ -136,7 +136,6 @@ objects:
       app: apicurio-registry-kafka
       template: apicurio-registry-kafka
   spec:
-    host: ${REGISTRY_ROUTE}
     to:
       kind: Service
       name: apicurio-registry-kafka
@@ -147,11 +146,6 @@ objects:
     wildcardPolicy: None
 # Template Parameters
 parameters:
-- name: REGISTRY_ROUTE
-  displayName: Registry Route Name
-  description: The route name to use for the Registry api.
-  value: registry.example.com
-  required: true
 - name: REGISTRY_MEM_LIMIT
   displayName: Registry Max Memory Limit
   description: Registry Pods Max Memory Limit

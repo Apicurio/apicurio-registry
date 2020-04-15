@@ -136,7 +136,7 @@ objects:
       app: apicurio-registry-kafka
       template: apicurio-registry-kafka
   spec:
-    host: ${REGISTRY_ROUTE}
+    host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
       name: apicurio-registry-kafka

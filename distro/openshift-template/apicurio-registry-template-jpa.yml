@@ -140,7 +140,7 @@ objects:
       app: apicurio-registry-jpa
       template: apicurio-registry-jpa
   spec:
-    host: ${REGISTRY_ROUTE}
+    host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
       name: apicurio-registry-jpa

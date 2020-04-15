@@ -144,7 +144,7 @@ objects:
       app: apicurio-registry-streams
       template: apicurio-registry-streams
   spec:
-    host: ${REGISTRY_ROUTE}
+    host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
       name: apicurio-registry-streams

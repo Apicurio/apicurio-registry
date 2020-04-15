@@ -137,7 +137,7 @@ objects:
       app: apicurio-registry-mem
       template: apicurio-registry-mem
   spec:
-    host: ${REGISTRY_ROUTE}
+    host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
       name: apicurio-registry-mem

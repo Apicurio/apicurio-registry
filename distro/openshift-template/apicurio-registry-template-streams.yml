@@ -144,6 +144,7 @@ objects:
       app: apicurio-registry-streams
       template: apicurio-registry-streams
   spec:
+    host: ${REGISTRY_ROUTE}
     to:
       kind: Service
       name: apicurio-registry-streams
@@ -154,6 +155,11 @@ objects:
     wildcardPolicy: None
 # Template Parameters
 parameters:
+- name: REGISTRY_ROUTE
+  displayName: Registry Route Name
+  description: The route name to use for the Registry API (leave blank to let OpenShift generate an appropriate route name).
+  value: ''
+  required: true
 - name: REGISTRY_MEM_LIMIT
   displayName: Registry Max Memory Limit
   description: Registry Pods Max Memory Limit

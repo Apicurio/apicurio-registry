@@ -43,11 +43,6 @@ public class WsdlContentValidator extends XmlContentValidator {
             }
             return wsdlReader;
         }
-
-        @Override
-        public WSDLReader get() {
-            return super.get();
-        }
     };
 
     /**

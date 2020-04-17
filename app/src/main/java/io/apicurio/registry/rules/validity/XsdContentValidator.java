@@ -35,11 +35,6 @@ public class XsdContentValidator extends XmlContentValidator {
         protected SchemaFactory initialValue() {
             return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         }
-        
-        @Override
-        public SchemaFactory get() {
-            return super.get();
-        }
     };
 
     /**

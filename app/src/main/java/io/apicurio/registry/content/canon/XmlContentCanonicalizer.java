@@ -41,11 +41,6 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
                 throw new RuntimeException(e);
             }
         }
-
-        @Override
-        public Canonicalizer get() {
-            return super.get();
-        }
     };
 
     static {

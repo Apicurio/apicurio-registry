@@ -462,7 +462,7 @@ public class JPARegistryStorage implements RegistryStorage {
             return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
                 .update(artifact)
                 .toArtifactMetaDataDto();
-        } catch (Exception e) {
+        } catch (PersistenceException e) {
             throw new RegistryStorageException(e);
         }
     }

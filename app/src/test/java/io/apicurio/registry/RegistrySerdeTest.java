@@ -34,6 +34,7 @@ import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.CachedSchemaIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
@@ -96,6 +97,22 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         retry(() -> supplier.get().getArtifactMetaDataByGlobalId(id));
 
         Assertions.assertEquals(id, idStrategy.findId(supplier.get(), artifactId, ArtifactType.AVRO, schema));
+    }
+
+    @RegistryServiceTest
+    public void testCachedSchema(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService service = supplier.get();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5x\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        String artifactId = generateArtifactId();
+
+        GlobalIdStrategy<Schema> idStrategy = new CachedSchemaIdStrategy<>();
+        long id = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
+        service.reset();
+
+        retry(() -> service.getArtifactMetaDataByGlobalId(id));
+
+        Assertions.assertEquals(id, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
     }
 
     @SuppressWarnings("unchecked")

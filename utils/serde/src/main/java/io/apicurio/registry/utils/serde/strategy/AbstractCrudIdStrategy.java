@@ -41,6 +41,9 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
 
     protected abstract long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema);
 
+    protected void afterCreateArtifact(T schema, ArtifactMetaData amd) {
+    }
+
     @Override
     public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
         try {
@@ -49,6 +52,7 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
             if (isNotFound(e.getResponse())) {
                 CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, toStream(schema));
                 ArtifactMetaData amd = unwrap(cs);
+                afterCreateArtifact(schema, amd);
                 return amd.getGlobalId();
             } else {
                 throw new IllegalStateException(String.format(

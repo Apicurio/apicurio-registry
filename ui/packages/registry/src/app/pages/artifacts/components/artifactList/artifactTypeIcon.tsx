@@ -44,12 +44,52 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
 
     public render(): React.ReactElement {
         return (
-            <div className={this.getClassNames()}/>
+            <div className={this.getClassNames()} title={this.getTitle()} />
         );
     }
 
     protected initializeState(): ArtifactTypeIconState {
         return {};
+    }
+
+    private getTitle(): string {
+        let title: string = this.props.type;
+        switch (this.props.type) {
+            case "AVRO":
+                title = "Avro Schema";
+                break;
+            case "PROTOBUF":
+                title = "Protobuf Schema";
+                break;
+            case "PROTOBUF_FD":
+                title = "Protobuf Schema";
+                break;
+            case "JSON":
+                title = "JSON Schema";
+                break;
+            case "OPENAPI":
+                title = "OpenAPI Definition";
+                break;
+            case "ASYNCAPI":
+                title = "AsyncAPI Definition";
+                break;
+            case "GRAPHQL":
+                title = "GraphQL Definition";
+                break;
+            case "KCONNECT":
+                title = "Kafka Connect Schema";
+                break;
+            case "WSDL":
+                title = "WSDL";
+                break;
+            case "XSD":
+                title = "XML Schema";
+                break;
+            case "XML":
+                title = "XML";
+                break;
+        }
+        return title;
     }
 
     private getClassNames(): string {
@@ -78,6 +118,15 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
                 break;
             case "KCONNECT":
                 classes += " kconnect-icon24";
+                break;
+            case "WSDL":
+                classes += " wsdl-icon24";
+                break;
+            case "XSD":
+                classes += " xsd-icon24";
+                break;
+            case "XML":
+                classes += " xml-icon24";
                 break;
         }
         return classes;

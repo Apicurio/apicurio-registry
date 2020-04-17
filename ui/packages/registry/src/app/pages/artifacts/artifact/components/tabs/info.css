@@ -2,12 +2,12 @@
     padding: 22px;
 }
 
-.artifact-tab-content .artifact-tab-content-card {
+.artifact-tab-content .artifact-tab-content-card, .artifact-tab-content .artifact-tab-actions-card {
     min-width: 450px;
     max-width: 500px;
 }
 
-.artifact-tab-content .artifact-tab-content-card .body .description {
+.artifact-tab-content .artifact-tab-content-card .body .description, .artifact-tab-content .artifact-tab-actions-card .body .description {
     font-size: 13px;
     margin-bottom: 10px;
 }

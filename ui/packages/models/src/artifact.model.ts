@@ -24,6 +24,8 @@ export class Artifact {
         artifact.type = type;
         artifact.name = name;
         artifact.description = description;
+        artifact.createdBy = "user";
+        artifact.createdOn = new Date();
         if (labels) {
             artifact.labels = labels;
         }

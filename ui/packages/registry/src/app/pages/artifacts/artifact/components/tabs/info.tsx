@@ -21,6 +21,7 @@ import {Card, CardBody, CardFooter, CardHeader, Flex, FlexItem} from "@patternfl
 import {ArtifactTypeIcon} from "../../../components/artifactList";
 import {ArtifactMetaData} from "@apicurio/registry-models";
 import "./info.css";
+import {CodeIcon, DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
 
 /**
  * Properties
@@ -83,11 +84,41 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 </div>
                             </div>
                         </CardBody>
-                        <CardFooter>Footer</CardFooter>
+                        <CardFooter />
                     </Card>
                 </FlexItem>
                 <FlexItem>
-                    <div />
+                    <Card className="artifact-tab-actions-card">
+                        <CardHeader>
+                            <span className="card-title">Actions</span>
+                        </CardHeader>
+                        <CardBody className="body">
+                            <div className="description">The following are the actions available for this artifact (note that some actions are only available for certain artifact types).</div>
+                            <ul>
+                                <li>
+                                    <a href="#">
+                                        <DownloadIcon />
+                                        <span>&nbsp;</span>
+                                        <span>Download</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <Remove2Icon />
+                                        <span>&nbsp;</span>
+                                        <span>Delete</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <CodeIcon />
+                                        <span>&nbsp;</span>
+                                        <span>Generate Client SDK</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </CardBody>
+                    </Card>
                 </FlexItem>
             </Flex>
         );

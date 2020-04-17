@@ -21,6 +21,7 @@ import {BrowserRouter as Router, Route} from 'react-router-dom';
 import {Header} from "./components/header";
 import {ArtifactsPage} from "./pages/artifacts";
 import {ArtifactPage} from "./pages/artifacts/artifact";
+import {RulesPage} from "./pages/rules";
 
 
 /**
@@ -41,6 +42,7 @@ export default class App extends React.PureComponent<{}, {}> {
                     header={<Header/>}
                 >
                     <Route path='/' exact={true} component={ArtifactsPage}/>
+                    <Route path='/rules' exact={true} component={RulesPage}/>
                     <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
                     <Route path='/artifacts/:artifactId' exact={true} component={ArtifactPage}/>
                 </Page>

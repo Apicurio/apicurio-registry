@@ -36,6 +36,7 @@ import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
+import {useHistory} from "react-router";
 
 
 /**
@@ -161,7 +162,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
             Services.getArtifactsService().createArtifact(this.state.uploadFormData).then(metaData => {
-                // TODO handle async response!
+                const artifactLocation: string = `/artifacts/${ metaData.id }`;
+                Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
+                // @ts-ignore
+                this.props.history.push(artifactLocation);
             }).catch( error => {
                 // TODO handle the error!!
             });

@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.util;
 
+import java.io.InputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.idl.SchemaParser;
@@ -23,35 +32,56 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.ProtobufFile;
+import io.apicurio.registry.rules.validity.InvalidContentException;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public final class ArtifactTypeUtil {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
-    
+
+    protected static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
+        @Override
+        protected DocumentBuilder initialValue() {
+            DocumentBuilder builder = null;
+            try {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(true);
+                builder = factory.newDocumentBuilder();
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            return builder;
+        }
+
+        @Override
+        public DocumentBuilder get() {
+            return super.get();
+        }
+    };
+
     /**
      * Constructor.
      */
     private ArtifactTypeUtil() {
     }
-    
+
     /**
-     * Method that discovers the artifact type from the raw content of an artifact.  This will
-     * attempt to parse the content (with the optional provided Content Type as a hint) and figure
-     * out what type of artifact it is.  Examples include Avro, Protobuf, OpenAPI, etc.  Most
-     * of the supported artifact types are JSON formatted.  So in these cases we will need to 
-     * look for some sort of type-specific marker in the content of the artifact.  The method 
-     * does its best to figure out the type, but will default to Avro if all else fails.
+     * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
+     * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
+     * is. Examples include Avro, Protobuf, OpenAPI, etc. Most of the supported artifact types are JSON
+     * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
+     * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
+     * fails.
      * 
      * @param content
      * @param contentType
      */
     public static ArtifactType discoverType(ContentHandle content, String contentType) {
         boolean triedProto = false;
-        
+
         // If the content-type suggests it's protobuf, try that first.
         if (contentType == null || contentType.toLowerCase().contains("proto")) {
             triedProto = true;
@@ -60,11 +90,11 @@ public final class ArtifactTypeUtil {
                 return type;
             }
         }
-        
+
         // Try the various JSON formatted types
         try {
             JsonNode tree = mapper.readTree(content.content());
-            
+
             // OpenAPI
             if (tree.has("openapi") || tree.has("swagger")) {
                 return ArtifactType.OPENAPI;
@@ -84,7 +114,7 @@ public final class ArtifactTypeUtil {
         } catch (Exception e) {
             // Apparently it's not JSON.
         }
-        
+
         // Try protobuf (only if we haven't already)
         if (!triedProto) {
             ArtifactType type = tryProto(content);
@@ -92,12 +122,39 @@ public final class ArtifactTypeUtil {
                 return type;
             }
         }
-        
+
         // Try GraphQL (SDL)
         if (tryGraphQL(content)) {
             return ArtifactType.GRAPHQL;
         }
-        
+
+        // Try the various XML formatted types
+        try (InputStream stream = content.stream()) {
+            Document xmlDocument = threadLocaldocBuilder.get().parse(stream);
+            Element root = xmlDocument.getDocumentElement();
+            String ns = root.getNamespaceURI();
+
+            if (ns == null) {
+                // XML
+                return ArtifactType.XML;
+            }
+
+            // XSD
+            if (ns.contains("www.w3.org/2001/XMLSchema")) {
+                return ArtifactType.XSD;
+            }
+
+            // WSDL
+            if (ns.contains("schemas.xmlsoap.org/wsdl")) {
+                return ArtifactType.WSDL;
+            }
+            // default to XML since its been parsed
+            return ArtifactType.XML;
+
+        } catch (Exception e) {
+            // It's not XML.
+        }
+
         // Default to Avro
         return ArtifactType.AVRO;
     }
@@ -117,7 +174,7 @@ public final class ArtifactTypeUtil {
         }
         return null;
     }
-    
+
     private static boolean tryGraphQL(ContentHandle content) {
         try {
             TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(content.content());

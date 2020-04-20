@@ -137,6 +137,10 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("wsdl.wsdl");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.WSDL, type);
+        
+        content = resourceToContentHandle("wsdl-2.0.wsdl");
+        type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.WSDL, type);
     }
 
 }

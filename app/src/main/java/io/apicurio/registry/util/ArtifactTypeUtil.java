@@ -54,11 +54,6 @@ public final class ArtifactTypeUtil {
             }
             return builder;
         }
-
-        @Override
-        public DocumentBuilder get() {
-            return super.get();
-        }
     };
 
     /**
@@ -133,23 +128,17 @@ public final class ArtifactTypeUtil {
             Element root = xmlDocument.getDocumentElement();
             String ns = root.getNamespaceURI();
 
-            if (ns == null) {
-                // XML
+            // XSD
+            if (ns != null && ns.equals("http://www.w3.org/2001/XMLSchema")) {
+                return ArtifactType.XSD;
+            } // WSDL
+            else if (ns != null && (ns.equals("http://schemas.xmlsoap.org/wsdl/")
+                    || ns.equals("http://www.w3.org/ns/wsdl/"))) {
+                return ArtifactType.WSDL;
+            } else {
+                // default to XML since its been parsed
                 return ArtifactType.XML;
             }
-
-            // XSD
-            if (ns.contains("www.w3.org/2001/XMLSchema")) {
-                return ArtifactType.XSD;
-            }
-
-            // WSDL
-            if (ns.contains("schemas.xmlsoap.org/wsdl")) {
-                return ArtifactType.WSDL;
-            }
-            // default to XML since its been parsed
-            return ArtifactType.XML;
-
         } catch (Exception e) {
             // It's not XML.
         }

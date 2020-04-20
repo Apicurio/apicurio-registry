@@ -1,0 +1,31 @@
+{
+  "$id": "https://example.com/arrays.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "A representation of a person, company, organization, or place",
+  "type": "array",
+  "items": [
+    {
+      "type": "string"
+    },
+    {
+      "type": "string"
+    },
+    {
+      "type": "string",
+      "enum": [
+        "Street",
+        "Avenue",
+        "Boulevard"
+      ]
+    },
+    {
+      "type": "string",
+      "enum": [
+        "NW",
+        "NE",
+        "SW",
+        "SE"
+      ]
+    }
+  ]
+}

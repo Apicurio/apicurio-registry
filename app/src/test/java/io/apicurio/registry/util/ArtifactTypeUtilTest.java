@@ -108,5 +108,39 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.AVRO, type);
     }
+    
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_Xml() {
+        ContentHandle content = resourceToContentHandle("xml.xml");
+        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.XML, type);
+    }
+    
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_Xsd() {
+        ContentHandle content = resourceToContentHandle("xml-schema.xsd");
+        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.XSD, type);
+    }
+    
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_Wsdl() {
+        ContentHandle content = resourceToContentHandle("wsdl.wsdl");
+        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.WSDL, type);
+        
+        content = resourceToContentHandle("wsdl-2.0.wsdl");
+        type = ArtifactTypeUtil.discoverType(content, null);
+        Assertions.assertEquals(ArtifactType.WSDL, type);
+    }
 
 }

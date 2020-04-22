@@ -44,7 +44,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
     public void testSmoke(Supplier<RegistryService> supplier) {
-        supplier.get().deleteAllGlobalRules();
+        RegistryService service = supplier.get();
+
+        service.deleteAllGlobalRules();
+
+        Assertions.assertNotNull(service.toString());
+        Assertions.assertEquals(service.hashCode(), service.hashCode());
+        Assertions.assertEquals(service, service);
     }
 
     @RegistryServiceTest

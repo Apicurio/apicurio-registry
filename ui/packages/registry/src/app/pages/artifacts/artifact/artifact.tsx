@@ -22,10 +22,9 @@ import {PageComponent, PageProps, PageState} from "../../basePage";
 import {ArtifactPageHeader} from "./components/pageheader";
 import {ArtifactMetaData} from "@apicurio/registry-models";
 import {
-    ApiDocumentationTabContent,
+    DocumentationTabContent,
     ContentTabContent,
     InfoTabContent,
-    RulesTabContent,
     VersionsTabContent
 } from "./components/tabs";
 import {Services} from "@apicurio/registry-services";
@@ -41,12 +40,12 @@ export interface ArtifactPageProps extends PageProps {
 /**
  * State
  */
-// tslint:disable-next-line:no-empty-interface
 export interface ArtifactPageState extends PageState {
     activeTabKey: number;
     artifact: ArtifactMetaData | null;
     artifactContent: string;
     artifactIsText: boolean;
+    isUploadModalOpen: boolean;
 }
 
 /**
@@ -61,30 +60,27 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     public render(): React.ReactElement {
         const artifact: ArtifactMetaData = this.state.artifact ? this.state.artifact : new ArtifactMetaData();
         const tabs: React.ReactNode[] = [
-            <Tab eventKey={0} title="Artifact Info" key="info" tabContentId="tab-info">
+            <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact} />
             </Tab>,
-            <Tab eventKey={1} title="Rules" key="rules" tabContentId="tab-rules">
-                <RulesTabContent />
+            <Tab eventKey={1} title="Documentation" key="documentation">
+                <DocumentationTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} />
             </Tab>,
             <Tab eventKey={2} title="Content" key="content">
                 <ContentTabContent artifactContent={this.state.artifactContent} />
             </Tab>,
-            <Tab eventKey={3} title="API Documentation" key="api-documentation">
-                <ApiDocumentationTabContent artifactContent={this.state.artifactContent} />
-            </Tab>,
-            <Tab eventKey={4} title="Versions" key="versions">
+            <Tab eventKey={3} title="Versions" key="versions">
                 <VersionsTabContent />
             </Tab>
         ];
-        if (!this.isOpenApi()) {
-            tabs.splice(3, 1);
+        if (!this.showDocumentationTab()) {
+            tabs.splice(1, 1);
         }
 
         return (
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactPageHeader onUploadVersion={console.info} />
+                    <ArtifactPageHeader onUploadVersion={this.onUploadVersion} />
                 </PageSection>
                 {
                     this.state.isLoading ?
@@ -95,7 +91,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
                     </Flex>
                 </PageSection>
                     :
-                <PageSection variant={PageSectionVariants.default} isFilled={true} noPadding={true} className="artifact-details-main">
+                <PageSection variant={PageSectionVariants.light} isFilled={true} noPadding={true} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                           unmountOnExit={true}
                           isFilled={true}
@@ -115,7 +111,8 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             artifact: null,
             artifactContent: "",
             artifactIsText: true,
-            isLoading: true
+            isLoading: true,
+            isUploadModalOpen: false
         };
     }
 
@@ -138,6 +135,10 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         this.setSingleState("activeTabKey", tabIndex);
     };
 
+    private onUploadVersion = (): void => {
+        this.setSingleState("isUploadModalOpen", true);
+    };
+
     private getArtifactContent(): string {
         if (this.state.artifactContent != null) {
             return JSON.stringify(this.state.artifactContent, null, 4);
@@ -146,9 +147,9 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         }
     }
 
-    private isOpenApi(): boolean {
+    private showDocumentationTab(): boolean {
         if (this.state.artifact) {
-            return this.state.artifact.type === "OPENAPI";
+            return this.state.artifact.type === "OPENAPI" || this.state.artifact.type === "ASYNCAPI";
         } else {
             return false;
         }

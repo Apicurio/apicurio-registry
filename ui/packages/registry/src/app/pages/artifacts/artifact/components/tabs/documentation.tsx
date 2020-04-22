@@ -18,21 +18,23 @@
 import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
 import {RedocStandalone} from "redoc";
+import "./documentation.css";
 
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ApiDocumentationTabContentProps extends PureComponentProps {
+export interface DocumentationTabContentProps extends PureComponentProps {
     artifactContent: string;
+    artifactType: string;
 }
 
 /**
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ApiDocumentationTabContentState extends PureComponentState {
+export interface DocumentationTabContentState extends PureComponentState {
     parsedContent: any;
 }
 
@@ -40,19 +42,26 @@ export interface ApiDocumentationTabContentState extends PureComponentState {
 /**
  * Models the content of the Artifact Info tab.
  */
-export class ApiDocumentationTabContent extends PureComponent<ApiDocumentationTabContentProps, ApiDocumentationTabContentState> {
+export class DocumentationTabContent extends PureComponent<DocumentationTabContentProps, DocumentationTabContentState> {
 
-    constructor(props: Readonly<ApiDocumentationTabContentProps>) {
+    constructor(props: Readonly<DocumentationTabContentProps>) {
         super(props);
     }
 
     public render(): React.ReactElement {
-        return (
-            <RedocStandalone spec={this.state.parsedContent} />
-        );
+        let visualizer: React.ReactElement | null = null;
+        if (this.props.artifactType === "OPENAPI") {
+            visualizer = <RedocStandalone spec={this.state.parsedContent} />;
+        }
+
+        if (visualizer !== null) {
+            return visualizer;
+        } else {
+            return <h1>Unsupported Type: { this.props.artifactType }</h1>
+        }
     }
 
-    protected initializeState(): ApiDocumentationTabContentState {
+    protected initializeState(): DocumentationTabContentState {
         return {
             parsedContent: JSON.parse(this.props.artifactContent)
         };

@@ -20,6 +20,7 @@ import {PureComponent, PureComponentProps, PureComponentState} from "../../../..
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/theme-tomorrow";
+import "ace-builds/src-noconflict/theme-monokai";
 import "./content.css";
 
 
@@ -67,7 +68,7 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
             <div className="ace-wrapper" id="ace-wrapper">
                 <AceEditor
                     mode="json"
-                    theme="tomorrow"
+                    theme="monokai"
                     name="artifactContent"
                     className="artifactContent"
                     width={this.state.editorWidth}

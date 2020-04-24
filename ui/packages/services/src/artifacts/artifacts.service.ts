@@ -59,7 +59,7 @@ export class ArtifactsService {
 
     constructor() {
         const artifacts: Artifact[] = [
-            Artifact.create("1", "OPENAPI", "Library API", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", [ "books", "library", "authors" ]),
+            Artifact.create("1", "OPENAPI", "Biotech API", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", [ "books", "library", "authors" ]),
             Artifact.create("2", "ASYNCAPI", "Street Light API", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", [ "async", "led", "electric", "utility"] ),
             Artifact.create("3", "AVRO", "Invoice Type", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."),
             Artifact.create("4", "AVRO", "Service Record Type", "Sint noster pro ei. Iudico ancillae repudiandae mel ad, errem signiferumque ad est. ", [ "schema", "utility"]),

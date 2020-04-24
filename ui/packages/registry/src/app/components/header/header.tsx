@@ -17,7 +17,7 @@
 
 import React from 'react';
 import {Brand, PageHeader} from '@patternfly/react-core';
-import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_200px.png';
+import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
 
 export const Header: React.FunctionComponent<any> = () => {
     return (<PageHeader

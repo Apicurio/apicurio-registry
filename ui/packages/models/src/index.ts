@@ -17,4 +17,5 @@
 
 export * from './artifact.model';
 export * from './artifactMetaData.model';
+export * from './rule.model';
 export * from './versionMetaData.model';

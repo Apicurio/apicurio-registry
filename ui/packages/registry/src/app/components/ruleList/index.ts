@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-export * from './content';
-export * from './documentation';
-export * from './info';
-export * from './versions';
+export * from './ruleList';
+export * from './compatibility-dropdown';
+export * from './validity-dropdown';

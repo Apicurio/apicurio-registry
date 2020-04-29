@@ -16,14 +16,53 @@
  */
 
 import React from 'react';
-import {Brand, PageHeader} from '@patternfly/react-core';
+import {Brand, Button, ButtonVariant, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
 import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
+import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
+import {ArtifactsPageEmptyStateState} from "../../pages/artifacts/components/empty";
+import {CogIcon} from "@patternfly/react-icons";
+import {Link} from "react-router-dom";
+import "./header.css"
+import {Services} from "@apicurio/registry-services";
 
-export const Header: React.FunctionComponent<any> = () => {
-    return (<PageHeader
-        logo={<Brand src={brandImg} alt="Apicurio"/>}
-        showNavToggle={false}
-    />);
+
+// tslint:disable-next-line:no-empty-interface
+export interface AppHeaderProps extends PureComponentProps {
 }
 
-export default Header;
+// tslint:disable-next-line:no-empty-interface
+export interface AppHeaderState extends PureComponentState {
+}
+
+
+export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
+
+    constructor(props: Readonly<AppHeaderProps>) {
+        super(props);
+    }
+
+    public render(): React.ReactElement {
+        const pageToolbar: React.ReactElement = (
+            <Toolbar className="header-toolbar">
+                <ToolbarGroup>
+                    <ToolbarItem>
+                        <Link className="header-icon" to={ `/rules` }>
+                            <CogIcon />
+                        </Link>
+                    </ToolbarItem>
+                </ToolbarGroup>
+            </Toolbar>
+        );
+
+        return (<PageHeader
+            logo={<Brand onClick={this.navigateTo("/artifacts")} src={brandImg} alt="Apicurio Registry"/>}
+            showNavToggle={false}
+            toolbar={pageToolbar}
+        />);
+    }
+
+    protected initializeState(): ArtifactsPageEmptyStateState {
+        return {};
+    }
+
+}

@@ -16,25 +16,12 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
-import {
-    Button,
-    DataList,
-    DataListAction,
-    DataListCell,
-    DataListItem,
-    DataListItemCells,
-    DataListItemRow,
-    Flex,
-    FlexItem,
-    Split,
-    SplitItem
-} from "@patternfly/react-core";
+import {PureComponent, PureComponentProps, PureComponentState, RuleList} from "../../../../../components";
+import {Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactTypeIcon} from "../../../components/artifactList";
 import {ArtifactMetaData} from "@apicurio/registry-models";
 import "./info.css";
-import {CodeBranchIcon, CodeIcon, DownloadIcon, OkIcon, Remove2Icon, TrashIcon} from "@patternfly/react-icons";
-import {CompatibilityDropdown} from "./components/compatibility-dropdown";
+import {CodeIcon, DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
 
 /**
  * Properties
@@ -111,45 +98,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>
-                    <DataList aria-label="Artifact rules">
-                        <DataListItem aria-labelledby="rule-name-1">
-                            <DataListItemRow className="rule disabled">
-                                <DataListItemCells dataListCells={[
-                                    <DataListCell key="rule-name" width={2}>
-                                        <OkIcon className="rule-icon" />
-                                        <span id="rule-name-1">Validity Rule</span>
-                                    </DataListCell>,
-                                    <DataListCell key="rule-description" width={4}>Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
-                                ]}
-                                />
-                                <DataListAction
-                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                    id="selectable-action-action1"
-                                    aria-label="Actions" width={2}
-                                >
-                                    <Button variant="primary" key="enable-action">Enable</Button>
-                                </DataListAction>
-                            </DataListItemRow>
-                            <DataListItemRow className="rule">
-                                <DataListItemCells dataListCells={[
-                                    <DataListCell key="rule-name" width={2}>
-                                        <CodeBranchIcon className="rule-icon" />
-                                        <span id="rule-name-2">Compatibility Rule</span>
-                                    </DataListCell>,
-                                    <DataListCell key="rule-description" width={4}>Enforce a compatibility level when updating this artifact (e.g. Backwards Compatibility).</DataListCell>
-                                ]}
-                                />
-                                <DataListAction
-                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                    id="selectable-action-action2"
-                                    aria-label="Actions" width={2}
-                                >
-                                    <CompatibilityDropdown value="FORWARD" />
-                                    <Button variant="plain" key="delete-action"><TrashIcon /></Button>
-                                </DataListAction>
-                            </DataListItemRow>
-                        </DataListItem>
-                    </DataList>
+                    <RuleList rules={[]}/>
                 </FlexItem>
             </Flex>
         );

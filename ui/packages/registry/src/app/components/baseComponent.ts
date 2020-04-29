@@ -32,6 +32,8 @@ export interface PureComponentState {
  */
 export abstract class PureComponent<P extends PureComponentProps, S extends PureComponentState, SS = {}> extends React.PureComponent<P, S, SS> {
 
+    private static HISTORY: any = null;
+
     protected constructor(properties: Readonly<P>) {
         super(properties);
         this.state = this.initializeState();
@@ -42,6 +44,10 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
 
     protected postConstruct(): void {
         // Can optionally be overridden by subclasses.
+    }
+
+    protected setHistory(history: any): void {
+        PureComponent.HISTORY = history;
     }
 
     protected setSingleState(key: string, value: any, callback?: () => void): void {
@@ -56,5 +62,18 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
             ...newState
         }, callback);
     }
+
+    protected navigateTo = (location: string): () => void => {
+        // @ts-ignore
+        return () => {
+            const history: any = PureComponent.HISTORY;
+            if (history) {
+                Services.getLoggerService().info("Navigating to:", location);
+                history.push(location);
+            } else {
+                Services.getLoggerService().warn("Navigation impossible, null/undefined history.");
+            }
+        };
+    };
 
 }

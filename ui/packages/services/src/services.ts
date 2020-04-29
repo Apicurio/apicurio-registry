@@ -17,10 +17,12 @@
 import {ArtifactsService} from "./artifacts";
 import {ConfigService} from "./config";
 import {LoggerService} from "./logger";
+import {GlobalsService} from "./globals";
 
 interface AllServices {
     artifacts: ArtifactsService;
     config: ConfigService;
+    globals: GlobalsService;
     logger: LoggerService;
 }
 
@@ -41,9 +43,14 @@ export class Services {
         return Services.all.logger;
     }
 
+    public static getGlobalsService(): GlobalsService {
+        return Services.all.globals;
+    }
+
     private static all: any = {
         artifacts: new ArtifactsService(),
         config: new ConfigService(),
+        globals: new GlobalsService(),
         logger: new LoggerService()
     };
 

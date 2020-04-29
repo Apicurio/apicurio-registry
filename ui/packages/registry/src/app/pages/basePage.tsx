@@ -45,6 +45,12 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         this.loadPageData();
     }
 
+    protected postConstruct(): void {
+        // @ts-ignore
+        this.setHistory(this.props.history);
+        super.postConstruct();
+    }
+
     protected loadPageData(): void {
         // Default implementation assumes the page does not need to load any data.
         this.setSingleState("isLoading", false);

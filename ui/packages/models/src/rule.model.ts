@@ -15,4 +15,21 @@
  * limitations under the License.
  */
 
-export * from './compatibility-dropdown';
+export class Rule {
+
+    public static create(type: string, config: string): Rule {
+        const rule: Rule = new Rule();
+        rule.type = type;
+        rule.config = config;
+        return rule;
+    }
+
+    public type: string;
+    public config: string;
+
+    constructor() {
+        this.type = "";
+        this.config = null;
+    }
+
+}

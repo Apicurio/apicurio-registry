@@ -16,9 +16,9 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../../components";
 import {Dropdown, DropdownItem, DropdownToggle} from "@patternfly/react-core";
 import {CaretDownIcon} from "@patternfly/react-icons";
+import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 
 
 /**
@@ -26,6 +26,7 @@ import {CaretDownIcon} from "@patternfly/react-icons";
  */
 export interface CompatibilityDropdownProps extends PureComponentProps {
     value: string;
+    onSelect: (newValue: string) => void;
 }
 
 /**
@@ -47,12 +48,12 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
 
     public render(): React.ReactElement {
         const dropdownItems = [
-            <DropdownItem key="BACKWARD">Backward</DropdownItem>,
-            <DropdownItem key="BACKWARD_TRANSITIVE">Backward Transitive</DropdownItem>,
-            <DropdownItem key="FORWARD">Forward</DropdownItem>,
-            <DropdownItem key="FORWARD_TRANSITIVE">Forward Transitive</DropdownItem>,
-            <DropdownItem key="FULL">Full</DropdownItem>,
-            <DropdownItem key="FULL_TRANSITIVE">Full Transitive</DropdownItem>,
+            <DropdownItem key="BACKWARD" id="BACKWARD">Backward</DropdownItem>,
+            <DropdownItem key="BACKWARD_TRANSITIVE" id="BACKWARD_TRANSITIVE">Backward Transitive</DropdownItem>,
+            <DropdownItem key="FORWARD" id="FORWARD">Forward</DropdownItem>,
+            <DropdownItem key="FORWARD_TRANSITIVE" id="FORWARD_TRANSITIVE">Forward Transitive</DropdownItem>,
+            <DropdownItem key="FULL" id="FULL">Full</DropdownItem>,
+            <DropdownItem key="FULL_TRANSITIVE" id="FULL_TRANSITIVE">Full Transitive</DropdownItem>,
         ];
         return (
             <Dropdown
@@ -79,7 +80,9 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
     };
 
     private onSelect = (event: any): void => {
-        console.info(event);
+        const newValue: string = event && event.currentTarget && event.currentTarget.id ? event.currentTarget.id : "";
+        this.props.onSelect(newValue);
+        this.onToggle(false);
     };
 
     private displayValue(): string {

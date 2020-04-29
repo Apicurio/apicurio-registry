@@ -16,4 +16,5 @@
  */
 
 export * from './header';
+export * from './ruleList';
 export * from './baseComponent';

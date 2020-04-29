@@ -77,14 +77,3 @@
     font-size: 17px;
     font-weight: bold;
 }
-
-.artifact-tab-content .artifact-rules .rule {
-}
-
-.artifact-tab-content .artifact-rules .rule .rule-icon {
-    margin-right: 5px;
-}
-
-.artifact-tab-content .artifact-rules .rule.disabled .pf-c-data-list__item-content {
-    opacity: 50%;
-}

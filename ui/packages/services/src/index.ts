@@ -17,5 +17,6 @@
 
 export * from './artifacts';
 export * from './config';
+export * from './globals';
 export * from './logger';
 export * from './services';

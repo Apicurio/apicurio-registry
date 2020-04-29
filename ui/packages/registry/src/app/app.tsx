@@ -18,7 +18,7 @@
 import React from "react";
 import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route} from 'react-router-dom';
-import {Header} from "./components/header";
+import {AppHeader} from "./components/header";
 import {ArtifactsPage} from "./pages/artifacts";
 import {ArtifactPage} from "./pages/artifacts/artifact";
 import {RulesPage} from "./pages/rules";
@@ -39,7 +39,7 @@ export default class App extends React.PureComponent<{}, {}> {
                 <Page
                     className="pf-m-redhat-font"
                     isManagedSidebar={false}
-                    header={<Header/>}
+                    header={<AppHeader/>}
                 >
                     <Route path='/' exact={true} component={ArtifactsPage}/>
                     <Route path='/rules' exact={true} component={RulesPage}/>

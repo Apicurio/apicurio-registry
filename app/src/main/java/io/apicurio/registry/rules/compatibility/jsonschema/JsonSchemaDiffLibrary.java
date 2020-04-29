@@ -17,26 +17,19 @@
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
 
+import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
  */
 public class JsonSchemaDiffLibrary {
-
-    public static final ObjectMapper MAPPER = new ObjectMapper();
-
-    static {
-        MAPPER.registerModule(new JsonOrgModule());
-    }
 
     /**
      * Find and analyze differences between two JSON schemas.

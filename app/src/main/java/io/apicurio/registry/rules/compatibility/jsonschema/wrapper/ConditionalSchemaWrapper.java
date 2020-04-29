@@ -51,7 +51,7 @@ public class ConditionalSchemaWrapper implements SchemaWrapper {
     }
 
     public Optional<SchemaWrapper> getThenSchema() {
-        return wrap(wrapped.getIfSchema());
+        return wrap(wrapped.getThenSchema());
     }
 
     public Optional<SchemaWrapper> getElseSchema() {

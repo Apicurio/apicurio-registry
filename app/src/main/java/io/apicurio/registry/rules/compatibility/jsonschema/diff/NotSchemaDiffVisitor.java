@@ -21,9 +21,12 @@ import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.NotSchemaWrap
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.SchemaWrapper;
 import org.everit.json.schema.NotSchema;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_NOT_BACKWARD_COMPATIBLE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_NOT_FORWARD_COMPATIBLE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_COMPATIBLE_BOTH;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NOT_TYPE_SCHEMA_COMPATIBLE_NONE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.compareSchema;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -44,30 +47,13 @@ public class NotSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     }
 
     public void visitSchemaMustNotMatch(SchemaWrapper mustNotMatch) {
-        // We must not only make sure this schema is compatible one way,
-        // but both ways, because of the negation.
-        // *Updated* may match all of those which *original* matches,
-        // but *updated* may then match some that *original* does not.
-        // Therefore some schema may be rejected that previously was not.
-        // TODO Put this into top level 'library' methods
-        DiffContext rootCtx = DiffContext.createRootContext();
-        new SchemaDiffVisitor(rootCtx, original)
-            .visit(mustNotMatch);
-        boolean forward = rootCtx.foundAllDifferencesAreCompatible();
-
-        rootCtx = DiffContext.createRootContext();
-        new SchemaDiffVisitor(rootCtx, mustNotMatch.getWrapped())
-            .visit(wrap(original));
-        boolean backward = rootCtx.foundAllDifferencesAreCompatible();
-
-        DiffContext subCtx = ctx.sub("not");
-        if (!forward) {
-            subCtx.addDifference(NOT_TYPE_SCHEMA_NOT_FORWARD_COMPATIBLE, original, mustNotMatch);
-        }
-        if (!backward) {
-            subCtx.addDifference(NOT_TYPE_SCHEMA_NOT_BACKWARD_COMPATIBLE, original, mustNotMatch);
-        }
-
+        compareSchema(ctx.sub("not"), original.getMustNotMatch(), mustNotMatch.getWrapped(),
+            UNDEFINED_UNUSED,
+            UNDEFINED_UNUSED,
+            NOT_TYPE_SCHEMA_COMPATIBLE_BOTH,
+            NOT_TYPE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
+            NOT_TYPE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD,
+            NOT_TYPE_SCHEMA_COMPATIBLE_NONE);
         super.visitSchemaMustNotMatch(mustNotMatch);
     }
 }

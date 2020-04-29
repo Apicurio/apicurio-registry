@@ -34,7 +34,6 @@ import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.StringSchemaW
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.TrueSchemaWrapper;
 import org.everit.json.schema.CombinedSchema;
 import org.everit.json.schema.CombinedSchema.ValidationCriterion;
-import org.everit.json.schema.FormatValidator;
 
 import java.util.List;
 import java.util.Map;
@@ -53,6 +52,7 @@ public abstract class JsonSchemaWrapperVisitor {
 
     public void visitNumberSchema(NumberSchemaWrapper numberSchema) {
         visitSchema(numberSchema);
+        visitRequiredInteger(numberSchema.requiresInteger());
         visitExclusiveMinimum(numberSchema.isExclusiveMinimum());
         visitMinimum(numberSchema.getMinimum());
         visitExclusiveMinimumLimit(numberSchema.getExclusiveMinimumLimit());
@@ -60,6 +60,9 @@ public abstract class JsonSchemaWrapperVisitor {
         visitMaximum(numberSchema.getMaximum());
         visitExclusiveMaximumLimit(numberSchema.getExclusiveMaximumLimit());
         visitMultipleOf(numberSchema.getMultipleOf());
+    }
+
+    public void visitRequiredInteger(boolean requiresInteger) {
     }
 
     public void visitMinimum(Number minimum) {
@@ -314,13 +317,17 @@ public abstract class JsonSchemaWrapperVisitor {
 
     public void visitStringSchema(StringSchemaWrapper stringSchema) {
         visitSchema(stringSchema);
-        visitMinLength(stringSchema.getMinLength());
-        visitMaxLength(stringSchema.getMaxLength());
-        visitPattern(stringSchema.getWrapped().getPattern());
-        visitFormat(stringSchema.getFormatValidator());
+        if (stringSchema.getMinLength() != null)
+            visitMinLength(stringSchema.getMinLength());
+        if (stringSchema.getMaxLength() != null)
+            visitMaxLength(stringSchema.getMaxLength());
+        if (stringSchema.getPattern() != null)
+            visitPattern(stringSchema.getPattern());
+        if (stringSchema.getFormatValidator() != null)
+            visitFormat(stringSchema.getFormatValidator().formatName());
     }
 
-    public void visitFormat(FormatValidator formatValidator) {
+    public void visitFormat(String formatName) {
     }
 
     public void visitPattern(Pattern pattern) {

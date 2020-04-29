@@ -20,14 +20,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary.findDifferences;
 
 /**
- *
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(JsonSchemaSmokeTest.class);
 
     public static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -35,16 +44,81 @@ public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
         MAPPER.registerModule(new JsonOrgModule());
     }
 
-
     @Test
     public void testComparison() throws Exception {
-        // TODO Do this automatically
 
-        // Case 1
-        DiffContext dctx = null;
-        dctx = findDifferences(
-            resourceToString("schema-4.1.json"),
-            resourceToString("schema-4.2.json"));
-        System.out.println(dctx);
+        Set<String> failed = new HashSet<>(); // TODO add diff
+
+        JSONObject testData = MAPPER.readValue(resourceToString("compatibility-test-data.json"), JSONObject.class);
+        JSONArray testCasesData = testData.getJSONArray("tests");
+        for (Object testCaseData_ : testCasesData) {
+            JSONObject testCaseData = (JSONObject) testCaseData_;
+
+            String caseId = testCaseData.getString("id");
+
+            if (!testCaseData.getBoolean("enabled")) {
+                log.warn("Skipping {}", caseId);
+                continue;
+            }
+
+            //log.warn("Case: {}", caseId);
+
+            // backward
+            DiffContext backward = findDifferences(
+                testCaseData.get("original").toString(),
+                testCaseData.get("updated").toString());
+
+            // forward
+            DiffContext forward = findDifferences(
+                testCaseData.get("updated").toString(), // TODO reuse
+                testCaseData.get("original").toString());
+
+            boolean backwardCompatible = backward.foundAllDifferencesAreCompatible();
+            boolean forwardCompatible = forward.foundAllDifferencesAreCompatible();
+
+            switch (testCaseData.getString("compatibility")) {
+                case "backward":
+                    if (backwardCompatible && !forwardCompatible) {
+                        // ok
+                        log.debug("OK caseId: {}", caseId);
+                    } else {
+                        // bad
+                        failed.add(caseId);
+                        log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n",
+                            caseId, backwardCompatible, backward.getDiff(), forwardCompatible, forward.getDiff());
+                    }
+                    break;
+
+                case "both":
+                    if (backwardCompatible && forwardCompatible) {
+                        // ok
+                        log.debug("OK caseId: {}", caseId);
+                    } else {
+                        // bad
+                        failed.add(caseId);
+                        log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n",
+                            caseId, backwardCompatible, backward.getDiff(), forwardCompatible, forward.getDiff());
+                    }
+                    break;
+                case "none":
+                    if (!backwardCompatible && !forwardCompatible) {
+                        // ok
+                        log.debug("OK caseId: {}", caseId);
+                    } else {
+                        // bad
+                        failed.add(caseId);
+                        log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n",
+                            caseId, backwardCompatible, backward.getDiff(), forwardCompatible, forward.getDiff());
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported compatibility: " + testCaseData.getString("compatibility"));
+            }
+        }
+
+        if (!failed.isEmpty()) {
+            throw new RuntimeException(failed.size() + " test cases failed: " +
+                failed.stream().reduce("", (a, s) -> a + "\n" + s));
+        }
     }
 }

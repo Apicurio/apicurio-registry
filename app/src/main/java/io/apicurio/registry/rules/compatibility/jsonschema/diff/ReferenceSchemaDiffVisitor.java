@@ -46,8 +46,14 @@ public class ReferenceSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitReferenceSchema(ReferenceSchemaWrapper referenceSchema) {
-        ctx = ctx.sub("[ref " + referenceSchema.getLocation() + "]");
-        super.visitReferenceSchema(referenceSchema);
+        // TODO Can't use the schema itself, hashCode & equals would cause StackOverflowError, report a bug to te library
+        if (!ctx.visited.contains(referenceSchema.getLocation())) {
+            ctx.visited.add(referenceSchema.getLocation());
+            ctx = ctx.sub("[ref " + referenceSchema.getLocation() + "]");
+            super.visitReferenceSchema(referenceSchema);
+        } else {
+            ctx.log("Reference recursion circuit breaker activated at: " + ctx.getPathUpdated());
+        }
     }
 
     @Override

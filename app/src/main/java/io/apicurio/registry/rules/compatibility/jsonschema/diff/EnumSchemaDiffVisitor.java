@@ -22,8 +22,9 @@ import org.everit.json.schema.EnumSchema;
 
 import java.util.Set;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ENUM_TYPE_VALUE_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ENUM_TYPE_VALUE_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ENUM_TYPE_VALUES_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ENUM_TYPE_VALUES_MEMBER_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ENUM_TYPE_VALUES_MEMBER_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSetChanged;
 
@@ -53,8 +54,8 @@ public class EnumSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
             values,
             UNDEFINED_UNUSED,
             UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            ENUM_TYPE_VALUE_ADDED,
-            ENUM_TYPE_VALUE_REMOVED);
+            ENUM_TYPE_VALUES_CHANGED,
+            ENUM_TYPE_VALUES_MEMBER_ADDED,
+            ENUM_TYPE_VALUES_MEMBER_REMOVED);
     }
 }

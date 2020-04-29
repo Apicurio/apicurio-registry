@@ -23,8 +23,9 @@ import org.everit.json.schema.ArraySchema;
 
 import java.util.List;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_CONTAINED_ITEMS_SCHEMA_ADDED;
@@ -43,11 +44,11 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_BOOLEAN_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_TRUE_TO_FALSE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBoolean;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.getExceptionally;
@@ -94,10 +95,10 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitUniqueItems(boolean uniqueItems) {
-        diffBoolean(ctx.sub("uniqueItems"), original.needsUniqueItems(), uniqueItems,
-            ARRAY_TYPE_UNIQUE_ITEMS_ADDED,
-            ARRAY_TYPE_UNIQUE_ITEMS_REMOVED,
-            ARRAY_TYPE_UNIQUE_ITEMS_CHANGED);
+        diffBooleanTransition(ctx.sub("uniqueItems"), original.needsUniqueItems(), uniqueItems,false,
+            ARRAY_TYPE_UNIQUE_ITEMS_FALSE_TO_TRUE,
+            ARRAY_TYPE_UNIQUE_ITEMS_TRUE_TO_FALSE,
+            ARRAY_TYPE_UNIQUE_ITEMS_BOOLEAN_UNCHANGED);
         super.visitUniqueItems(uniqueItems);
     }
 
@@ -116,10 +117,10 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitAdditionalItems(boolean additionalItems) {
         ctx.log("visitAdditionalItems: " + additionalItems);
-        diffBoolean(ctx.sub("additionalItems"), original.permitsAdditionalItems(), additionalItems,
-            DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_ADDED,
-            ARRAY_TYPE_ADDITIONAL_ITEMS_REMOVED,
-            ARRAY_TYPE_ADDITIONAL_ITEMS_CHANGED);
+        diffBooleanTransition(ctx.sub("additionalItems"), original.permitsAdditionalItems(), additionalItems, true,
+            ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE,
+            ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE,
+            ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED);
         super.visitAdditionalItems(additionalItems);
     }
 

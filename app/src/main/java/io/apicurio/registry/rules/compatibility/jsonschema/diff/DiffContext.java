@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
+import lombok.Getter;
+import org.everit.json.schema.SchemaLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,13 +38,18 @@ public class DiffContext {
 
     private DiffContext rootContext;
 
+    @Getter
     private final String pathUpdated;
+
+    final Set<SchemaLocation> visited = new HashSet<>();
 
 
     private DiffContext(DiffContext rootContext, DiffContext parentContext, String pathUpdated) {
         this.rootContext = rootContext;
         this.parentContext = parentContext;
         this.pathUpdated = pathUpdated;
+        if (parentContext != null) // Is empty when constructing root context.
+            this.visited.addAll(parentContext.visited);
     }
 
 
@@ -85,7 +92,8 @@ public class DiffContext {
             .subSchemaUpdated(Objects.toString(updatedSubchema))
             .build();
         addToDifferenceSets(difference);
-        log.warn("New difference found: " + difference);
+//        if(!type.isBackwardsCompatible())
+//            log.warn("New incompatible difference found: " + difference);
     }
 
     public void log(String message) {

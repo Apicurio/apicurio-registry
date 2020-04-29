@@ -34,7 +34,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUt
 public class ArraySchemaWrapper implements SchemaWrapper {
 
     @Getter
-    @EqualsAndHashCode.Include
+    @EqualsAndHashCode.Include // TODO Allow comparison directly with unwrapped schemas
     private final ArraySchema wrapped;
 
     public ArraySchemaWrapper(ArraySchema wrapped) {

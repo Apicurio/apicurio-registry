@@ -1,0 +1,2333 @@
+{
+  "tests": [
+    {
+      "enabled": true,
+      "id": "Basic: {}",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Basic: true",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      },
+      "updated": true
+    },
+    {
+      "enabled": true,
+      "id": "Basic: false",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "street": false
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Basic: meta",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "http://apicur.io/example.json"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "id": "http://apicur.io/example.json"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: minLength",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 5
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: minLength",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: minLength",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: maxLength",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: maxLength",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: maxLength",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: pattern 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "[a-z]*"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: pattern 2",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "[a-z]*"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "[A-Z]*"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: pattern 3",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "[a-z]*"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "[a-z]*"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: format 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: format 2",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: format 3",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: integer",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "integer"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: multipleOf 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "multipleOf": 10.0
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: multipleOf 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "multipleOf": 10.0
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "multipleOf": 5.0
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: multipleOf 3",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "multipleOf": 7.0
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "multipleOf": 13.0
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: minimum",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: minimum",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 5
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: minimum",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: maximum",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: maximum",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: maximum",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: exclusiveMinimum 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "number",
+        "minimum": 10,
+        "exclusiveMinimum": true
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMinimum 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMinimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMinimum 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMinimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 5
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMinimum 4",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMinimum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMinimum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: exclusiveMaximum 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "number",
+        "maximum": 10,
+        "exclusiveMaximum": true
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMaximum 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMaximum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMaximum 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMaximum": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "$comment": "Schema library does not support this case.",
+      "id": "Number: exclusiveMaximum 4",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMaximum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMaximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: properties 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: properties 2",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "string"
+          },
+          "street": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: additionalProperties",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: Complex additionalProperties",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: required",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "postal_code",
+          "street"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "street"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: required",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "postal_code",
+          "street"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "street",
+          "city"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: required",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "postal_code",
+          "street"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": [
+          "street",
+          "postal_code"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: propertyNames",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: minProperties 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "minProperties": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: minProperties 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "minProperties": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "minProperties": 5
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: minProperties 3",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "minProperties": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "minProperties": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: maxProperties",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "maxProperties": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: maxProperties",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "maxProperties": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "maxProperties": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: maxProperties",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "maxProperties": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "maxProperties": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: dependencies",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "dependencies": {
+          "street": [
+            "city",
+            "postal_code"
+          ]
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "dependencies": {
+          "street": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: patternProperties 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "patternProperties": {
+          "^S_": {
+            "type": "string"
+          },
+          "^I_": {
+            "type": "number"
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "patternProperties": {
+          "^S_": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: patternProperties 2",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "patternProperties": {
+          "^S_": {
+            "type": "string"
+          },
+          "^I_": {
+            "type": "number"
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "patternProperties": {
+          "^S_": {
+            "type": "number"
+          },
+          "^I_": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: items",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {
+          "type": "number",
+          "minimum": 10
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {
+          "type": "number",
+          "minimum": 5
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: contains",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "contains": {
+          "type": "number",
+          "minimum": 10
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "contains": {
+          "type": "number",
+          "minimum": 5
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: tuples 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": 10
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": 5
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: tuples 2",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: tuples 3",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: additionalItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: minItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: minItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 5
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: minItems",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: maxItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "maxItems": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: maxItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "maxItems": 5
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "maxItems": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: maxItems",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "maxItems": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "maxItems": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Array: uniqueItems",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "uniqueItems": true
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Boolean",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Null",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "null"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Enum 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "red",
+          "green",
+          "blue"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Enum 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "red",
+          "green"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "red",
+          "green",
+          "blue"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Enum 3",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "red",
+          "green",
+          "blue"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "blue",
+          "red",
+          "green"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Enum 4",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "enum": [
+          "red",
+          "green",
+          "blue"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Const",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": [
+          "3.141592653589793238462643383279"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": [
+          "3.141592653589793238462643383279"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Const",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": [
+          "3.141592653589793238462643383279"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": [
+          "π"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Const",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": [
+          "3.141592653589793238462643383279"
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Const: Enum equivalency",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "const": "3.141592653589793238462643383279"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "enum": [
+          "3.141592653589793238462643383279"
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentEncoding 1",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentEncoding": "base64"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentEncoding": "base64"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentEncoding 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentEncoding": "base64"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentEncoding 3",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentEncoding": "base64"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentEncoding": "base1"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentMediaType 1",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentMediaType": "image/png"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentMediaType": "image/png"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentMediaType 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentMediaType": "image/png"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "String: contentMediaType 3",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentMediaType": "image/png"
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "contentMediaType": "image/jpeg"
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: allOf 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 10
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: allOf 2",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "maxLength": 5
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: allOf 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "allOf": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: anyOf 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 10
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: anyOf 2",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "maxLength": 5
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: anyOf 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 10
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf 2",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "maxLength": 5
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "maxLength": 5
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: not 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string",
+          "maxLength": 10
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string",
+          "maxLength": 5
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: not 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 20
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 15
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: not 3",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string"
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Conditional",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Conditional: if",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower",
+                "lowerCase"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Conditional: then",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "type": "string"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Conditional: else",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "pattern": "[A-Z]*"
+            }
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "case": {
+            "enum": [
+              "lower",
+              "upper"
+            ]
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "case": {
+              "enum": [
+                "lower"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "data": {
+              "pattern": "[a-z]*"
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "data": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: $ref",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#/definitions/Address"
+          },
+          "work": {
+            "$ref": "#/definitions/Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          },
+          "work": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: $ref compatibility",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#/definitions/Address"
+          },
+          "work": {
+            "$ref": "#/definitions/Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string",
+                "minLength": 10
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#/definitions/Address"
+          },
+          "work": {
+            "$ref": "#/definitions/Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string",
+                "minLength": 5
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: $id",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#Address"
+          },
+          "work": {
+            "$ref": "#Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "$id": "#Address",
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          },
+          "work": {
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: $id compatibility",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#Address"
+          },
+          "work": {
+            "$ref": "#Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "$id": "#Address",
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string",
+                "minLength": 10
+              }
+            },
+            "required": [
+              "street"
+            ]
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "home": {
+            "$ref": "#Address"
+          },
+          "work": {
+            "$ref": "#Address"
+          }
+        },
+        "definitions": {
+          "Address": {
+            "$id": "#Address",
+            "type": "object",
+            "properties": {
+              "street": {
+                "type": "string",
+                "minLength": 5
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: recursive",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "person": {
+            "$ref": "#/definitions/Person"
+          }
+        },
+        "definitions": {
+          "Person": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Person"
+                },
+                "default": []
+              }
+            }
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "person": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Person"
+                },
+                "default": []
+              }
+            }
+          }
+        },
+        "definitions": {
+          "Person": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Person"
+                },
+                "default": []
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

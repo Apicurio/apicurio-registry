@@ -69,4 +69,8 @@ public class NumberSchemaWrapper implements SchemaWrapper {
     public Number getMultipleOf() {
         return wrapped.getMultipleOf();
     }
+
+    public boolean requiresInteger() {
+        return wrapped.requiresInteger();
+    }
 }

@@ -22,8 +22,9 @@ import lombok.Getter;
 import lombok.ToString;
 import org.everit.json.schema.FormatValidator;
 import org.everit.json.schema.StringSchema;
-import org.everit.json.schema.regexp.JavaUtilRegexpFactory;
-import org.everit.json.schema.regexp.Regexp;
+
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -48,14 +49,16 @@ public class StringSchemaWrapper implements SchemaWrapper {
         return wrapped.getMaxLength();
     }
 
-    public Regexp getRegexpPattern() {
-        if (wrapped.getPattern() == null)
-            return null;
-        return new JavaUtilRegexpFactory().createHandler(wrapped.getPattern().pattern());
-    }
-
     public FormatValidator getFormatValidator() {
         return wrapped.getFormatValidator();
+    }
+
+    public Pattern getPattern() {
+        return wrapped.getPattern();
+    }
+
+    public Map<String, Object> getUnprocessedProperties() {
+        return wrapped.getUnprocessedProperties();
     }
 
     @Override

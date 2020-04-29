@@ -23,8 +23,13 @@ import org.everit.json.schema.CombinedSchema;
 import org.everit.json.schema.Schema;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ALL_OF_SIZE_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ALL_OF_SIZE_INCREASED;
@@ -37,6 +42,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffObjectIdentity;
+import static java.util.Comparator.comparingInt;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -82,10 +88,13 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         super.visitAllOfCombinedSchema(schema);
     }
 
-    // TODO test this intensively
+
     private void processSubschemas(CombinedSchemaWrapper schema, DiffType sizeIncreased, DiffType sizeDecreased) {
         List<Schema> originalSubschemas = new ArrayList<>(original.getSubschemas());
         List<SchemaWrapper> updatedSubschemas = new LinkedList<>(schema.getSubschemas()); // better for insert/remove
+
+        Map<Schema, Set<SchemaWrapper>> compatibilityMap = new HashMap<>();
+
         diffInteger(ctx.sub("[size]"), originalSubschemas.size(), updatedSubschemas.size(),
             UNDEFINED_UNUSED,
             UNDEFINED_UNUSED,
@@ -93,29 +102,42 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
             sizeDecreased);
         if (originalSubschemas.size() <= updatedSubschemas.size()) {
             // try to match them
-            for (int i = 0; i < originalSubschemas.size(); i++) {
-                Schema o = originalSubschemas.get(i);
-                SchemaWrapper u = null;
+            for (Schema o : originalSubschemas) {
                 DiffContext rootCtx = null;
-                int index = -1;
-                for (int j = 0; j < updatedSubschemas.size(); j++) {
-                    u = updatedSubschemas.get(j);
+
+                if (!compatibilityMap.containsKey(o))
+                    compatibilityMap.put(o, new HashSet<>());
+
+                for (SchemaWrapper u : updatedSubschemas) {
                     // create a new subschema root context
-                    rootCtx = ctx.sub("[subschema compatibility " + i + " -> " + j + "]");
+                    rootCtx = DiffContext.createRootContext();
                     new SchemaDiffVisitor(rootCtx, o).visit(u);
-                    if (!rootCtx.foundIncompatibleDifference()) {
-                        index = j;
-                        break;
+                    if (rootCtx.foundAllDifferencesAreCompatible()) {
+                        compatibilityMap.get(o).add(u);
                     }
                 }
-                if (index >= 0) {
-                    // remove the matched schema
-                    // TODO there is a possibility of multiple matched schemas, improve
-                    updatedSubschemas.remove(index);
+            }
+
+            Optional<Map.Entry<Schema, Set<SchemaWrapper>>> first = compatibilityMap.entrySet().stream()
+                .sorted(comparingInt(a -> a.getValue().size()))
+                .findFirst();
+            while (first.isPresent()) {
+                // remove a value from the first set
+                Optional<SchemaWrapper> val = first.get().getValue().stream().findAny();
+                if (val.isPresent()) {
+                    // ok
+                    // remove it from all sets
+                    compatibilityMap.values().forEach(s -> s.remove(val.get()));
                 } else {
-                    ctx.addDifference(COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE, o, u);
-                    break;
+                    // bad
+                    ctx.addDifference(COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE, first.get().getKey(), null);
                 }
+                if (first.get().getValue().size() == 0)
+                    compatibilityMap.remove(first.get().getKey());
+
+                first = compatibilityMap.entrySet().stream()
+                    .sorted(comparingInt(a -> a.getValue().size()))
+                    .findFirst();
             }
         }
     }

@@ -20,16 +20,17 @@ import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisi
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.NumberSchemaWrapper;
 import org.everit.json.schema.NumberSchema;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MAXIMUM_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MAXIMUM_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MAXIMUM_INCREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MAXIMUM_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MINIMUM_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MINIMUM_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MINIMUM_INCREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_EXCLUSIVE_MINIMUM_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_CHANGED;
+import java.math.BigDecimal;
+
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_INTEGER_REQUIRED_TRUE_TO_FALSE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_INTEGER_REQUIRED_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_TRUE_TO_FALSE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_TRUE_TO_FALSE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_UNCHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MAXIMUM_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MAXIMUM_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MAXIMUM_INCREASED;
@@ -39,12 +40,13 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MINIMUM_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MINIMUM_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBoolean;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_DIVISIBLE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_NOT_DIVISIBLE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffAddedRemoved;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffNumber;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffNumberOriginalMultipleOfUpdated;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -55,6 +57,8 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     private final DiffContext ctx;
     private final NumberSchema original;
 
+    private NumberSchemaWrapper schema;
+
     public NumberSchemaDiffVisitor(DiffContext ctx, NumberSchema original) {
         this.ctx = ctx;
         this.original = original;
@@ -62,23 +66,48 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitNumberSchema(NumberSchemaWrapper schema) {
-        // There is a specific backwards compatible situation if a schema version is updated:
-        // before:
-        //   minimum: 10
-        //   exclusiveMinimum: true
-        // after:
-        //   exclusiveMinimum: 10 (number added, boolean changed to false)
-        // TODO Analyze these situations and decide if we want to support comparison across different drafts
+        this.schema = schema;
         super.visitNumberSchema(schema);
     }
 
     @Override
+    public void visitRequiredInteger(boolean requiresInteger) {
+        boolean originalRequiresInteger = original.requiresInteger();
+
+        if (original.getMultipleOf() != null) {
+            BigDecimal multipleOf = new BigDecimal(original.getMultipleOf().toString()); // Not pretty but it works:/
+            BigDecimal one = new BigDecimal("1");
+            originalRequiresInteger = originalRequiresInteger || multipleOf.compareTo(one) == 0;
+        }
+
+        diffBooleanTransition(ctx.sub("requiresInteger"), originalRequiresInteger, requiresInteger, false,
+            NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE,
+            NUMBER_TYPE_INTEGER_REQUIRED_TRUE_TO_FALSE,
+            NUMBER_TYPE_INTEGER_REQUIRED_UNCHANGED);
+
+        super.visitRequiredInteger(requiresInteger);
+    }
+
+    @Override
     public void visitMinimum(Number minimum) {
-        diffNumber(ctx.sub("minimum"), original.getMinimum(), minimum,
+        boolean isOriginalMinimumExclusive = original.getExclusiveMinimumLimit() != null;
+        Number originalMinimum = isOriginalMinimumExclusive ? original.getExclusiveMinimumLimit() : original.getMinimum();
+
+        boolean isUpdatedMinimumExclusive = schema.getExclusiveMinimumLimit() != null;
+        Number updatedMinimum = isUpdatedMinimumExclusive ? schema.getExclusiveMinimumLimit() : schema.getMinimum();
+
+        if (diffNumber(ctx.sub("minimum"), originalMinimum, updatedMinimum,
             NUMBER_TYPE_MINIMUM_ADDED,
             NUMBER_TYPE_MINIMUM_REMOVED,
             NUMBER_TYPE_MINIMUM_INCREASED,
-            NUMBER_TYPE_MINIMUM_DECREASED);
+            NUMBER_TYPE_MINIMUM_DECREASED)) {
+
+            diffBooleanTransition(ctx.sub("exclusiveMinimum"), isOriginalMinimumExclusive, isUpdatedMinimumExclusive, false,
+                NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_FALSE_TO_TRUE,
+                NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_TRUE_TO_FALSE,
+                NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_UNCHANGED);
+        }
+
         super.visitMinimum(minimum);
     }
 
@@ -87,59 +116,68 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
      */
     @Override
     public void visitExclusiveMinimum(boolean exclusiveMinimum) {
-        diffBoolean(ctx.sub("exclusiveMinimum"), original.isExclusiveMinimum(), exclusiveMinimum,
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_CHANGED);
+        diffBooleanTransition(ctx.sub("exclusiveMinimum"), original.isExclusiveMinimum(), exclusiveMinimum, false,
+            NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_FALSE_TO_TRUE,
+            NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_TRUE_TO_FALSE,
+            NUMBER_TYPE_IS_MINIMUM_EXCLUSIVE_UNCHANGED);
         super.visitExclusiveMinimum(exclusiveMinimum);
     }
 
     @Override
     public void visitExclusiveMinimumLimit(Number exclusiveMinimumLimit) {
-        diffNumber(ctx.sub("exclusiveMinimum"), original.getExclusiveMinimumLimit(), exclusiveMinimumLimit,
-            NUMBER_TYPE_EXCLUSIVE_MINIMUM_ADDED,
-            NUMBER_TYPE_EXCLUSIVE_MINIMUM_REMOVED,
-            NUMBER_TYPE_EXCLUSIVE_MINIMUM_INCREASED,
-            NUMBER_TYPE_EXCLUSIVE_MINIMUM_DECREASED);
+        // This is also handled by visitMinimum
         super.visitExclusiveMinimumLimit(exclusiveMinimumLimit);
     }
 
     @Override
     public void visitMaximum(Number maximum) {
-        diffNumber(ctx.sub("maximum"), original.getMaximum(), maximum,
+        boolean isOriginalMaximumExclusive = original.getExclusiveMaximumLimit() != null;
+        Number originalMaximum = isOriginalMaximumExclusive ? original.getExclusiveMaximumLimit() : original.getMaximum();
+
+        boolean isUpdatedMaximumExclusive = schema.getExclusiveMaximumLimit() != null;
+        Number updatedMaximum = isUpdatedMaximumExclusive ? schema.getExclusiveMaximumLimit() : schema.getMaximum();
+
+        if (diffNumber(ctx.sub("maximum"), originalMaximum, updatedMaximum,
             NUMBER_TYPE_MAXIMUM_ADDED,
             NUMBER_TYPE_MAXIMUM_REMOVED,
             NUMBER_TYPE_MAXIMUM_INCREASED,
-            NUMBER_TYPE_MAXIMUM_DECREASED);
+            NUMBER_TYPE_MAXIMUM_DECREASED)) {
+
+            diffBooleanTransition(ctx.sub("exclusiveMaximum"), isOriginalMaximumExclusive, isUpdatedMaximumExclusive, false,
+                NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_FALSE_TO_TRUE,
+                NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_TRUE_TO_FALSE,
+                NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_UNCHANGED);
+        }
+
         super.visitMaximum(maximum);
     }
 
     @Override
     public void visitExclusiveMaximum(boolean exclusiveMaximum) {
-        diffBoolean(ctx.sub("exclusiveMaximum"), original.isExclusiveMaximum(), exclusiveMaximum,
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_CHANGED);
+        diffBooleanTransition(ctx.sub("exclusiveMaximum"), original.isExclusiveMaximum(), exclusiveMaximum, false,
+            NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_FALSE_TO_TRUE,
+            NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_TRUE_TO_FALSE,
+            NUMBER_TYPE_IS_MAXIMUM_EXCLUSIVE_UNCHANGED);
+
         super.visitExclusiveMaximum(exclusiveMaximum);
     }
 
     @Override
     public void visitExclusiveMaximumLimit(Number exclusiveMaximumLimit) {
-        diffNumber(ctx.sub("exclusiveMaximum"), original.getExclusiveMaximumLimit(), exclusiveMaximumLimit,
-            NUMBER_TYPE_EXCLUSIVE_MAXIMUM_ADDED,
-            NUMBER_TYPE_EXCLUSIVE_MAXIMUM_REMOVED,
-            NUMBER_TYPE_EXCLUSIVE_MAXIMUM_INCREASED,
-            NUMBER_TYPE_EXCLUSIVE_MAXIMUM_DECREASED);
+        // This is also handled by visitMaximum
         super.visitExclusiveMaximumLimit(exclusiveMaximumLimit);
     }
 
     @Override
     public void visitMultipleOf(Number multipleOf) {
-        diffNumber(ctx.sub("multipleOf"), original.getMultipleOf(), multipleOf,
+        DiffContext subCtx = ctx.sub("multipleOf");
+        if (diffAddedRemoved(subCtx, original.getMultipleOf(), multipleOf,
             NUMBER_TYPE_MULTIPLE_OF_ADDED,
-            NUMBER_TYPE_MULTIPLE_OF_REMOVED,
-            NUMBER_TYPE_MULTIPLE_OF_INCREASED,
-            NUMBER_TYPE_MULTIPLE_OF_DECREASED);
+            NUMBER_TYPE_MULTIPLE_OF_REMOVED)) {
+            diffNumberOriginalMultipleOfUpdated(subCtx, original.getMultipleOf(), multipleOf,
+                NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_DIVISIBLE,
+                NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_NOT_DIVISIBLE);
+        }
         super.visitMultipleOf(multipleOf);
     }
 }

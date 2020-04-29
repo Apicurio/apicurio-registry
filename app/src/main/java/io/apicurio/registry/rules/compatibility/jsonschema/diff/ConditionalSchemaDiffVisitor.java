@@ -23,12 +23,24 @@ import org.everit.json.schema.ConditionalSchema;
 import org.everit.json.schema.Schema;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_BOTH;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_NONE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_ELSE_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_BOTH;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_NONE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_IF_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_BOTH;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_NONE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.CONDITIONAL_TYPE_THEN_SCHEMA_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.compareSchema;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -51,37 +63,40 @@ public class ConditionalSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitIfSchema(SchemaWrapper ifSchema) {
-        DiffContext subCtx = ctx.sub("if");
-        Schema o = original.getIfSchema().get();
-        if (diffSubschemaAddedRemoved(subCtx, o, ifSchema,
+        Schema o = original.getIfSchema().orElse(null);
+        compareSchema(ctx.sub("if"), o, ifSchema.getWrapped(),
             CONDITIONAL_TYPE_IF_SCHEMA_ADDED,
-            CONDITIONAL_TYPE_IF_SCHEMA_REMOVED)) {
-            ifSchema.accept(new SchemaDiffVisitor(subCtx, o));
-        }
+            CONDITIONAL_TYPE_IF_SCHEMA_REMOVED,
+            CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_BOTH,
+            CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
+            CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD,
+            CONDITIONAL_TYPE_IF_SCHEMA_COMPATIBLE_NONE);
         super.visitIfSchema(ifSchema);
     }
 
     @Override
     public void visitThenSchema(SchemaWrapper thenSchema) {
-        DiffContext subCtx = ctx.sub("then");
-        Schema o = original.getThenSchema().get();
-        if (diffSubschemaAddedRemoved(subCtx, o, thenSchema,
+        Schema o = original.getThenSchema().orElse(null);
+        compareSchema(ctx.sub("then"), o, thenSchema.getWrapped(),
             CONDITIONAL_TYPE_THEN_SCHEMA_ADDED,
-            CONDITIONAL_TYPE_THEN_SCHEMA_REMOVED)) {
-            thenSchema.accept(new SchemaDiffVisitor(subCtx, o));
-        }
+            CONDITIONAL_TYPE_THEN_SCHEMA_REMOVED,
+            CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_BOTH,
+            CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
+            CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD,
+            CONDITIONAL_TYPE_THEN_SCHEMA_COMPATIBLE_NONE);
         super.visitThenSchema(thenSchema);
     }
 
     @Override
     public void visitElseSchema(SchemaWrapper elseSchema) {
-        DiffContext subCtx = ctx.sub("else");
-        Schema o = original.getElseSchema().get();
-        if (diffSubschemaAddedRemoved(subCtx, o, elseSchema,
+        Schema o = original.getElseSchema().orElse(null);
+        compareSchema(ctx.sub("else"), o, elseSchema.getWrapped(),
             CONDITIONAL_TYPE_ELSE_SCHEMA_ADDED,
-            CONDITIONAL_TYPE_ELSE_SCHEMA_REMOVED)) {
-            elseSchema.accept(new SchemaDiffVisitor(subCtx, o));
-        }
+            CONDITIONAL_TYPE_ELSE_SCHEMA_REMOVED,
+            CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_BOTH,
+            CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD,
+            CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD,
+            CONDITIONAL_TYPE_ELSE_SCHEMA_COMPATIBLE_NONE);
         super.visitElseSchema(elseSchema);
     }
 }

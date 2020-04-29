@@ -20,18 +20,21 @@ import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisi
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.ObjectSchemaWrapper;
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.SchemaWrapper;
 import org.everit.json.schema.ObjectSchema;
+import org.everit.json.schema.Schema;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MAX_PROPERTIES_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MAX_PROPERTIES_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MAX_PROPERTIES_INCREASED;
@@ -40,18 +43,19 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MIN_PROPERTIES_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MIN_PROPERTIES_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MIN_PROPERTIES_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_MEMBER_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_MEMBER_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_MEMBER_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_MEMBER_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCY_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCY_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_KEYS_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_KEYS_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PATTERN_PROPERTY_KEYS_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_ADDED;
@@ -70,10 +74,11 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_SCHEMA_DEPENDENCIES_MEMBER_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_SCHEMA_DEPENDENCIES_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBoolean;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSetChanged;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -150,11 +155,11 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         diffSetChanged(ctx.sub("dependencies"),
             new HashSet<>(original.getPropertyDependencies().keySet()),
             new HashSet<>(propertyDependencies.keySet()),
-            OBJECT_TYPE_PROPERTY_DEPENDENCIES_ADDED,
-            OBJECT_TYPE_PROPERTY_DEPENDENCIES_REMOVED,
-            OBJECT_TYPE_PROPERTY_DEPENDENCIES_CHANGED,
-            OBJECT_TYPE_PROPERTY_DEPENDENCIES_MEMBER_ADDED,
-            OBJECT_TYPE_PROPERTY_DEPENDENCIES_MEMBER_REMOVED);
+            OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_ADDED,
+            OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_REMOVED,
+            OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_CHANGED,
+            OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_ADDED,
+            OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_REMOVED);
         super.visitAllPropertyDependencies(propertyDependencies);
     }
 
@@ -166,19 +171,19 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                 allMustBePresent,
                 UNDEFINED_UNUSED,
                 UNDEFINED_UNUSED,
-                UNDEFINED_UNUSED,
-                OBJECT_TYPE_PROPERTY_DEPENDENCY_ADDED,
-                OBJECT_TYPE_PROPERTY_DEPENDENCY_REMOVED);
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_CHANGED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_ADDED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_REMOVED);
         }
         super.visitPropertyDependencies(ifPresent, allMustBePresent);
     }
 
     @Override
     public void visitAdditionalProperties(boolean permitsAdditionalProperties) {
-        diffBoolean(ctx.sub("additionalProperties"), original.permitsAdditionalProperties(), permitsAdditionalProperties,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_ADDED,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_REMOVED,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_CHANGED);
+        diffBooleanTransition(ctx.sub("additionalProperties"), original.permitsAdditionalProperties(), permitsAdditionalProperties, true,
+            OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE,
+            OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE,
+            OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED);
         super.visitAdditionalProperties(permitsAdditionalProperties);
     }
 
@@ -196,21 +201,24 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitPatternProperties(Map<Pattern, SchemaWrapper> patternProperties) {
         diffSetChanged(ctx.sub("patternProperties"),
-            new HashSet<>(original.getPatternProperties().keySet()),
-            new HashSet<>(patternProperties.keySet()),
-            OBJECT_TYPE_PATTERN_PROPERTY_ADDED,
-            OBJECT_TYPE_PATTERN_PROPERTY_REMOVED,
-            OBJECT_TYPE_PATTERN_PROPERTY_CHANGED,
-            OBJECT_TYPE_PATTERN_PROPERTY_MEMBER_ADDED,
-            OBJECT_TYPE_PATTERN_PROPERTY_MEMBER_REMOVED);
+            original.getPatternProperties().keySet().stream().map(Pattern::toString).collect(Collectors.toSet()),
+            patternProperties.keySet().stream().map(Pattern::toString).collect(Collectors.toSet()),
+            OBJECT_TYPE_PATTERN_PROPERTY_KEYS_ADDED,
+            OBJECT_TYPE_PATTERN_PROPERTY_KEYS_REMOVED,
+            OBJECT_TYPE_PATTERN_PROPERTY_KEYS_CHANGED,
+            OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_ADDED,
+            OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_REMOVED);
         super.visitPatternProperties(patternProperties);
     }
 
     @Override
     public void visitPatternPropertySchema(Pattern propertyNamePattern, SchemaWrapper schema) {
-        if (original.getPatternProperties().containsKey(propertyNamePattern)) {
+        final Map<String, Schema> stringifiedOriginal = original.getPatternProperties().entrySet().stream()
+            .collect(toMap(e -> e.getKey().toString(), Entry::getValue)); // TODO maybe add a wrapper class for Pattern
+
+        if (stringifiedOriginal.containsKey(propertyNamePattern.toString())) {
             schema.accept(new SchemaDiffVisitor(ctx.sub("patternProperties/" + propertyNamePattern),
-                original.getPatternProperties().get(propertyNamePattern))); // TODO null/invalid schema
+                stringifiedOriginal.get(propertyNamePattern.toString())));
         }
         super.visitPatternPropertySchema(propertyNamePattern, schema);
     }

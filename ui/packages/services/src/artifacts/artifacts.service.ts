@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {Artifact, ArtifactMetaData} from "@apicurio/registry-models";
+import {Artifact, ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {LoggerService} from "../logger";
 
 
@@ -173,6 +173,24 @@ export class ArtifactsService {
             setTimeout(() => {
                 const content = this.artifactContent[artifactId];
                 resolve(content);
+            }, 200);
+        });
+    }
+
+    public getArtifactRules(artifactId: string): Promise<Rule[]> {
+        this.logger.info("[ArtifactsService] Getting the list of rules for artifact: ", artifactId);
+        return new Promise<Rule[]>(resolve => {
+            setTimeout(() => {
+                resolve([]);
+            }, 200);
+        });
+    }
+
+    public updateArtifactRule(artiactId: string, type: string, config: string|null): Promise<Rule|null> {
+        this.logger.info("[ArtifactsService] Updating rule:", type);
+        return new Promise<Rule>(resolve => {
+            setTimeout(() => {
+                resolve(null);
             }, 200);
         });
     }

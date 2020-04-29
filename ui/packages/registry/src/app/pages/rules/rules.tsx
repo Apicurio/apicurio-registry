@@ -116,7 +116,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
             // TODO handle this error!
         });
         this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
-    }
+    };
 
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[RulesPage] Disabling global rule:", ruleType);
@@ -124,7 +124,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
             // TODO handle this error!
         });
         this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
-    }
+    };
 
     private doConfigureRule = (ruleType: string, config: string): void => {
         Services.getLoggerService().debug("[RulesPage] Configuring global rule:", ruleType, config);
@@ -138,6 +138,6 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                 return r;
             }
         }));
-    }
+    };
 
 }

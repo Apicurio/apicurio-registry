@@ -48,7 +48,7 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
 
     public render(): React.ReactElement {
         const dropdownItems = [
-            <DropdownItem key="FULL" id="FULL">Full Validation</DropdownItem>,
+            <DropdownItem key="FULL" id="FULL">Full</DropdownItem>,
             <DropdownItem key="SYNTAX_ONLY" id="SYNTAX_ONLY">Syntax Only</DropdownItem>,
         ];
         return (
@@ -84,7 +84,7 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
     private displayValue(): string {
         switch (this.props.value) {
             case "FULL":
-                return "Full Validation";
+                return "Full";
             case "SYNTAX_ONLY":
                 return "Syntax Only";
         }

@@ -19,9 +19,10 @@ import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState, RuleList} from "../../../../../components";
 import {Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactTypeIcon} from "../../../components/artifactList";
-import {ArtifactMetaData} from "@apicurio/registry-models";
+import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import "./info.css";
-import {CodeIcon, DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
+import {DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
+import {Services} from "@apicurio/registry-services";
 
 /**
  * Properties
@@ -29,6 +30,10 @@ import {CodeIcon, DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
 // tslint:disable-next-line:no-empty-interface
 export interface InfoTabContentProps extends PureComponentProps {
     artifact: ArtifactMetaData;
+    rules: Rule[];
+    doEnableRule: (ruleType: string) => void;
+    doDisableRule: (ruleType: string) => void;
+    doConfigureRule: (ruleType: string, config: string) => void;
 }
 
 /**
@@ -88,17 +93,15 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 <span>Delete</span>
                             </a>
                         </li>
-                        <li>
-                            <a href="#">
-                                <CodeIcon />
-                                <span>Generate Client SDK</span>
-                            </a>
-                        </li>
                     </ul>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>
-                    <RuleList rules={[]}/>
+                    <RuleList rules={this.props.rules}
+                              onEnableRule={this.props.doEnableRule}
+                              onDisableRule={this.props.doDisableRule}
+                              onConfigureRule={this.props.doConfigureRule}
+                    />
                 </FlexItem>
             </Flex>
         );
@@ -107,4 +110,5 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
     protected initializeState(): InfoTabContentState {
         return {};
     }
+
 }

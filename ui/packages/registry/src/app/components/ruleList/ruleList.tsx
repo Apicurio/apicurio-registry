@@ -32,7 +32,6 @@ import "./ruleList.css"
 import {Rule} from "@apicurio/registry-models";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
 import {ValidityDropdown} from "./validity-dropdown";
-import {Services} from "@apicurio/registry-services";
 
 
 export interface RuleListProps extends PureComponentProps {
@@ -60,7 +59,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         if (this.isRuleEnabled("VALIDITY")) {
             validityRuleActions = (
                 <React.Fragment>
-                    <ValidityDropdown value="FULL" onSelect={this.doConfigureRule("VALIDITY")} />
+                    <ValidityDropdown value={this.getRuleConfig("VALIDITY")} onSelect={this.doConfigureRule("VALIDITY")} />
                     <Button variant="plain" key="delete-action" title="Disable the validity rule" onClick={this.doDisableRule("VALIDITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
@@ -71,7 +70,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         if (this.isRuleEnabled("COMPATIBILITY")) {
             compatibilityRuleActions = (
                 <React.Fragment>
-                    <CompatibilityDropdown value="FORWARD" onSelect={this.doConfigureRule("COMPATIBILITY")} />
+                    <CompatibilityDropdown value={this.getRuleConfig("COMPATIBILITY")} onSelect={this.doConfigureRule("COMPATIBILITY")} />
                     <Button variant="plain" key="delete-action" title="Disable the compatibility rule" onClick={this.doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
@@ -142,6 +141,15 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         return classes.join(' ');
     }
 
+    private getRuleConfig(ruleType: string): string {
+        const frules: Rule[] = this.props.rules.filter(r => r.type === ruleType);
+        if (frules.length === 1) {
+            return frules[0].config;
+        } else {
+            return "UNKNOWN";
+        }
+    };
+
     private doEnableRule = (ruleType: string): (() => void) => {
         return () => {
             this.props.onEnableRule(ruleType);
@@ -156,7 +164,6 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
 
     private doConfigureRule = (ruleType: string): ((config: string) => void) => {
         return (config: string) => {
-            Services.getLoggerService().debug("++++++++", this.props);
             this.props.onConfigureRule(ruleType, config);
         };
     };

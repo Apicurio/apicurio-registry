@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 import React from "react";
-import {Flex, FlexItem, Text, TextContent, TextVariants} from '@patternfly/react-core';
+import {Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {Link} from "react-router-dom";
 
 
 /**
@@ -50,6 +51,9 @@ export class RulesPageHeader extends PureComponent<RulesPageHeaderProps, RulesPa
                     <TextContent>
                         <Text component={TextVariants.h1}>Global Rules</Text>
                     </TextContent>
+                </FlexItem>
+                <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
+                    <Link to="/artifacts">Back to artifacts</Link>
                 </FlexItem>
             </Flex>
         );

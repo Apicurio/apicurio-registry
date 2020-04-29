@@ -28,6 +28,7 @@ import {
     VersionsTabContent
 } from "./components/tabs";
 import {Services} from "@apicurio/registry-services";
+import {Rule} from "@apicurio/registry-models";
 
 
 /**
@@ -46,6 +47,7 @@ export interface ArtifactPageState extends PageState {
     artifactContent: string;
     artifactIsText: boolean;
     isUploadModalOpen: boolean;
+    rules: Rule[] | null;
 }
 
 /**
@@ -61,7 +63,12 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         const artifact: ArtifactMetaData = this.state.artifact ? this.state.artifact : new ArtifactMetaData();
         const tabs: React.ReactNode[] = [
             <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
-                <InfoTabContent artifact={artifact} />
+                <InfoTabContent artifact={artifact}
+                                rules={this.rules()}
+                                doEnableRule={this.doEnableRule}
+                                doDisableRule={this.doDisableRule}
+                                doConfigureRule={this.doConfigureRule}
+                />
             </Tab>,
             <Tab eventKey={1} title="Documentation" key="documentation">
                 <DocumentationTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} />
@@ -112,7 +119,8 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             artifactContent: "",
             artifactIsText: true,
             isLoading: true,
-            isUploadModalOpen: false
+            isUploadModalOpen: false,
+            rules: null
         };
     }
 
@@ -123,7 +131,8 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
 
         Promise.all([
             Services.getArtifactsService().getArtifactMetaData(artifactId).then(md => this.setSingleState("artifact", md)),
-            Services.getArtifactsService().getArtifactContent(artifactId).then(content => this.setSingleState("artifactContent", content))
+            Services.getArtifactsService().getArtifactContent(artifactId).then(content => this.setSingleState("artifactContent", content)),
+            Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules))
         ]).then( () => {
             this.setSingleState("isLoading", false);
         }).catch( error => {
@@ -154,4 +163,47 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             return false;
         }
     }
+
+    private rules(): Rule[] {
+        if (this.state.rules) {
+            return this.state.rules;
+        } else {
+            return [];
+        }
+    }
+
+    private doEnableRule = (ruleType: string): void => {
+        Services.getLoggerService().debug("[ArtifactPage] Enabling rule:", ruleType);
+        let config: string = "FULL";
+        if (ruleType === "COMPATIBILITY") {
+            config = "BACKWARD";
+        }
+        Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
+            // TODO handle this error!
+        });
+        this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
+    };
+
+    private doDisableRule = (ruleType: string): void => {
+        Services.getLoggerService().debug("[ArtifactPage] Disabling rule:", ruleType);
+        Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
+            // TODO handle this error!
+        });
+        this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
+    };
+
+    private doConfigureRule = (ruleType: string, config: string): void => {
+        Services.getLoggerService().debug("[ArtifactPage] Configuring rule:", ruleType, config);
+        Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
+            // TODO handle this error!
+        });
+        this.setSingleState("rules", this.rules().map(r => {
+            if (r.type === ruleType) {
+                return Rule.create(r.type, config);
+            } else {
+                return r;
+            }
+        }));
+    };
+
 }

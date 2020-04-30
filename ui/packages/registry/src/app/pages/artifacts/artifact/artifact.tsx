@@ -20,15 +20,9 @@ import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, Tab, Tabs} fr
 import "./artifact.css";
 import {PageComponent, PageProps, PageState} from "../../basePage";
 import {ArtifactPageHeader} from "./components/pageheader";
-import {ArtifactMetaData} from "@apicurio/registry-models";
-import {
-    DocumentationTabContent,
-    ContentTabContent,
-    InfoTabContent,
-    VersionsTabContent
-} from "./components/tabs";
+import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
+import {ContentTabContent, DocumentationTabContent, InfoTabContent, VersionsTabContent} from "./components/tabs";
 import {Services} from "@apicurio/registry-services";
-import {Rule} from "@apicurio/registry-models";
 
 
 /**
@@ -59,7 +53,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         super(props);
     }
 
-    public render(): React.ReactElement {
+    public renderPage(): React.ReactElement {
         const artifact: ArtifactMetaData = this.state.artifact ? this.state.artifact : new ArtifactMetaData();
         const tabs: React.ReactNode[] = [
             <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
@@ -118,6 +112,10 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             artifact: null,
             artifactContent: "",
             artifactIsText: true,
+            error: null,
+            errorInfo: null,
+            errorType: null,
+            isError: false,
             isLoading: true,
             isUploadModalOpen: false,
             rules: null
@@ -136,7 +134,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         ]).then( () => {
             this.setSingleState("isLoading", false);
         }).catch( error => {
-            // Handle errors!!!
+            this.handleServerError(error, "Error loading artifact information.");
         });
     }
 
@@ -148,17 +146,9 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         this.setSingleState("isUploadModalOpen", true);
     };
 
-    private getArtifactContent(): string {
-        if (this.state.artifactContent != null) {
-            return JSON.stringify(this.state.artifactContent, null, 4);
-        } else {
-            return "";
-        }
-    }
-
     private showDocumentationTab(): boolean {
         if (this.state.artifact) {
-            return this.state.artifact.type === "OPENAPI" || this.state.artifact.type === "ASYNCAPI";
+            return this.state.artifact.type === "OPENAPI";
         } else {
             return false;
         }
@@ -179,7 +169,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             config = "BACKWARD";
         }
         Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error enabling "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
     };
@@ -187,7 +177,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[ArtifactPage] Disabling rule:", ruleType);
         Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error disabling "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
     };
@@ -195,7 +185,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     private doConfigureRule = (ruleType: string, config: string): void => {
         Services.getLoggerService().debug("[ArtifactPage] Configuring rule:", ruleType, config);
         Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error configuring "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", this.rules().map(r => {
             if (r.type === ruleType) {

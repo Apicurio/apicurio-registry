@@ -50,7 +50,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         super(props);
     }
 
-    public render(): React.ReactElement {
+    public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
                 <PageSection className="ps_rules-header" variant={PageSectionVariants.light}>
@@ -84,6 +84,10 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     protected initializeState(): RulesPageState {
         return {
+            error: null,
+            errorInfo: null,
+            errorType: null,
+            isError: false,
             isLoading: true,
             rules: null
         };
@@ -113,7 +117,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
             config = "BACKWARD";
         }
         Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error enabling "${ ruleType }" global rule.`);
         });
         this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
     };
@@ -121,7 +125,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[RulesPage] Disabling global rule:", ruleType);
         Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error disabling "${ ruleType }" global rule.`);
         });
         this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
     };
@@ -129,7 +133,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
     private doConfigureRule = (ruleType: string, config: string): void => {
         Services.getLoggerService().debug("[RulesPage] Configuring global rule:", ruleType, config);
         Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
-            // TODO handle this error!
+            this.handleServerError(error, `Error configuring "${ ruleType }" global rule.`);
         });
         this.setSingleState("rules", this.rules().map(r => {
             if (r.type === ruleType) {

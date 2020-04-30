@@ -68,7 +68,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         super(props);
     }
 
-    public render(): React.ReactElement {
+    public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
@@ -127,6 +127,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 type: "Everything",
                 value: "",
             },
+            error: null,
+            errorInfo: null,
+            errorType: null,
+            isError: false,
             isLoading: true,
             isUploadFormValid: false,
             isUploadModalOpen: false,
@@ -167,7 +171,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 // @ts-ignore
                 this.props.history.push(artifactLocation);
             }).catch( error => {
-                // TODO handle the error!!
+                this.handleServerError(error, "Error uploading artifact.");
             });
         }
     };
@@ -209,8 +213,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private search(): void {
         Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
             this.onArtifactsLoaded(results);
-        }).then(error => {
-            // TODO handle errors!
+        }).catch(error => {
+            this.handleServerError(error, "Error searching for artifacts.");
         });
     }
 

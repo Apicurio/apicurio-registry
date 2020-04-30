@@ -34,10 +34,10 @@ import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -82,15 +82,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        Schema schema = parseVersionString(subject, versionString,
+        return parseVersionString(subject, versionString,
                 version -> FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version)));
-        
-        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema.getSchema()));
-        if(amd.getState().equals(ArtifactState.DELETED) || amd.getState().equals(ArtifactState.DISABLED)) {
-            throw new ArtifactNotFoundException(amd.getId());
-         } else {
-             return schema;
-         }
     }
 
     @Override
@@ -103,13 +96,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
+        // TODO -- handle deleted?
         ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema.getSchema()));
-        if(amd.getState().equals(ArtifactState.DELETED) || amd.getState().equals(ArtifactState.DISABLED)) {
-           throw new ArtifactNotFoundException(amd.getId());
-        } else {
-            StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
-            return FacadeConverter.convert(subject, storedArtifact);
-        }
+        StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
+        return FacadeConverter.convert(subject, storedArtifact);
     }
 
     @Override

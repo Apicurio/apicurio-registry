@@ -186,7 +186,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         given()
             .when()
                 .get("/artifacts/{artifactId}", SUBJECT)
-            .then().log().all()
+            .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
         

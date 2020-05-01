@@ -17,12 +17,23 @@
 
 import React from "react";
 import "./artifactVersion.css";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, Tab, Tabs} from '@patternfly/react-core';
+import {
+    Button,
+    Flex,
+    FlexItem,
+    Modal,
+    PageSection,
+    PageSectionVariants,
+    Spinner,
+    Tab,
+    Tabs
+} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
-import {Services} from "@apicurio/registry-services";
+import {CreateArtifactData, CreateVersionData, Services} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
+import {UploadVersionForm} from "./components/uploadForm";
 
 
 /**
@@ -40,8 +51,10 @@ export interface ArtifactVersionPageState extends PageState {
     artifact: ArtifactMetaData | null;
     artifactContent: string;
     artifactIsText: boolean;
+    isUploadFormValid: boolean;
     isUploadModalOpen: boolean;
     rules: Rule[] | null;
+    uploadFormData: string | null;
     versions: VersionMetaData[] | null;
 }
 
@@ -100,6 +113,19 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     />
                 </PageSection>
                 }
+                <Modal
+                    title="Upload Artifact Version"
+                    isLarge={true}
+                    isOpen={this.state.isUploadModalOpen}
+                    onClose={this.onUploadModalClose}
+                    className="upload-artifact-modal pf-m-redhat-font"
+                    actions={[
+                        <Button key="upload" variant="primary" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>
+                    ]}
+                >
+                    <UploadVersionForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />
+                </Modal>
             </React.Fragment>
         );
     }
@@ -115,8 +141,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             errorType: null,
             isError: false,
             isLoading: true,
+            isUploadFormValid: false,
             isUploadModalOpen: false,
             rules: null,
+            uploadFormData: null,
             versions: null
         };
     }
@@ -202,4 +230,43 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     private artifactId(): string {
         return this.state.artifact ? this.state.artifact.id : "";
     }
+
+    private artifactType(): string {
+        return this.state.artifact ? this.state.artifact.type : "";
+    }
+
+    private onUploadFormValid = (isValid: boolean): void => {
+        this.setSingleState("isUploadFormValid", isValid);
+    };
+
+    private onUploadFormChange = (data: string): void => {
+        this.setSingleState("uploadFormData", data);
+    };
+
+    private onUploadArtifact = (): void => {
+        this.setSingleState("isUploadModalOpen", true);
+    };
+
+    private onUploadModalClose = (): void => {
+        this.setSingleState("isUploadModalOpen", false);
+    };
+
+    private doUploadArtifact = (): void => {
+        this.onUploadModalClose();
+        if (this.state.uploadFormData !== null) {
+            const artifactId: string = this.artifactId();
+            const data: CreateVersionData = {
+                content: this.state.artifactContent,
+                type: this.artifactType()
+            };
+            Services.getArtifactsService().createArtifactVersion(artifactId, data).then(versionMetaData => {
+                const artifactVersionLocation: string = `/artifacts/${ versionMetaData.id }/versions/${versionMetaData.version}`;
+                Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
+                this.navigateTo(artifactVersionLocation)();
+            }).catch( error => {
+                this.handleServerError(error, "Error uploading artifact version.");
+            });
+        }
+    };
+
 }

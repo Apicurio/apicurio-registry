@@ -39,6 +39,11 @@ export interface CreateArtifactData {
     content: string;
 }
 
+export interface CreateVersionData {
+    type: string;
+    content: string;
+}
+
 export interface GetArtifactsCriteria {
     type: string;
     value: string;
@@ -115,6 +120,15 @@ export class ArtifactsService {
         return new Promise<ArtifactMetaData>(resolve => {
             setTimeout(() => {
                 resolve(metaData);
+            }, 500);
+        });
+    }
+
+    public createArtifactVersion(artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
+        const rval: VersionMetaData = vmd(artifactId, "", "", data.type, 110, "user", new Date(), 12345, "ENABLED");
+        return new Promise<VersionMetaData>(resolve => {
+            setTimeout(() => {
+                resolve(rval);
             }, 500);
         });
     }

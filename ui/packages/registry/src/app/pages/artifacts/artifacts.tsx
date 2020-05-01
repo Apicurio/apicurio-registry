@@ -167,8 +167,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             Services.getArtifactsService().createArtifact(this.state.uploadFormData).then(metaData => {
                 const artifactLocation: string = `/artifacts/${ metaData.id }`;
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
-                // @ts-ignore
-                this.props.history.push(artifactLocation);
+                this.navigateTo(artifactLocation)();
             }).catch( error => {
                 this.handleServerError(error, "Error uploading artifact.");
             });

@@ -15,6 +15,4 @@
  * limitations under the License.
  */
 
-export * from './pageheader';
-export * from './tabs';
 export * from './uploadForm';

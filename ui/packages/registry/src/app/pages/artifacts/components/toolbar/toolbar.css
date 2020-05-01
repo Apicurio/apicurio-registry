@@ -11,7 +11,7 @@
     margin-right: 0;
 }
 
-#artifacts-toolbar-1 .artifact-count-item {
+#artifacts-toolbar-1 .artifact-paging-item {
     flex-grow: 1;
     text-align: right;
 }

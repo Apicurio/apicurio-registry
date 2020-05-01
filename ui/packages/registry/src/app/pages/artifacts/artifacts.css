@@ -2,14 +2,6 @@
     border-bottom: 1px solid #ddd;
 }
 
-.artifact-list-pagination {
-    margin-top: 12px;
-}
-
-.artifact-list-pagination .pf-c-pagination__nav-page-select > input {
-    background: transparent;
-}
-
 .upload-artifact-modal .pf-c-modal-box__body {
     overflow-x: initial;
     overflow-y: visible;

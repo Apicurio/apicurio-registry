@@ -74,7 +74,11 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} noPadding={true}>
-                    <ArtifactsPageToolbar artifactsCount={this.totalArtifactsCount()} onChange={this.onFilterChange}/>
+                    <ArtifactsPageToolbar artifacts={this.results()}
+                                          paging={this.state.paging}
+                                          onPerPageSelect={this.onPerPageSelect}
+                                          onSetPage={this.onSetPage}
+                                          onChange={this.onFilterChange}/>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
@@ -88,17 +92,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                         :
                             <React.Fragment>
                                 <ArtifactList artifacts={this.artifacts()}/>
-                                <Pagination
-                                    variant="bottom"
-                                    dropDirection="up"
-                                    itemCount={this.totalArtifactsCount()}
-                                    perPage={this.state.paging.pageSize}
-                                    page={this.state.paging.page}
-                                    onSetPage={this.onSetPage}
-                                    onPerPageSelect={this.onPerPageSelect}
-                                    widgetId="artifact-list-pagination"
-                                    className="artifact-list-pagination"
-                                />
                             </React.Fragment>
                     }
                 </PageSection>
@@ -173,6 +166,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             });
         }
     };
+
+    private results(): ArtifactsSearchResults {
+        return this.state.results ? this.state.results : {
+            artifacts: [],
+            count: 0,
+            firstPage: true,
+            lastPage: true,
+            page: 1,
+            pageSize: 10
+        };
+    }
 
     private artifacts(): Artifact[] {
         return this.state.results ? this.state.results.artifacts : [];

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import React from 'react';
+import "./toolbar.css";
 import {
     Button,
     ButtonVariant,
@@ -23,23 +24,27 @@ import {
     DataToolbarItem,
     Dropdown,
     DropdownItem,
-    DropdownToggle, Form,
+    DropdownToggle,
+    Form,
     InputGroup,
-    Text,
-    TextContent,
+    Pagination,
     TextInput
 } from '@patternfly/react-core';
 import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
-import "./toolbar.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {GetArtifactsCriteria, Services} from "@apicurio/registry-services";
+import {ArtifactsSearchResults, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
+import {Paging} from "@apicurio/registry-services/src";
+import {OnPerPageSelect, OnSetPage} from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 
 /**
  * Properties
  */
 export interface ArtifactsPageToolbarProps extends PureComponentProps {
-    artifactsCount: number|null;
+    artifacts: ArtifactsSearchResults;
     onChange: (criteria: GetArtifactsCriteria) => void
+    paging: Paging;
+    onPerPageSelect: OnPerPageSelect;
+    onSetPage: OnSetPage;
 }
 
 /**
@@ -101,15 +106,18 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                             }
                         </Button>
                     </DataToolbarItem>
-                    <DataToolbarItem className="artifact-count-item">
-                        <TextContent>
-                        {
-                            this.props.artifactsCount != null ?
-                                <Text>{ this.props.artifactsCount } Artifacts Found</Text>
-                            :
-                                <Text/>
-                        }
-                        </TextContent>
+                    <DataToolbarItem className="artifact-paging-item">
+                        <Pagination
+                            variant="bottom"
+                            dropDirection="up"
+                            itemCount={this.totalArtifactsCount()}
+                            perPage={this.props.paging.pageSize}
+                            page={this.props.paging.page}
+                            onSetPage={this.props.onSetPage}
+                            onPerPageSelect={this.props.onPerPageSelect}
+                            widgetId="artifact-list-pagination"
+                            className="artifact-list-pagination"
+                        />
                     </DataToolbarItem>
                 </DataToolbarContent>
             </DataToolbar>
@@ -123,6 +131,10 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
             filterSelection: "",
             filterValue: ""
         };
+    }
+
+    private totalArtifactsCount(): number {
+        return this.props.artifacts ? this.props.artifacts.count : 0;
     }
 
     private onFilterToggle = (isExpanded: boolean): void => {

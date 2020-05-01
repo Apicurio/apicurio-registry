@@ -24,9 +24,10 @@ import {
     PureComponentState,
     RuleList
 } from "../../../../components";
-import {Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
+import {Badge, DataListCell, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
+import Moment from "react-moment";
 
 /**
  * Properties
@@ -74,13 +75,20 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <span className="value">{this.props.artifact.state}</span>
                         </div>
                         <div className="metaDataItem">
-                            <span className="label">Created On</span>
-                            <span className="value">{this.props.artifact.createdOn.toLocaleString()}</span>
+                            <span className="label">Created</span>
+                            <span className="value"><Moment date={this.props.artifact.createdOn} fromNow={true} /></span>
                         </div>
                         <div className="metaDataItem">
-                            <span className="label">Modified On</span>
-                            <span className="value">{this.props.artifact.modifiedOn.toLocaleString()}</span>
+                            <span className="label">Modified</span>
+                            <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
                         </div>
+                    </div>
+                    <div className="tags">
+                        {
+                            this.labels().map( label =>
+                                <Badge key={label} isRead={true}>{label}</Badge>
+                            )
+                        }
                     </div>
                     <div className="actions-label">Actions</div>
                     <div className="description">The following are the actions available for this artifact (note that some actions are only available for certain artifact types).</div>
@@ -113,6 +121,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
 
     protected initializeState(): InfoTabContentState {
         return {};
+    }
+
+    private labels(): string[] {
+        // TODO implement labels!
+        return ["one", "two", "three"];
     }
 
 }

@@ -33,7 +33,7 @@
 
 .artifact-tab-content .artifact-basics .metaData {
     font-size: 14px;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
 }
 
 .artifact-tab-content .artifact-basics .metaData .metaDataItem {
@@ -50,6 +50,14 @@
 .artifact-tab-content .artifact-basics .metaData .value {
     display: inline-block;
     white-space: nowrap;
+}
+
+.artifact-tab-content .artifact-basics .tags {
+    margin-bottom: 25px;
+}
+
+.artifact-tab-content .artifact-basics .tags .pf-c-badge {
+    font-size: 14px;
 }
 
 .artifact-tab-content .artifact-basics .actions-label {

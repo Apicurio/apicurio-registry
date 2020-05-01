@@ -15,9 +15,22 @@
  * limitations under the License.
  */
 
-import {Artifact, ArtifactMetaData, Rule} from "@apicurio/registry-models";
+import {Artifact, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {LoggerService} from "../logger";
 
+const vmd = (id: string, name: string, description: string, type: string, version: number, createdBy: string, createdOn: Date, globalId: number, state: string): VersionMetaData => {
+    const rval: VersionMetaData = new VersionMetaData();
+    rval.id = id;
+    rval.name = name;
+    rval.description = description;
+    rval.type = type;
+    rval.version = version;
+    rval.createdBy = createdBy;
+    rval.createdOn = createdOn;
+    rval.globalId = globalId;
+    rval.state = state;
+    return rval;
+};
 
 export interface CreateArtifactData {
     type: string;
@@ -145,7 +158,7 @@ export class ArtifactsService {
         });
     }
 
-    public getArtifactMetaData(artifactId: string): Promise<ArtifactMetaData> {
+    public getArtifactMetaData(artifactId: string, version: string): Promise<ArtifactMetaData> {
         return new Promise<ArtifactMetaData>( resolve => {
             setTimeout(() => {
                 const rval: ArtifactMetaData = this.allArtifacts.filter(artifact => artifact.id === artifactId).map(artifact => {
@@ -168,11 +181,42 @@ export class ArtifactsService {
         });
     }
 
-    public getArtifactContent(artifactId: string): Promise<string> {
+    public getArtifactContent(artifactId: string, version: string): Promise<string> {
         return new Promise<string>( resolve => {
             setTimeout(() => {
                 const content = this.artifactContent[artifactId];
                 resolve(content);
+            }, 200);
+        });
+    }
+
+    public getArtifactVersions(artifactId: string): Promise<VersionMetaData[]> {
+        return new Promise<VersionMetaData[]>( resolve => {
+            setTimeout(() => {
+                resolve([
+                    vmd(artifactId, "Name of Version 1", "Description of version 1", "OPENAPI", 1, "user", new Date(), 101, "ENABLED"),
+                    vmd(artifactId, "Name of Version 2", "Description of version 2", "OPENAPI", 2, "user", new Date(), 102, "ENABLED"),
+                    vmd(artifactId, "Name of Version 3", "Description of version 3", "OPENAPI", 3, "user", new Date(), 103, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 4, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 5", "Description of version 4", "OPENAPI", 5, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 6, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 7, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 8, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 9, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 10, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 11, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 12, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 13, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 14, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 15, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 16, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 17, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 18, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 19, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 20, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 21, "user", new Date(), 104, "ENABLED"),
+                    vmd(artifactId, "Name of Version 4", "Description of version 4", "OPENAPI", 22, "user", new Date(), 104, "ENABLED"),
+                ]);
             }, 200);
         });
     }

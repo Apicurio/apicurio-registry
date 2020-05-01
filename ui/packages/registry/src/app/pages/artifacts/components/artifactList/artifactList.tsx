@@ -57,8 +57,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         return (
             <DataList aria-label="List of artifacts" className="artifact-list">
                 {
-                    this.props.artifacts.map( artifact => {
-                        const row: any =
+                    this.props.artifacts.map( artifact =>
                             <DataListItemRow className="artifact-list-item" key={artifact.id}>
                                 <DataListItemCells
                                     dataListCells={[
@@ -70,11 +69,9 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                             <div className="artifact-description">{artifact.description}</div>
                                             <div className="artifact-tags">
                                                 {
-                                                    this.labels(artifact).map( label => {
-                                                        const badge: any =
-                                                            <Badge key={label} isRead={true}>{label}</Badge>;
-                                                        return badge;
-                                                    })
+                                                    this.labels(artifact).map( label =>
+                                                        <Badge key={label} isRead={true}>{label}</Badge>
+                                                    )
                                                 }
                                             </div>
                                         </DataListCell>
@@ -88,8 +85,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                     <Link className="pf-c-button pf-m-secondary" to={ `/artifacts/${artifact.id}` }>View Artifact</Link>
                                 </DataListAction>
                             </DataListItemRow>
-                        return row;
-                    })
+                    )
                 }
             </DataList>
         );

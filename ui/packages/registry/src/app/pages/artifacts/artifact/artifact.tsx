@@ -20,8 +20,8 @@ import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, Tab, Tabs} fr
 import "./artifact.css";
 import {PageComponent, PageProps, PageState} from "../../basePage";
 import {ArtifactPageHeader} from "./components/pageheader";
-import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
-import {ContentTabContent, DocumentationTabContent, InfoTabContent, VersionsTabContent} from "./components/tabs";
+import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
 import {Services} from "@apicurio/registry-services";
 
 
@@ -42,6 +42,8 @@ export interface ArtifactPageState extends PageState {
     artifactIsText: boolean;
     isUploadModalOpen: boolean;
     rules: Rule[] | null;
+    version: string;
+    versions: VersionMetaData[] | null;
 }
 
 /**
@@ -70,9 +72,6 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             <Tab eventKey={2} title="Content" key="content">
                 <ContentTabContent artifactContent={this.state.artifactContent} />
             </Tab>,
-            <Tab eventKey={3} title="Versions" key="versions">
-                <VersionsTabContent />
-            </Tab>
         ];
         if (!this.showDocumentationTab()) {
             tabs.splice(1, 1);
@@ -81,7 +80,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         return (
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactPageHeader onUploadVersion={this.onUploadVersion} />
+                    <ArtifactPageHeader onUploadVersion={this.onUploadVersion} versions={this.versions()} version={this.state.version} />
                 </PageSection>
                 {
                     this.state.isLoading ?
@@ -118,7 +117,9 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             isError: false,
             isLoading: true,
             isUploadModalOpen: false,
-            rules: null
+            rules: null,
+            version: "latest",
+            versions: null
         };
     }
 
@@ -128,9 +129,10 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
 
         Promise.all([
-            Services.getArtifactsService().getArtifactMetaData(artifactId).then(md => this.setSingleState("artifact", md)),
-            Services.getArtifactsService().getArtifactContent(artifactId).then(content => this.setSingleState("artifactContent", content)),
-            Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules))
+            Services.getArtifactsService().getArtifactMetaData(artifactId, this.state.version).then(md => this.setSingleState("artifact", md)),
+            Services.getArtifactsService().getArtifactContent(artifactId, this.state.version).then(content => this.setSingleState("artifactContent", content)),
+            Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules)),
+            Services.getArtifactsService().getArtifactVersions(artifactId).then(versions => this.setSingleState("versions", versions))
         ]).then( () => {
             this.setSingleState("isLoading", false);
         }).catch( error => {
@@ -155,11 +157,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     }
 
     private rules(): Rule[] {
-        if (this.state.rules) {
-            return this.state.rules;
-        } else {
-            return [];
-        }
+        return this.state.rules ? this.state.rules : [];
     }
 
     private doEnableRule = (ruleType: string): void => {
@@ -195,5 +193,9 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             }
         }));
     };
+
+    private versions(): VersionMetaData[] {
+        return this.state.versions ? this.state.versions : [];
+    }
 
 }

@@ -36,7 +36,6 @@ import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
-import {useHistory} from "react-router";
 
 
 /**
@@ -177,24 +176,15 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private artifacts(): Artifact[] {
-        if (this.state.results) {
-            return this.state.results.artifacts;
-        }
-        return [];
+        return this.state.results ? this.state.results.artifacts : [];
     }
 
     private artifactsCount(): number {
-        if (this.state.results) {
-            return this.state.results.artifacts.length;
-        }
-        return 0;
+        return this.state.results ? this.state.results.artifacts.length : 0;
     }
 
     private totalArtifactsCount(): number {
-        if (this.state.results) {
-            return this.state.results.count;
-        }
-        return 0;
+        return this.state.results ? this.state.results.count : 0;
     }
 
     private onFilterChange = (criteria: GetArtifactsCriteria): void => {

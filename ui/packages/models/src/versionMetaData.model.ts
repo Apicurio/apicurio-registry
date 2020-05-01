@@ -24,7 +24,7 @@ export class VersionMetaData {
     public type: string;
     public version: number;
     public createdBy: string;
-    public createdOn: string;
+    public createdOn: Date;
     public globalId: number;
     public state: string;
 

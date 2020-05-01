@@ -18,14 +18,18 @@
 import React from "react";
 import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
+import {VersionMetaData} from "@apicurio/registry-models";
+import {VersionSelector} from "./version-selector";
+import "./pageheader.css";
 
 
 /**
  * Properties
  */
-// tslint:disable-next-line:no-empty-interface
 export interface ArtifactPageHeaderProps extends PureComponentProps {
     onUploadVersion: () => void;
+    version: string;
+    versions: VersionMetaData[];
 }
 
 /**
@@ -54,7 +58,8 @@ export class ArtifactPageHeader extends PureComponent<ArtifactPageHeaderProps, A
                     </TextContent>
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                    <Button variant="primary" onClick={this.props.onUploadVersion}>Upload New Version</Button>
+                    <VersionSelector version={this.props.version} versions={this.props.versions} />
+                    <Button id="upload-version-button" variant="secondary" onClick={this.props.onUploadVersion}>Upload New Version</Button>
                 </FlexItem>
             </Flex>
         );

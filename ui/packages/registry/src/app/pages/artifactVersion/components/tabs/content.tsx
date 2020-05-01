@@ -16,12 +16,12 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
+import "./content.css";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/theme-tomorrow";
 import "ace-builds/src-noconflict/theme-monokai";
-import "./content.css";
 
 
 /**

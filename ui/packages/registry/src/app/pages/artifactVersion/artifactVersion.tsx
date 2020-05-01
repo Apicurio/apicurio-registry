@@ -16,42 +16,41 @@
  */
 
 import React from "react";
+import "./artifactVersion.css";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, Tab, Tabs} from '@patternfly/react-core';
-import "./artifact.css";
-import {PageComponent, PageProps, PageState} from "../../basePage";
-import {ArtifactPageHeader} from "./components/pageheader";
+import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
 import {Services} from "@apicurio/registry-services";
+import {ArtifactVersionPageHeader} from "./components/pageheader";
 
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactPageProps extends PageProps {
+export interface ArtifactVersionPageProps extends PageProps {
 }
 
 /**
  * State
  */
-export interface ArtifactPageState extends PageState {
+export interface ArtifactVersionPageState extends PageState {
     activeTabKey: number;
     artifact: ArtifactMetaData | null;
     artifactContent: string;
     artifactIsText: boolean;
     isUploadModalOpen: boolean;
     rules: Rule[] | null;
-    version: string;
     versions: VersionMetaData[] | null;
 }
 
 /**
  * The artifacts page.
  */
-export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageState> {
+export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps, ArtifactVersionPageState> {
 
-    constructor(props: Readonly<ArtifactPageProps>) {
+    constructor(props: Readonly<ArtifactVersionPageProps>) {
         super(props);
     }
 
@@ -80,7 +79,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         return (
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactPageHeader onUploadVersion={this.onUploadVersion} versions={this.versions()} version={this.state.version} />
+                    <ArtifactVersionPageHeader onUploadVersion={this.onUploadVersion} versions={this.versions()} version={this.version()} artifactId={this.artifactId()} />
                 </PageSection>
                 {
                     this.state.isLoading ?
@@ -105,7 +104,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         );
     }
 
-    protected initializeState(): ArtifactPageState {
+    protected initializeState(): ArtifactVersionPageState {
         return {
             activeTabKey: 0,
             artifact: null,
@@ -118,19 +117,17 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
             isLoading: true,
             isUploadModalOpen: false,
             rules: null,
-            version: "latest",
             versions: null
         };
     }
 
     protected loadPageData(): void {
-        // @ts-ignore
-        const artifactId: any = this.props.match.params.artifactId;
+        const artifactId: string = this.getPathParam("artifactId");
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
 
         Promise.all([
-            Services.getArtifactsService().getArtifactMetaData(artifactId, this.state.version).then(md => this.setSingleState("artifact", md)),
-            Services.getArtifactsService().getArtifactContent(artifactId, this.state.version).then(content => this.setSingleState("artifactContent", content)),
+            Services.getArtifactsService().getArtifactMetaData(artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
+            Services.getArtifactsService().getArtifactContent(artifactId, this.version()).then(content => this.setSingleState("artifactContent", content)),
             Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules)),
             Services.getArtifactsService().getArtifactVersions(artifactId).then(versions => this.setSingleState("versions", versions))
         ]).then( () => {
@@ -138,6 +135,10 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         }).catch( error => {
             this.handleServerError(error, "Error loading artifact information.");
         });
+    }
+
+    private version(): string {
+        return this.getPathParam("version");
     }
 
     private handleTabClick = (event: any, tabIndex: any): void => {
@@ -161,7 +162,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     }
 
     private doEnableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[ArtifactPage] Enabling rule:", ruleType);
+        Services.getLoggerService().debug("[ArtifactVersionPage] Enabling rule:", ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
@@ -173,7 +174,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     };
 
     private doDisableRule = (ruleType: string): void => {
-        Services.getLoggerService().debug("[ArtifactPage] Disabling rule:", ruleType);
+        Services.getLoggerService().debug("[ArtifactVersionPage] Disabling rule:", ruleType);
         Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
             this.handleServerError(error, `Error disabling "${ ruleType }" artifact rule.`);
         });
@@ -181,7 +182,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
     };
 
     private doConfigureRule = (ruleType: string, config: string): void => {
-        Services.getLoggerService().debug("[ArtifactPage] Configuring rule:", ruleType, config);
+        Services.getLoggerService().debug("[ArtifactVersionPage] Configuring rule:", ruleType, config);
         Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
             this.handleServerError(error, `Error configuring "${ ruleType }" artifact rule.`);
         });
@@ -198,4 +199,7 @@ export class ArtifactPage extends PageComponent<ArtifactPageProps, ArtifactPageS
         return this.state.versions ? this.state.versions : [];
     }
 
+    private artifactId(): string {
+        return this.state.artifact ? this.state.artifact.id : "";
+    }
 }

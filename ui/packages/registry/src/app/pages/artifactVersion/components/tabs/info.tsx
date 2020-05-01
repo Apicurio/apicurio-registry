@@ -16,13 +16,17 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState, RuleList} from "../../../../../components";
-import {Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
-import {ArtifactTypeIcon} from "../../../components/artifactList";
-import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import "./info.css";
+import {
+    ArtifactTypeIcon,
+    PureComponent,
+    PureComponentProps,
+    PureComponentState,
+    RuleList
+} from "../../../../components";
+import {Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
+import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
-import {Services} from "@apicurio/registry-services";
 
 /**
  * Properties

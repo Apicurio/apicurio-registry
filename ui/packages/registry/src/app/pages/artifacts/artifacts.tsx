@@ -16,6 +16,7 @@
  */
 
 import React from "react";
+import "./artifacts.css";
 import {
     Button,
     Flex,
@@ -27,7 +28,6 @@ import {
     Spinner
 } from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
-import "./artifacts.css";
 import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
 import {Artifact} from "@apicurio/registry-models";
@@ -107,7 +107,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     isLarge={true}
                     isOpen={this.state.isUploadModalOpen}
                     onClose={this.onUploadModalClose}
-                    className="upload-artifact-modal"
+                    className="upload-artifact-modal pf-m-redhat-font"
                     actions={[
                         <Button key="upload" variant="primary" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
                         <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>

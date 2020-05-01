@@ -16,8 +16,8 @@
  */
 
 import React from "react";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
 import "./rules.css";
+import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RulesPageHeader} from "./components/pageheader";
 import {RuleList} from "../../components/ruleList";

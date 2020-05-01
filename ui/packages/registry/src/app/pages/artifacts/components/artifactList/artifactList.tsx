@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import React from "react";
+import "./artifactList.css";
 import {
     Badge,
     DataList,
@@ -24,10 +25,8 @@ import {
     DataListItemRow
 } from '@patternfly/react-core';
 import {Artifact} from "@apicurio/registry-models";
-import "./artifactList.css";
-import {ArtifactTypeIcon} from "./artifactTypeIcon";
 import {Link} from "react-router-dom";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 
 /**
  * Properties

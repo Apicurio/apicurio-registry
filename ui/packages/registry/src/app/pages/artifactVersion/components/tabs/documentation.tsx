@@ -16,9 +16,9 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
-import {RedocStandalone} from "redoc";
 import "./documentation.css";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {RedocStandalone} from "redoc";
 
 
 /**

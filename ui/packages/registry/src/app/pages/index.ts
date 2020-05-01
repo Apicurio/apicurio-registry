@@ -15,4 +15,6 @@
  * limitations under the License.
  */
 
+export * from './artifact';
 export * from './artifacts';
+export * from './artifactVersion';

@@ -16,6 +16,7 @@
  */
 
 import React from 'react';
+import "./ruleList.css"
 import {
     Button,
     DataList,
@@ -28,7 +29,6 @@ import {
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {ArtifactsPageEmptyStateState} from "../../pages/artifacts/components/empty";
 import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
-import "./ruleList.css"
 import {Rule} from "@apicurio/registry-models";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
 import {ValidityDropdown} from "./validity-dropdown";

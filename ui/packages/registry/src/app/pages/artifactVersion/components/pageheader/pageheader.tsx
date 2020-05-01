@@ -16,17 +16,18 @@
  */
 
 import React from "react";
+import "./pageheader.css";
 import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../../components";
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {VersionMetaData} from "@apicurio/registry-models";
 import {VersionSelector} from "./version-selector";
-import "./pageheader.css";
 
 
 /**
  * Properties
  */
-export interface ArtifactPageHeaderProps extends PureComponentProps {
+export interface ArtifactVersionPageHeaderProps extends PureComponentProps {
+    artifactId: string;
     onUploadVersion: () => void;
     version: string;
     versions: VersionMetaData[];
@@ -36,16 +37,16 @@ export interface ArtifactPageHeaderProps extends PureComponentProps {
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactPageHeaderState extends PureComponentState {
+export interface ArtifactVersionPageHeaderState extends PureComponentState {
 }
 
 
 /**
  * Models the page header for the Artifact page.
  */
-export class ArtifactPageHeader extends PureComponent<ArtifactPageHeaderProps, ArtifactPageHeaderState> {
+export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPageHeaderProps, ArtifactVersionPageHeaderState> {
 
-    constructor(props: Readonly<ArtifactPageHeaderProps>) {
+    constructor(props: Readonly<ArtifactVersionPageHeaderProps>) {
         super(props);
     }
 
@@ -58,14 +59,14 @@ export class ArtifactPageHeader extends PureComponent<ArtifactPageHeaderProps, A
                     </TextContent>
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                    <VersionSelector version={this.props.version} versions={this.props.versions} />
+                    <VersionSelector version={this.props.version} versions={this.props.versions} artifactId={this.props.artifactId} />
                     <Button id="upload-version-button" variant="secondary" onClick={this.props.onUploadVersion}>Upload New Version</Button>
                 </FlexItem>
             </Flex>
         );
     }
 
-    protected initializeState(): ArtifactPageHeaderState {
+    protected initializeState(): ArtifactVersionPageHeaderState {
         return {};
     }
 }

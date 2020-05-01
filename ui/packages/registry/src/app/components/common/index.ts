@@ -15,5 +15,4 @@
  * limitations under the License.
  */
 
-export * from './artifact';
-export * from './components';
+export * from "./artifactTypeIcon";

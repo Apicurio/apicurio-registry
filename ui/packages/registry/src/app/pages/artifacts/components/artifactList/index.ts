@@ -16,4 +16,3 @@
  */
 
 export * from './artifactList';
-export * from './artifactTypeIcon';

@@ -19,9 +19,11 @@ import React from "react";
 import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route} from 'react-router-dom';
 import {AppHeader} from "./components/header";
-import {ArtifactsPage} from "./pages/artifacts";
-import {ArtifactPage} from "./pages/artifacts/artifact";
 import {RulesPage} from "./pages/rules";
+import {ArtifactsPage} from "./pages/artifacts";
+import {ArtifactRedirectPage} from "./pages/artifact";
+import {ArtifactVersionPage} from "./pages/artifactVersion";
+import {Services} from "@apicurio/registry-services";
 
 
 /**
@@ -34,6 +36,16 @@ export default class App extends React.PureComponent<{}, {}> {
     }
 
     public render() {
+        // Function to force the Artifact Version Page to fully remount each time we navigate to it.  This
+        // is needed because we want the page to fully rerender whenever the browser location changes, which
+        // happens when switching between versions of the artifact content (e.g. switch from version 1 to version 3).
+        const artifactVersionPage = (props: any): React.ReactElement => {
+            const location: string = props.location.pathname;
+            return (
+                <ArtifactVersionPage key={location} {...props} />
+            );
+        };
+
         return (
             <Router>
                 <Page
@@ -44,7 +56,8 @@ export default class App extends React.PureComponent<{}, {}> {
                     <Route path='/' exact={true} component={ArtifactsPage}/>
                     <Route path='/rules' exact={true} component={RulesPage}/>
                     <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
-                    <Route path='/artifacts/:artifactId' exact={true} component={ArtifactPage}/>
+                    <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>
+                    <Route path='/artifacts/:artifactId/versions/:version' exact={true} component={artifactVersionPage} />
                 </Page>
             </Router>
         );

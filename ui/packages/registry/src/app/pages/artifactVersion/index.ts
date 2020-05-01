@@ -15,4 +15,5 @@
  * limitations under the License.
  */
 
-export * from './pageheader'
+export * from './components';
+export * from './artifactVersion';

@@ -118,6 +118,11 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         this.handleError(PageErrorType.Server, error, errorInfo);
     }
 
+    protected getPathParam(paramName: string): string {
+        // @ts-ignore
+        return this.props.match.params[paramName];
+    }
+
     private handleError(errorType: PageErrorType, error: any, errorInfo: any): void {
         Services.getLoggerService().error("[PageComponent] Handling an error of type: ", errorType);
         Services.getLoggerService().error("[PageComponent] ", errorInfo);

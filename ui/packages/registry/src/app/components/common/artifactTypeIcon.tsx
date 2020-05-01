@@ -16,7 +16,7 @@
  */
 import React from "react";
 import "./artifactTypeIcon.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 
 /**
  * Properties

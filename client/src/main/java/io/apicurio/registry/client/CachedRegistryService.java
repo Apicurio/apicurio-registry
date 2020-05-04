@@ -28,7 +28,6 @@ import io.apicurio.registry.utils.IoUtil;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.enterprise.inject.Vetoed;
@@ -119,8 +118,8 @@ class CachedRegistryService implements RegistryService {
     }
 
     @Override
-    public Set<String> getArtifactIds() {
-        return getDelegate().getArtifactIds();
+    public List<String> listArtifacts() {
+        return getDelegate().listArtifacts();
     }
 
     @Override

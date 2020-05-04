@@ -18,6 +18,7 @@
 import React from "react";
 import "./artifactVersion.css";
 import {
+    Breadcrumb, BreadcrumbItem,
     Button,
     Flex,
     FlexItem,
@@ -34,6 +35,7 @@ import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./comp
 import {CreateArtifactData, CreateVersionData, Services} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
 import {UploadVersionForm} from "./components/uploadForm";
+import {Link} from "react-router-dom";
 
 
 /**
@@ -91,6 +93,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
         return (
             <React.Fragment>
+                <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light}>
+                    <Breadcrumb>
+                        <BreadcrumbItem><Link to="/artifacts">Artifacts</Link></BreadcrumbItem>
+                        <BreadcrumbItem isActive={true}>{ this.artifactNameOrId() }</BreadcrumbItem>
+                    </Breadcrumb>
+                </PageSection>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactVersionPageHeader onUploadVersion={this.onUploadVersion} versions={this.versions()} version={this.version()} artifactId={this.artifactId()} />
                 </PageSection>
@@ -233,6 +241,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private artifactType(): string {
         return this.state.artifact ? this.state.artifact.type : "";
+    }
+
+    private artifactNameOrId(): string {
+        return this.state.artifact ? (
+            this.state.artifact.name ? this.state.artifact.name : this.state.artifact.id
+        ) : "";
     }
 
     private onUploadFormValid = (isValid: boolean): void => {

@@ -81,7 +81,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                     aria-labelledby="artifact-actions"
                                     aria-label="Actions"
                                 >
-                                    <Link className="pf-c-button pf-m-secondary" to={ `/artifacts/${artifact.id}` }>View Artifact</Link>
+                                    <Link className="pf-c-button pf-m-secondary" to={ `/artifacts/${artifact.id}` }>View artifact</Link>
                                 </DataListAction>
                             </DataListItemRow>
                     )

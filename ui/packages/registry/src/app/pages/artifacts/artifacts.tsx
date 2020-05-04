@@ -18,6 +18,7 @@
 import React from "react";
 import "./artifacts.css";
 import {
+    Breadcrumb, BreadcrumbItem,
     Button,
     Flex,
     FlexItem,

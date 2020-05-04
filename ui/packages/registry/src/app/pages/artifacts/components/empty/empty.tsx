@@ -63,7 +63,7 @@ export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptySta
                             clicking the button below.
                         </EmptyStateBody>
                 }
-                <Button variant="primary" onClick={this.props.onUploadArtifact}>Upload Artifact</Button>
+                <Button variant="primary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
             </EmptyState>
         );
     }

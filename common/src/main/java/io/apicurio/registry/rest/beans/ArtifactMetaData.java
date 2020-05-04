@@ -1,7 +1,7 @@
 
 package io.apicurio.registry.rest.beans;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -30,7 +30,6 @@ import io.apicurio.registry.types.ArtifactType;
     "globalId",
     "state"
 })
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ArtifactMetaData {
 
     @JsonProperty("name")
@@ -50,7 +49,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    private long createdOn;
+    private Date createdOn;
     /**
      * 
      * (Required)
@@ -64,7 +63,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    private long modifiedOn;
+    private Date modifiedOn;
     /**
      * 
      * (Required)
@@ -96,7 +95,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Long globalId;
+    private Integer globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -105,6 +104,7 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -157,7 +157,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public long getCreatedOn() {
+    public Date getCreatedOn() {
         return createdOn;
     }
 
@@ -167,7 +167,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(long createdOn) {
+    public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -197,7 +197,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    public long getModifiedOn() {
+    public Date getModifiedOn() {
         return modifiedOn;
     }
 
@@ -207,7 +207,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(long modifiedOn) {
+    public void setModifiedOn(Date modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 
@@ -277,7 +277,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Long getGlobalId() {
+    public Integer getGlobalId() {
         return globalId;
     }
 
@@ -287,7 +287,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Long globalId) {
+    public void setGlobalId(Integer globalId) {
         this.globalId = globalId;
     }
 
@@ -299,6 +299,7 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -314,6 +315,7 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -321,20 +323,4 @@ public class ArtifactMetaData {
         this.state = state;
     }
 
-    @Override
-    public String toString() {
-        return "ArtifactMetaData{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", modifiedBy='" + modifiedBy + '\'' +
-                ", modifiedOn=" + modifiedOn +
-                ", id='" + id + '\'' +
-                ", version=" + version +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                '}';
-    }
 }

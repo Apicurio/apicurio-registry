@@ -1,7 +1,9 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -11,50 +13,60 @@ import io.apicurio.registry.types.ArtifactType;
 
 
 /**
- * Root Type for ArtifactVersionMetaData
- * <p>
- * 
+ * Models a single artifact from the result set returned when searching for artifacts.
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "version",
+    "id",
     "name",
     "description",
-    "createdBy",
     "createdOn",
+    "createdBy",
     "type",
-    "globalId",
+    "labels",
     "state",
-    "id"
+    "modifiedOn",
+    "modifiedBy"
 })
-public class VersionMetaData {
+public class SearchedArtifact {
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("version")
-    private Integer version;
+    @JsonProperty("id")
+    @JsonPropertyDescription("")
+    private String id;
+    /**
+     * 
+     */
     @JsonProperty("name")
+    @JsonPropertyDescription("")
     private String name;
+    /**
+     * 
+     */
     @JsonProperty("description")
+    @JsonPropertyDescription("")
     private String description;
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("createdBy")
-    private String createdBy;
+    @JsonProperty("createdOn")
+    @JsonPropertyDescription("")
+    private Date createdOn;
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("createdOn")
-    private Date createdOn;
+    @JsonProperty("createdBy")
+    @JsonPropertyDescription("")
+    private String createdBy;
     /**
      * 
      * (Required)
@@ -65,12 +77,10 @@ public class VersionMetaData {
     private ArtifactType type;
     /**
      * 
-     * (Required)
-     * 
      */
-    @JsonProperty("globalId")
+    @JsonProperty("labels")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private List<String> labels = new ArrayList<String>();
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -79,28 +89,33 @@ public class VersionMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
     /**
-     * The artifact id.
+     * 
+     */
+    @JsonProperty("modifiedOn")
+    @JsonPropertyDescription("")
+    private Date modifiedOn;
+    /**
+     * 
+     */
+    @JsonProperty("modifiedBy")
+    @JsonPropertyDescription("")
+    private String modifiedBy;
+
+    /**
+     * 
      * (Required)
      * 
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("The artifact id.")
-    private String id;
-
-    /**
-     * 
-     * (Required)
-     * 
-     */
-    @JsonProperty("version")
-    public Integer getVersion() {
-        return version;
+    public String getId() {
+        return id;
     }
 
     /**
@@ -108,49 +123,41 @@ public class VersionMetaData {
      * (Required)
      * 
      */
-    @JsonProperty("version")
-    public void setVersion(Integer version) {
-        this.version = version;
+    @JsonProperty("id")
+    public void setId(String id) {
+        this.id = id;
     }
 
+    /**
+     * 
+     */
     @JsonProperty("name")
     public String getName() {
         return name;
     }
 
+    /**
+     * 
+     */
     @JsonProperty("name")
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * 
+     */
     @JsonProperty("description")
     public String getDescription() {
         return description;
     }
 
+    /**
+     * 
+     */
     @JsonProperty("description")
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    /**
-     * 
-     * (Required)
-     * 
-     */
-    @JsonProperty("createdBy")
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    /**
-     * 
-     * (Required)
-     * 
-     */
-    @JsonProperty("createdBy")
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
     }
 
     /**
@@ -178,6 +185,26 @@ public class VersionMetaData {
      * (Required)
      * 
      */
+    @JsonProperty("createdBy")
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("createdBy")
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
     @JsonProperty("type")
     public ArtifactType getType() {
         return type;
@@ -195,22 +222,18 @@ public class VersionMetaData {
 
     /**
      * 
-     * (Required)
-     * 
      */
-    @JsonProperty("globalId")
-    public Integer getGlobalId() {
-        return globalId;
+    @JsonProperty("labels")
+    public List<String> getLabels() {
+        return labels;
     }
 
     /**
      * 
-     * (Required)
-     * 
      */
-    @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
-        this.globalId = globalId;
+    @JsonProperty("labels")
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
     }
 
     /**
@@ -221,6 +244,7 @@ public class VersionMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -236,6 +260,7 @@ public class VersionMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -244,23 +269,35 @@ public class VersionMetaData {
     }
 
     /**
-     * The artifact id.
-     * (Required)
      * 
      */
-    @JsonProperty("id")
-    public String getId() {
-        return id;
+    @JsonProperty("modifiedOn")
+    public Date getModifiedOn() {
+        return modifiedOn;
     }
 
     /**
-     * The artifact id.
-     * (Required)
      * 
      */
-    @JsonProperty("id")
-    public void setId(String id) {
-        this.id = id;
+    @JsonProperty("modifiedOn")
+    public void setModifiedOn(Date modifiedOn) {
+        this.modifiedOn = modifiedOn;
+    }
+
+    /**
+     * 
+     */
+    @JsonProperty("modifiedBy")
+    public String getModifiedBy() {
+        return modifiedBy;
+    }
+
+    /**
+     * 
+     */
+    @JsonProperty("modifiedBy")
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
     }
 
 }

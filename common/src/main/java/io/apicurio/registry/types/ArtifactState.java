@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ArtifactState {
 
-    // TODO describe these
     ENABLED("ENABLED"),
     DISABLED("DISABLED"),
     DEPRECATED("DEPRECATED"),

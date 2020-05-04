@@ -116,15 +116,15 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
+        Services.getGlobalsService().createRule(ruleType, config).catch(error => {
             this.handleServerError(error, `Error enabling "${ ruleType }" global rule.`);
         });
-        this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
+        this.setSingleState("rules", [...this.rules(), {config, type: ruleType}]);
     };
 
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[RulesPage] Disabling global rule:", ruleType);
-        Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
+        Services.getGlobalsService().deleteRule(ruleType).catch(error => {
             this.handleServerError(error, `Error disabling "${ ruleType }" global rule.`);
         });
         this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
@@ -137,7 +137,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         });
         this.setSingleState("rules", this.rules().map(r => {
             if (r.type === ruleType) {
-                return Rule.create(r.type, config);
+                return {config, type: r.type};
             } else {
                 return r;
             }

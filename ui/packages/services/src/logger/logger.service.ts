@@ -16,10 +16,16 @@
  */
 
 
+import {Service} from "../baseService";
+
 /**
  * A simple logger service.
  */
-export class LoggerService {
+export class LoggerService implements Service {
+
+    public init(): void {
+        // Nothing to init
+    }
 
     public debug(message?: any, ...optionalParams: any[]): void {
         console.debug(message, ...optionalParams);

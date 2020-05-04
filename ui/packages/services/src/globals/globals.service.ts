@@ -16,64 +16,58 @@
  */
 
 import {Rule} from "@apicurio/registry-models";
-import {LoggerService} from "../logger";
+import {BaseService} from "../baseService";
 
 
 /**
  * The globals service.  Used to get global/settings information from the back-end.
  */
-export class GlobalsService {
-
-    private logger: LoggerService = null;
-
-    private readonly rules: Rule[];
-
-    constructor() {
-        this.rules = [
-            Rule.create("VALIDITY", "FULL"),
-            Rule.create("COMPATIBILITY", "BACKWARD")
-        ];
-    }
+export class GlobalsService extends BaseService {
 
     public getRules(): Promise<Rule[]> {
         this.logger.info("[GlobalsService] Getting the global list of rules.");
-        return new Promise<Rule[]>(resolve => {
-            setTimeout(() => {
-                resolve(this.rules);
-            }, 200);
+        const endpoint: string = this.endpoint("/rules");
+        return this.httpGet<string[]>(endpoint).then( ruleTypes => {
+            this.logger.debug("++++++++++++++++ Rule types: ", ruleTypes);
+            return Promise.all(ruleTypes.map(rt => this.getRule(rt)));
         });
     }
 
-    public updateRule(type: string, config: string|null): Promise<Rule|null> {
-        this.logger.info("[GlobalsService] Updating rule:", type);
-        return new Promise<Rule>(resolve => {
-            setTimeout(() => {
-                const frules: Rule[] = this.rules.filter(rule => rule.type === type);
-                // If config is null, we're disabling/removing the rule.
-                if (!config) {
-                    if (frules.length === 1) {
-                        // Disable by removing the rule from the list.
-                        this.rules.splice(this.rules.indexOf(frules[0]), 1);
-                        resolve(null);
-                    } else {
-                        // It's already disabled
-                        resolve(null);
-                    }
-                } else {
-                    if (frules.length === 1) {
-                        // Modify the rule
-                        const rval: Rule = this.rules.filter(rule => rule.type === type)[0];
-                        rval.config = config;
-                        resolve(rval);
-                    } else {
-                        // Add the rule
-                        const rule: Rule = Rule.create(type, config);
-                        this.rules.push(rule);
-                        resolve(rule);
-                    }
-                }
-            }, 200);
+    public getRule(type: string): Promise<Rule> {
+        const endpoint: string = this.endpoint("/rules/:rule", {
+            rule: type
         });
+        return this.httpGet<Rule>(endpoint);
+    }
+
+    public createRule(type: string, config: string): Promise<Rule> {
+        this.logger.info("[GlobalsService] Creating global rule:", type);
+
+        const endpoint: string = this.endpoint("/rules");
+        const body: Rule = {
+            config,
+            type
+        };
+        return this.httpPostWithReturn(endpoint, body);
+    }
+
+    public updateRule(type: string, config: string): Promise<Rule|null> {
+        this.logger.info("[GlobalsService] Updating global rule:", type);
+
+        const endpoint: string = this.endpoint("/rules/:rule", {
+            "rule": type
+        });
+        const body: Rule = { config, type };
+        return this.httpPutWithReturn<Rule, Rule>(endpoint, body);
+    }
+
+    public deleteRule(type: string): Promise<null> {
+        this.logger.info("[GlobalsService] Deleting global rule:", type);
+
+        const endpoint: string = this.endpoint("/rules/:rule", {
+            "rule": type
+        });
+        return this.httpDelete(endpoint);
     }
 
 }

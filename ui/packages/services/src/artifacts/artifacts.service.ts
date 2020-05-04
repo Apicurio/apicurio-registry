@@ -16,7 +16,7 @@
  */
 
 import {Artifact, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
-import {LoggerService} from "../logger";
+import {BaseService} from "../baseService";
 
 const vmd = (id: string, name: string, description: string, type: string, version: number, createdBy: string, createdOn: Date, globalId: number, state: string): VersionMetaData => {
     const rval: VersionMetaData = new VersionMetaData();
@@ -68,14 +68,13 @@ export interface ArtifactsSearchResults {
  * The artifacts service.  Used to query the backend search API to fetch lists of
  * artifacts and also details about individual artifacts.
  */
-export class ArtifactsService {
-
-    private logger: LoggerService = null;
+export class ArtifactsService extends BaseService {
 
     private readonly allArtifacts: Artifact[];
     private readonly artifactContent: any;
 
     constructor() {
+        super();
         const artifacts: Artifact[] = [
             Artifact.create("1", "OPENAPI", "Biotech API", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", [ "books", "library", "authors" ]),
             Artifact.create("2", "ASYNCAPI", "Street Light API", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", [ "async", "led", "electric", "utility"] ),

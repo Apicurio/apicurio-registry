@@ -18,6 +18,7 @@ import {ArtifactsService} from "./artifacts";
 import {ConfigService} from "./config";
 import {LoggerService} from "./logger";
 import {GlobalsService} from "./globals";
+import {Service} from "./baseService";
 
 interface AllServices {
     artifacts: ArtifactsService;
@@ -56,6 +57,7 @@ export class Services {
 
     // tslint:disable-next-line:member-ordering member-access
     static _intialize(): void {
+        // First perform simple service-service injection.
         Object.keys(Services.all).forEach( svcToInjectIntoName => {
             const svcToInjectInto: any = Services.all[svcToInjectIntoName];
             Object.keys(Services.all).filter(key => key !== svcToInjectIntoName).forEach(injectableSvcKey => {
@@ -63,6 +65,11 @@ export class Services {
                     svcToInjectInto[injectableSvcKey] = Services.all[injectableSvcKey];
                 }
             })
+        });
+        // Once that's done, init() all the services
+        Object.keys(Services.all).forEach( svcToInjectIntoName => {
+            const svcToInit: Service = Services.all[svcToInjectIntoName];
+            svcToInit.init();
         });
     }
 

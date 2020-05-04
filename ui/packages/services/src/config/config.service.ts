@@ -16,6 +16,7 @@
  */
 
 import {ConfigType} from './config.type';
+import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
     artifacts: {
@@ -33,7 +34,7 @@ const DEFAULT_CONFIG: ConfigType = {
  * A simple configuration service.  Reads information from a global "ApicurioRegistryConfig" variable
  * that is typically included via JSONP.
  */
-export class ConfigService {
+export class ConfigService implements Service {
     private config: ConfigType;
 
     constructor() {
@@ -45,6 +46,10 @@ export class ConfigService {
             console.error("[ConfigService] App config not found! (using default)");
             this.config = DEFAULT_CONFIG;
         }
+    }
+
+    public init(): void {
+        // Nothing to init (done in c'tor)
     }
 
     public artifactsType(): string {

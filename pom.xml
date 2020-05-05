@@ -188,6 +188,11 @@
 				<artifactId>apicurio-registry-search-client</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-ui</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 			<dependency>
 				<groupId>io.apicurio</groupId>
 				<artifactId>apicurio-registry-utils-kafka</artifactId>
@@ -490,7 +495,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>${version.javadoc.plugin}</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>

@@ -1,4 +1,4 @@
-# Apicurio Registry React PoC
+# Apicurio Registry UI
 
 Apicurio Registry React based Single Page Application based on Patternfly 4
 

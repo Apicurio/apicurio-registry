@@ -2,9 +2,10 @@
 
 [id="registry-artifact-types"]
 
-== Supported artifact types
-You can manage the following artifact types in the registry:
+= Supported artifact types
+You can store and manage the following artifact types in {registry}:
 
+.{registry} artifact types
 [%header,cols=2*] 
 |===
 |Type

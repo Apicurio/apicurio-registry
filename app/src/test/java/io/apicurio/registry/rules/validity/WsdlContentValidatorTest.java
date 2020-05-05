@@ -1,0 +1,63 @@
+/*
+ * Copyright 2020 JBoss Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.rules.validity;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.ContentHandle;
+
+/**
+ * @author cfoskin@redhat.com
+ */
+public class WsdlContentValidatorTest extends AbstractRegistryTestBase {
+    @Test
+    public void testValidSyntax() throws Exception {
+        ContentHandle contentA = resourceToContentHandle("wsdl-valid.wsdl");
+        WsdlContentValidator validator = new WsdlContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA);
+        ContentHandle contentB = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB);
+    }
+
+    @Test
+    public void testinValidSyntax() throws Exception {
+        ContentHandle content = resourceToContentHandle("wsdl-invalid-syntax.wsdl");
+        WsdlContentValidator validator = new WsdlContentValidator();
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        });
+    }
+
+    @Test
+    public void testValidSemantics() throws Exception {
+        ContentHandle content = resourceToContentHandle("wsdl-valid.wsdl");
+        WsdlContentValidator validator = new WsdlContentValidator();
+        validator.validate(ValidityLevel.FULL, content);
+    }
+    
+    @Test
+    public void testinValidSemantics() throws Exception {
+        ContentHandle content = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
+        WsdlContentValidator validator = new WsdlContentValidator();
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's
+            validator.validate(ValidityLevel.FULL, content);
+        });
+    }
+}

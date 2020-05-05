@@ -6,6 +6,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
     ) {
         this.streams = Objects.requireNonNull(streams, "streams");
         this.localApplicationServer = Objects.requireNonNull(localApplicationServer, "localApplicationServer");
-        this.storeName = Objects.requireNonNull(storeName, "serviceName");
+        this.storeName = Objects.requireNonNull(storeName, "storeName");
         this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
         this.grpcChannelProvider = Objects.requireNonNull(grpcChannelProvider, "grpcChannelProvider");
         this.parallel = parallel;
@@ -103,23 +104,52 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
 
     protected final S serviceForKey(K key) {
         StreamsMetadata smeta = streams.metadataForKey(storeName, key, keySerde.serializer());
+        if (smeta == null) {
+            throw new InvalidStateStoreException(
+                "StreamsMetadata is null?! " +
+                "Store-name: " + storeName + " " +
+                "Key: " + key
+            );
+        }
         if (smeta == StreamsMetadata.NOT_AVAILABLE) {
             throw new InvalidStateStoreException(
                 "StreamsMetadata is currently unavailable. " +
                 "This can occur during rebalance operations. " +
-                "Store-name: " + storeName
+                "Store-name: " + storeName + " " +
+                "Key: " + key
             );
         }
         return serviceForHostInfo(smeta.hostInfo());
     }
 
-    protected final Collection<S> allServices() {
+    protected final Collection<S> allServicesForStore() {
         Collection<StreamsMetadata> smetas = streams.allMetadataForStore(storeName);
         if (smetas.isEmpty()) {
             throw new InvalidStateStoreException(
                 "StreamsMetadata is currently unavailable. " +
                 "This can occur during rebalance operations. " +
                 "Store-name: " + storeName
+            );
+        }
+        ArrayList<S> services = new ArrayList<>(smetas.size());
+        for (StreamsMetadata smeta : smetas) {
+            services.add(serviceForHostInfo(smeta.hostInfo()));
+        }
+        return services;
+    }
+
+    protected final Stream<S> allServicesForStoreStream() {
+        Collection<S> services = allServicesForStore();
+        // call multiple services in parallel if requested and there are more than one
+        return parallel && services.size() > 1 ? services.parallelStream() : services.stream();
+    }
+
+    protected final Collection<S> allServices() {
+        Collection<StreamsMetadata> smetas = streams.allMetadata();
+        if (smetas.isEmpty()) {
+            throw new StreamsException(
+                "StreamsMetadata is currently unavailable. " +
+                "This can occur during rebalance operations. "
             );
         }
         ArrayList<S> services = new ArrayList<>(smetas.size());

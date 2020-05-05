@@ -10,10 +10,10 @@
 //:rh-service-registry:
 :registry: Apicurio Registry
 //:registry: Service Registry
-:version: 1.0
+:version: 1.1
 
 //integration products
-:fuse-version: 7.5
+:fuse-version: 7.6
 :amq-version: 7.5
 :3scale-version: 2.7
 

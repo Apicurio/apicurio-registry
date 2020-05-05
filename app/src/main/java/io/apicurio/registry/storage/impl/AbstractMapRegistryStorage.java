@@ -16,9 +16,10 @@
 
 package io.apicurio.registry.storage.impl;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
-import io.apicurio.registry.content.ContentCanonicalizerFactory;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -36,8 +37,11 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,7 +70,7 @@ import javax.inject.Inject;
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Inject
-    protected ContentCanonicalizerFactory ccFactory;
+    protected ArtifactTypeUtilProviderFactory factory;
     
     protected Map<String, Map<Long, Map<String, String>>> storage;
     protected Map<Long, Map<String, String>> global;
@@ -119,7 +123,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             stream = stream.filter(e -> states.contains(ArtifactStateExt.getState(e.getValue())));
         }
         Map<String, String> latest = stream.max((e1, e2) -> (int) (e1.getKey() - e2.getKey()))
-                                           .orElseThrow(() -> new RegistryStorageException("Race-condition?!", null))
+                                           .orElseThrow(() -> new ArtifactNotFoundException(artifactId))
                                            .getValue();
 
         ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(latest), latest.get(VERSION));
@@ -193,6 +197,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 if (prevContents.containsKey(MetaDataKeys.DESCRIPTION)) {
                     contents.put(MetaDataKeys.DESCRIPTION, prevContents.get(MetaDataKeys.DESCRIPTION));
                 }
+            }
+        }
+
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        EditableMetaData emd = extractor.extract(content);
+        if (extractor.isExtracted(emd)) {
+            if (!isEmpty(emd.getName())) {
+                contents.put(MetaDataKeys.NAME, emd.getName());
+            }
+            if (!isEmpty(emd.getDescription())) {
+                contents.put(MetaDataKeys.DESCRIPTION, emd.getDescription());
             }
         }
 
@@ -316,7 +332,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
-        ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
+        ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
         ContentHandle canonicalContent = canonicalizer.canonicalize(content);
         byte[] canonicalBytes = canonicalContent.bytes();
         Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);

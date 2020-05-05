@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -17,6 +18,7 @@ import io.apicurio.registry.types.ArtifactType;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
+    "id",
     "version",
     "name",
     "description",
@@ -82,6 +84,14 @@ public class VersionMetaData {
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
+    /**
+     * The artifact id.
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    @JsonPropertyDescription("The artifact id.")
+    private String id;
 
     /**
      * 
@@ -231,6 +241,26 @@ public class VersionMetaData {
     @JsonProperty("state")
     public void setState(ArtifactState state) {
         this.state = state;
+    }
+
+    /**
+     * The artifact id.
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * The artifact id.
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    public void setId(String id) {
+        this.id = id;
     }
 
 }

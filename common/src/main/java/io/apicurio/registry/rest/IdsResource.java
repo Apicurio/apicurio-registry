@@ -29,7 +29,7 @@ public interface IdsResource {
 
   /**
    * Gets the metadata for an artifact version in the registry using its globally unique
-   * identifier.  The returned metadata will include both generated (read-only) and editable
+   * identifier.  The returned metadata includes both generated (read-only) and editable
    * metadata (such as name and description).
    *
    * This operation may fail for one of the following reasons:

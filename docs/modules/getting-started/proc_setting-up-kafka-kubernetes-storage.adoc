@@ -1,0 +1,224 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="setting-up-kafka-kubernetes-storage"]
+ifdef::apicurio-registry[]
+
+//Use OpenShift for now until Helm chart available for Kubernetes
+= Setting up Apache Kafka Streams storage on OpenShift 
+
+This topic explains how to install and configure Apache Kafka Streams storage for {registry} on OpenShift using Strimzi. This storage option is suitable for production environments. 
+
+The following versions are supported:
+
+* Apache Kafka Streams 2.3.x
+* Apache Kafka Streams 2.2.x
+endif::[]
+
+ifdef::rh-service-registry[]
+=  Setting up AMQ Streams storage on OpenShift
+
+This topic explains how to install and configure Red Hat AMQ Streams storage for {registry} on OpenShift. The following versions are supported:
+
+* AMQ Streams 1.4 or 1.3
+* OpenShift 4.3, 4.2, or 3.11   
+endif::[]
+
+You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
+
+.Prerequisites
+
+ifdef::apicurio-registry[]
+* You must have an OpenShift cluster with cluster administrator access.
+endif::[]
+
+
+ifdef::rh-service-registry[]
+* You must have an OpenShift cluster.
+* You must have installed AMQ Streams using the instructions in link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]. 
++
+Alternatively, to install using the simple demonstration example shown in this section, you must have:
+
+** Downloaded AMQ Streams from the Red Hat customer portal 
+** OpenShift cluster adminstrator access 
+endif::[]
+
+.Procedure
+ifdef::apicurio-registry[]
+. Install Strimzi on your OpenShift cluster using the Strimzi Cluster Operator. For example:
++
+[source,bash]
+----
+kubectl create namespace kafka
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.14.0/strimzi-cluster-operator-0.14.0.yaml \
+  | sed 's/namespace: .*/namespace: kafka/' \
+  | kubectl apply -f - -n kafka
+----
+
+. Create a new Kafka cluster with Strimzi. For example: 
++
+[source,bash]
+----
+$ cat << EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata: 
+ name: my-cluster
+spec:
+ kafka:
+   replicas: 3
+   listeners:
+     external:
+       type: route
+   storage:
+     type: ephemeral
+ zookeeper:
+   replicas: 3
+   storage:
+     type: ephemeral
+ entityOperator:
+   topicOperator: {}
+EOF
+----
++
+This simple example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes using ephemeral storage.
+
+. Enter the following command to wait until your cluster is ready:
++
+[source,bash]
+----
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s
+kafka.kafka.strimzi.io/my-cluster condition met
+----
+
+. Create the required `storage-topic` to store {registry} artifacts in Kafka Streams. For example:
++
+[source,bash]
+----
+$ cat << EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  namespace: kafka
+  name: storage-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF
+----
+
+. Create the required `global-id-topic` to store {registry} global IDs in Kafka Streams. For example:
++
+[source,bash]
+----
+$ cat << EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  namespace: kafka
+  name: global-id-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF
+----
+
+endif::[]
+
+
+ifdef::rh-service-registry[]
+
+. If you do not already have AMQ Streams installed, install AMQ Streams on your OpenShift cluster. For example, enter the following command from your AMQ Streams download directory:
++
+[source,bash]
+----
+oc apply -f install/cluster-operator/
+----
+
+. If you do not already have a Kafka cluster set up, create a new Kafka cluster with AMQ Streams. For example: 
++
+[source,bash]
+----
+$ cat << EOF | oc create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata: 
+ name: my-cluster
+spec:
+ kafka:
+   replicas: 3
+   listeners:
+     external:
+       type: route
+   storage:
+     type: ephemeral
+ zookeeper:
+   replicas: 3
+   storage:
+     type: ephemeral
+ entityOperator:
+   topicOperator: {}
+EOF
+----
+This simple example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes using ephemeral storage. All data is lost when the Pods are no longer running on OpenShift. 
+
+. Create the required `storage-topic` to store {registry} artifacts in AMQ Streams. For example:
++
+[source,bash]
+----
+$ cat << EOF | oc create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: storage-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF
+----
+
+. Create the required `global-id-topic` to store {registry} global IDs in AMQ Streams. For example:
++
+[source,bash]
+----
+$ cat << EOF | oc create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: global-id-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF
+----
+endif::[]
+
+
+.Additional resources
+ifdef::apicurio-registry[]
+For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+endif::[]
+
+ifdef::rh-service-registry[]
+
+For more details on installing AMQ Streams and on creating Kafka clusters and topics:
+
+* link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
+* link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run AMQ Streams on Minishift]
+endif::[]

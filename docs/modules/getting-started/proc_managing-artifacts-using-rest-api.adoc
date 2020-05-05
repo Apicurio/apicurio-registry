@@ -1,0 +1,53 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="managing-artifacts-using-rest-api"]
+= Managing artifacts using the Registry REST API
+
+The Registry REST API enables client applications to manage artifacts in the registry, for example, in a CI/CD pipeline deployed in production. This REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. 
+
+When creating artifacts in {registry} using the REST API, if you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+
+This chapter shows a simple curl-based example of using the Registry REST API to create and retrieve a Apache Avro schema artifact in the registry. 
+
+.Prerequisites
+
+* See xref:registry-rest-api[].
+* {registry} must be installed and running in your environment. For details, see xref:installing-the-registry[].
+
+.Procedure
+
+. Create an artifact in the registry using the `/artifacts` operation. The following example `curl` command creates a simple artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/artifacts
+----
++
+This example shows creating an Avro schema artifact with an artifact ID of `share-price`.
++
+ifdef::apicurio-registry[]
+`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `http://localhost:8080/artifacts`.
+endif::[]
+
+ifdef::rh-service-registry[]
+`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+endif::[]
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was created. For example:
++
+[source,bash]
+----
+{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}
+----
+
+. Retrieve the artifact from the registry using its artifact ID. For example, in this case the specified ID is `share-price`:
++
+[source,bash]
+----
+$ curl https://MY-REGISTRY-URL/artifacts/share-price
+'{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+.Additional resources
+* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].

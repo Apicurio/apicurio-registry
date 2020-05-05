@@ -15,7 +15,10 @@ public enum ArtifactType {
     OPENAPI("OPENAPI"),
     ASYNCAPI("ASYNCAPI"),
     GRAPHQL("GRAPHQL"),
-    KCONNECT("KCONNECT");
+    KCONNECT("KCONNECT"),
+    WSDL("WSDL"),
+    XSD("XSD"),
+    XML("XML");
     private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 

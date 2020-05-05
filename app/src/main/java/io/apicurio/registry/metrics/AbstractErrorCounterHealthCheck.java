@@ -11,8 +11,6 @@ import java.util.Optional;
  */
 public class AbstractErrorCounterHealthCheck {
 
-//    private static final Logger log = LoggerFactory.getLogger(AbstractErrorCounterHealthCheck.class);
-
     protected long errorCounter = 0;
     private Instant nextCounterReset;
     private Optional<Duration> statusResetWindowDuration;

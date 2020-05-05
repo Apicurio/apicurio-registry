@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>1.1.2-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -102,6 +102,11 @@
             <type>maven-plugin</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -120,13 +125,9 @@
                 <version>${proto-plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <protocArtifact>
-                        com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
-                    </protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>
-                        io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
-                    </pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
                 </configuration>
                 <executions>
                     <execution>
@@ -162,9 +163,7 @@
                         <configuration>
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>jar</includeTypes>
-                            <outputDirectory>
-                                ${project.build.directory}/classes
-                            </outputDirectory>
+                            <outputDirectory>${project.build.directory}/classes</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -179,9 +178,7 @@
                             <includeGroupIds>io.apicurio</includeGroupIds>
                             <includeTypes>test-jar</includeTypes>
                             <includeScope>test</includeScope>
-                            <outputDirectory>
-                                ${project.build.directory}/test-classes
-                            </outputDirectory>
+                            <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -211,10 +208,8 @@
                 </executions>
                 <configuration>
                     <systemProperties>
-                        <project.build.directory>${project.build.directory}
-                        </project.build.directory>
-                        <project.build.finalName>${project.build.finalName}
-                        </project.build.finalName>
+                        <project.build.directory>${project.build.directory}</project.build.directory>
+                        <project.build.finalName>${project.build.finalName}</project.build.finalName>
                     </systemProperties>
                 </configuration>
             </plugin>
@@ -229,18 +224,15 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
-                            <finalName>
-                                ${project.artifactId}-${project.version}
-                            </finalName>
+                            <finalName>${project.artifactId}-${project.version}</finalName>
                             <attach>true</attach>
                             <descriptors>
-                                <descriptor>src/main/assembly/assembly.xml
-                                </descriptor>
+                                <descriptor>src/main/assembly/assembly.xml</descriptor>
                             </descriptors>
                             <archiverConfig>
-                                <defaultDirectoryMode>0755
-                                </defaultDirectoryMode>
+                                <defaultDirectoryMode>0755</defaultDirectoryMode>
                             </archiverConfig>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
                     </execution>
                 </executions>

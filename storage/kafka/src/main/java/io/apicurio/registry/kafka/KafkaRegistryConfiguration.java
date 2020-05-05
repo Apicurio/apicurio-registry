@@ -19,8 +19,8 @@ package io.apicurio.registry.kafka;
 import io.apicurio.registry.common.proto.Cmmn;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
+import io.apicurio.registry.kafka.util.CloseableSupplier;
 import io.apicurio.registry.storage.proto.Str;
-import io.apicurio.registry.utils.PropertiesUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ConsumerActions;
@@ -28,6 +28,7 @@ import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.serialization.Serdes;
 
 import java.util.Properties;
@@ -35,7 +36,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
 
 /**
  * @author Ales Justin
@@ -44,9 +44,26 @@ import javax.enterprise.inject.spi.InjectionPoint;
 public class KafkaRegistryConfiguration {
 
     @Produces
-    public Properties properties(InjectionPoint ip) {
-        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
-        return PropertiesUtil.properties(kp);
+    @ApplicationScoped
+    public CloseableSupplier<Boolean> livenessCheck(
+        @RegistryProperties("registry.kafka.liveness-check.") Properties properties
+    ) {
+        AdminClient admin = AdminClient.create(properties);
+        return new CloseableSupplier<Boolean>() {
+            @Override
+            public void close() {
+                admin.close();
+            }
+
+            @Override
+            public Boolean get() {
+                return (admin.listTopics() != null);
+            }
+        };
+    }
+
+    public void stopLivenessCheck(@Disposes CloseableSupplier<Boolean> check) throws Exception {
+        check.close();
     }
 
     @Produces

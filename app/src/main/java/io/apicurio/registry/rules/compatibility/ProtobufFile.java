@@ -49,7 +49,7 @@ import java.util.Set;
  * @author Jonathan Halliday
  * @author Ales Justin
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
- * @see ProtobufArtifactTypeAdapter
+ * @see ProtobufCompatibilityChecker
  */
 public class ProtobufFile {
 
@@ -72,15 +72,20 @@ public class ProtobufFile {
     private final Map<String, Map<String, String>> serviceRPCSignatures = new HashMap<>();
 
     public ProtobufFile(String data) {
-        element = ProtoParser.parse(Location.get(""), data);
+        element = toProtoFileElement(data);
         buildIndexes();
     }
 
     public ProtobufFile(File file) throws IOException {
         Location location = Location.get(file.getAbsolutePath());
         List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
-        element = ProtoParser.parse(location, String.join("\n", data));
+        element = toProtoFileElement(String.join("\n", data));
         buildIndexes();
+    }
+
+    public static ProtoFileElement toProtoFileElement(String data) {
+        ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
+        return parser.readProtoFile();
     }
 
     /*

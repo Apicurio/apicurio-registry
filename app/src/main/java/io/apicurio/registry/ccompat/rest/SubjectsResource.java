@@ -16,15 +16,10 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.RegisterSchemaRequest;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.Schema;
 
-import javax.interceptor.Interceptors;
+import java.util.List;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -33,57 +28,99 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import java.util.Set;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
+ * Note:
+ * <p/>
+ * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
+ *
  * @author Ales Justin
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @Path("/ccompat/subjects")
-@Consumes({RestConstants.JSON, RestConstants.SR})
-@Produces({RestConstants.JSON, RestConstants.SR})
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@RestMetricsApply
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
-public class SubjectsResource extends AbstractResource {
+@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Produces({COMPAT_SCHEMA_REGISTRY_V1})
+public interface SubjectsResource {
 
+    // ----- Path: /subjects -----
+
+
+    /**
+     * Get a list of registered subjects.
+     * Response JSON Array of Objects:
+     *
+     *
+     *     name (string) – Subject
+     *
+     * Status Codes:
+     *
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
+    // TODO Possibly costly operation
+    @GET
+    List<String> listSubjects();
+
+
+    // ----- Path: /subjects/{subject} -----
+
+    /**
+     * Check if a schema has already been registered under the specified subject.
+     * If so, this returns the schema string along with its globally unique identifier,
+     * its version under this subject and the subject name.
+     * Parameters:
+     *
+     *     subject (string) – Subject under which the schema will be registered
+     *
+     * Response JSON Object:
+     *
+     *
+     *     subject (string) – Name of the subject that this schema is registered under
+     *     globalId (int) – Globally unique identifier of the schema
+     *     version (int) – Version of the returned schema
+     *     schema (string) – The Avro schema string
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40401 – Subject not found
+     *         Error code 40403 – Schema not found
+     *     500 Internal Server Error – Internal server error
+     */
     @POST
     @Path("/{subject}")
-    public void findSchemaWithSubject(
-        @Suspended AsyncResponse response,
-        @PathParam("subject") String subject,
-        @QueryParam("deleted") boolean checkDeletedSchema,
-        @NotNull RegisterSchemaRequest request) throws Exception {
+    Schema findSchemaByContent(
+            @PathParam("subject") String subject,
+            @NotNull SchemaContent request) throws Exception;
 
-        checkSubject(subject);
 
-        response.resume(facade.findSchemaWithSubject(subject, checkDeletedSchema, request.getSchema()));
-    }
 
-    @GET
-    public Set<String> listSubjects() {
-        return facade.listSubjects();
-    }
-
+    /**
+     * Deletes the specified subject and its associated compatibility level if registered.
+     * It is recommended to use this API only when a topic needs to be recycled or in development environment.
+     *
+     * Parameters:
+     *
+     *     subject (string) – the name of the subject
+     *
+     * Response JSON Array of Objects:
+     *
+     *
+     *     version (int) – version of the schema deleted under this subject
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40401 – Subject not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
     @DELETE
     @Path("/{subject}")
-    public void deleteSubject(
-        @Suspended AsyncResponse response,
-        @Context HttpHeaders headers,
-        @PathParam("subject") String subject) throws Exception {
-
-        checkSubject(subject);
-
-        response.resume(facade.deleteSubject(subject));
-    }
-
+    List<Integer> deleteSubject(
+            HttpHeaders headers,
+            @PathParam("subject") String subject) throws Exception;
 }

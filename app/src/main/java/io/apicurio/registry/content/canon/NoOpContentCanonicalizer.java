@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.content.canon;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -26,7 +25,7 @@ import io.apicurio.registry.content.ContentHandle;
 public class NoOpContentCanonicalizer implements ContentCanonicalizer {
     
     /**
-     * @see io.apicurio.registry.content.ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ContentHandle canonicalize(ContentHandle content) {

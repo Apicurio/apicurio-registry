@@ -137,7 +137,7 @@ objects:
       app: apicurio-registry-mem
       template: apicurio-registry-mem
   spec:
-    host: ${REGISTRY_ROUTE}
+    host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
       name: apicurio-registry-mem
@@ -150,8 +150,8 @@ objects:
 parameters:
 - name: REGISTRY_ROUTE
   displayName: Registry Route Name
-  description: The route name to use for the Registry api.
-  value: registry.example.com
+  description: The route name to use for the Registry API (leave blank to let OpenShift generate an appropriate route name).
+  value: ''
   required: true
 - name: REGISTRY_MEM_LIMIT
   displayName: Registry Max Memory Limit

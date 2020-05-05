@@ -2,159 +2,156 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-kafka-kubernetes-storage"]
-ifdef::apicurio-registry[]
-= Installing {registry} with Apache Kafka storage on OpenShift
 
-This topic explains how to install and run {registry} with storage in Apache Kafka on OpenShift from a container image using Strimzi. This storage option is suitable for production environments. 
+ifdef::apicurio-registry[]
+= Installing {registry} with Apache Kafka Streams storage on Kubernetes
+
+This topic explains how to install and run {registry} with storage in Apache Kafka Streams with Strimzi using an OpenShift template. This storage option is suitable for production environments. 
 
 The following versions are supported:
 
+* Apache Kafka 2.3.x
 * Apache Kafka 2.2.x
-* Apache Kafka 2.3
 endif::[]
 
 ifdef::rh-service-registry[]
 =  Installing {registry} with AMQ Streams storage on OpenShift
 
-This topic explains how to install and run {registry} with storage in Red Hat AMQ Streams on OpenShift from a container image. This storage option is suitable for production environments. 
+This topic explains how to install and run {registry} with storage in Red Hat AMQ Streams using an OpenShift template. 
 
 The following versions are supported:
 
-* Red Hat AMQ Streams 1.3
+* AMQ Streams 1.4 or 1.3
+* OpenShift 4.3, 4.2, or 3.11    
 endif::[]
 
 .Prerequisites
 
 ifdef::apicurio-registry[]
-* You must have a Kubernetes or OpenShift cluster with cluster administrator access.
-
+//Use OpenShift template until Kubernetes Helm chart is available
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed Strimzi and configured your Kafka cluster on OpenShift. See xref:setting-up-kafka-kubernetes-storage[].
 * Ensure that you can connect to the {registry} container image in GitHub: link:https://hub.docker.com/r/apicurio/apicurio-registry-kafka[].
-* You must have installed and deployed Strimzi on your Kubernetes or OpenShift cluster. For example: 
-+
-[source,bash]
-----
-minikube start --memory="8000m"
-kubectl create namespace kafka
-curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.14.0/strimzi-cluster-operator-0.14.0.yaml \
-  | sed 's/namespace: .*/namespace: kafka/' \
-  | kubectl apply -f - -n kafka
-kubectl apply -f kubernetes/resources.yaml
-kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
-----
-+ 
-For more details, see https://strimzi.io/docs/quickstart/master/
+
 endif::[] 
 
 ifdef::rh-service-registry[]
-* You must have an OpenShift cluster with cluster administrator access. OpenShift 3.11 and 4.x are supported.
-* You must have already installed AMQ Streams on your cluster. For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/getting-started-str?lb_target=stage[Getting Started with AMQ Streams on OpenShift].  
-* Ensure that you can access the 
-link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[{registry} image in the Container Catalog]:
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed AMQ Streams and configured your Kafka cluster on OpenShift. See xref:setting-up-kafka-kubernetes-storage[].
+* Ensure that you can access the {registry} image in the 
+link:https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7[Red Hat Container Catalog]:
 ** Create a service account and pull secret for the image. For details, see link:https://access.redhat.com/terms-based-registry/[Container Service Accounts].
 ** Download the pull secret and submit it to your OpenShift cluster. For example: 
 +
 [source,bash]
 ----
-$ oc create -f 11223344_service-registry-secret.yaml --namespace=my-project
+$ oc create -f 11223344_service-registry-secret.yaml --namespace=myproject
 ----
 endif::[]
 
 .Procedure
 ifdef::apicurio-registry[]
-. Get the link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x/distro/openshift-template/apicurio-registry-template-kafka.yml[{registry} OpenShift template].
-endif::[]
+. Get the link:https://github.com/Apicurio/apicurio-registry/blob/1.1.x/distro/openshift-template/apicurio-registry-template-streams.yml[{registry} OpenShift template].
 
-ifdef::rh-service-registry[]
-. Get the 
-link:https://github.com/Apicurio/apicurio-registry/blob/1.0.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
-endif::[]
-
-. Enter the following command to get the name of the Kafka bootstrap service running on your OpenShift cluster:
+. Enter the following command to get the name of the Kafka bootstrap service running in Strimzi on your OpenShift cluster:
 +
 [source,bash]
 ----
 $ oc get services | grep .*kafka-bootstrap
 ----
 
-ifdef::rh-service-registry[]
-. Create a new OpenShift application and specify the following parameters: 
-** `service-registry-template.yml`: The OpenShift template file for {registry}.
-** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your cluster, followed by the Kafka broker port (for example, `my-cluster-kafka-bootstrap:9092`).  
-** `REGISTRY_ROUTE`: The name of the route that will expose {registry}, which is based on your cluster environment (for example, `my-cluster-service-registry-myproject.example.com`).
-+
-For example: 
+. Create a new OpenShift application using the `oc new-app` command. For example:
 +
 [source,bash]
 ----
-$ oc new-app service-registry-template.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com
+$ oc new-app apicurio-registry-template-streams.yml \ 
+   -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 \
+   -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com \ 
+   -p APPLICATION_ID=my-kafka-streams-app
 ----
 +
-You should see output such as the following: 
+You must specify the following arguments: 
+
+** `apicurio-registry-template-streams`: The OpenShift template file for {registry}.
+** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your OpenShift cluster, followed by the Kafka broker port. For example: `my-cluster-kafka-bootstrap:9092`.  
+** `REGISTRY_ROUTE`: The name of the OpenShift route to expose {registry}, which is based on your OpenShift cluster environment, For example: `my-cluster-service-registry-myproject.example.com`.
+** `APPLICATION_ID`: The name of your Kafka Streams application. For example: `my-kafka-streams-app`. 
++
+You can also specify the following environment variables using the `-e` option:
+
+** `APPLICATION_SERVER_HOST`: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
+** `APPLICATION_SERVER_PORT`: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
+
+endif::[]
+
+ifdef::rh-service-registry[]
+. Get the 
+link:https://github.com/Apicurio/apicurio-registry/blob/1.1.x-redhat/distro/openshift-template/service-registry-template.yml[{registry} OpenShift template].
+
+. Enter the following command to get the name of the Kafka bootstrap service running in AMQ Streams on your OpenShift cluster:
++
+[source,bash]
+----
+$ oc get services | grep .*kafka-bootstrap
+----
+. Create a new OpenShift application using the `oc new-app` command. For example:
++
+[source,bash]
+----
+$ oc new-app service-registry-template.yml \
+   -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 \ 
+   -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com \ 
+   -p APPLICATION_ID=my-kafka-streams-app
+----
++
+You must specify the following arguments: 
+
+** `service-registry-template.yml`: The OpenShift template file for {registry}.
+** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your OpenShift cluster, followed by the Kafka broker port. For example: `my-cluster-kafka-bootstrap:9092`.  
+** `REGISTRY_ROUTE`: The name of the OpenShift route to expose {registry}, which is based on your OpenShift cluster environment. For example: `my-cluster-service-registry-myproject.example.com`.
+** `APPLICATION_ID`: The name of your AMQ Streams application. For example: `my-kafka-streams-app`. 
++
+You can also specify the following environment variables using the `-e` option:
+
+** `APPLICATION_SERVER_HOST`: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to `$(POD_IP)`.
+** `APPLICATION_SERVER_PORT`: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to `9000`.
+
+. Verify the command output when complete. For example: 
 +
 ----
 Deploying template "myproject/service-registry" for "service-registry-template.yml" to project myproject
 
-    service-registry
-    ---------
-    Congratulations on deploying Service Registry into OpenShift!
+ service-registry
+ ---------
+ Congratulations on deploying Service Registry into OpenShift!
     
-    All components have been deployed and configured.
+ All components have been deployed and configured.
 
-    * With parameters:
-       * Registry Route Name=my-cluster-service-registry-myproject.example.com
-       * Registry Max Memory Limit=1300Mi
-       * Registry Memory Requests=600Mi
-       * Registry Max CPU Limit=1
-       * Registry CPU Requests=100m
-       * Kafka Bootstrap Servers=my-cluster-kafka-bootstrap:9092
+  * With parameters:
+    * Registry Route Name=my-cluster-service-registry-myproject.example.com
+    * Registry Max Memory Limit=1300Mi
+    * Registry Memory Requests=600Mi
+    * Registry Max CPU Limit=1
+    * Registry CPU Requests=100m
+    * Kafka Bootstrap Servers=my-cluster-kafka-bootstrap:9092
+    * Kafka Application ID=my-kafka-streams-app
 
 --> Creating resources ...
-   imagestream.image.openshift.io "registry" created
-   service "service-registry" created
-   deploymentconfig.apps.openshift.io "service-registry" created
-   route.route.openshift.io "service-registry" created
+    imagestream.image.openshift.io "registry" created
+    service "service-registry" created
+    deploymentconfig.apps.openshift.io "service-registry" created
+    route.route.openshift.io "service-registry" created
 --> Success
-   Access your application via route 'my-cluster-service-registry-myproject.example.com' 
-   Run 'oc status' to view your app.
+    Access your application via route 'my-cluster-service-registry-myproject.example.com' 
 ----
 endif::[]
 
-ifdef::apicurio-registry[]
-. Create a new OpenShift application and specify the following: 
-+
-** `apicurio-registry-template-kafka`: The OpenShift template file for {registry}.
-** `KAFKA_BOOTSTRAP_SERVERS`: The name of the Kafka bootstrap service on your cluster, followed by the Kafka broker port (for example, `my-cluster-kafka-bootstrap:9092`).  
-** `REGISTRY_ROUTE`: The name of the route that will expose {registry}, which is based on your cluster environment (for example, `my-cluster-service-registry-myproject.example.com`).
-+
-For example: 
-+
-[source,bash]
-----
-$ oc new-app apicurio-registry-template-kafka.yml -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com
-----
-endif::[]
-
-. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
-+
-[source,bash]
-----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: prices-value" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' my-cluster-service-registry-myproject.example.com/artifacts
-----
-. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
-+
-[source,bash]
-----
-{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"prices-value","version":1,"type":"AVRO","globalId":8}
-----
+. Enter `oc status` to view your {registry} installation on OpenShift. 
 
 .Additional resources
-* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
-* For more details on registry demo applications: 
+* For sample REST API requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For details on example client applications: 
 ** https://github.com/Apicurio/apicurio-registry-demo
 ifdef::rh-service-registry[]
 ** link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry]
-* For more details on AMQ Streams:
-** link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.5/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
-** link:https://developers.redhat.com/blog/2018/10/29/how-to-run-kafka-on-openshift-the-enterprise-kubernetes-with-amq-streams[How to run AMQ Streams on Minishift]
 endif::[]
-* For more details on OpenShift templates, see the link:https://docs.openshift.com/container-platform/4.2/openshift_images/using-templates.html[OpenShift user documention].

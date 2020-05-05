@@ -22,6 +22,7 @@ package io.apicurio.registry.rules.validity;
  */
 public enum ValidityLevel {
 
-    SYNTAX_ONLY, FULL;
+    // TODO definitions
+    NONE, SYNTAX_ONLY, FULL;
     
 }

@@ -31,8 +31,31 @@ import java.util.concurrent.CompletionStage;
  * The storage layer for the registry.
  *
  * @author eric.wittmann@gmail.com
+ * @author Ales Justin
  */
 public interface RegistryStorage {
+
+    /**
+     * Is the storage ready?
+     * <p>
+     * By default we check if it can access list of global rules.
+     *
+     * @return true if yes, false if no
+     */
+    default boolean isReady() {
+        return (getGlobalRules() != null);
+    }
+
+    /**
+     * Is the storage alive?
+     * <p>
+     * By default it's true.
+     *
+     * @return true if yes, false if no
+     */
+    default boolean isAlive() {
+        return true;
+    }
 
     /**
      * Update artifact state.
@@ -209,6 +232,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
+    // TODO Clarify javadoc, each "artifact version" has a global ID.
     public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**

@@ -27,6 +27,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -50,10 +51,17 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
         this.avroData = Objects.requireNonNull(avroData);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
-        avroData = new AvroData(new AvroDataConfig(configs));
+        // set defaults
+        Map copy = new HashMap<>(configs);
+        copy.putIfAbsent(REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
+        copy.putIfAbsent(REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
+
+        super.configure(copy, isKey);
+
+        avroData = new AvroData(new AvroDataConfig(copy));
     }
 
     @Override
@@ -69,6 +77,7 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
             Object value = container;
             Integer version = null; // TODO
             if (result instanceof NonRecordContainer) {
+                @SuppressWarnings("rawtypes")
                 NonRecordContainer nrc = (NonRecordContainer) result;
                 value = nrc.getValue();
             }
@@ -77,11 +86,13 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
         return new SchemaAndValue(null, result);
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     protected Class<? extends Serializer> serializerClass() {
         return AvroKafkaSerializer.class;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     protected Class<? extends Deserializer> deserializerClass() {
         return AvroKafkaDeserializer.class;

@@ -17,15 +17,14 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -33,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -47,15 +47,13 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         this.mojo.registryUrl = "http://localhost:8081";
     }
 
-    @Test
-    public void testDownloadIds() throws Exception {
+    @RegistryServiceTest
+    public void testDownloadIds(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
-        try (RegistryService client = RegistryClient.create(mojo.registryUrl)) {
-            Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-            cs.toCompletableFuture().get();
-        }
+        Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        cs.toCompletableFuture().get();
 
         mojo.ids = Collections.singleton(artifactId);
         mojo.artifactExtension = ".avsc";

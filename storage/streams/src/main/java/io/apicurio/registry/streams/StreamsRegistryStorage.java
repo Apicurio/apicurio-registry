@@ -1,7 +1,6 @@
 package io.apicurio.registry.streams;
 
-import io.apicurio.registry.content.ContentCanonicalizer;
-import io.apicurio.registry.content.ContentCanonicalizerFactory;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -25,6 +24,8 @@ import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -35,13 +36,21 @@ import lombok.Getter;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.utils.CloseableIterator;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -56,9 +65,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Ales Justin
@@ -73,6 +81,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
+
+    @Inject
+    KafkaStreams streams;
 
     @Inject
     StreamsProperties properties;
@@ -91,7 +102,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
     AsyncBiFunctionService<String, Long, Str.Data> storageFunction;
 
     @Inject
-    ContentCanonicalizerFactory ccFactory;
+    @Current
+    AsyncBiFunctionService<Void, Void, KafkaStreams.State> stateFunction;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     private Submitter submitter = new Submitter(this::send);
 
@@ -182,6 +197,36 @@ public class StreamsRegistryStorage implements RegistryStorage {
                 state
             );
         }
+    }
+
+    private boolean exists(String artifactId) {
+        Str.Data data = storageStore.get(artifactId);
+        if (data != null) {
+            for (int i = 0; i < data.getArtifactsCount(); i++) {
+                Str.ArtifactValue artifact = data.getArtifacts(i);
+                if (isValid(artifact)) {
+                    return true; // we found a valid one
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isReady() {
+        // first a quick local check
+        if (streams.state() != KafkaStreams.State.RUNNING) {
+            return false;
+        }
+        // then check all
+        return stateFunction.apply()
+                            .map(ConcurrentUtil::result)
+                            .allMatch(s -> s == KafkaStreams.State.RUNNING);
+    }
+
+    @Override
+    public boolean isAlive() {
+        return (streams.state() != KafkaStreams.State.ERROR);
     }
 
     @Override
@@ -286,11 +331,15 @@ public class StreamsRegistryStorage implements RegistryStorage {
         Set<String> ids = new TreeSet<>();
         try (CloseableIterator<String> iter = storageStore.allKeys()) {
             while (iter.hasNext()) {
-                ids.add(iter.next());
+                String artifactId = iter.next();
+                // a bit costly ...
+                if (exists(artifactId)) {
+                    ids.add(artifactId);
+                }
             }
-            ids.remove(GLOBAL_RULES_ID);
-            return ids;
         }
+        ids.remove(GLOBAL_RULES_ID);
+        return ids;
     }
 
     @Override
@@ -308,7 +357,8 @@ public class StreamsRegistryStorage implements RegistryStorage {
         if (data != null) {
             // Create a canonicalizer for the artifact based on its type, and then 
             // canonicalize the inbound content
-            ContentCanonicalizer canonicalizer = ccFactory.create(metaData.getType());
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             ContentHandle canonicalContent = canonicalizer.canonicalize(content);
             byte[] canonicalBytes = canonicalContent.bytes();
 

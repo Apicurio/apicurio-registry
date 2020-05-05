@@ -236,20 +236,48 @@ export class ArtifactsService extends BaseService {
 
     public getArtifactRules(artifactId: string): Promise<Rule[]> {
         this.logger.info("[ArtifactsService] Getting the list of rules for artifact: ", artifactId);
-        return new Promise<Rule[]>(resolve => {
-            setTimeout(() => {
-                resolve([]);
-            }, 200);
+        const endpoint: string = this.endpoint("/artifacts/:artifactId/rules", { artifactId });
+        return this.httpGet<string[]>(endpoint).then( ruleTypes => {
+            return Promise.all(ruleTypes.map(rt => this.getArtifactRule(artifactId, rt)));
         });
     }
 
-    public updateArtifactRule(artiactId: string, type: string, config: string|null): Promise<Rule|null> {
-        this.logger.info("[ArtifactsService] Updating rule:", type);
-        return new Promise<Rule>(resolve => {
-            setTimeout(() => {
-                resolve(null);
-            }, 200);
+    public getArtifactRule(artifactId: string, type: string): Promise<Rule> {
+        const endpoint: string = this.endpoint("/artifacts/:artifactId/rules/:rule", {
+            artifactId,
+            rule: type
         });
+        return this.httpGet<Rule>(endpoint);
+    }
+
+    public createArtifactRule(artifactId: string, type: string, config: string): Promise<Rule> {
+        this.logger.info("[ArtifactsService] Creating rule:", type);
+
+        const endpoint: string = this.endpoint("/artifacts/:artifactId/rules", { artifactId });
+        const body: Rule = {
+            config,
+            type
+        };
+        return this.httpPostWithReturn(endpoint, body);
+    }
+
+    public updateArtifactRule(artifactId: string, type: string, config: string): Promise<Rule> {
+        this.logger.info("[ArtifactsService] Updating rule:", type);
+        const endpoint: string = this.endpoint("/artifacts/:artifactId/rules/:rule", {
+            artifactId,
+            "rule": type
+        });
+        const body: Rule = { config, type };
+        return this.httpPutWithReturn<Rule, Rule>(endpoint, body);
+    }
+
+    public deleteArtifactRule(artifactId: string, type: string): Promise<void> {
+        this.logger.info("[ArtifactsService] Deleting rule:", type);
+        const endpoint: string = this.endpoint("/artifacts/:artifactId/rules/:rule", {
+            artifactId,
+            "rule": type
+        });
+        return this.httpDelete(endpoint);
     }
 
     private addMockContent(): void {

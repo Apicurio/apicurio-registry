@@ -28,7 +28,6 @@ export class GlobalsService extends BaseService {
         this.logger.info("[GlobalsService] Getting the global list of rules.");
         const endpoint: string = this.endpoint("/rules");
         return this.httpGet<string[]>(endpoint).then( ruleTypes => {
-            this.logger.debug("++++++++++++++++ Rule types: ", ruleTypes);
             return Promise.all(ruleTypes.map(rt => this.getRule(rt)));
         });
     }

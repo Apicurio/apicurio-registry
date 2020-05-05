@@ -101,11 +101,7 @@ export abstract class BaseService implements Service {
             options = this.options({ "Accept": "application/json" });
         }
 
-        const config: AxiosRequestConfig = {...{
-            method: 'get',
-            url
-        }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("get", url, options);
         return axios.request(config)
             .then(response => {
                 const data: T = response.data;
@@ -131,12 +127,7 @@ export abstract class BaseService implements Service {
             options = this.options({ "Content-Type": "application/json" });
         }
 
-        const config: AxiosRequestConfig = {...{
-                data: body,
-                method: 'post',
-                url
-            }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
         return axios.request(config)
             .then(() => {
                 if (successCallback) {
@@ -161,12 +152,7 @@ export abstract class BaseService implements Service {
             options = this.options({ "Accept": "application/json", "Content-Type": "application/json" });
         }
 
-        const config: AxiosRequestConfig = {...{
-                data: body,
-                method: 'post',
-                url
-            }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
         return axios.request(config)
             .then(response => {
                 const data: O = response.data;
@@ -192,12 +178,7 @@ export abstract class BaseService implements Service {
             options = this.options({ "Content-Type": "application/json" });
         }
 
-        const config: AxiosRequestConfig = {...{
-                data: body,
-                method: 'put',
-                url
-            }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
         return axios.request(config)
             .then(() => {
                 if (successCallback) {
@@ -222,12 +203,7 @@ export abstract class BaseService implements Service {
             options = this.options({ "Accept": "application/json", "Content-Type": "application/json" });
         }
 
-        const config: AxiosRequestConfig = {...{
-                data: body,
-                method: 'put',
-                url
-            }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
         return axios.request(config)
             .then(response => {
                 const data: O = response.data;
@@ -251,16 +227,22 @@ export abstract class BaseService implements Service {
             options = {};
         }
 
-        const config: AxiosRequestConfig = {...{
-                method: 'delete',
-                url
-            }, ...options};
-
+        const config: AxiosRequestConfig = this.axiosConfig("delete", url, options);
         return axios.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;
             });
     }
 
+    private axiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
+        return {...{
+                data,
+                method,
+                url,
+                validateStatus: (status) => {
+                    return status >= 200 && status < 300;
+                }
+            }, ...options};
+    }
 
 }

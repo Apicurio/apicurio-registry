@@ -39,5 +39,28 @@ jobs:
         run: mvn test package -Pprod -Pjpa
       - name: Run QE Tests
         run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
-          
-          
+      - name: Login to DockerHub Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Build The Tagged Docker Images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          cd distro/docker
+          mvn package -Pprod -DskipTests -Ddocker
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker
+      - name: Push The Tagged Docker Images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker push apicurio/apicurio-registry-mem:latest
+          docker push apicurio/apicurio-registry-mem:latest-release
+          docker push apicurio/apicurio-registry-jpa:latest
+          docker push apicurio/apicurio-registry-jpa:latest-release
+          docker push apicurio/apicurio-registry-infinispan:latest
+          docker push apicurio/apicurio-registry-infinispan:latest-release
+          docker push apicurio/apicurio-registry-kafka:latest
+          docker push apicurio/apicurio-registry-kafka:latest-release
+          docker push apicurio/apicurio-registry-streams:latest
+          docker push apicurio/apicurio-registry-streams:latest-release

@@ -1,11 +1,11 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -18,7 +18,6 @@ import io.apicurio.registry.types.ArtifactType;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "id",
     "version",
     "name",
     "description",
@@ -26,7 +25,8 @@ import io.apicurio.registry.types.ArtifactType;
     "createdOn",
     "type",
     "globalId",
-    "state"
+    "state",
+    "id"
 })
 public class VersionMetaData {
 
@@ -54,7 +54,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    private long createdOn;
+    private Date createdOn;
     /**
      * 
      * (Required)
@@ -70,7 +70,7 @@ public class VersionMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Long globalId;
+    private Integer globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -159,7 +159,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public long getCreatedOn() {
+    public Date getCreatedOn() {
         return createdOn;
     }
 
@@ -169,7 +169,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(long createdOn) {
+    public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -199,7 +199,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Long getGlobalId() {
+    public Integer getGlobalId() {
         return globalId;
     }
 
@@ -209,7 +209,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Long globalId) {
+    public void setGlobalId(Integer globalId) {
         this.globalId = globalId;
     }
 

@@ -1,0 +1,114 @@
+name: Release Workflow
+on:
+  pull_request:
+    branches: [master]
+    types: [closed]
+    paths:
+      - '.github/project.yaml'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{github.event.pull_request.merged == true}}
+    steps:
+      - name: Retrieve Project Metadata
+        uses: radcortez/project-metadata-action@master
+        id: metadata
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          metadata-file-path: '.github/project.yaml'
+      - name: Set up Node.js v12
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Set up settings.xml
+        run: |
+          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+          cat /home/runner/.m2/settings.xml
+      - name: Set up Gren
+        run: npm install github-release-notes -g
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository                               
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Code Checkout
+        run: |
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "eric.wittmann+apicurio-ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+          git fetch
+          git checkout master
+          git branch --set-upstream-to=origin/master
+          git pull
+      - name: Update Release Version ${{steps.metadata.outputs.release-version}}
+        run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+      - name: Build All Variants
+        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests
+      - name: Verify (Standard)
+        run: mvn test package -Pprod -Pjpa
+      - name: Run QE Tests
+        run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
+      - name: Commit Release Version Change
+        run: |
+          git add .
+          git commit -m "Automated update to Release Version:: ${{steps.metadata.outputs.release-version}}"
+          git push
+      - name: Publish to Maven Central
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          nexus_username: ${{ secrets.OSSRH_USERNAME }}
+          nexus_password: ${{ secrets.OSSRH_TOKEN }}
+          maven_goals_phases: deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests
+      - name: Create GitHub Release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{steps.metadata.outputs.release-version}}       
+          release_name: ${{steps.metadata.outputs.release-version}}
+      - name: Generate Release Notes
+        run: gren release --token=${{ secrets.GITHUB_TOKEN }} --override --prefix=v
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Build The Tagged Docker Images
+        run: |
+          cd distro/docker
+          mvn package -Pprod -DskipTests -Ddocker
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker
+      - name: Push The Tagged Docker Images
+        run: |
+          docker push apicurio/apicurio-registry-mem:latest
+          docker push apicurio/apicurio-registry-mem:latest-release
+          docker push apicurio/apicurio-registry-mem:${{steps.metadata.outputs.release-version}}
+          docker push apicurio/apicurio-registry-jpa:latest
+          docker push apicurio/apicurio-registry-jpa:latest-release
+          docker push apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}}
+          docker push apicurio/apicurio-registry-infinispan:latest
+          docker push apicurio/apicurio-registry-infinispan:latest-release
+          docker push apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}}
+          docker push apicurio/apicurio-registry-kafka:latest
+          docker push apicurio/apicurio-registry-kafka:latest-release
+          docker push apicurio/apicurio-registry-kafka:${{steps.metadata.outputs.release-version}}
+          docker push apicurio/apicurio-registry-streams:latest
+          docker push apicurio/apicurio-registry-streams:latest-release
+          docker push apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}}
+      - name: Update Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
+        run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+      - name: Commit Snapshot Version Change
+        run: |
+          git add .
+          git commit -m"Automated update to next Snapshot Version: ${{steps.metadata.outputs.snapshot-version}}"
+          git push

@@ -64,5 +64,3 @@ jobs:
           docker push apicurio/apicurio-registry-kafka:latest-release
           docker push apicurio/apicurio-registry-streams:latest
           docker push apicurio/apicurio-registry-streams:latest-release
-          
-          

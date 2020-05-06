@@ -70,6 +70,16 @@
 			</roles>
 			<timezone>+1</timezone>
 		</developer>
+		<developer>
+			<name>Carles Arnal</name>
+			<id>carlesarnal</id>
+			<email>carnalca@redhat.com</email>
+			<organization>Red Hat</organization>
+			<roles>
+				<role>Developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
 	</developers>
 
 	<modules>

@@ -24,9 +24,10 @@ import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
  */
 public class JsonUtil {
 
-    public static final ObjectMapper MAPPER = new ObjectMapper();
+    public static final ObjectMapper MAPPER;
 
     static {
+        MAPPER =  new ObjectMapper();
         MAPPER.registerModule(new JsonOrgModule());
     }
 }

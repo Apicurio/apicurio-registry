@@ -1,6 +1,8 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -19,5 +21,6 @@ public interface SearchResource {
   @GET
   @Produces("application/json")
   ArtifactSearchResults searchArtifacts(@QueryParam("search") String search,
-      @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit);
+      @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit,
+      @QueryParam("over") SearchOver over, @QueryParam("order") SortOrder order);
 }

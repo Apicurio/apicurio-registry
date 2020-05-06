@@ -372,8 +372,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, Integer, Integer, SearchOver, SortOrder) ()
      */
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit,
-            SearchOver searchOver, SortOrder sortOrder) {
+    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
 
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
                 .stream()

@@ -15,7 +15,19 @@
  * limitations under the License.
  */
 
-export * from './searchedArtifact.model';
-export * from './artifactMetaData.model';
-export * from './rule.model';
-export * from './versionMetaData.model';
+
+// tslint:disable-next-line:interface-name
+export interface SearchedArtifact {
+
+    id: string;
+    type: string;
+    state: string;
+    name: string;
+    description: string;
+    labels: string[];
+    createdOn: Date;
+    createdBy: string;
+    modifiedOn: Date;
+    modifiedBy: string;
+
+}

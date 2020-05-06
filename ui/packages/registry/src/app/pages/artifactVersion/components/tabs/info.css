@@ -58,6 +58,8 @@
 
 .artifact-tab-content .artifact-basics .tags .pf-c-badge {
     font-size: 14px;
+    margin-right: 5px;
+    background-color: #ccc;
 }
 
 .artifact-tab-content .artifact-basics .actions-label {

@@ -87,8 +87,8 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
                         </Flex>
                     </PageSection>
                     <PageSection className="ps_error-body" variant={PageSectionVariants.light}>
-                        <TextArea value={ this.errorInfo() } readOnly={true} style={ {marginBottom: "20px", height: "275px"} } />
-                        <TextArea value={ this.error() } readOnly={true} style={ {height: "275px"} } />
+                        <h1>{ this.errorInfo() }</h1>
+                        <TextArea value={ this.error() } readOnly={true} style={ {height: "275px", marginTop: "20px"} } />
                     </PageSection>
                 </React.Fragment>
             );

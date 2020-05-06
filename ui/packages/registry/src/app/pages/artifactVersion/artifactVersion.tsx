@@ -203,28 +203,28 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
+        Services.getArtifactsService().createArtifactRule(this.artifactId(), ruleType, config).catch(error => {
             this.handleServerError(error, `Error enabling "${ ruleType }" artifact rule.`);
         });
-        this.setSingleState("rules", [...this.rules(), Rule.create(ruleType, config)])
+        this.setSingleState("rules", [...this.rules(), {config, type: ruleType}]);
     };
 
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[ArtifactVersionPage] Disabling rule:", ruleType);
-        Services.getGlobalsService().updateRule(ruleType, null).catch(error => {
+        Services.getArtifactsService().deleteArtifactRule(this.artifactId(), ruleType).catch(error => {
             this.handleServerError(error, `Error disabling "${ ruleType }" artifact rule.`);
         });
-        this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
+        this.setSingleState("rules", this.rules().filter(r => r.type !== ruleType));
     };
 
     private doConfigureRule = (ruleType: string, config: string): void => {
         Services.getLoggerService().debug("[ArtifactVersionPage] Configuring rule:", ruleType, config);
-        Services.getGlobalsService().updateRule(ruleType, config).catch(error => {
+        Services.getArtifactsService().updateArtifactRule(this.artifactId(), ruleType, config).catch(error => {
             this.handleServerError(error, `Error configuring "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", this.rules().map(r => {
             if (r.type === ruleType) {
-                return Rule.create(r.type, config);
+                return {config, type: r.type};
             } else {
                 return r;
             }

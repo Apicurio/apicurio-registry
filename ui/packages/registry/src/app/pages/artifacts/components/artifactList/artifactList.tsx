@@ -24,7 +24,7 @@ import {
     DataListItemCells,
     DataListItemRow
 } from '@patternfly/react-core';
-import {Artifact} from "@apicurio/registry-models";
+import {SearchedArtifact} from "@apicurio/registry-models";
 import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 
@@ -32,7 +32,7 @@ import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState}
  * Properties
  */
 export interface ArtifactListProps extends PureComponentProps {
-    artifacts: Artifact[];
+    artifacts: SearchedArtifact[];
 }
 
 /**
@@ -94,7 +94,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         return {};
     }
 
-    private labels(artifact: Artifact): string[] {
+    private labels(artifact: SearchedArtifact): string[] {
         return artifact.labels ? artifact.labels : [];
     }
 

@@ -65,7 +65,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <div className="title-and-type">
                         <Split>
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                            <SplitItem className="title" isFilled={true}>{this.props.artifact.name}</SplitItem>
+                            <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
                         </Split>
                     </div>
                     <div className="description">{this.props.artifact.description}</div>
@@ -117,6 +117,10 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                 </FlexItem>
             </Flex>
         );
+    }
+
+    private nameOrId(): string {
+        return this.props.artifact.name ? this.props.artifact.name : this.props.artifact.id;
     }
 
     protected initializeState(): InfoTabContentState {

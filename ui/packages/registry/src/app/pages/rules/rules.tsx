@@ -127,7 +127,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         Services.getGlobalsService().deleteRule(ruleType).catch(error => {
             this.handleServerError(error, `Error disabling "${ ruleType }" global rule.`);
         });
-        this.setSingleState("rules", this.rules().filter(r=>r.type !== ruleType));
+        this.setSingleState("rules", this.rules().filter(r => r.type !== ruleType));
     };
 
     private doConfigureRule = (ruleType: string, config: string): void => {

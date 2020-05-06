@@ -17,26 +17,16 @@
 
 import React from "react";
 import "./artifacts.css";
-import {
-    Breadcrumb, BreadcrumbItem,
-    Button,
-    Flex,
-    FlexItem,
-    Modal,
-    PageSection,
-    PageSectionVariants,
-    Pagination,
-    Spinner
-} from '@patternfly/react-core';
+import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
 import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Services} from "@apicurio/registry-services";
 import {ArtifactList} from "./components/artifactList";
-import {Artifact} from "@apicurio/registry-models";
 import {Paging} from "@apicurio/registry-services/src";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
+import {SearchedArtifact} from "@apicurio/registry-models";
 
 
 /**
@@ -172,14 +162,12 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return this.state.results ? this.state.results : {
             artifacts: [],
             count: 0,
-            firstPage: true,
-            lastPage: true,
             page: 1,
             pageSize: 10
         };
     }
 
-    private artifacts(): Artifact[] {
+    private artifacts(): SearchedArtifact[] {
         return this.state.results ? this.state.results.artifacts : [];
     }
 

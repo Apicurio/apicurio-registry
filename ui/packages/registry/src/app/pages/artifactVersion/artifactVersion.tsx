@@ -96,7 +96,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light}>
                     <Breadcrumb>
                         <BreadcrumbItem><Link to="/artifacts">Artifacts</Link></BreadcrumbItem>
-                        <BreadcrumbItem isActive={true}>{ this.artifactNameOrId() }</BreadcrumbItem>
+                        <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
                     </Breadcrumb>
                 </PageSection>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>

@@ -64,7 +64,10 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                             <ArtifactTypeIcon type={artifact.type}/>
                                         </DataListCell>,
                                         <DataListCell key="main content" className="content-cell">
-                                            <div className="artifact-title">{artifact.name}</div>
+                                            <div className="artifact-title">
+                                                <span className="name">{artifact.name}</span>
+                                                <span className="id">{artifact.id}</span>
+                                            </div>
                                             <div className="artifact-description">{artifact.description}</div>
                                             <div className="artifact-tags">
                                                 {

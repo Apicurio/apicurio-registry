@@ -120,10 +120,10 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
                 classes += " kconnect-icon24";
                 break;
             case "WSDL":
-                classes += " wsdl-icon24";
+                classes += " xml-icon24";
                 break;
             case "XSD":
-                classes += " xsd-icon24";
+                classes += " xml-icon24";
                 break;
             case "XML":
                 classes += " xml-icon24";

@@ -55,12 +55,12 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           docker push apicurio/apicurio-registry-mem:latest
-          docker push apicurio/apicurio-registry-mem:latest-release
+          docker push apicurio/apicurio-registry-mem:latest-snapshot
           docker push apicurio/apicurio-registry-jpa:latest
-          docker push apicurio/apicurio-registry-jpa:latest-release
+          docker push apicurio/apicurio-registry-jpa:latest-snapshot
           docker push apicurio/apicurio-registry-infinispan:latest
-          docker push apicurio/apicurio-registry-infinispan:latest-release
+          docker push apicurio/apicurio-registry-infinispan:latest-snapshot
           docker push apicurio/apicurio-registry-kafka:latest
-          docker push apicurio/apicurio-registry-kafka:latest-release
+          docker push apicurio/apicurio-registry-kafka:latest-snapshot
           docker push apicurio/apicurio-registry-streams:latest
-          docker push apicurio/apicurio-registry-streams:latest-release
+          docker push apicurio/apicurio-registry-streams:latest-snapshot

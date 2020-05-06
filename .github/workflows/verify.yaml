@@ -46,11 +46,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker
-          mvn package -Pprod -Pjpa -DskipTests -Ddocker
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
-          mvn package -Pprod -Pkafka -DskipTests -Ddocker
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
       - name: Push The Tagged Docker Images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |

@@ -26,35 +26,28 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * Performs meta-data extraction for JSON Schema content.
+ * Performs meta-data extraction for Avro content.
  * @author Ales Justin
  */
-public class JsonContentExtractor implements ContentExtractor {
-    private static final Logger log = LoggerFactory.getLogger(JsonContentExtractor.class);
+public class AvroContentExtractor implements ContentExtractor {
+    private static final Logger log = LoggerFactory.getLogger(AvroContentExtractor.class);
 
-    public static final ContentExtractor INSTANCE = new JsonContentExtractor();
+    public static final ContentExtractor INSTANCE = new AvroContentExtractor();
 
     private ObjectMapper mapper = new ObjectMapper();
 
-    private JsonContentExtractor() {
+    private AvroContentExtractor() {
     }
 
     public EditableMetaData extract(ContentHandle content) {
         try {
-            JsonNode jsonSchema = mapper.readTree(content.bytes());
-            JsonNode title = jsonSchema.get("title");
-            JsonNode desc = jsonSchema.get("description");
+            JsonNode avroSchema = mapper.readTree(content.bytes());
+            JsonNode name = avroSchema.get("name");
             
             EditableMetaData metaData = null;
-            if (title != null && !title.isNull()) {
+            if (name != null && !name.isNull()) {
                 metaData = new EditableMetaData();
-                metaData.setName(title.asText());
-            }
-            if (desc != null && !desc.isNull()) {
-                if (metaData == null) {
-                    metaData = new EditableMetaData();
-                }
-                metaData.setDescription(desc.asText());
+                metaData.setName(name.asText());
             }
             return metaData;
         } catch (IOException e) {

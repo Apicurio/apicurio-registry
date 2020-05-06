@@ -18,15 +18,12 @@ package io.apicurio.registry.util;
 
 import java.io.InputStream;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
@@ -40,21 +37,6 @@ import io.apicurio.registry.types.ArtifactType;
 public final class ArtifactTypeUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-
-    protected static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
-        @Override
-        protected DocumentBuilder initialValue() {
-            DocumentBuilder builder = null;
-            try {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                factory.setNamespaceAware(true);
-                builder = factory.newDocumentBuilder();
-            } catch (ParserConfigurationException e) {
-                throw new RuntimeException(e);
-            }
-            return builder;
-        }
-    };
 
     /**
      * Constructor.
@@ -124,7 +106,7 @@ public final class ArtifactTypeUtil {
 
         // Try the various XML formatted types
         try (InputStream stream = content.stream()) {
-            Document xmlDocument = threadLocaldocBuilder.get().parse(stream);
+            Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
             Element root = xmlDocument.getDocumentElement();
             String ns = root.getNamespaceURI();
 

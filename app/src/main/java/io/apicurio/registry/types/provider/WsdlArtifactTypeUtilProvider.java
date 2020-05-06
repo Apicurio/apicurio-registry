@@ -21,7 +21,7 @@ import javax.enterprise.context.ApplicationScoped;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -71,7 +71,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
      */
     @Override
     protected ContentExtractor createContentExtractor() {
-        return NoopContentExtractor.INSTANCE;
+        return WsdlOrXsdContentExtractor.INSTANCE;
     }
 
 }

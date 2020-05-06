@@ -3,8 +3,6 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
-import java.lang.Integer;
-import java.lang.String;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;

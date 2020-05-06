@@ -1,0 +1,66 @@
+name: Verify Build Workflow
+on:
+  push:
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [master]
+  pull_request:
+    paths-ignore:
+      - '.github/project.yaml'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [master]
+
+jobs:
+  build-verify:
+    name: Verify Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build All Variants
+        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests
+      - name: Verify (Standard)
+        run: mvn test package -Pprod -Pjpa
+      - name: Run QE Tests
+        run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
+      - name: Login to DockerHub Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Build The Tagged Docker Images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          cd distro/docker
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+      - name: Push The Tagged Docker Images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker push apicurio/apicurio-registry-mem:latest
+          docker push apicurio/apicurio-registry-mem:latest-snapshot
+          docker push apicurio/apicurio-registry-jpa:latest
+          docker push apicurio/apicurio-registry-jpa:latest-snapshot
+          docker push apicurio/apicurio-registry-infinispan:latest
+          docker push apicurio/apicurio-registry-infinispan:latest-snapshot
+          docker push apicurio/apicurio-registry-kafka:latest
+          docker push apicurio/apicurio-registry-kafka:latest-snapshot
+          docker push apicurio/apicurio-registry-streams:latest
+          docker push apicurio/apicurio-registry-streams:latest-snapshot

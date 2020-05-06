@@ -16,11 +16,14 @@
 
 package io.apicurio.registry.infinispan;
 
+import io.apicurio.registry.utils.RegistryProperties;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.configuration.global.TransportConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 
+import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
@@ -31,12 +34,20 @@ import javax.enterprise.inject.Produces;
 @ApplicationScoped
 public class InfinispanConfiguration {
 
+    @ConfigProperty(name = "registry.infinispan.cluster.name", defaultValue = "apicurio-registry")
+    String clusterName;
+
     @ApplicationScoped
     @Produces
-    public EmbeddedCacheManager cacheManager() {
+    public EmbeddedCacheManager cacheManager(
+            @RegistryProperties("registry.infinispan.transport.") Properties properties
+    ) {
         GlobalConfigurationBuilder gConf = GlobalConfigurationBuilder.defaultClusteredBuilder();
         TransportConfigurationBuilder tConf = gConf.transport();
-        tConf.clusterName(System.getProperty("cache-name", "apicurio-registry"));
+        tConf.clusterName(clusterName);
+        if (properties.size() > 0) {
+            tConf.withProperties(properties);
+        }
         return new DefaultCacheManager(gConf.build(), true);
     }
 

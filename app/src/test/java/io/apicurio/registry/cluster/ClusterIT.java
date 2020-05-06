@@ -69,6 +69,10 @@ public class ClusterIT {
         RegistryService client1 = RegistryClient.create("http://localhost:8080");
         RegistryService client2 = RegistryClient.create("http://localhost:8081");
 
+        // warm-up both nodes (its storages)
+        client1.listArtifacts();
+        client2.listArtifacts();
+
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
         client1.createArtifact(ArtifactType.JSON, artifactId, stream);

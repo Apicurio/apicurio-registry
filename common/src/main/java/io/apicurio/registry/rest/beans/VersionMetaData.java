@@ -18,7 +18,6 @@ import io.apicurio.registry.types.ArtifactType;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "id",
     "version",
     "name",
     "description",
@@ -26,7 +25,8 @@ import io.apicurio.registry.types.ArtifactType;
     "createdOn",
     "type",
     "globalId",
-    "state"
+    "state",
+    "id"
 })
 public class VersionMetaData {
 

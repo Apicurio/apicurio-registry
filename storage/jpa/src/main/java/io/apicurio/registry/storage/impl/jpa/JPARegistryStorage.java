@@ -462,6 +462,8 @@ public class JPARegistryStorage implements RegistryStorage {
 
                 , String.class)
                 .setParameter("search", search)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
                 .getResultList();
 
         return buildSearchResultFromIds(matchedArtifacts);

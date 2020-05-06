@@ -1,7 +1,6 @@
 
 package io.apicurio.registry.rest.beans;
 
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -54,7 +53,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    private Date createdOn;
+    private long createdOn;
     /**
      * 
      * (Required)
@@ -70,7 +69,7 @@ public class VersionMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -159,7 +158,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
@@ -169,7 +168,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -199,7 +198,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -209,7 +208,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 

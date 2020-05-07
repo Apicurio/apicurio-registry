@@ -132,7 +132,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     private SearchedArtifact buildSearchedArtifactFromMetadata(ArtifactMetaDataDto artifactMetaData) {
-
         final SearchedArtifact searchedArtifact = new SearchedArtifact();
 
         searchedArtifact.setId(artifactMetaData.getId());
@@ -150,32 +149,28 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
-
         switch (searchOver) {
-        case name:
-            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(SearchOver.name.name())
-                    .contains(search);
-        case description:
-            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
-                    .get(SearchOver.description.name()).contains(search);
-        case labels:
-            //TODO not implemented yet
-            return false;
-        default:
-            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
-                    .values()
-                    .stream()
-                    .anyMatch(value -> value.contains(search));
+	        case name:
+	        case description:
+	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name())
+	                    .contains(search);
+	        case labels:
+	            //TODO not implemented yet
+	            return false;
+	        default:
+	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+	                    .values()
+	                    .stream()
+	                    .anyMatch(value -> value.contains(search));
         }
     }
 
     private int compareArtifactIds(String firstId, String secondId, SortOrder sortOrder) {
-
         switch (sortOrder) {
-        case desc:
-            return secondId.compareToIgnoreCase(firstId);
-        default:
-            return firstId.compareToIgnoreCase(secondId);
+	        case desc:
+	            return secondId.compareToIgnoreCase(firstId);
+	        default:
+	            return firstId.compareToIgnoreCase(secondId);
         }
     }
 
@@ -373,11 +368,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
                 .stream()
-                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
                 .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
+                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
                 .limit(limit)
                 .skip(offset)
                 .map(artifactId -> buildSearchedArtifactFromMetadata(getArtifactMetaData(artifactId)))
@@ -385,6 +379,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         artifactSearchResults.setArtifacts(matchedArtifacts);
+        // TODO the "count" should be the total count of matched items, not the # of items returned
         artifactSearchResults.setCount(matchedArtifacts.size());
 
         return artifactSearchResults;

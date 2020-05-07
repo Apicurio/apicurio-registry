@@ -53,7 +53,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    private Date createdOn;
+    private long createdOn;
     /**
      * 
      * (Required)
@@ -158,7 +158,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
@@ -168,7 +168,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 

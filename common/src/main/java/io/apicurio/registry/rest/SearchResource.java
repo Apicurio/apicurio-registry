@@ -4,8 +4,6 @@ import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
-import java.lang.Integer;
-import java.lang.String;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;

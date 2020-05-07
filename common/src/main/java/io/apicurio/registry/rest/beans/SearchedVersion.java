@@ -2,7 +2,6 @@
 package io.apicurio.registry.rest.beans;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -49,7 +48,7 @@ public class SearchedVersion {
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
-    private Date createdOn;
+    private long createdOn;
     /**
      * 
      * (Required)
@@ -93,7 +92,7 @@ public class SearchedVersion {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * 
      * (Required)
@@ -141,7 +140,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("createdOn")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
@@ -151,7 +150,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -249,7 +248,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -259,7 +258,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 

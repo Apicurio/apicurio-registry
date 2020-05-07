@@ -55,6 +55,7 @@ export interface ArtifactVersionPageState extends PageState {
     artifactIsText: boolean;
     isUploadFormValid: boolean;
     isUploadModalOpen: boolean;
+    isDeleteModalOpen: boolean;
     rules: Rule[] | null;
     uploadFormData: string | null;
     versions: VersionMetaData[] | null;
@@ -100,7 +101,11 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     </Breadcrumb>
                 </PageSection>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactVersionPageHeader onUploadVersion={this.onUploadVersion} versions={this.versions()} version={this.version()} artifactId={this.artifactId()} />
+                    <ArtifactVersionPageHeader versions={this.versions()}
+                                               version={this.version()}
+                                               onUploadVersion={this.onUploadVersion}
+                                               onDeleteArtifact={this.onDeleteArtifact}
+                                               artifactId={this.artifactId()} />
                 </PageSection>
                 {
                     this.state.isLoading ?
@@ -134,6 +139,19 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 >
                     <UploadVersionForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />
                 </Modal>
+                <Modal
+                    title="Delete Artifact"
+                    isSmall={true}
+                    isOpen={this.state.isDeleteModalOpen}
+                    onClose={this.onDeleteModalClose}
+                    className="delete-artifact-modal pf-m-redhat-font"
+                    actions={[
+                        <Button key="delete" variant="primary" onClick={this.doDeleteArtifact}>Delete</Button>,
+                        <Button key="cancel" variant="link" onClick={this.onDeleteModalClose}>Cancel</Button>
+                    ]}
+                >
+                    <p>Do you want to delete this artifact and all of its versions?  This action cannot be undone.</p>
+                </Modal>
             </React.Fragment>
         );
     }
@@ -147,6 +165,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             error: null,
             errorInfo: null,
             errorType: null,
+            isDeleteModalOpen: false,
             isError: false,
             isLoading: true,
             isUploadFormValid: false,
@@ -183,6 +202,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private onUploadVersion = (): void => {
         this.setSingleState("isUploadModalOpen", true);
+    };
+
+    private onDeleteArtifact = (): void => {
+        this.setSingleState("isDeleteModalOpen", true);
     };
 
     private showDocumentationTab(): boolean {
@@ -255,6 +278,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.setSingleState("isUploadModalOpen", false);
     };
 
+    private onDeleteModalClose = (): void => {
+        this.setSingleState("isDeleteModalOpen", false);
+    };
+
     private doUploadArtifactVersion = (): void => {
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
@@ -271,6 +298,13 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 this.handleServerError(error, "Error uploading artifact version.");
             });
         }
+    };
+
+    private doDeleteArtifact = (): void => {
+        this.onDeleteModalClose();
+        Services.getArtifactsService().deleteArtifact(this.artifactId()).then( () => {
+            this.navigateTo("/artifacts")();
+        });
     };
 
 }

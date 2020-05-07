@@ -21,6 +21,7 @@ import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} 
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {VersionMetaData} from "@apicurio/registry-models";
 import {VersionSelector} from "./version-selector";
+import {TrashIcon} from "@patternfly/react-icons";
 
 
 /**
@@ -28,6 +29,7 @@ import {VersionSelector} from "./version-selector";
  */
 export interface ArtifactVersionPageHeaderProps extends PureComponentProps {
     artifactId: string;
+    onDeleteArtifact: () => void;
     onUploadVersion: () => void;
     version: string;
     versions: VersionMetaData[];
@@ -61,6 +63,7 @@ export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPage
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
                     <VersionSelector version={this.props.version} versions={this.props.versions} artifactId={this.props.artifactId} />
                     <Button id="upload-version-button" variant="secondary" onClick={this.props.onUploadVersion}>Upload new version</Button>
+                    <Button id="delete-artifact-button" variant="danger" onClick={this.props.onDeleteArtifact}><TrashIcon /></Button>
                 </FlexItem>
             </Flex>
         );

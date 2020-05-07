@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -129,6 +129,54 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(latest), latest.get(VERSION));
 
         return latest;
+    }
+
+    private SearchedArtifact buildSearchedArtifactFromMetadata(ArtifactMetaDataDto artifactMetaData) {
+
+        final SearchedArtifact searchedArtifact = new SearchedArtifact();
+
+        searchedArtifact.setId(artifactMetaData.getId());
+        searchedArtifact.setName(artifactMetaData.getName());
+        searchedArtifact.setState(artifactMetaData.getState());
+        searchedArtifact.setDescription(artifactMetaData.getDescription());
+        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
+        searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
+        searchedArtifact.setModifiedBy(artifactMetaData.getModifiedBy());
+        searchedArtifact.setModifiedOn(artifactMetaData.getModifiedOn());
+        searchedArtifact.setType(artifactMetaData.getType());
+
+        //TODO add labels
+        return searchedArtifact;
+    }
+
+    private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
+
+        switch (searchOver) {
+        case name:
+            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(SearchOver.name.name())
+                    .contains(search);
+        case description:
+            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+                    .get(SearchOver.description.name()).contains(search);
+        case labels:
+            //TODO not implemented yet
+            return false;
+        default:
+            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+                    .values()
+                    .stream()
+                    .anyMatch(value -> value.contains(search));
+        }
+    }
+
+    private int compareArtifactIds(String firstId, String secondId, SortOrder sortOrder) {
+
+        switch (sortOrder) {
+        case desc:
+            return secondId.compareToIgnoreCase(firstId);
+        default:
+            return firstId.compareToIgnoreCase(secondId);
+        }
     }
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {
@@ -318,6 +366,28 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public Set<String> getArtifactIds() {
         return storage.keySet();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, Integer, Integer, SearchOver, SortOrder) ()
+     */
+    @Override
+    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+
+        final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
+                .stream()
+                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
+                .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
+                .limit(limit)
+                .skip(offset)
+                .map(artifactId -> buildSearchedArtifactFromMetadata(getArtifactMetaData(artifactId)))
+                .collect(Collectors.toList());
+
+        final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
+        artifactSearchResults.setArtifacts(matchedArtifacts);
+        artifactSearchResults.setCount(matchedArtifacts.size());
+
+        return artifactSearchResults;
     }
 
     /**

@@ -24,7 +24,7 @@ import {
     PureComponentState,
     RuleList
 } from "../../../../components";
-import {Badge, DataListCell, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
+import {Badge, Button, DataListCell, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
 import Moment from "react-moment";
@@ -36,9 +36,10 @@ import Moment from "react-moment";
 export interface InfoTabContentProps extends PureComponentProps {
     artifact: ArtifactMetaData;
     rules: Rule[];
-    doEnableRule: (ruleType: string) => void;
-    doDisableRule: (ruleType: string) => void;
-    doConfigureRule: (ruleType: string, config: string) => void;
+    onEnableRule: (ruleType: string) => void;
+    onDisableRule: (ruleType: string) => void;
+    onConfigureRule: (ruleType: string, config: string) => void;
+    onDownloadArtifact: () => void;
 }
 
 /**
@@ -66,6 +67,12 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                         <Split>
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
                             <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
+                            <SplitItem className="actions">
+                                <Button id="download-action"
+                                        title="Download artifact content"
+                                        onClick={this.props.onDownloadArtifact}
+                                        variant="plain"><DownloadIcon /></Button>
+                            </SplitItem>
                         </Split>
                     </div>
                     <div className="description">{this.props.artifact.description}</div>
@@ -90,46 +97,30 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             )
                         }
                     </div>
-                    <div className="actions-label">Actions</div>
-                    <div className="description">The following are the actions available for this artifact (note that some actions are only available for certain artifact types).</div>
-                    <ul className="actions">
-                        <li>
-                            <a href="#">
-                                <DownloadIcon />
-                                <span>Download</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#">
-                                <Remove2Icon />
-                                <span>Delete</span>
-                            </a>
-                        </li>
-                    </ul>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>
                     <RuleList rules={this.props.rules}
-                              onEnableRule={this.props.doEnableRule}
-                              onDisableRule={this.props.doDisableRule}
-                              onConfigureRule={this.props.doConfigureRule}
+                              onEnableRule={this.props.onEnableRule}
+                              onDisableRule={this.props.onDisableRule}
+                              onConfigureRule={this.props.onConfigureRule}
                     />
                 </FlexItem>
             </Flex>
         );
     }
 
-    private nameOrId(): string {
-        return this.props.artifact.name ? this.props.artifact.name : this.props.artifact.id;
-    }
-
     protected initializeState(): InfoTabContentState {
         return {};
     }
 
+    private nameOrId(): string {
+        return this.props.artifact.name ? this.props.artifact.name : this.props.artifact.id;
+    }
+
     private labels(): string[] {
         // TODO implement labels!
-        return ["one", "two", "three"];
+        return [];
     }
 
 }

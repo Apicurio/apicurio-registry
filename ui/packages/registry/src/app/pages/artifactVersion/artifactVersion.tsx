@@ -32,7 +32,7 @@ import {
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
-import {CreateArtifactData, CreateVersionData, Services} from "@apicurio/registry-services";
+import {CreateVersionData, Services} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
 import {UploadVersionForm} from "./components/uploadForm";
 import {Link} from "react-router-dom";
@@ -76,9 +76,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
                                 rules={this.rules()}
-                                doEnableRule={this.doEnableRule}
-                                doDisableRule={this.doDisableRule}
-                                doConfigureRule={this.doConfigureRule}
+                                onEnableRule={this.doEnableRule}
+                                onDisableRule={this.doDisableRule}
+                                onConfigureRule={this.doConfigureRule}
+                                onDownloadArtifact={this.doDownloadArtifact}
                 />
             </Tab>,
             <Tab eventKey={1} title="Documentation" key="documentation">
@@ -254,6 +255,20 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         }));
     };
 
+    private doDownloadArtifact = (): void => {
+        const content: string = this.state.artifactContent;
+
+        // TODO support all types here - graphql, etc.
+        let contentType: string = "application/json";
+        let fext: string = "json";
+        if (this.state.artifact?.type === "PROTOBUF") {
+            contentType = "application/x-protobuf";
+            fext = "proto";
+        }
+        const fname: string = this.artifactNameOrId() + "." + fext;
+        Services.getDownloaderService().downloadToFS(content, contentType, fname);
+    };
+
     private versions(): VersionMetaData[] {
         return this.state.versions ? this.state.versions : [];
     }
@@ -264,6 +279,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private artifactType(): string {
         return this.state.artifact ? this.state.artifact.type : "";
+    }
+
+    private artifactNameOrId(): string {
+        return this.state.artifact ? (
+            this.state.artifact.name ? this.state.artifact.name : this.state.artifact.id
+        ) : "";
     }
 
     private onUploadFormValid = (isValid: boolean): void => {

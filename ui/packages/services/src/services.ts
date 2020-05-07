@@ -19,6 +19,7 @@ import {ConfigService} from "./config";
 import {LoggerService} from "./logger";
 import {GlobalsService} from "./globals";
 import {Service} from "./baseService";
+import {DownloaderService} from "./downloader";
 
 interface AllServices {
     artifacts: ArtifactsService;
@@ -40,6 +41,10 @@ export class Services {
         return Services.all.config;
     }
 
+    public static getDownloaderService(): DownloaderService {
+        return Services.all.downloader;
+    }
+
     public static getLoggerService(): LoggerService {
         return Services.all.logger;
     }
@@ -51,6 +56,7 @@ export class Services {
     private static all: any = {
         artifacts: new ArtifactsService(),
         config: new ConfigService(),
+        downloader: new DownloaderService(),
         globals: new GlobalsService(),
         logger: new LoggerService()
     };

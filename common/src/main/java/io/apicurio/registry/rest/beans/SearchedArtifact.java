@@ -2,6 +2,7 @@
 package io.apicurio.registry.rest.beans;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -57,7 +58,7 @@ public class SearchedArtifact {
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
-    private long createdOn;
+    private Date createdOn;
     /**
      * 
      * (Required)
@@ -99,7 +100,7 @@ public class SearchedArtifact {
      */
     @JsonProperty("modifiedOn")
     @JsonPropertyDescription("")
-    private long modifiedOn;
+    private Date modifiedOn;
     /**
      * 
      */
@@ -165,7 +166,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("createdOn")
-    public long getCreatedOn() {
+    public Date getCreatedOn() {
         return createdOn;
     }
 
@@ -175,7 +176,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(long createdOn) {
+    public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -271,7 +272,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("modifiedOn")
-    public long getModifiedOn() {
+    public Date getModifiedOn() {
         return modifiedOn;
     }
 
@@ -279,7 +280,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(long modifiedOn) {
+    public void setModifiedOn(Date modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 

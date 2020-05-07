@@ -16,21 +16,6 @@
 
 package io.apicurio.registry.storage;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.util.SortedSet;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
@@ -38,6 +23,14 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.inject.Inject;
+import java.util.SortedSet;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 public class RegistryStorageSmokeTest extends AbstractResourceTestBase {

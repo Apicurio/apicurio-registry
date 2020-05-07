@@ -22,6 +22,7 @@ import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -58,7 +59,12 @@ public class SearchResourceImpl  implements SearchResource, Headers{
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-
         return registryStorage.searchArtifacts(search, offset, limit, searchOver, sortOrder);
     }
+
+	@Override
+	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

@@ -15,8 +15,18 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./versionMetaData.model";
+
+// tslint:disable-next-line:interface-name
+export interface SearchedVersion {
+
+    globalId: number;
+    version: number;
+    type: string;
+    state: string;
+    name: string;
+    description: string;
+    labels: string[];
+    createdOn: Date;
+    createdBy: string;
+
+}

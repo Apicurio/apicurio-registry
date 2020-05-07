@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {SearchedArtifact, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {SearchedArtifact, SearchedVersion, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {BaseService} from "../baseService";
 
 export interface CreateArtifactData {
@@ -89,6 +89,7 @@ export class ArtifactsService extends BaseService {
     }
 
     public getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {
+        // TODO support search-over and sort-order
         this.logger.debug("[ArtifactsService] Getting artifacts: ", criteria, paging);
         const start: number = (paging.page - 1) * paging.pageSize;
         const end: number = start + paging.pageSize;
@@ -131,13 +132,14 @@ export class ArtifactsService extends BaseService {
         return this.httpGet<string>(endpoint, options);
     }
 
-    public getArtifactVersions(artifactId: string): Promise<VersionMetaData[]> {
-        // TODO implement this via new Search API endpoint
-        return new Promise<VersionMetaData[]>( resolve => {
-            setTimeout(() => {
-                resolve([
-                ]);
-            }, 200);
+    public getArtifactVersions(artifactId: string): Promise<SearchedVersion[]> {
+        this.logger.info("[ArtifactsService] Getting the list of versions for artifact: ", artifactId);
+        const endpoint: string = this.endpoint("/search/artifacts/:artifactId/versions", { artifactId }, {
+            limit: 500,
+            offset: 0
+        });
+        return this.httpGet<SearchedVersion[]>(endpoint, undefined, (data) => {
+            return data.versions;
         });
     }
 
@@ -184,6 +186,12 @@ export class ArtifactsService extends BaseService {
             artifactId,
             "rule": type
         });
+        return this.httpDelete(endpoint);
+    }
+
+    public deleteArtifact(artifactId: string): Promise<void> {
+        this.logger.info("[ArtifactsService] Deleting artifact:", artifactId);
+        const endpoint: string = this.endpoint("/artifacts/:artifactId", { artifactId });
         return this.httpDelete(endpoint);
     }
 }

@@ -60,7 +60,7 @@ export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPage
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
                     <VersionSelector version={this.props.version} versions={this.props.versions} artifactId={this.props.artifactId} />
-                    <Button id="upload-version-button" variant="secondary" onClick={this.props.onUploadVersion}>Upload New Version</Button>
+                    <Button id="upload-version-button" variant="secondary" onClick={this.props.onUploadVersion}>Upload new version</Button>
                 </FlexItem>
             </Flex>
         );

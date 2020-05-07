@@ -69,7 +69,7 @@ public class VersionMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -198,7 +198,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -208,7 +208,7 @@ public class VersionMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 

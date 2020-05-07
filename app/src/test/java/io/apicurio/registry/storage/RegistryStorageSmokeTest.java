@@ -18,6 +18,7 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -118,6 +119,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             assertNull(vmeta2.getName());
             return null;
         });
+
+        final ArtifactSearchResults artifactSearchResults = storage.searchArtifacts("foo", 0, 10);
 
         SortedSet<Long> deleted = getStorage().deleteArtifact(ARTIFACT_ID_1);
         assertEquals(2, deleted.size());

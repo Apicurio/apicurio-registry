@@ -321,6 +321,15 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, Integer, Integer) ()
+     */
+    @Override
+    public ArtifactSearchResults searchArtifacts(String search, Integer limit, Integer offset) {
+
+        return new ArtifactSearchResults();
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String)
      */
     @Override

@@ -21,7 +21,10 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -60,13 +63,7 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -400,6 +397,11 @@ public class JPARegistryStorage implements RegistryStorage {
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
+    }
+
+    @Override 
+    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+        return new ArtifactSearchResults();
     }
 
     // =======================================================

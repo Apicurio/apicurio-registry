@@ -4,6 +4,9 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -340,6 +343,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
         ids.remove(GLOBAL_RULES_ID);
         return ids;
+    }
+
+    @Override
+    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+        return new ArtifactSearchResults();
     }
 
     @Override

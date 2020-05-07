@@ -128,7 +128,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     onClose={this.onUploadModalClose}
                     className="upload-artifact-modal pf-m-redhat-font"
                     actions={[
-                        <Button key="upload" variant="primary" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
+                        <Button key="upload" variant="primary" onClick={this.doUploadArtifactVersion} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
                         <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>
                     ]}
                 >
@@ -243,12 +243,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         return this.state.artifact ? this.state.artifact.type : "";
     }
 
-    private artifactNameOrId(): string {
-        return this.state.artifact ? (
-            this.state.artifact.name ? this.state.artifact.name : this.state.artifact.id
-        ) : "";
-    }
-
     private onUploadFormValid = (isValid: boolean): void => {
         this.setSingleState("isUploadFormValid", isValid);
     };
@@ -257,20 +251,16 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.setSingleState("uploadFormData", data);
     };
 
-    private onUploadArtifact = (): void => {
-        this.setSingleState("isUploadModalOpen", true);
-    };
-
     private onUploadModalClose = (): void => {
         this.setSingleState("isUploadModalOpen", false);
     };
 
-    private doUploadArtifact = (): void => {
+    private doUploadArtifactVersion = (): void => {
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
             const artifactId: string = this.artifactId();
             const data: CreateVersionData = {
-                content: this.state.artifactContent,
+                content: this.state.uploadFormData,
                 type: this.artifactType()
             };
             Services.getArtifactsService().createArtifactVersion(artifactId, data).then(versionMetaData => {

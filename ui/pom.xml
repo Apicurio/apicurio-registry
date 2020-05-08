@@ -14,4 +14,95 @@
     <artifactId>apicurio-registry-ui</artifactId>
     <name>apicurio-registry-ui</name>
 
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>packages/models</directory>
+                            <includes>
+                                <include>packages/models/dist/**</include>
+                                <include>packages/models/node_modules/**</include>
+                                <include>packages/registry/dist/**</include>
+                                <include>packages/registry/node_modules/**</include>
+                                <include>packages/services/dist/**</include>
+                                <include>packages/services/node_modules/**</include>
+                                <include>node/**</include>
+                                <include>node_modules/**</include>
+                            </includes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <!-- Install Node and Yarn -->
+                    <execution>
+                        <id>install node and yarn</id>
+                        <goals>
+                            <goal>install-node-and-yarn</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v10.20.1</nodeVersion>
+                            <yarnVersion>v1.22.4</yarnVersion>
+                        </configuration>
+                    </execution>
+                    <!-- Install npm/yarn dependencies -->
+                    <execution>
+                        <id>yarn install</id>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <!-- Build the app -->
+                    <execution>
+                        <id>yarn build</id>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dist</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/packages/registry/dist</directory>
+                                    <filtering>false</filtering>
+                                    <excludes>
+                                        <exclude>config.js</exclude>
+                                        <exclude>keycloak.js</exclude>
+                                        <exclude>keycloak.json</exclude>
+                                        <exclude>version.js</exclude>
+                                    </excludes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

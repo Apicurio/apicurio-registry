@@ -47,6 +47,11 @@ export interface ArtifactsSearchResults {
     pageSize: number;
 }
 
+export interface EditableMetaData {
+    name: string;
+    description: string;
+}
+
 /**
  * The artifacts service.  Used to query the backend search API to fetch lists of
  * artifacts and also details about individual artifacts.
@@ -114,6 +119,14 @@ export class ArtifactsService extends BaseService {
             endpoint = this.endpoint("/artifacts/:artifactId/meta", { artifactId });
         }
         return this.httpGet<ArtifactMetaData>(endpoint);
+    }
+
+    public updateArtifactMetaData(artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
+        let endpoint: string = this.endpoint("/artifacts/:artifactId/versions/:version/meta", { artifactId, version });
+        if (version === "latest") {
+            endpoint = this.endpoint("/artifacts/:artifactId/meta", { artifactId });
+        }
+        return this.httpPut<EditableMetaData>(endpoint, metaData);
     }
 
     public getArtifactContent(artifactId: string, version: string): Promise<string> {

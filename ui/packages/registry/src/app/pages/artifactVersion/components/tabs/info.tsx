@@ -26,7 +26,7 @@ import {
 } from "../../../../components";
 import {Badge, Button, DataListCell, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
-import {DownloadIcon, Remove2Icon} from "@patternfly/react-icons";
+import {DownloadIcon, EditIcon, Remove2Icon} from "@patternfly/react-icons";
 import Moment from "react-moment";
 
 /**
@@ -40,6 +40,7 @@ export interface InfoTabContentProps extends PureComponentProps {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     onDownloadArtifact: () => void;
+    onEditMetaData: () => void;
 }
 
 /**
@@ -68,10 +69,10 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
                             <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
                             <SplitItem className="actions">
-                                <Button id="download-action"
-                                        title="Download artifact content"
-                                        onClick={this.props.onDownloadArtifact}
-                                        variant="plain"><DownloadIcon /></Button>
+                                <Button id="edit-action"
+                                        title="Edit artifact meta-data"
+                                        onClick={this.props.onEditMetaData}
+                                        variant="plain"><EditIcon /></Button>
                             </SplitItem>
                         </Split>
                     </div>
@@ -90,12 +91,18 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
                         </div>
                     </div>
-                    <div className="tags">
+                    <div className="labels">
                         {
                             this.labels().map( label =>
                                 <Badge key={label} isRead={true}>{label}</Badge>
                             )
                         }
+                    </div>
+                    <div className="actions">
+                        <Button id="download-action"
+                                title="Download artifact content"
+                                onClick={this.props.onDownloadArtifact}
+                                variant="primary"><DownloadIcon /> Download</Button>
                     </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">

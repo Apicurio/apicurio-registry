@@ -52,27 +52,17 @@
     white-space: nowrap;
 }
 
-.artifact-tab-content .artifact-basics .tags {
+.artifact-tab-content .artifact-basics .labels {
     margin-bottom: 25px;
 }
 
-.artifact-tab-content .artifact-basics .tags .pf-c-badge {
+.artifact-tab-content .artifact-basics .labels .pf-c-badge {
     font-size: 14px;
     margin-right: 5px;
     background-color: #ccc;
 }
 
-.artifact-tab-content .artifact-basics .actions-label {
-    font-size: 17px;
-    font-weight: bold;
-}
-
 .artifact-tab-content .artifact-basics .actions {
-    padding-left: 10px;
-}
-
-.artifact-tab-content .artifact-basics .actions > li > a > span {
-    margin-left: 5px;
 }
 
 

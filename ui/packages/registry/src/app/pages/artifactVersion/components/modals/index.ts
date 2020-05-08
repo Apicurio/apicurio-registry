@@ -15,7 +15,4 @@
  * limitations under the License.
  */
 
-export * from "./pageheader";
-export * from "./modals";
-export * from "./tabs";
-export * from "./uploadForm";
+export * from "./editMetaDataModal";

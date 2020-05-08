@@ -32,10 +32,11 @@ import {
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
-import {CreateVersionData, Services} from "@apicurio/registry-services";
+import {CreateVersionData, Services, EditableMetaData} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
 import {UploadVersionForm} from "./components/uploadForm";
 import {Link} from "react-router-dom";
+import {EditMetaDataModal} from "./components/modals";
 
 
 /**
@@ -56,6 +57,7 @@ export interface ArtifactVersionPageState extends PageState {
     isUploadFormValid: boolean;
     isUploadModalOpen: boolean;
     isDeleteModalOpen: boolean;
+    isEditModalOpen: boolean;
     rules: Rule[] | null;
     uploadFormData: string | null;
     versions: VersionMetaData[] | null;
@@ -80,6 +82,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                 onDisableRule={this.doDisableRule}
                                 onConfigureRule={this.doConfigureRule}
                                 onDownloadArtifact={this.doDownloadArtifact}
+                                onEditMetaData={this.openEditMetaDataModal}
                 />
             </Tab>,
             <Tab eventKey={1} title="Documentation" key="documentation">
@@ -153,6 +156,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 >
                     <p>Do you want to delete this artifact and all of its versions?  This action cannot be undone.</p>
                 </Modal>
+                <EditMetaDataModal name={this.artifactName()}
+                                   description={this.artifactDescription()}
+                                   isOpen={this.state.isEditModalOpen}
+                                   onClose={this.onEditModalClose}
+                                   onEditMetaData={this.doEditMetaData}
+                />
             </React.Fragment>
         );
     }
@@ -167,6 +176,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             errorInfo: null,
             errorType: null,
             isDeleteModalOpen: false,
+            isEditModalOpen: false,
             isError: false,
             isLoading: true,
             isUploadFormValid: false,
@@ -287,6 +297,18 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         ) : "";
     }
 
+    private artifactName(): string {
+        return this.state.artifact ? (
+            this.state.artifact.name ? this.state.artifact.name : ""
+        ) : "";
+    }
+
+    private artifactDescription(): string {
+        return this.state.artifact ? (
+            this.state.artifact.description ? this.state.artifact.description : ""
+        ) : "";
+    }
+
     private onUploadFormValid = (isValid: boolean): void => {
         this.setSingleState("isUploadFormValid", isValid);
     };
@@ -326,6 +348,25 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         Services.getArtifactsService().deleteArtifact(this.artifactId()).then( () => {
             this.navigateTo("/artifacts")();
         });
+    };
+
+    private openEditMetaDataModal = (): void => {
+        this.setSingleState("isEditModalOpen", true);
+    };
+
+    private onEditModalClose = (): void => {
+        this.setSingleState("isEditModalOpen", false);
+    };
+
+    private doEditMetaData = (metaData: EditableMetaData): void => {
+        Services.getArtifactsService().updateArtifactMetaData(this.artifactId(), this.version(), metaData);
+        if (this.state.artifact) {
+            this.setSingleState("artifact", {
+                ...this.state.artifact,
+                ...metaData
+            });
+        }
+        this.onEditModalClose();
     };
 
 }

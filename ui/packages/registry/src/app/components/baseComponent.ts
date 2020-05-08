@@ -57,7 +57,7 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
     }
 
     protected setMultiState(newState: any, callback?: () => void): void {
-        Services.getLoggerService().debug("[PureComponent] Setting multi-state: %o", newState);
+        // Services.getLoggerService().debug("[PureComponent] Setting multi-state: %o", newState);
         this.setState({
             ...newState
         }, callback);

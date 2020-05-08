@@ -102,7 +102,6 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("get", url, options);
-        this.logger.debug("[BaseService] Axios Config: ", config);
         return axios.request(config)
             .then(response => {
                 const data: T = response.data;

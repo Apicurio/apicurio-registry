@@ -21,8 +21,6 @@ import {BaseService} from "../baseService";
 export interface CreateArtifactData {
     id: string|null;
     type: string;
-    name: string|null;
-    description: string|null;
     content: string;
 }
 
@@ -89,13 +87,14 @@ export class ArtifactsService extends BaseService {
     }
 
     public getArtifacts(criteria: GetArtifactsCriteria, paging: Paging): Promise<ArtifactsSearchResults> {
-        // TODO support search-over and sort-order
         this.logger.debug("[ArtifactsService] Getting artifacts: ", criteria, paging);
         const start: number = (paging.page - 1) * paging.pageSize;
         const end: number = start + paging.pageSize;
         const endpoint: string = this.endpoint("/search/artifacts", {}, {
             limit: end,
             offset: start,
+            order: criteria.sortAscending ? "asc" : "desc",
+            over: criteria.type,
             search: criteria.value
         });
         return this.httpGet<ArtifactsSearchResults>(endpoint, undefined, (data) => {

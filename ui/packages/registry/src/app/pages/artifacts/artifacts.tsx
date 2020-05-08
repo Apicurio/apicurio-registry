@@ -107,7 +107,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return {
             criteria: {
                 sortAscending: true,
-                type: "Everything",
+                type: "everything",
                 value: "",
             },
             error: null,

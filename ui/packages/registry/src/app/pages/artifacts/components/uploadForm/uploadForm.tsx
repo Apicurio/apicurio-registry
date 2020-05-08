@@ -56,7 +56,7 @@ export interface UploadArtifactFormProps extends PureComponentProps {
  * State
  */
 export interface UploadArtifactFormState extends PureComponentState {
-    name: string;
+    id: string;
     type: string;
     typeIsExpanded: boolean;
     content: string;
@@ -79,19 +79,19 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         return (
             <Form>
                 <FormGroup
-                    label="Name"
-                    fieldId="form-name"
-                    helperText="(Optional) Leave the name empty to let the server auto-generate one."
+                    label="ID"
+                    fieldId="form-id"
+                    helperText="(Optional) Leave the artifact ID empty to let the server auto-generate one."
                 >
                     <TextInput
                         isRequired={true}
                         type="text"
-                        id="form-name"
-                        name="form-name"
-                        aria-describedby="form-name-helper"
-                        value={this.state.name}
-                        placeholder="Name of the artifact"
-                        onChange={this.onNameChange}
+                        id="form-id"
+                        name="form-id"
+                        aria-describedby="form-id-helper"
+                        value={this.state.id}
+                        placeholder="ID of the artifact"
+                        onChange={this.onIdChange}
                     />
                 </FormGroup>
                 <FormGroup
@@ -146,7 +146,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             contentFilename: "",
             contentIsLoading: false,
             debouncedOnChange: debounce(this.props.onChange, 200),
-            name: "",
+            id: "",
             type: "",
             typeIsExpanded: false,
             valid: false
@@ -168,8 +168,8 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         });
     };
 
-    private onNameChange = (value: any): void => {
-        this.setSingleState("name", value, () => {
+    private onIdChange = (value: any): void => {
+        this.setSingleState("id", value, () => {
             this.fireOnChange();
             this.checkValid();
         });
@@ -211,8 +211,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     private currentData(): CreateArtifactData {
         return {
             content: this.state.content,
-            description: null,
-            name: this.state.name,
+            id: this.state.id,
             type: this.state.type
         };
     }

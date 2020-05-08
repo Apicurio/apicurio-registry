@@ -76,16 +76,13 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                 <Dropdown
                                     onSelect={this.onFilterSelect}
                                     toggle={
-                                        <DropdownToggle onToggle={this.onFilterToggle}>
-                                            {this.state.filterSelection ? this.state.filterSelection : 'Everything'}
-                                        </DropdownToggle>
+                                        <DropdownToggle onToggle={this.onFilterToggle}>{this.filterValueDisplay()}</DropdownToggle>
                                     }
                                     isOpen={this.state.filterIsExpanded}
                                     dropdownItems={[
-                                        <DropdownItem key="everything" component="button">Everything</DropdownItem>,
-                                        <DropdownItem key="name" component="button">Name</DropdownItem>,
-                                        <DropdownItem key="description" component="button">Description</DropdownItem>,
-                                        <DropdownItem key="labels" component="button">Labels</DropdownItem>
+                                        <DropdownItem key="everything" id="everything" component="button">Everything</DropdownItem>,
+                                        <DropdownItem key="name" id="name" component="button">Name</DropdownItem>,
+                                        <DropdownItem key="description" id="description" component="button">Description</DropdownItem>,
                                     ]}
                                 />
                                 <TextInput name="filterValue" id="filterValue" type="search"
@@ -128,7 +125,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         return {
             ascending: true,
             filterIsExpanded: false,
-            filterSelection: "",
+            filterSelection: "everything",
             filterValue: ""
         };
     }
@@ -143,7 +140,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
     };
 
     private onFilterSelect = (event: React.SyntheticEvent<HTMLDivElement>|undefined): void => {
-        const value: string = event && event.currentTarget && event.currentTarget.textContent ? event.currentTarget.textContent : "";
+        const value: string = event && event.currentTarget && event.currentTarget.id ? event.currentTarget.id : "";
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter type to: %s", value);
         this.setState({
             filterIsExpanded: false,
@@ -183,6 +180,17 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
             };
 
             this.props.onChange(criteria);
+        }
+    }
+
+    private filterValueDisplay(): string {
+        switch (this.state.filterSelection) {
+            case "name":
+                return "Name";
+            case "description":
+                return "Description";
+            default:
+                return "Everything";
         }
     }
 }

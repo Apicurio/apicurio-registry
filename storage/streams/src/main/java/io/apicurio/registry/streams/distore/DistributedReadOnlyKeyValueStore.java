@@ -2,17 +2,18 @@ package io.apicurio.registry.streams.distore;
 
 import io.grpc.Channel;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.utils.CloseableIterator;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
-import static io.apicurio.registry.streams.distore.StreamToKeyValueIteratorAdapter.toStream;
-
 import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.streams.distore.StreamToKeyValueIteratorAdapter.toStream;
 
 /**
  * A {@link ReadOnlyKeyValueStore} that is distributed among KafkaStreams processing nodes comprising
@@ -39,6 +40,7 @@ public class DistributedReadOnlyKeyValueStore<K, V>
      *                               for the given {@link HostInfo} parameter
      * @param parallel               {@code true} if lookups that need to query many stores in the cluster are
      *                               to be performed in parallel
+     * @param filterPredicate        filter predicate to filter out keys and values
      */
     public DistributedReadOnlyKeyValueStore(
         KafkaStreams streams,
@@ -46,7 +48,8 @@ public class DistributedReadOnlyKeyValueStore<K, V>
         String storeName,
         Serde<K> keySerde, Serde<V> valSerde,
         Function<? super HostInfo, ? extends Channel> grpcChannelProvider,
-        boolean parallel
+        boolean parallel,
+        TriPredicate<String, K, V> filterPredicate
     ) {
         super(
             streams,
@@ -57,12 +60,15 @@ public class DistributedReadOnlyKeyValueStore<K, V>
             grpcChannelProvider,
             parallel
         );
+        this.filterPredicate = filterPredicate;
     }
+
+    private final TriPredicate<String, K, V> filterPredicate;
 
     @Override
     protected ExtReadOnlyKeyValueStore<K, V> localService(String storeName, KafkaStreams streams) {
         ReadOnlyKeyValueStore<K, V> delegate = streams.store(storeName, QueryableStoreTypes.keyValueStore());
-        return new ExtReadOnlyKeyValueStoreImpl<>(delegate);
+        return new ExtReadOnlyKeyValueStoreImpl<>(delegate, filterPredicate);
     }
 
     @Override
@@ -71,10 +77,17 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     }
 
     @Override
-    public CloseableIterator<K> allKeys() {
-        return new StreamToIteratorAdapter<>(
-            allServicesForStoreStream().flatMap(store -> StreamToIteratorAdapter.toStream(store.allKeys()))
-        );
+    public Stream<K> allKeys() {
+        return allServicesForStoreStream().flatMap(ExtReadOnlyKeyValueStore::allKeys);
+    }
+
+    @Override
+    public Stream<KeyValue<K, V>> filter(String filter, int limit) {
+        // limit on distributed calls AND on this one
+        // we pass the limit to remote since we know we don't need more then the limit
+        return allServicesForStoreStream()
+            .flatMap(store -> store.filter(filter, limit))
+            .limit(limit);
     }
 
     // ReadOnlyKeyValueStore<K, V> implementation

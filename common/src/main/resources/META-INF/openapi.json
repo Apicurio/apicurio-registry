@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API",
-        "version": "1.1.2",
+        "version": "1.2.0",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema\n\n",
         "contact": {
             "name": "Apicurio",
@@ -1610,7 +1610,7 @@
                     },
                     {
                         "name": "offset",
-                        "description": "The number of items to skip before starting to collect the result set",
+                        "description": "The number of artifacts to skip before starting to collect the result set",
                         "schema": {
                             "default": 0,
                             "type": "integer"
@@ -1620,12 +1620,41 @@
                     },
                     {
                         "name": "limit",
-                        "description": "The numbers of items to return",
+                        "description": "The number of artifacts to return",
                         "schema": {
                             "default": 20,
                             "type": "integer"
                         },
-                        "in": "query"
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "name": "over",
+                        "description": "What fields to search.",
+                        "schema": {
+                            "enum": [
+                                "everything",
+                                "name",
+                                "description",
+                                "labels"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, either ascending or descending.",
+                        "schema": {
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "required": false
                     }
                 ],
                 "responses": {
@@ -1637,7 +1666,7 @@
                                 }
                             }
                         },
-                        "description": "On a successful response, returns an array of artifact IDs - one for each artifact\nin the registry."
+                        "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
@@ -1647,6 +1676,67 @@
                 "summary": "Search for artifacts",
                 "description": "Returns a paginated list of all artifacts that match the provided search criteria.\n"
             }
+        },
+        "/search/artifacts/{artifactId}/versions": {
+            "summary": "Search for all versions of an artifact.",
+            "get": {
+                "tags": [
+                    "Search",
+                    "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "offset",
+                        "description": "The number of versions to skip before starting to collect the result set",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of versions to return",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionSearchResults"
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a result set of versions - one for each version\nof the artifact."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "searchVersions",
+                "summary": "Search artifact versions",
+                "description": "Searches for versions of a specific artifact.  This is typically used to get a listing\nof all versions of an Artifact (for example in a user interface)."
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         }
     },
     "components": {
@@ -1975,6 +2065,115 @@
                     "id": "Procurement-Invoice",
                     "name": "Artifact Name",
                     "description": "Description of the artifact",
+                    "labels": [
+                        "current",
+                        "internal"
+                    ],
+                    "type": "AVRO",
+                    "state": "ENABLED",
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z"
+                }
+            },
+            "SortOrder": {
+                "description": "",
+                "enum": [
+                    "asc",
+                    "desc"
+                ],
+                "type": "string"
+            },
+            "SearchOver": {
+                "description": "",
+                "enum": [
+                    "everything",
+                    "name",
+                    "description",
+                    "labels"
+                ],
+                "type": "string"
+            },
+            "VersionSearchResults": {
+                "description": "Describes the response received when searching for artifacts.",
+                "required": [
+                    "count",
+                    "versions"
+                ],
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "description": "The total number of artifacts that matched the search criteria.",
+                        "type": "integer"
+                    },
+                    "versions": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SearchedVersion"
+                        }
+                    }
+                }
+            },
+            "SearchedVersion": {
+                "description": "Models a single artifact from the result set returned when searching for artifacts.",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "type",
+                    "state",
+                    "globalId",
+                    "version"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "version": {
+                        "format": "int32",
+                        "description": "",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "globalId": 3849759283547,
+                    "version": 17,
+                    "name": "Artifact Version Name",
+                    "description": "Description of the artifact version",
                     "labels": [
                         "current",
                         "internal"

@@ -122,6 +122,11 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         });
 
         // TODO uncomment this once search is implemented for all storages.  These tests are run against all storage variants.
+//        final ArtifactSearchResults countSearchResult = storage.searchArtifacts("arti", 0, 1, SearchOver.everything, SortOrder.asc);
+//
+//        assertEquals(2, countSearchResult.getCount());
+//        assertEquals(countSearchResult.getArtifacts().get(0).getId(), ARTIFACT_ID_1);
+//
 //        final ArtifactSearchResults ascendingSearchResults = storage.searchArtifacts("arti", 0, 10, SearchOver.everything, SortOrder.asc);
 //
 //        assertEquals(2, ascendingSearchResults.getCount());

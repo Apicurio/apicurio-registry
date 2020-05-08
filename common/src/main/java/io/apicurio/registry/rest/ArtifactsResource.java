@@ -1,10 +1,15 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -16,21 +21,160 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.UpdateState;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
 @Path("/artifacts")
 public interface ArtifactsResource {
   /**
-   * Gets the metadata for an artifact in the registry.  The returned metadata will include
+   * Returns a list of IDs of all artifacts in the registry as a flat list.  Typically the
+   * server is configured to limit the number of artifact IDs returned in the case where
+   * a large number of artifacts exist.  In this case the result of this call may be 
+   * non deterministic.  The default limit is typically 1000 artifacts.
+   */
+  @GET
+  @Produces("application/json")
+  List<String> listArtifacts();
+
+  /**
+   * Creates a new artifact by posting the artifact content.  The body of the request should
+   * be the raw content of the artifact.  This is typically in JSON format for *most* of the 
+   * supported types, but may be in another format for a few (for example, `PROTOBUF`).
+   *
+   * The registry attempts to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (`AVRO`)
+   * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
+   * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
+   * * OpenAPI (`OPENAPI`)
+   * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
+   * * Web Services Description Language (`WSDL`)
+   * * XML Schema (`XSD`)
+   *
+   * Alternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` 
+   * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * An invalid `ArtifactType` was indicated (HTTP error `400`)
+   * * The content violates one of the configured global rules (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @POST
+  @Produces("application/json")
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  CompletionStage<ArtifactMetaData> createArtifact(
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
+
+  /**
+   * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
+   * response depends on the artifact type.  In most cases, this is `application/json`, but 
+   * for some types it may be different (for example, `PROTOBUF`).
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}")
+  @GET
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  Response getLatestArtifact(@PathParam("artifactId") String artifactId);
+
+  /**
+   * Updates an artifact by uploading new content.  The body of the request should
+   * be the raw content of the artifact.  This is typically in JSON format for *most*
+   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
+   *
+   * The registry attempts to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (`AVRO`)
+   * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
+   * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
+   * * OpenAPI (`OPENAPI`)
+   * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
+   * * Web Services Description Language (`WSDL`)
+   * * XML Schema (`XSD`)
+   *
+   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType` 
+   * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
+   *
+   * The update could fail for a number of reasons including:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * The provided artifact type is not recognized (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   * When successful, this creates a new version of the artifact, making it the most recent
+   * (and therefore official) version of the artifact.
+   */
+  @Path("/{artifactId}")
+  @PUT
+  @Produces("application/json")
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+
+  /**
+   * Deletes an artifact completely, resulting in all versions of the artifact also being
+   * deleted.  This may fail for one of the following reasons:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{artifactId}")
+  @DELETE
+  void deleteArtifact(@PathParam("artifactId") String artifactId);
+
+  /**
+   * Updates the state of the artifact.  For example, you can use this to mark the latest
+   * version of an artifact as `DEPRECATED`.  The operation changes the state of the latest 
+   * version of the artifact.  If multiple versions exist, only the most recent is changed.
+   *
+   * The following state changes are supported:
+   *
+   * * Enabled -> Disabled
+   * * Enabled -> Deprecated
+   * * Enabled -> Deleted
+   * * Disabled -> Enabled
+   * * Disabled -> Deleted
+   * * Disabled -> Deprecated
+   * * Deprecated -> Deleted
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * Artifact cannot transition to the given state (HTTP error `400`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/state")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactState(@PathParam("artifactId") String artifactId, UpdateState data);
+
+  /**
+   * Gets the metadata for an artifact in the registry.  The returned metadata includes
    * both generated (read-only) and editable metadata (such as name and description).
    *
    * This operation can fail for the following reasons:
@@ -77,65 +221,70 @@ public interface ArtifactsResource {
       InputStream data);
 
   /**
-   * Returns information about a single rule configured for an artifact.  This is useful
-   * when you want to know what the current configuration settings are for a specific rule.
+   * Returns a list of all version numbers for the artifact.
    *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
-   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
+   *
    */
-  @Path("/{artifactId}/rules/{rule}")
+  @Path("/{artifactId}/versions")
   @GET
   @Produces("application/json")
-  Rule getArtifactRuleConfig(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId);
+  List<Long> listArtifactVersions(@PathParam("artifactId") String artifactId);
 
   /**
-   * Updates the configuration of a single rule for the artifact.  The configuration data
-   * is specific to each rule type, so the configuration of the `COMPATIBILITY` rule 
-   * will be in a different format from the configuration of the `VALIDITY` rule.
+   * Creates a new version of the artifact by uploading new content.  The configured rules for
+   * the artifact are applied, and if they all pass, the new content is added as the most recent 
+   * version of the artifact.  If any of the rules fail, an error is returned.
+   *
+   * The body of the request should be the raw content of the new artifact version.  This 
+   * is typically in JSON format for *most* of the supported types, but may be in another 
+   * format for a few (for example, `PROTOBUF`).
+   *
+   * The registry attempts to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (`AVRO`)
+   * * Protobuf (`PROTOBUF`)
+   * * Protobuf File Descriptor (`PROTOBUF_FD`)
+   * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
+   * * OpenAPI (`OPENAPI`)
+   * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
+   * * Web Services Description Language (`WSDL`)
+   * * XML Schema (`XSD`)
+   *
+   * Alternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` 
+   * HTTP request header, or by including a hint in the request's `Content-Type`.
+   *
+   * For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
    *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
-   * * Invalid rule type (HTTP error `400`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
    */
-  @Path("/{artifactId}/rules/{rule}")
-  @PUT
+  @Path("/{artifactId}/versions")
+  @POST
   @Produces("application/json")
-  @Consumes("application/json")
-  Rule updateArtifactRuleConfig(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId, Rule data);
-
-  /**
-   * Deletes a rule from the artifact.  This results in the rule no longer applying for
-   * this artifact.  If this is the only rule configured for the artifact, this is the 
-   * same as deleting **all** rules, and the globally configured rules will now apply to
-   * this artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
-   * * Invalid rule type (HTTP error `400`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{artifactId}/rules/{rule}")
-  @DELETE
-  void deleteArtifactRule(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId);
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the
-   * unique `version` number must be provided.  The `Content-Type` of the response will 
-   * depend on the artifact type.  In most cases, this will be `application/json`, but 
-   * for some types it may be different (for example, `PROTOBUF`).
+   * unique `version` number must be provided.  The `Content-Type` of the response depends 
+   * on the artifact type.  In most cases, this is `application/json`, but for some types 
+   * it may be different (for example, `PROTOBUF`).
    *
    * This operation can fail for the following reasons:
    *
@@ -166,6 +315,34 @@ public interface ArtifactsResource {
   @DELETE
   void deleteArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
+
+  /**
+   * Updates the state of a specific version of an artifact.  For example, you can use 
+   * this operation to disable a specific version.
+   *
+   * The following state changes are supported:
+   *
+   * * Enabled -> Disabled
+   * * Enabled -> Deprecated
+   * * Enabled -> Deleted
+   * * Disabled -> Enabled
+   * * Disabled -> Deleted
+   * * Disabled -> Deprecated
+   * * Deprecated -> Deleted
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * Artifact version cannot transition to the given state (HTTP error `400`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{artifactId}/versions/{version}/state")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactVersionState(@PathParam("version") Integer version,
+      @PathParam("artifactId") String artifactId, UpdateState data);
 
   /**
    * Retrieves the metadata for a single version of the artifact.  The version metadata is 
@@ -205,7 +382,7 @@ public interface ArtifactsResource {
 
   /**
    * Deletes the user-editable metadata properties of the artifact version.  Any properties
-   * that are not user-editable will be preserved.
+   * that are not user-editable are preserved.
    *
    * This operation can fail for the following reasons:
    *
@@ -222,7 +399,7 @@ public interface ArtifactsResource {
   /**
    * Returns a list of all rules configured for the artifact.  The set of rules determines
    * how the content of an artifact can evolve over time.  If no rules are configured for
-   * an artifact, the set of globally configured rules will be used.  If no global rules 
+   * an artifact, the set of globally configured rules are used.  If no global rules 
    * are defined, there are no restrictions on content evolution.
    *
    * This operation can fail for the following reasons:
@@ -252,7 +429,7 @@ public interface ArtifactsResource {
 
   /**
    * Deletes all of the rules configured for the artifact.  After this is done, the global
-   * rules will apply to the artifact again.
+   * rules apply to the artifact again.
    *
    * This operation can fail for the following reasons:
    *
@@ -264,195 +441,72 @@ public interface ArtifactsResource {
   void deleteArtifactRules(@PathParam("artifactId") String artifactId);
 
   /**
-   * Creates a new artifact by posting the artifact content.  The body of the request should
-   * be the raw content of the artifact.  This will typically be in JSON format for *most*
-   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
-   *
-   * The registry will attempt to figure out what kind of artifact is being added from the
-   * following supported list:
-   *
-   * * Avro (`AVRO`)
-   * * Protobuf (`PROTOBUF`)
-   * * Protobuf File Descriptor (`PROTOBUF_FD`)
-   * * JSON Schema (`JSON`)
-   * * Kafka Connect (`KCONNECT`)
-   * * OpenAPI (`OPENAPI`)
-   * * AsyncAPI (`ASYNCAPI`)
-   * * GraphQL (`GRAPHQL`)
-   *
-   * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
-   * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
-   * `Content-Type`.  For example:
-   *
-   * ```
-   * Content-Type: application/json; artifactType=AVRO
-   * ```
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * An invalid `ArtifactType` was indicated (HTTP error `400`)
-   * * The content violates one of the configured global rules (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @POST
-  @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  CompletionStage<ArtifactMetaData> createArtifact(
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId, InputStream data);
-
-  /**
-   * Returns a list of ids of all artifacts in the registry.
+   * Returns information about a single rule configured for an artifact.  This is useful
+   * when you want to know what the current configuration settings are for a specific rule.
    *
    * This operation can fail for the following reasons:
    *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    */
+  @Path("/{artifactId}/rules/{rule}")
   @GET
   @Produces("application/json")
-  Set<String> getArtifactIds();  
+  Rule getArtifactRuleConfig(@PathParam("rule") RuleType rule,
+      @PathParam("artifactId") String artifactId);
 
   /**
-   * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
-   * response will depend on the artifact type.  In most cases, this will be `application/json`, 
-   * but for some types it may be different (for example, `PROTOBUF`).
+   * Updates the configuration of a single rule for the artifact.  The configuration data
+   * is specific to each rule type, so the configuration of the `COMPATIBILITY` rule 
+   * is in a different format from the configuration of the `VALIDITY` rule.
    *
-   * This operation may fail for one of the following reasons:
+   * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    *
    */
-  @Path("/{artifactId}")
-  @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  Response getLatestArtifact(@PathParam("artifactId") String artifactId);
-
-  /**
-   * Updates an artifact by uploading new content.  The body of the request should
-   * be the raw content of the artifact.  This will typically be in JSON format for *most*
-   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
-   *
-   * The registry will attempt to figure out what kind of artifact is being added from the
-   * following supported list:
-   *
-   * * Avro (`AVRO`)
-   * * Protobuf (`PROTOBUF`)
-   * * Protobuf File Descriptor (`PROTOBUF_FD`)
-   * * JSON Schema (`JSON`)
-   * * Kafka Connect (`KCONNECT`)
-   * * OpenAPI (`OPENAPI`)
-   * * AsyncAPI (`ASYNCAPI`)
-   * * GraphQL (`GRAPHQL`)
-   *
-   * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
-   * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
-   * `Content-Type`.  For example:
-   *
-   * ```
-   * Content-Type: application/json; artifactType=AVRO
-   * ```
-   *
-   * The update could fail for a number of reasons including:
-   *
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * The provided artifact type is not recognized (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   * When successful, this creates a new version of the artifact, making it the most recent
-   * (and therefore official) version of the artifact.
-   */
-  @Path("/{artifactId}")
+  @Path("/{artifactId}/rules/{rule}")
   @PUT
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+  @Consumes("application/json")
+  Rule updateArtifactRuleConfig(@PathParam("rule") RuleType rule,
+      @PathParam("artifactId") String artifactId, Rule data);
 
   /**
-   * Deletes an artifact completely, resulting in all versions of the artifact also being
-   * deleted.  This may fail for one of the following reasons:
+   * Deletes a rule from the artifact.  This results in the rule no longer applying for
+   * this artifact.  If this is the only rule configured for the artifact, this is the 
+   * same as deleting **all** rules, and the globally configured rules now apply to
+   * this artifact.
    *
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No rule with this name/type is configured for this artifact (HTTP error `404`)
+   * * Invalid rule type (HTTP error `400`)
    * * A server error occurred (HTTP error `500`)
    */
-  @Path("/{artifactId}")
+  @Path("/{artifactId}/rules/{rule}")
   @DELETE
-  void deleteArtifact(@PathParam("artifactId") String artifactId);
-
-  /**
-   * Returns a list of all version numbers for the artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions")
-  @GET
-  @Produces("application/json")
-  List<Long> listArtifactVersions(@PathParam("artifactId") String artifactId);
-
-  /**
-   * Creates a new version of the artifact by uploading new content.  The configured rules for
-   * the artifact will be applied, and if they all pass, the new content will be added as the 
-   * most recent version of the artifact.  If any of the rules fail, an error will be returned.
-   *
-   * The body of the request should be the raw content of the new artifact version.  This 
-   * will typically be in JSON format for *most* of the supported types, but may be in another 
-   * format for a few (for example, `PROTOBUF`).
-   *
-   * The registry will attempt to figure out what kind of artifact is being added from the
-   * following supported list:
-   *
-   * * Avro (`AVRO`)
-   * * Protobuf (`PROTOBUF`)
-   * * Protobuf File Descriptor (`PROTOBUF_FD`)
-   * * JSON Schema (`JSON`)
-   * * Kafka Connect (`KCONNECT`)
-   * * OpenAPI (`OPENAPI`)
-   * * AsyncAPI (`ASYNCAPI`)
-   * * GraphQL (`GRAPHQL`)
-   *
-   * Alternatively, the artifact type can be indicated be explicitly specifying the type 
-   * using the `X-Registry-ArtifactType` HTTP request header or by including a hint in the 
-   * request's `Content-Type`.
-   *
-   * For example:
-   *
-   * ```
-   * Content-Type: application/json; artifactType=AVRO
-   * ```
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions")
-  @POST
-  @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
-  CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
+  void deleteArtifactRule(@PathParam("rule") RuleType rule,
+      @PathParam("artifactId") String artifactId);
 
   /**
    * Tests whether an update to the artifact's content *would* succeed for the provided content.
-   * Ultimately, this will apply any rules configured for the artifact against the given content
+   * Ultimately, this applies any rules configured for the artifact against the given content
    * to determine whether the rules would pass or fail, but without actually updating the artifact
    * content.
    *
-   * The body of the request should be the raw content of the artifact.  This will typically be 
-   * in JSON format for *most* of the supported types, but may be in another format for a few 
+   * The body of the request should be the raw content of the artifact.  This is typically in 
+   * JSON format for *most* of the supported types, but may be in another format for a few 
    * (for example, `PROTOBUF`).
    *
-   * The registry will attempt to figure out what kind of artifact is being added from the
-   * following supported list:
+   * The registry attempts to figure out what kind of artifact is being added from the following 
+   * supported list:
    *
    * * Avro (`AVRO`)
    * * Protobuf (`PROTOBUF`)
@@ -463,9 +517,8 @@ public interface ArtifactsResource {
    * * AsyncAPI (`ASYNCAPI`)
    * * GraphQL (`GRAPHQL`)
    *
-   * Alternatively, the artifact type can be indicated by explicitly specifying the type using 
-   * the `X-Registry-ArtifactType` HTTP request header or by including a hint in the request's 
-   * `Content-Type`.  For example:
+   * Alternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` 
+   * HTTP request header, or by including a hint in the request's `Content-Type`.  For example:
    *
    * ```
    * Content-Type: application/json; artifactType=AVRO
@@ -485,60 +538,4 @@ public interface ArtifactsResource {
   @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
   void testUpdateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
-
-  /**
-   * Updates the state of the artifact.  This can be used to, for example, mark the latest
-   * version of an artifact as `DEPRECATED`.  The operation will change the state of the
-   * latest version of the artifact.  If multiple versions exist, only the most recent will
-   * be changed.
-   *
-   * The following state changes are supported:
-   *
-   * * Enabled -> Disabled
-   * * Enabled -> Deprecated
-   * * Enabled -> Deleted
-   * * Disabled -> Enabled
-   * * Disabled -> Deleted
-   * * Disabled -> Deprecated
-   * * Deprecated -> Deleted
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * Artifact cannot transition to the given state (HTTP error `400`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/state")
-  @PUT
-  @Consumes("application/json")
-  void updateArtifactState(@PathParam("artifactId") String artifactId, UpdateState data);
-
-  /**
-   * Used to update the state of a specific version of an artifact.  For example, this can
-   * be used to "disable" a specific version.
-   *
-   * The following state changes are supported:
-   *
-   * * Enabled -> Disabled
-   * * Enabled -> Deprecated
-   * * Enabled -> Deleted
-   * * Disabled -> Enabled
-   * * Disabled -> Deleted
-   * * Disabled -> Deprecated
-   * * Deprecated -> Deleted
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
-   * * Artifact version cannot transition to the given state (HTTP error `400`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions/{version}/state")
-  @PUT
-  @Consumes("application/json")
-  void updateArtifactVersionState(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId, UpdateState data);
 }

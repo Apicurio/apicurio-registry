@@ -1,34 +1,25 @@
 
-package io.apicurio.registry.types;
+package io.apicurio.registry.rest.beans;
 
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum ArtifactType {
+public enum SortOrder {
 
-    AVRO("AVRO"),
-    PROTOBUF("PROTOBUF"),
-    PROTOBUF_FD("PROTOBUF_FD"),
-    JSON("JSON"),
-    OPENAPI("OPENAPI"),
-    ASYNCAPI("ASYNCAPI"),
-    GRAPHQL("GRAPHQL"),
-    KCONNECT("KCONNECT"),
-    WSDL("WSDL"),
-    XSD("XSD"),
-    XML("XML");
+    asc("asc"),
+    desc("desc");
     private final String value;
-    private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
+    private final static Map<String, SortOrder> CONSTANTS = new HashMap<String, SortOrder>();
 
     static {
-        for (ArtifactType c: values()) {
+        for (SortOrder c: values()) {
             CONSTANTS.put(c.value, c);
         }
     }
 
-    private ArtifactType(String value) {
+    private SortOrder(String value) {
         this.value = value;
     }
 
@@ -43,8 +34,8 @@ public enum ArtifactType {
     }
 
     @JsonCreator
-    public static ArtifactType fromValue(String value) {
-        ArtifactType constant = CONSTANTS.get(value);
+    public static SortOrder fromValue(String value) {
+        SortOrder constant = CONSTANTS.get(value);
         if (constant == null) {
             throw new IllegalArgumentException(value);
         } else {

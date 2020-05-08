@@ -1,34 +1,27 @@
 
-package io.apicurio.registry.types;
+package io.apicurio.registry.rest.beans;
 
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum ArtifactType {
+public enum SearchOver {
 
-    AVRO("AVRO"),
-    PROTOBUF("PROTOBUF"),
-    PROTOBUF_FD("PROTOBUF_FD"),
-    JSON("JSON"),
-    OPENAPI("OPENAPI"),
-    ASYNCAPI("ASYNCAPI"),
-    GRAPHQL("GRAPHQL"),
-    KCONNECT("KCONNECT"),
-    WSDL("WSDL"),
-    XSD("XSD"),
-    XML("XML");
+    everything("everything"),
+    name("name"),
+    description("description"),
+    labels("labels");
     private final String value;
-    private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
+    private final static Map<String, SearchOver> CONSTANTS = new HashMap<String, SearchOver>();
 
     static {
-        for (ArtifactType c: values()) {
+        for (SearchOver c: values()) {
             CONSTANTS.put(c.value, c);
         }
     }
 
-    private ArtifactType(String value) {
+    private SearchOver(String value) {
         this.value = value;
     }
 
@@ -43,8 +36,8 @@ public enum ArtifactType {
     }
 
     @JsonCreator
-    public static ArtifactType fromValue(String value) {
-        ArtifactType constant = CONSTANTS.get(value);
+    public static SearchOver fromValue(String value) {
+        SearchOver constant = CONSTANTS.get(value);
         if (constant == null) {
             throw new IllegalArgumentException(value);
         } else {

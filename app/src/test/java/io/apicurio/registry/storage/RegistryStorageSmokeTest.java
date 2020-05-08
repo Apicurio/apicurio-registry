@@ -119,6 +119,22 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             return null;
         });
 
+        // TODO uncomment this once search is implemented for all storages.  These tests are run against all storage variants.
+//        final ArtifactSearchResults countSearchResult = storage.searchArtifacts("arti", 0, 1, SearchOver.everything, SortOrder.asc);
+//
+//        assertEquals(2, countSearchResult.getCount());
+//        assertEquals(countSearchResult.getArtifacts().get(0).getId(), ARTIFACT_ID_1);
+//
+//        final ArtifactSearchResults ascendingSearchResults = storage.searchArtifacts("arti", 0, 10, SearchOver.everything, SortOrder.asc);
+//
+//        assertEquals(2, ascendingSearchResults.getCount());
+//        assertEquals(ascendingSearchResults.getArtifacts().get(0).getId(), ARTIFACT_ID_1);
+//
+//        final ArtifactSearchResults descendingSearchResults = storage.searchArtifacts("arti", 0, 10, SearchOver.everything, SortOrder.desc);
+//
+//        assertEquals(2, descendingSearchResults.getCount());
+//        assertEquals(descendingSearchResults.getArtifacts().get(0).getId(), ARTIFACT_ID_2);
+
         SortedSet<Long> deleted = getStorage().deleteArtifact(ARTIFACT_ID_1);
         assertEquals(2, deleted.size());
         assertTrue(deleted.contains(a1.getVersion()));

@@ -62,7 +62,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -196,11 +195,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactIds()
+     * @see io.apicurio.registry.rest.ArtifactsResource#listArtifacts()
      */
     @Override
-    public Set<String> getArtifactIds() {
-        return storage.getArtifactIds();
+    public List<String> listArtifacts() {
+    	return new ArrayList<>(storage.getArtifactIds());
     }    
 
     /**

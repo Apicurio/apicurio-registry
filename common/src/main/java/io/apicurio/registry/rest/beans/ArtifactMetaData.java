@@ -105,6 +105,7 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -299,6 +300,7 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
@@ -314,13 +316,14 @@ public class ArtifactMetaData {
      * * DISABLED
      * * DEPRECATED
      * 
+     * (Required)
      * 
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {
         this.state = state;
     }
-
+    
     @Override
     public String toString() {
         return "ArtifactMetaData{" +

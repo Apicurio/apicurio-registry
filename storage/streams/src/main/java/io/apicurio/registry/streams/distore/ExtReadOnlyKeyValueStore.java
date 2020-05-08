@@ -1,12 +1,28 @@
 package io.apicurio.registry.streams.distore;
 
-import org.apache.kafka.common.utils.CloseableIterator;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+
+import java.util.stream.Stream;
 
 /**
  * Extend ReadOnlyKeyValueStore functionality a bit.
- * e.g. allKeys(), etc
+ * e.g. allKeys(), filterValues(), etc
  */
 public interface ExtReadOnlyKeyValueStore<K, V> extends ReadOnlyKeyValueStore<K, V> {
-    CloseableIterator<K> allKeys();
+    /**
+     * All keys, as a stream.
+     *
+     * @return stream of all keys
+     */
+    Stream<K> allKeys();
+
+    /**
+     * Get filtered and limited stream.
+     *
+     * @param filter the string filter
+     * @param limit the limit
+     * @return filtered and limited stream
+     */
+    Stream<KeyValue<K, V>> filter(String filter, int limit);
 }

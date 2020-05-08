@@ -16,10 +16,36 @@
 
 package io.apicurio.registry.storage.impl;
 
+import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -39,27 +65,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-
-import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
@@ -149,6 +154,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
+        if (search == null || search.trim().isEmpty()) {
+            return true;
+        }
         switch (searchOver) {
 	        case name:
 	        case description:
@@ -161,7 +169,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
 	                    .values()
 	                    .stream()
-	                    .anyMatch(value -> value.contains(search));
+	                    .anyMatch(value -> value != null && value.contains(search));
         }
     }
 
@@ -368,10 +376,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
+        final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
                 .stream()
-                .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
-                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
+                .filter(artifactId -> filterSearchResult(search, artifactId, over))
+                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, order))
                 .limit(limit)
                 .skip(offset)
                 .map(artifactId -> buildSearchedArtifactFromMetadata(getArtifactMetaData(artifactId)))

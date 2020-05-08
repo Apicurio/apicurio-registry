@@ -16,6 +16,16 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -25,19 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.SortedSet;
-
 import javax.inject.Inject;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
@@ -122,6 +120,11 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         });
 
         // TODO uncomment this once search is implemented for all storages.  These tests are run against all storage variants.
+//        final ArtifactSearchResults countSearchResult = storage.searchArtifacts("arti", 0, 1, SearchOver.everything, SortOrder.asc);
+//
+//        assertEquals(2, countSearchResult.getCount());
+//        assertEquals(countSearchResult.getArtifacts().get(0).getId(), ARTIFACT_ID_1);
+//
 //        final ArtifactSearchResults ascendingSearchResults = storage.searchArtifacts("arti", 0, 10, SearchOver.everything, SortOrder.asc);
 //
 //        assertEquals(2, ascendingSearchResults.getCount());

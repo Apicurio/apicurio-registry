@@ -32,6 +32,10 @@ service KeyValueStore {
     rpc allKeys (VoidReq) returns (stream Key) {
     }
 
+    //    KeyValueIterator<K, V> filter(String filter);
+    rpc filter (FilterReq) returns (stream KeyValue) {
+    }
+
     //    V get(K key);
     rpc get (KeyReq) returns (stream Value) {
     }
@@ -50,6 +54,12 @@ service KeyValueStore {
 }
 
 // KeyValueStore requests
+
+message FilterReq {
+    string filter = 1;
+    int32 limit = 2;
+    string storeName = 3;
+}
 
 message KeyReq {
     bytes key = 1;

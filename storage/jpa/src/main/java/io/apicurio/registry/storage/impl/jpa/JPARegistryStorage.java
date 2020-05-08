@@ -21,7 +21,11 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -67,6 +71,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -231,6 +236,62 @@ public class JPARegistryStorage implements RegistryStorage {
                 mdmu.update(MetaDataKeys.DESCRIPTION, emd.getDescription());
             }
         }
+    }
+
+    private ArtifactSearchResults buildSearchResultFromIds(List<String> artifactIds, Integer itemCount) {
+
+        final List<ArtifactMetaDataDto> artifactsMetaData = new ArrayList<>();
+        for (String artifactId: artifactIds) {
+
+            artifactsMetaData.add(getArtifactMetaData(artifactId));
+        }
+
+        return buildSearchResultsFromMetaData(artifactsMetaData, itemCount);
+    }
+
+    private static SearchedArtifact buildFromMetadata(ArtifactMetaDataDto artifactMetaData) {
+
+        final SearchedArtifact searchedArtifact = new SearchedArtifact();
+        searchedArtifact.setId(artifactMetaData.getId());
+        searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
+        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
+        searchedArtifact.setDescription(artifactMetaData.getDescription());
+        searchedArtifact.setState(artifactMetaData.getState());
+        searchedArtifact.setName(artifactMetaData.getName());
+        searchedArtifact.setType(artifactMetaData.getType());
+        //TODO add labels
+
+        return searchedArtifact;
+    }
+
+    private static ArtifactSearchResults buildSearchResultsFromMetaData(List<ArtifactMetaDataDto> artifactsMetaData, Integer itemCount) {
+
+        final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
+        final List<SearchedArtifact> searchedArtifacts = new ArrayList<>();
+        for (ArtifactMetaDataDto artifactMetaDataDto : artifactsMetaData) {
+
+            SearchedArtifact searchedArtifact = buildFromMetadata(artifactMetaDataDto);
+            searchedArtifacts.add(searchedArtifact);
+        }
+        artifactSearchResults.setArtifacts(searchedArtifacts);
+        artifactSearchResults.setCount(itemCount);
+
+        return artifactSearchResults;
+    }
+
+    private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver) {
+
+        switch (searchOver) {
+        case description:
+            return "AND (m.key= 'description' (0 < LOCATE(:search, m.value))) ";
+        case name:
+            return "AND (m.key= 'name' and (0 < LOCATE(:search, m.value))) ";
+        case labels:
+            //TODO not implemented yet
+        default:
+            return "AND (0 < LOCATE(:search, m.value)) ";
+        }
+
     }
 
     // ========================================================================
@@ -400,6 +461,42 @@ public class JPARegistryStorage implements RegistryStorage {
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
+    }
+
+    @Override
+    @Transactional
+    public ArtifactSearchResults searchArtifacts(String search, Integer offset,
+            Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+
+        final String countQuery =
+                "SELECT count (m.artifactId)  FROM MetaData m "
+                        + "WHERE m.version = "
+                        + "(SELECT max(m2.version) "
+                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
+                        + buildSearchAndClauseFromSearchOver(searchOver)
+                + " AND m.artifactId IN (select a.artifactId from Artifact a)";
+
+        final String searchQuery =
+                "SELECT m.artifactId FROM MetaData m "
+                        + "WHERE m.version = "
+                        + "(SELECT max(m2.version) "
+                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
+                        + buildSearchAndClauseFromSearchOver(searchOver)
+                        + " AND m.artifactId IN (select a.artifactId from Artifact a) "
+                        + "ORDER BY m.id " + sortOrder
+                        .value();
+
+        final Integer itemsCount = entityManager.createQuery(countQuery, Long.class)
+                .setParameter("search", search)
+                .getSingleResult().intValue();
+
+        final List<String> matchedArtifacts = entityManager.createQuery(searchQuery, String.class)
+                .setParameter("search", search)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
+
+        return buildSearchResultFromIds(matchedArtifacts, itemsCount);
     }
 
     // =======================================================

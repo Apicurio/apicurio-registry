@@ -166,6 +166,9 @@
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.2</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
+        <version.resources.plugin>3.1.0</version.resources.plugin>
+        <version.clean.plugin>3.1.0</version.clean.plugin>
+        <version.frontend-maven.plugin>1.10.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.32</version.puppycrawl>
@@ -467,6 +470,21 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>${version.assembly.plugin}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${version.resources.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${version.clean.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <version>${version.frontend-maven.plugin}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -514,7 +532,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${version.javadoc.plugin}</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -368,9 +369,12 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+
+        final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
+                .peek(artifactId -> itemsCount.increment())
                 .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
                 .limit(limit)
                 .skip(offset)
@@ -379,8 +383,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         artifactSearchResults.setArtifacts(matchedArtifacts);
-        // TODO the "count" should be the total count of matched items, not the # of items returned
-        artifactSearchResults.setCount(matchedArtifacts.size());
+        artifactSearchResults.setCount(itemsCount.intValue());
 
         return artifactSearchResults;
     }

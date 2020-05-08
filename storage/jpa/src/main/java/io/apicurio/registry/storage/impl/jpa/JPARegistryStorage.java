@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -237,7 +238,7 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
-    private ArtifactSearchResults buildSearchResultFromIds(List<String> artifactIds) {
+    private ArtifactSearchResults buildSearchResultFromIds(List<String> artifactIds, Integer itemCount) {
 
         final List<ArtifactMetaDataDto> artifactsMetaData = new ArrayList<>();
         for (String artifactId: artifactIds) {
@@ -245,7 +246,7 @@ public class JPARegistryStorage implements RegistryStorage {
             artifactsMetaData.add(getArtifactMetaData(artifactId));
         }
 
-        return buildSearchResultsFromMetaData(artifactsMetaData);
+        return buildSearchResultsFromMetaData(artifactsMetaData, itemCount);
     }
 
     private static SearchedArtifact buildFromMetadata(ArtifactMetaDataDto artifactMetaData) {
@@ -257,12 +258,13 @@ public class JPARegistryStorage implements RegistryStorage {
         searchedArtifact.setDescription(artifactMetaData.getDescription());
         searchedArtifact.setState(artifactMetaData.getState());
         searchedArtifact.setName(artifactMetaData.getName());
+        searchedArtifact.setType(artifactMetaData.getType());
         //TODO add labels
 
         return searchedArtifact;
     }
 
-    private static ArtifactSearchResults buildSearchResultsFromMetaData(List<ArtifactMetaDataDto> artifactsMetaData) {
+    private static ArtifactSearchResults buildSearchResultsFromMetaData(List<ArtifactMetaDataDto> artifactsMetaData, Integer itemCount) {
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         final List<SearchedArtifact> searchedArtifacts = new ArrayList<>();
@@ -272,9 +274,24 @@ public class JPARegistryStorage implements RegistryStorage {
             searchedArtifacts.add(searchedArtifact);
         }
         artifactSearchResults.setArtifacts(searchedArtifacts);
-        artifactSearchResults.setCount(searchedArtifacts.size());
+        artifactSearchResults.setCount(itemCount);
 
         return artifactSearchResults;
+    }
+
+    private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver) {
+
+        switch (searchOver) {
+        case description:
+            return "AND (m.key= 'description' (0 < LOCATE(:search, m.value))) ";
+        case name:
+            return "AND (m.key= 'name' and (0 < LOCATE(:search, m.value))) ";
+        case labels:
+            //TODO not implemented yet
+        default:
+            return "AND (0 < LOCATE(:search, m.value)) ";
+        }
+
     }
 
     // ========================================================================
@@ -449,24 +466,37 @@ public class JPARegistryStorage implements RegistryStorage {
     @Override
     @Transactional
     public ArtifactSearchResults searchArtifacts(String search, Integer offset,
-            Integer limit) {
+            Integer limit, SearchOver searchOver, SortOrder sortOrder) {
 
-        final List<String> matchedArtifacts = entityManager.createQuery(
+        final String countQuery =
+                "SELECT count (m.artifactId)  FROM MetaData m "
+                        + "WHERE m.version = "
+                        + "(SELECT max(m2.version) "
+                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
+                        + buildSearchAndClauseFromSearchOver(searchOver)
+                + " AND m.artifactId IN (select a.artifactId from Artifact a)";
+
+        final String searchQuery =
                 "SELECT m.artifactId FROM MetaData m "
                         + "WHERE m.version = "
                         + "(SELECT max(m2.version) "
                         + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
-                        + "AND ((m.key= 'name' and m.value like :search) "
-                        + "OR (m.key = 'description' and m.value like :search)) "
-                        + "ORDER BY m.id "
+                        + buildSearchAndClauseFromSearchOver(searchOver)
+                        + " AND m.artifactId IN (select a.artifactId from Artifact a) "
+                        + "ORDER BY m.id " + sortOrder
+                        .value();
 
-                , String.class)
+        final Integer itemsCount = entityManager.createQuery(countQuery, Long.class)
+                .setParameter("search", search)
+                .getSingleResult().intValue();
+
+        final List<String> matchedArtifacts = entityManager.createQuery(searchQuery, String.class)
                 .setParameter("search", search)
                 .setFirstResult(offset)
                 .setMaxResults(limit)
                 .getResultList();
 
-        return buildSearchResultFromIds(matchedArtifacts);
+        return buildSearchResultFromIds(matchedArtifacts, itemsCount);
     }
 
     // =======================================================

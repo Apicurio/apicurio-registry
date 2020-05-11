@@ -20,38 +20,17 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.SearchUtil;
 
-import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,8 +38,9 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+
+import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
@@ -132,46 +112,20 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return latest;
     }
 
-    private SearchedArtifact buildSearchedArtifactFromMetadata(ArtifactMetaDataDto artifactMetaData) {
-        final SearchedArtifact searchedArtifact = new SearchedArtifact();
-
-        searchedArtifact.setId(artifactMetaData.getId());
-        searchedArtifact.setName(artifactMetaData.getName());
-        searchedArtifact.setState(artifactMetaData.getState());
-        searchedArtifact.setDescription(artifactMetaData.getDescription());
-        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
-        searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
-        searchedArtifact.setModifiedBy(artifactMetaData.getModifiedBy());
-        searchedArtifact.setModifiedOn(artifactMetaData.getModifiedOn());
-        searchedArtifact.setType(artifactMetaData.getType());
-
-        //TODO add labels
-        return searchedArtifact;
-    }
-
     private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
         switch (searchOver) {
-	        case name:
-	        case description:
-	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name())
-	                    .contains(search);
-	        case labels:
-	            //TODO not implemented yet
-	            return false;
-	        default:
-	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
-	                    .values()
-	                    .stream()
-	                    .anyMatch(value -> value.contains(search));
-        }
-    }
-
-    private int compareArtifactIds(String firstId, String secondId, SortOrder sortOrder) {
-        switch (sortOrder) {
-	        case desc:
-	            return secondId.compareToIgnoreCase(firstId);
-	        default:
-	            return firstId.compareToIgnoreCase(secondId);
+            case name:
+            case description:
+                String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
+                return value != null && value.contains(search);
+            case labels:
+                //TODO not implemented yet
+                return false;
+            default:
+                return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+                    .values()
+                    .stream()
+                    .anyMatch(v -> v != null && v.contains(search));
         }
     }
 
@@ -372,14 +326,14 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
-                .stream()
-                .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
-                .peek(artifactId -> itemsCount.increment())
-                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, sortOrder))
-                .limit(limit)
-                .skip(offset)
-                .map(artifactId -> buildSearchedArtifactFromMetadata(getArtifactMetaData(artifactId)))
-                .collect(Collectors.toList());
+            .stream()
+            .filter(artifactId -> filterSearchResult(search, artifactId, searchOver))
+            .peek(artifactId -> itemsCount.increment())
+            .sorted(SearchUtil.comparator(sortOrder))
+            .skip(offset)
+            .limit(limit)
+            .map(artifactId -> SearchUtil.buildSearchedArtifact(getArtifactMetaData(artifactId)))
+            .collect(Collectors.toList());
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         artifactSearchResults.setArtifacts(matchedArtifacts);

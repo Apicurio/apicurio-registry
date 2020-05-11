@@ -79,8 +79,7 @@ message Data {
     fixed64 lastProcessedOffset = 1;
     string artifactId = 2;
     repeated ArtifactValue artifacts = 3;
-    repeated MetaDataValue metadatas = 4;
-    repeated RuleValue rules = 5;
+    repeated RuleValue rules = 4;
 }
 
 message TupleValue {

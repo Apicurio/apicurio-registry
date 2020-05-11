@@ -38,7 +38,6 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -115,20 +114,8 @@ public class StreamsRegistryConfiguration {
 
     @Produces
     @ApplicationScoped
-    public TriPredicate<String, String, Str.Data> filterPredicate() {
-        return (filter, key, data) -> {
-            List<Str.MetaDataValue> list = data.getMetadatasList();
-            if (list != null) {
-                return list.stream().anyMatch(mdv -> {
-                    // dummy match atm ...
-                    String name = mdv.getName();
-                    String desc = mdv.getDescription();
-                    return (name != null && name.contains(filter)) ||
-                        (desc != null && desc.contains(filter));
-                });
-            }
-            return false;
-        };
+    public FilterPredicate<String, Str.Data> filterPredicate() {
+        return StreamsRegistryStorage.createFilterPredicate();
     }
 
     @Produces
@@ -137,7 +124,7 @@ public class StreamsRegistryConfiguration {
         KafkaStreams streams,
         HostInfo storageLocalHost,
         StreamsProperties properties,
-        TriPredicate<String, String, Str.Data> filterPredicate
+        FilterPredicate<String, Str.Data> filterPredicate
     ) {
         return new DistributedReadOnlyKeyValueStore<>(
             streams,
@@ -168,7 +155,7 @@ public class StreamsRegistryConfiguration {
             Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()),
             new DefaultGrpcChannelProvider(),
             true,
-            (filter, id, tuple) -> true
+            (filter, over, id, tuple) -> true
         );
     }
 
@@ -335,7 +322,7 @@ public class StreamsRegistryConfiguration {
     public KeyValueStoreGrpc.KeyValueStoreImplBase streamsKeyValueStoreGrpcImpl(
         KafkaStreams streams,
         StreamsProperties props,
-        TriPredicate<String, String, Str.Data> filterPredicate
+        FilterPredicate<String, Str.Data> filterPredicate
     ) {
         return new KeyValueStoreGrpcImplLocalDispatcher(
             streams,

@@ -64,8 +64,6 @@ public class SpecUrlFilter implements Filter {
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) response);
         chain.doFilter(request, wrappedResponse);
         
-        System.out.println("[SpecUrlFilter] Filtering");
-        
         byte[] bytes = wrappedResponse.getByteArray();
         if (bytes != null && response.getContentType() != null && response.getContentType().contains("text/html")) {
             String specUrl = this.generateSpecUrl((HttpServletRequest) request);

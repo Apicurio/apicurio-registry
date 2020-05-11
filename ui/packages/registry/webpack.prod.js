@@ -33,5 +33,21 @@ module.exports = merge(common, {
         use: [MiniCssExtractPlugin.loader, 'css-loader']
       }
     ]
+  },
+  output: {
+    filename: '[name].bundle.[contenthash].js'
+  },
+  optimization: {
+    moduleIds: 'hashed',
+    runtimeChunk: 'single',
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all'
+        }
+      }
+    }
   }
 });

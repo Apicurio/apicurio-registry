@@ -5,6 +5,16 @@
     version="3.0">
 
     <filter>
+        <filter-name>ResourceCacheControlFilter</filter-name>
+        <filter-class>io.apicurio.registry.ui.servlets.ResourceCacheControlFilter</filter-class>
+        <async-supported>true</async-supported>
+    </filter>
+    <filter-mapping>
+        <filter-name>ResourceCacheControlFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
         <filter-name>BaseHrefFilter</filter-name>
         <filter-class>io.apicurio.registry.ui.servlets.BaseHrefFilter</filter-class>
     </filter>

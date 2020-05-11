@@ -66,6 +66,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.SearchUtil;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
@@ -137,49 +138,23 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         return latest;
     }
 
-    private SearchedArtifact buildSearchedArtifactFromMetadata(ArtifactMetaDataDto artifactMetaData) {
-        final SearchedArtifact searchedArtifact = new SearchedArtifact();
-
-        searchedArtifact.setId(artifactMetaData.getId());
-        searchedArtifact.setName(artifactMetaData.getName());
-        searchedArtifact.setState(artifactMetaData.getState());
-        searchedArtifact.setDescription(artifactMetaData.getDescription());
-        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
-        searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
-        searchedArtifact.setModifiedBy(artifactMetaData.getModifiedBy());
-        searchedArtifact.setModifiedOn(artifactMetaData.getModifiedOn());
-        searchedArtifact.setType(artifactMetaData.getType());
-
-        //TODO add labels
-        return searchedArtifact;
-    }
-
     private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
         if (search == null || search.trim().isEmpty()) {
             return true;
         }
         switch (searchOver) {
-	        case name:
-	        case description:
-	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name())
-	                    .contains(search);
-	        case labels:
-	            //TODO not implemented yet
-	            return false;
-	        default:
-	            return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
-	                    .values()
-	                    .stream()
-	                    .anyMatch(value -> value != null && value.contains(search));
-        }
-    }
-
-    private int compareArtifactIds(String firstId, String secondId, SortOrder sortOrder) {
-        switch (sortOrder) {
-	        case desc:
-	            return secondId.compareToIgnoreCase(firstId);
-	        default:
-	            return firstId.compareToIgnoreCase(secondId);
+            case name:
+            case description:
+                String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
+                return value != null && value.contains(search);
+            case labels:
+                //TODO not implemented yet
+                return false;
+            default:
+                return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+                    .values()
+                    .stream()
+                    .anyMatch(v -> v != null && v.contains(search));
         }
     }
 
@@ -387,14 +362,14 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
-                .stream()
-                .filter(artifactId -> filterSearchResult(search, artifactId, over))
-                .peek(artifactId -> itemsCount.increment())
-                .sorted((firstArtifact, secondArtifact) -> compareArtifactIds(firstArtifact, secondArtifact, order))
-                .limit(limit)
-                .skip(offset)
-                .map(artifactId -> buildSearchedArtifactFromMetadata(getArtifactMetaData(artifactId)))
-                .collect(Collectors.toList());
+            .stream()
+            .filter(artifactId -> filterSearchResult(search, artifactId, over))
+            .peek(artifactId -> itemsCount.increment())
+            .sorted(SearchUtil.comparator(order))
+            .skip(offset)
+            .limit(limit)
+            .map(artifactId -> SearchUtil.buildSearchedArtifact(getArtifactMetaData(artifactId)))
+            .collect(Collectors.toList());
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         artifactSearchResults.setArtifacts(matchedArtifacts);

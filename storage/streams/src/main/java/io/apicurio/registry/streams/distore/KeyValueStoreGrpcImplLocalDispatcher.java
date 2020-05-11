@@ -23,12 +23,12 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
     private final KafkaStreams streams;
     private final KeyValueSerde.Registry keyValueSerdes;
     private final ConcurrentMap<String, ReadOnlyKeyValueStore<?, ?>> keyValueStores = new ConcurrentHashMap<>();
-    private final TriPredicate<String, ?, ?> filterPredicate;
+    private final FilterPredicate<?, ?> filterPredicate;
 
     public KeyValueStoreGrpcImplLocalDispatcher(
         KafkaStreams streams,
         KeyValueSerde.Registry keyValueSerdeRegistry,
-        TriPredicate<String, ?, ?> filterPredicate
+        FilterPredicate<?, ?> filterPredicate
     ) {
         this.streams = streams;
         this.keyValueSerdes = keyValueSerdeRegistry;
@@ -66,7 +66,7 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
     public void filter(FilterReq request, StreamObserver<io.apicurio.registry.streams.distore.proto.KeyValue> responseObserver) {
         boolean ok = false;
         try (
-            Stream stream = keyValueStore(request.getStoreName()).filter(request.getFilter(), request.getLimit())
+            Stream stream = keyValueStore(request.getStoreName()).filter(request.getFilter(), request.getOver())
         ) {
             drainToKeyValue(request.getStoreName(), stream, responseObserver);
             ok = true;

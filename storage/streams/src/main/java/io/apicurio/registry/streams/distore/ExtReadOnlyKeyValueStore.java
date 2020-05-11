@@ -18,11 +18,11 @@ public interface ExtReadOnlyKeyValueStore<K, V> extends ReadOnlyKeyValueStore<K,
     Stream<K> allKeys();
 
     /**
-     * Get filtered and limited stream.
+     * Get filtered stream.
      *
      * @param filter the string filter
-     * @param limit the limit
+     * @param over   the search over enum name
      * @return filtered and limited stream
      */
-    Stream<KeyValue<K, V>> filter(String filter, int limit);
+    Stream<KeyValue<K, V>> filter(String filter, String over);
 }

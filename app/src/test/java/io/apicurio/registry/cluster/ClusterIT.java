@@ -66,8 +66,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryService client1 = RegistryClient.create("http://localhost:8080");
-        RegistryService client2 = RegistryClient.create("http://localhost:8081");
+        RegistryService client1 = RegistryClient.create("http://localhost:8080/api");
+        RegistryService client2 = RegistryClient.create("http://localhost:8081/api");
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -91,8 +91,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/ccompat", 3);
-        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
+        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/api/ccompat", 3);
+        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
 
         String subject = UUID.randomUUID().toString();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");

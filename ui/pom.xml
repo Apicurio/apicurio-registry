@@ -88,7 +88,7 @@
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.build.directory}/packages/registry/dist</directory>
+                                    <directory>${project.basedir}/packages/registry/dist</directory>
                                     <filtering>false</filtering>
                                     <excludes>
                                         <exclude>config.js</exclude>

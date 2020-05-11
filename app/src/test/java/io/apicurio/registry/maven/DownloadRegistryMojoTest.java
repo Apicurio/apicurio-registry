@@ -44,7 +44,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new DownloadRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081";
+        this.mojo.registryUrl = "http://localhost:8081/api";
     }
 
     @RegistryServiceTest

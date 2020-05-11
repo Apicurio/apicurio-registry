@@ -47,8 +47,8 @@
                             <goal>install-node-and-yarn</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v10.20.1</nodeVersion>
-                            <yarnVersion>v1.22.4</yarnVersion>
+                            <nodeVersion>v${node.version}</nodeVersion>
+                            <yarnVersion>v${yarn.version}</yarnVersion>
                         </configuration>
                     </execution>
                     <!-- Install npm/yarn dependencies -->

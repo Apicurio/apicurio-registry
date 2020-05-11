@@ -13,6 +13,15 @@
         <url-pattern>/ui/*</url-pattern>
     </filter-mapping>
 
+    <filter>
+        <filter-name>SpecUrlFilter</filter-name>
+        <filter-class>io.apicurio.registry.ui.servlets.SpecUrlFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>SpecUrlFilter</filter-name>
+        <url-pattern>/api</url-pattern>
+    </filter-mapping>
+
     <servlet>
         <servlet-name>ReactAppServlet</servlet-name>
         <servlet-class>io.apicurio.registry.ui.servlets.ReactAppServlet</servlet-class>
@@ -30,6 +39,15 @@
     <servlet-mapping>
         <servlet-name>ConfigJsServlet</servlet-name>
         <url-pattern>/ui/config.js</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ApiDocsServlet</servlet-name>
+        <servlet-class>io.apicurio.registry.ui.servlets.ApiDocsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ApiDocsServlet</servlet-name>
+        <url-pattern>/api</url-pattern>
     </servlet-mapping>
 
 </web-app>

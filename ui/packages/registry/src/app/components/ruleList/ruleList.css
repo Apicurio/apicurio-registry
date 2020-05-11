@@ -6,5 +6,5 @@
 }
 
 .rule.disabled .pf-c-data-list__item-content {
-    opacity: 50%;
+    color: #aaa;
 }

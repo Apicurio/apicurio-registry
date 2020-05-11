@@ -36,6 +36,9 @@ export default class App extends React.PureComponent<{}, {}> {
     }
 
     public render() {
+        const contextPath: string|undefined = Services.getConfigService().uiContextPath();
+        Services.getLoggerService().info("Using app contextPath: ", contextPath);
+
         // Function to force the Artifact Version Page to fully remount each time we navigate to it.  This
         // is needed because we want the page to fully rerender whenever the browser location changes, which
         // happens when switching between versions of the artifact content (e.g. switch from version 1 to version 3).
@@ -47,7 +50,7 @@ export default class App extends React.PureComponent<{}, {}> {
         };
 
         return (
-            <Router>
+            <Router basename={contextPath}>
                 <Page
                     className="pf-m-redhat-font"
                     isManagedSidebar={false}

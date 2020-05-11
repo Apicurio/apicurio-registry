@@ -21,12 +21,13 @@ import {Service} from "../baseService";
 const DEFAULT_CONFIG: ConfigType = {
     artifacts: {
         type: "rest",
-        url: "http://localhost:8080/"
+        url: "http://localhost:8080/api/"
     },
     features: {},
     mode: "dev",
     ui: {
-        uiUrl: "http://localhost:8888/"
+        contextPath: null,
+        url: "http://localhost:8888/"
     }
 };
 
@@ -71,6 +72,13 @@ export class ConfigService implements Service {
             return "";
         }
         return this.config.ui.url;
+    }
+
+    public uiContextPath(): string|undefined {
+        if (!this.config.ui || !this.config.ui.contextPath) {
+            return undefined;
+        }
+        return this.config.ui.contextPath;
     }
 
 }

@@ -49,7 +49,6 @@ public class BaseHrefFilter  implements Filter {
      */
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        System.out.println("Init.");
     }
 
     /**
@@ -59,23 +58,16 @@ public class BaseHrefFilter  implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        System.out.println("FILTERING BASE HREF");
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) response);
         chain.doFilter(request, wrappedResponse);
         
         byte[] bytes = wrappedResponse.getByteArray();
         if (bytes != null && response.getContentType() != null && response.getContentType().contains("text/html")) {
             String out = new String(bytes, StandardCharsets.UTF_8);
-            System.out.println("Replacing: " + out);
             out = out.replace("<base href=\"/\">", "<base href=\"/ui/\">");
             byte[] newBytes = out.getBytes(StandardCharsets.UTF_8);
             response.setContentLength(newBytes.length);
             response.getOutputStream().write(newBytes);
-            System.out.println("New bytes: " + new String(newBytes, StandardCharsets.UTF_8));
         } else if (bytes != null && bytes.length > 0) {
             response.getOutputStream().write(bytes);
         }

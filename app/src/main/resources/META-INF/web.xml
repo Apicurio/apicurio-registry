@@ -13,4 +13,23 @@
         <url-pattern>/ui/*</url-pattern>
     </filter-mapping>
 
+    <servlet>
+        <servlet-name>ReactAppServlet</servlet-name>
+        <servlet-class>io.apicurio.registry.ui.servlets.ReactAppServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ReactAppServlet</servlet-name>
+        <url-pattern>/ui/rules/*</url-pattern>
+        <url-pattern>/ui/artifacts/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ConfigJsServlet</servlet-name>
+        <servlet-class>io.apicurio.registry.ui.servlets.ConfigJsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ConfigJsServlet</servlet-name>
+        <url-pattern>/ui/config.js</url-pattern>
+    </servlet-mapping>
+
 </web-app>

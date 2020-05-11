@@ -49,7 +49,7 @@ public class DistributedReadOnlyKeyValueStore<K, V>
         Serde<K> keySerde, Serde<V> valSerde,
         Function<? super HostInfo, ? extends Channel> grpcChannelProvider,
         boolean parallel,
-        TriPredicate<String, K, V> filterPredicate
+        FilterPredicate<K, V> filterPredicate
     ) {
         super(
             streams,
@@ -63,7 +63,7 @@ public class DistributedReadOnlyKeyValueStore<K, V>
         this.filterPredicate = filterPredicate;
     }
 
-    private final TriPredicate<String, K, V> filterPredicate;
+    private final FilterPredicate<K, V> filterPredicate;
 
     @Override
     protected ExtReadOnlyKeyValueStore<K, V> localService(String storeName, KafkaStreams streams) {
@@ -82,12 +82,8 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, int limit) {
-        // limit on distributed calls AND on this one
-        // we pass the limit to remote since we know we don't need more then the limit
-        return allServicesForStoreStream()
-            .flatMap(store -> store.filter(filter, limit))
-            .limit(limit);
+    public Stream<KeyValue<K, V>> filter(String filter, String over) {
+        return allServicesForStoreStream().flatMap(store -> store.filter(filter, over));
     }
 
     // ReadOnlyKeyValueStore<K, V> implementation

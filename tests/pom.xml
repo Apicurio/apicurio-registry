@@ -164,6 +164,11 @@
             <artifactId>apicurio-registry-utils-serde</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-converter</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,0 +1,48 @@
+.artifact-list {
+}
+
+.artifact-list .artifact-list-item {
+    background-color: white;
+    margin-bottom: 2px;
+}
+
+.artifact-list .artifact-list-item .type-icon-cell {
+    flex: initial;
+}
+
+.artifact-list .artifact-list-item .type-icon-cell > .type-icon {
+    margin-top: 5px;
+}
+
+.artifact-list .artifact-list-item .content-cell {
+}
+
+.artifact-list .artifact-list-item .content-cell .artifact-title {
+    color: #2b9af3;
+    font-weight: bold;
+}
+.artifact-list .artifact-list-item .content-cell .artifact-title .name {
+    font-size: 18px;
+    margin-right: 10px;
+}
+.artifact-list .artifact-list-item .content-cell .artifact-title .id::before {
+    content: '(';
+}
+.artifact-list .artifact-list-item .content-cell .artifact-title .id {
+    font-size: 16px;
+}
+.artifact-list .artifact-list-item .content-cell .artifact-title .id::after {
+    content: ')';
+}
+
+
+.artifact-list .artifact-list-item .content-cell .artifact-description {
+    font-size: 13px;
+}
+
+.artifact-list .artifact-list-item .content-cell .artifact-tags {
+}
+
+.artifact-list .artifact-list-item .content-cell .artifact-tags > span {
+    margin-right: 5px;
+}

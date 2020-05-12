@@ -19,23 +19,17 @@ package io.apicurio.registry.rules.validity;
 import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.SchemaFactory;
+
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.util.SchemaFactoryAccessor;
 
 /**
  * @author cfoskin@redhat.com
  */
 @ApplicationScoped
 public class XsdContentValidator extends XmlContentValidator {
-    private static ThreadLocal<SchemaFactory> threadLocalSchemaFactory = new ThreadLocal<SchemaFactory>() {
-        @Override
-        protected SchemaFactory initialValue() {
-            return SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        }
-    };
 
     /**
      * Constructor.
@@ -54,7 +48,7 @@ public class XsdContentValidator extends XmlContentValidator {
             try (InputStream semanticStream = artifactContent.stream()) {
                 // validate that its a valid schema
                 Source source = new StreamSource(semanticStream);
-                threadLocalSchemaFactory.get().newSchema(source);
+                SchemaFactoryAccessor.getSchemaFactory().newSchema(source);
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XSD Schema artifact.", e);
             }

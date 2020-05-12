@@ -1,0 +1,25 @@
+{
+  "description": "Apicurio Registry UI",
+  "repository": "https://github.com/Apicurio/apicurio-registry.git",
+  "license": "Apache-2.0",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/@patternfly/react-core",
+      "**/@patternfly/react-core/**",
+      "**/patternfly"
+    ]
+  },
+  "scripts": {
+    "clean": "lerna run clean",
+    "build": "lerna run build",
+    "start:registry": "lerna run start --scope=@apicurio/registry"
+  },
+  "devDependencies": {
+    "lerna": "^3.15.0"
+  },
+  "name": "apicurio-registry-ui"
+}

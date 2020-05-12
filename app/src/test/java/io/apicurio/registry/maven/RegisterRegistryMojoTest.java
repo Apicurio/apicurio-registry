@@ -43,7 +43,7 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new RegisterRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081";
+        this.mojo.registryUrl = "http://localhost:8081/api";
     }
 
     @Test

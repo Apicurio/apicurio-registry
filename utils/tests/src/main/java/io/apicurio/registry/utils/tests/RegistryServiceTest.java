@@ -39,7 +39,7 @@ public @interface RegistryServiceTest {
      *
      * @return the url
      */
-    String value() default "http://localhost:8081";
+    String value() default "http://localhost:8081/api";
 
     /**
      * Limit the registry to local app.

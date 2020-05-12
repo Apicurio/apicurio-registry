@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
+package io.apicurio.tests.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,17 +39,20 @@ import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.quarkus.test.junit.QuarkusTest;
+import io.apicurio.tests.BaseIT;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchemaCustom;
+import static io.apicurio.tests.Constants.CLUSTER;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -66,10 +69,10 @@ import java.util.function.Supplier;
 /**
  * @author Ales Justin
  */
-@QuarkusTest
-public class RegistryConverterTest extends AbstractResourceTestBase {
+@Tag(CLUSTER)
+public class RegistryConverterIT extends BaseIT {
 
-    @RegistryServiceTest
+    @RegistryServiceTest(localOnly = false)
     public void testConfiguration(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
@@ -93,7 +96,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081");
+        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081/api");
         config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
         config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
@@ -137,7 +140,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryServiceTest
+    @RegistryServiceTest(localOnly = false)
     public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         RegistryService service = supplier.get();
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service).setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
@@ -164,7 +167,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryServiceTest
+    @RegistryServiceTest(localOnly = false)
     public void testPrettyJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
             supplier.get(),
@@ -181,7 +184,7 @@ public class RegistryConverterTest extends AbstractResourceTestBase {
         );
     }
 
-    @RegistryServiceTest
+    @RegistryServiceTest(localOnly = false)
     public void testCompactJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
             supplier.get(),

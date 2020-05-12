@@ -19,31 +19,18 @@ package io.apicurio.registry.rules.validity;
 import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.wsdl.WSDLException;
-import javax.wsdl.factory.WSDLFactory;
-import javax.wsdl.xml.WSDLReader;
+
 import org.w3c.dom.Document;
+
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.util.DocumentBuilderAccessor;
+import io.apicurio.registry.util.WSDLReaderAccessor;
 
 /**
  * @author cfoskin@redhat.com
  */
 @ApplicationScoped
 public class WsdlContentValidator extends XmlContentValidator {
-
-    private static ThreadLocal<WSDLReader> threadLocalWsdlReader = new ThreadLocal<WSDLReader>() {
-        @Override
-        protected WSDLReader initialValue() {
-            WSDLReader wsdlReader = null;
-            try {
-                WSDLFactory wsdlFactory = WSDLFactory.newInstance();
-                wsdlReader = wsdlFactory.newWSDLReader();
-            } catch (WSDLException e) {
-                throw new RuntimeException(e);
-            }
-            return wsdlReader;
-        }
-    };
 
     /**
      * Constructor.
@@ -59,10 +46,10 @@ public class WsdlContentValidator extends XmlContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                Document wsdlDoc = threadLocaldocBuilder.get().parse(stream);
+                Document wsdlDoc = DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
                 if (level == ValidityLevel.FULL) {
                     // validate that its a valid schema
-                    threadLocalWsdlReader.get().readWSDL(null, wsdlDoc);
+                    WSDLReaderAccessor.getWSDLReader().readWSDL(null, wsdlDoc);
                 }
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for WSDL Schema artifact.", e);

@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.utils;
 
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * @author Ales Justin
@@ -29,4 +29,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
 public @interface RegistryProperties {
     String value() default "";
+
+    String[] empties() default {};
 }

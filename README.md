@@ -148,3 +148,21 @@ services:
 ```
   - Run `docker-compose -f test.yml up`
 
+## Security
+
+To run Apicurio Registry against secured Kafka broker(s) in Docker/Kubernetes/OpenShift,
+you can put the following system properties into JAVA_OPTIONS env var:
+
+* -D%dev.registry.streams.topology.security.protocol=SSL
+* -D%dev.registry.streams.topology.ssl.truststore.location=[location]
+* -D%dev.registry.streams.topology.ssl.truststore.password=[password]
+* -D%dev.registry.streams.topology.ssl.truststore.type=[type]
+* (optional) -D%dev.registry.streams.topology.ssl.endpoint.identification.algorithm=
+* -D%dev.registry.streams.storage-producer.security.protocol=SSL
+* -D%dev.registry.streams.storage-producer.ssl.truststore.location=[location]
+* -D%dev.registry.streams.storage-producer.ssl.truststore.password=[password]
+* -D%dev.registry.streams.storage-producer.ssl.truststore.type=[type]
+* (optional) -D%dev.registry.streams.storage-producer.ssl.endpoint.identification.algorithm=
+* etc ...
+
+Of course that %dev depends on the Quarkus profile you're gonna use -- should be %prod when used in production.

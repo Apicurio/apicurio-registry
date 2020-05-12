@@ -1,0 +1,27 @@
+{
+  "name": "@apicurio/registry-models",
+  "version": "1.0.0",
+  "description": "Apicurio Registry UI models for use when developing client applications.",
+  "main": "dist/js/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/js/index.d.ts",
+  "scripts": {
+    "build": " tsc && tsc -m es6 --outDir ./dist/esm && webpack --config webpack.config.js",
+    "clean": "rimraf dist",
+    "prebuild": "yarn clean",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Red Hat",
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "devDependencies": {
+    "rimraf": "^2.6.2",
+    "ts-loader": "^6.0.4",
+    "typescript": "^3.5.3",
+    "webpack": "^4.25.1",
+    "webpack-bundle-analyzer": "^3.0.3",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.10",
+    "webpack-merge": "^4.1.4"
+  }
+}

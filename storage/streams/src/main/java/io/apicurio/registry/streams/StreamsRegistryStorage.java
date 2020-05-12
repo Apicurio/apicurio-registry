@@ -6,31 +6,21 @@ import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
 import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
+import io.apicurio.registry.streams.distore.FilterPredicate;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.SearchUtil;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
@@ -49,6 +39,7 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -96,7 +87,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    private Submitter submitter = new Submitter(this::send);
+    private final Submitter submitter = new Submitter(this::send);
 
     private CompletableFuture<RecordMetadata> send(Str.StorageValue value) {
         ProducerRecord<String, Str.StorageValue> record = new ProducerRecord<>(
@@ -121,8 +112,12 @@ public class StreamsRegistryStorage implements RegistryStorage {
         return GLOBAL_RULES_ID.equals(artifactId);
     }
 
-    private Str.ArtifactValue getLastArtifact(String artifactId, EnumSet<ArtifactState> states) {
+    private Str.ArtifactValue getLastArtifact(String artifactId) {
         Str.Data data = storageStore.get(artifactId);
+        return getLastArtifact(artifactId, data);
+    }
+
+    private Str.ArtifactValue getLastArtifact(String artifactId, Str.Data data) {
         if (data != null) {
             int count = data.getArtifactsCount();
             if (count > 0) {
@@ -132,7 +127,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     Str.ArtifactValue value = list.get(index);
                     if (isValid(value)) {
                         ArtifactState state = ArtifactStateExt.getState(value.getMetadataMap());
-                        if (states == null || states.contains(state)) {
+                        if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
                             ArtifactStateExt.logIfDeprecated(artifactId, state, index + 1);
                             return value;
                         }
@@ -142,6 +137,48 @@ public class StreamsRegistryStorage implements RegistryStorage {
             }
         }
         throw new ArtifactNotFoundException(artifactId);
+    }
+
+    static FilterPredicate<String, Str.Data> createFilterPredicate() {
+        return (filter, over, artifactId, data) -> (findMetadata(filter, over, data) != null);
+    }
+
+    private static Map<String, String> findMetadata(String filter, String over, Str.Data data) {
+        int count = data.getArtifactsCount();
+        if (count > 0) {
+            List<Str.ArtifactValue> list = data.getArtifactsList();
+            int index = count - 1;
+            while (index >= 0) {
+                Str.ArtifactValue value = list.get(index);
+                if (isValid(value)) {
+                    Map<String, String> metadata = value.getMetadataMap();
+                    ArtifactState state = ArtifactStateExt.getState(metadata);
+                    if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
+                        String name = metadata.get(MetaDataKeys.NAME);
+                        String desc = metadata.get(MetaDataKeys.DESCRIPTION);
+                        SearchOver so = SearchOver.fromValue(over);
+                        switch (so) {
+                            case name:
+                                if (name != null && name.contains(filter)) {
+                                    return metadata;
+                                }
+                            case description:
+                                if (desc != null && desc.contains(filter)) {
+                                    return metadata;
+                                }
+                            case labels:
+                                return null; // TODO
+                            default:
+                                if ((name != null && name.contains(filter)) || (desc != null && desc.contains(filter))) {
+                                    return metadata;
+                                }
+                        }
+                    }
+                }
+                index--;
+            }
+        }
+        return null;
     }
 
     private <T> T handleVersion(String artifactId, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
@@ -208,8 +245,8 @@ public class StreamsRegistryStorage implements RegistryStorage {
         }
         // then check all
         return stateFunction.apply()
-                            .map(ConcurrentUtil::result)
-                            .allMatch(s -> s == KafkaStreams.State.RUNNING);
+            .map(ConcurrentUtil::result)
+            .allMatch(s -> s == KafkaStreams.State.RUNNING);
     }
 
     @Override
@@ -286,7 +323,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return addContent(getLastArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES));
+        return addContent(getLastArtifact(artifactId));
     }
 
     @Override
@@ -327,12 +364,27 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-        return new ArtifactSearchResults();
+        LongAdder itemsCount = new LongAdder();
+        List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
+            .peek(artifactId -> itemsCount.increment())
+            .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, kv1.key, kv2.key))
+            .skip(offset)
+            .limit(limit)
+            .map(kv -> SearchUtil.buildSearchedArtifact(
+                MetaDataKeys.toArtifactMetaData(findMetadata(search, searchOver.value(), kv.value)))
+            )
+            .collect(Collectors.toList());
+
+        final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
+        artifactSearchResults.setArtifacts(matchedArtifacts);
+        artifactSearchResults.setCount(itemsCount.intValue());
+
+        return artifactSearchResults;
     }
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLastArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES).getMetadataMap();
+        Map<String, String> content = getLastArtifact(artifactId).getMetadataMap();
         return MetaDataKeys.toArtifactMetaData(content);
     }
 
@@ -350,7 +402,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             ContentHandle canonicalContent = canonicalizer.canonicalize(content);
             byte[] canonicalBytes = canonicalContent.bytes();
 
-            for (int i = data.getArtifactsCount() - 1; i >= 0; i--){
+            for (int i = data.getArtifactsCount() - 1; i >= 0; i--) {
                 Str.ArtifactValue candidateArtifact = data.getArtifacts(i);
                 if (isValid(candidateArtifact)) {
                     ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent().toByteArray());
@@ -402,9 +454,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             Optional<Str.RuleValue> found = data.getRulesList()
-                                                .stream()
-                                                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                                                .findFirst();
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst();
             if (found.isPresent()) {
                 throw new RuleAlreadyExistsException(rule);
             }
@@ -431,11 +483,11 @@ public class StreamsRegistryStorage implements RegistryStorage {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             return data.getRulesList()
-                       .stream()
-                       .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                       .findFirst()
-                       .map(r -> new RuleConfigurationDto(r.getConfiguration()))
-                       .orElseThrow(() -> new RuleNotFoundException(rule));
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .map(r -> new RuleConfigurationDto(r.getConfiguration()))
+                .orElseThrow(() -> new RuleNotFoundException(rule));
         } else if (isGlobalRules(artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {

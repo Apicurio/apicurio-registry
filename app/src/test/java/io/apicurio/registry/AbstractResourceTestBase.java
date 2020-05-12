@@ -18,6 +18,8 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
+import io.restassured.RestAssured;
+
 import org.junit.jupiter.api.BeforeEach;
 
 import static io.restassured.RestAssured.given;
@@ -41,6 +43,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @BeforeEach
     protected void beforeEach() {
+        RestAssured.baseURI = "http://localhost:8081/api";
+        
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);
 

@@ -57,7 +57,7 @@ service KeyValueStore {
 
 message FilterReq {
     string filter = 1;
-    int32 limit = 2;
+    string over = 2;
     string storeName = 3;
 }
 

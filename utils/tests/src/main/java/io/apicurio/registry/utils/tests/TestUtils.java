@@ -61,7 +61,7 @@ public class TestUtils {
 
     public static String getRegistryUrl() {
         return getRegistryUrl(
-            String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT),
+            String.format("http://%s:%s/api", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT),
             false
         );
     }

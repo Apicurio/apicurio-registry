@@ -19,10 +19,11 @@ package io.apicurio.registry.client;
 import io.apicurio.registry.rest.ArtifactsResource;
 import io.apicurio.registry.rest.IdsResource;
 import io.apicurio.registry.rest.RulesResource;
+import io.apicurio.registry.rest.SearchResource;
 
 /**
  * @author Ales Justin
  */
-public interface RegistryService extends ArtifactsResource, IdsResource, RulesResource, AutoCloseable {
+public interface RegistryService extends ArtifactsResource, IdsResource, RulesResource, SearchResource, AutoCloseable {
     void reset();
 }

@@ -49,17 +49,18 @@ public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValu
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, int limit) {
+    public Stream<KeyValue<K, V>> filter(String filter, String over) {
         StreamObserverSpliterator<io.apicurio.registry.streams.distore.proto.KeyValue> observer = new StreamObserverSpliterator<>();
         stub.filter(
             FilterReq
                 .newBuilder()
                 .setFilter(filter)
+                .setOver(over)
                 .setStoreName(storeName)
                 .build(),
             observer
         );
-        return keyValueStream(observer.stream().limit(limit));
+        return keyValueStream(observer.stream());
     }
 
     // AutoCloseable

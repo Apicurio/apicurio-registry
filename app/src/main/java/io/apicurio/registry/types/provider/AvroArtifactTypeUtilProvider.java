@@ -16,17 +16,17 @@
 
 package io.apicurio.registry.types.provider;
 
+import javax.enterprise.context.ApplicationScoped;
+
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.extract.JsonContentExtractor;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
-
-import javax.enterprise.context.ApplicationScoped;
 
 /**
  * @author Ales Justin
@@ -55,7 +55,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return JsonContentExtractor.INSTANCE;
+        return AvroContentExtractor.INSTANCE;
     }
 
 }

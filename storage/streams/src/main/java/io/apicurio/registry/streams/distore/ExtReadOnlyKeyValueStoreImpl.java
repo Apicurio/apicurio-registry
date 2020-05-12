@@ -11,9 +11,9 @@ import java.util.stream.Stream;
  */
 public class ExtReadOnlyKeyValueStoreImpl<K, V> implements ExtReadOnlyKeyValueStore<K, V> {
     private final ReadOnlyKeyValueStore<K, V> delegate;
-    private final TriPredicate<String, K, V> filterPredicate;
+    private final FilterPredicate<K, V> filterPredicate;
 
-    public ExtReadOnlyKeyValueStoreImpl(ReadOnlyKeyValueStore<K, V> delegate, TriPredicate<String, K, V> filterPredicate) {
+    public ExtReadOnlyKeyValueStoreImpl(ReadOnlyKeyValueStore<K, V> delegate, FilterPredicate<K, V> filterPredicate) {
         this.delegate = delegate;
         this.filterPredicate = filterPredicate;
     }
@@ -24,10 +24,9 @@ public class ExtReadOnlyKeyValueStoreImpl<K, V> implements ExtReadOnlyKeyValueSt
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, int limit) {
+    public Stream<KeyValue<K, V>> filter(String filter, String over) {
         return StreamToKeyValueIteratorAdapter.toStream(all())
-            .limit(limit)
-            .filter(kv -> filterPredicate.test(filter, kv.key, kv.value));
+            .filter(kv -> filterPredicate.test(filter, over, kv.key, kv.value));
     }
 
     @Override

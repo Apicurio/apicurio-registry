@@ -17,24 +17,24 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
+import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 /**
  * @author Ales Justin
@@ -116,4 +116,41 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         });
     }
 
+    @RegistryServiceTest
+    void testSearch(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
+        // warm-up
+        client.listArtifacts();
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = UUID.randomUUID().toString();
+        ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
+        client.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client.reset();
+        try {
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+            });
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName(name);
+            client.updateArtifactMetaData(artifactId, emd);
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals(name, artifactMetaData.getName());
+            });
+
+            ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getArtifacts().size());
+            Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+        } finally {
+            client.deleteArtifact(artifactId);
+        }
+    }
 }

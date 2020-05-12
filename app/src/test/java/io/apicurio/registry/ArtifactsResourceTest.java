@@ -704,8 +704,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", anything())
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
-                .body("name", nullValue())
-                .body("description", nullValue());
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."));
         
         // Try to get artifact meta-data for an artifact that doesn't exist.
         given()
@@ -763,8 +763,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("version", anything())
-                .body("name", equalTo("Empty API Name"))
-                .body("description", equalTo("Empty API description."));
+                .body("name", equalTo("Empty API (Updated)"))
+                .body("description", equalTo("An example API design using OpenAPI."));
         
     }
     
@@ -816,8 +816,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", equalTo(version2))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
-                .body("name", nullValue())
-                .body("description", nullValue());
+                .body("name", equalTo("Empty API (v2)"))
+                .body("description", equalTo("An example API design using OpenAPI."));
 
         // Update the version meta-data
         String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";
@@ -856,8 +856,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", equalTo(version3))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
-                .body("name", nullValue())
-                .body("description", nullValue());
+                .body("name", equalTo("Empty API (v3)"))
+                .body("description", equalTo("An example API design using OpenAPI."));
 
         // Get the version meta-data for a non-existant version
         given()

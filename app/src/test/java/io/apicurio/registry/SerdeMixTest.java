@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 public class SerdeMixTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:8081/ccompat", 3);
+        return new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
     }
 
     @RegistryServiceTest

@@ -42,11 +42,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SearchedArtifact;
-import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -348,18 +344,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, Integer, Integer, SearchOver, SortOrder) ()
+     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, int, int, SearchOver, SortOrder) ()
      */
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null) {
-            limit = 10;
-        }
-        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
-        final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver over, SortOrder order) {
+
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
             .stream()
@@ -535,6 +524,30 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
         // TODO -- always new TreeSet ... optimization?!
         return new TreeSet<>(v2c.keySet());
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(String, int, int) (java.lang.String)
+     */
+    @Override
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException {
+
+        final VersionSearchResults versionSearchResults = new VersionSearchResults();
+        final Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
+        final LongAdder itemsCount = new LongAdder();
+        final List<SearchedVersion> artifactVersions = v2c.keySet().stream()
+                .peek(version -> itemsCount.increment())
+                .sorted(Long::compareTo)
+                .skip(offset)
+                .limit(limit)
+                .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
+                .map(SearchUtil::buildSearchedVersion)
+                .collect(Collectors.toList());
+
+        versionSearchResults.setVersions(artifactVersions);
+        versionSearchResults.setCount(itemsCount.intValue());
+
+        return versionSearchResults;
     }
 
     /**

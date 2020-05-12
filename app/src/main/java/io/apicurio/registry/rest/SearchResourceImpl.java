@@ -25,9 +25,6 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-import java.util.List;
-import java.util.SortedSet;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -42,10 +39,8 @@ import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SearchedVersion;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 
@@ -71,29 +66,29 @@ public class SearchResourceImpl  implements SearchResource, Headers{
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-        return registryStorage.searchArtifacts(search, offset, limit, searchOver, sortOrder);
+
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
+        final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
+
+        return registryStorage.searchArtifacts(search, offset, limit, over, order);
     }
 
 	@Override
 	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-	    SortedSet<Long> versions = registryStorage.getArtifactVersions(artifactId);
-	    List<SearchedVersion> searchedVersions = versions.stream().sorted().map( version -> {
-	        ArtifactVersionMetaDataDto vmd = registryStorage.getArtifactVersionMetaData(artifactId, version);
-	        SearchedVersion sv = new SearchedVersion();
-            sv.setCreatedBy(vmd.getCreatedBy());
-            sv.setCreatedOn(vmd.getCreatedOn());
-            sv.setDescription(vmd.getDescription());
-            sv.setGlobalId(vmd.getGlobalId());
-//            sv.setLabels(vmd.getVersion());
-            sv.setName(vmd.getName());
-            sv.setState(vmd.getState());
-            sv.setType(vmd.getType());
-            sv.setVersion(vmd.getVersion());
-	        return sv;
-	    }).collect(Collectors.toList());
-	    VersionSearchResults results = new VersionSearchResults();
-	    results.setVersions(searchedVersions);
-	    results.setCount(searchedVersions.size());
-	    return results;
+
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+
+        return registryStorage.searchVersions(artifactId, offset, limit);
 	}
 }

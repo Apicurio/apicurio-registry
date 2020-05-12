@@ -211,4 +211,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
             confluentService.deleteSubject(confluentSubject);
         }
     }
+
+    protected String generateArtifactId() {
+        return TestUtils.generateArtifactId();
+    }
 }

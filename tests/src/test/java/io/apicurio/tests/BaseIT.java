@@ -42,16 +42,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -73,17 +69,26 @@ public abstract class BaseIT implements TestSeparator, Constants {
     }
 
     @BeforeAll
-    static void beforeAll() throws Exception {
+    static void beforeAll(TestInfo info) throws Exception {
         if (!TestUtils.isExternalRegistry()) {
             registry.start();
         } else {
-            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryUrl());
+            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryApiUrl());
         }
-        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryUrl() + " in timeout!",
-                          Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
-        TestUtils.waitFor("Registry reports is ready",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
-        RestAssured.baseURI = TestUtils.getRegistryUrl();
+
+        try {
+            TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryApiUrl() + " in timeout!",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
+
+            TestUtils.waitFor("Registry reports is ready",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
+
+        } catch (TimeoutException e) {
+            stopRegistryAndCollectLogs(info);
+            throw e;
+        }
+
+        RestAssured.baseURI = TestUtils.getRegistryApiUrl();
         LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
     }
@@ -91,10 +96,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
     @AfterAll
     static void afterAll(TestInfo info) throws Exception {
         if (!TestUtils.isExternalRegistry()) {
-            registry.stop();
-            Thread.sleep(3000);
-            //noinspection OptionalGetWithoutIsPresent
-            storeRegistryLog(info.getTestClass().get().getCanonicalName());
+            stopRegistryAndCollectLogs(info);
         }
     }
 
@@ -114,19 +116,8 @@ public abstract class BaseIT implements TestSeparator, Constants {
         }
     }
 
-    private static void storeRegistryLog(String className) {
-        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
-        File logDir = new File("target/logs/" + className + "-" + currentDate);
-
-        if (!logDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            logDir.mkdirs();
-        }
-
-        TestUtils.writeFile(logDir + "/registries-stdout.log", registry.getRegistryStdOut());
-        TestUtils.writeFile(logDir + "/registries-stderr.log", registry.getRegistryStdErr());
+    private static void stopRegistryAndCollectLogs(TestInfo info) throws Exception {
+        registry.stopAndCollectLogs(info);
     }
 
     protected Map<String, String> createMultipleArtifacts(RegistryService apicurioService, int count) throws Exception {

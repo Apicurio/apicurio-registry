@@ -94,6 +94,10 @@
         <module>search/connector</module>
         <module>distro</module>
         <module>docs</module>
+        <module>storage/infinispan</module>
+        <module>storage/jpa</module>
+        <module>storage/kafka</module>
+        <module>storage/streams</module>
         <module>tests</module>
     </modules>
 
@@ -678,36 +682,6 @@
     </distributionManagement>
 
     <profiles>
-        <profile>
-            <id>infinispan</id>
-            <modules>
-                <module>storage/infinispan</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>asyncmem</id>
-            <modules>
-                <module>storage/asyncmem</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>jpa</id>
-            <modules>
-                <module>storage/jpa</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>kafka</id>
-            <modules>
-                <module>storage/kafka</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>streams</id>
-            <modules>
-                <module>storage/streams</module>
-            </modules>
-        </profile>
         <profile>
             <id>prod</id>
             <activation>

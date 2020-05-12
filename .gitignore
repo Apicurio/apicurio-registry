@@ -13,3 +13,5 @@ target/
 *.iml
 *.ipr
 *.iws
+
+*.factorypath

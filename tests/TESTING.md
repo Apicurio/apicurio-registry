@@ -16,7 +16,7 @@ Before your first run, you have to build jar of apicurio-registry-app. For build
 ## Run tests
 For run all tests in `tests` package you can use the following command:
 
-```./mvnw verify -pl tests -Pall -Dmaven.javadoc.skip=true```
+```./mvnw verify -pl tests -Dmaven.javadoc.skip=true```
 
 If you want to run only specific tests, you can specify it by `-Dit.test` maven option.
 

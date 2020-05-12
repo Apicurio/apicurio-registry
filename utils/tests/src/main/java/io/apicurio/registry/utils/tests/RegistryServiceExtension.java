@@ -83,7 +83,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         RegistryServiceTest rst = AnnotationUtils.findAnnotation(context.getRequiredTestMethod(), RegistryServiceTest.class)
                                                  .orElseThrow(IllegalStateException::new); // should be there
 
-        String registryUrl = TestUtils.getRegistryUrl(rst);
+        String registryUrl = TestUtils.getRegistryApiUrl(rst);
 
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
 

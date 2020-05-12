@@ -34,10 +34,8 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Build All Variants
-        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
-      - name: Verify (Standard)
-        run: mvn test package -Pprod -Pjpa -Pasyncmem
+      - name: Build and test all variants
+        run: mvn clean install -Pprod
       - name: Login to DockerHub Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
@@ -81,7 +79,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Build All Variants
-        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
+        run: mvn clean install -Pprod -DskipTests
       - name: Run Integration Tests
         run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
       - name: Collect logs
@@ -93,4 +91,3 @@ jobs:
         with:
           name: tests-logs
           path: artifacts
-          

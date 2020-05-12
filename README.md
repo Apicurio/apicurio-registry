@@ -9,7 +9,7 @@ An API/Schema registry - stores and retrieves APIs and Schemas.
 
 This project supports several build configuration options that affect the produced executables.
 
-By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation. 
+By default, `mvn clean install` produces executable JARs for all storage variants with the *dev* Quarkus configuration profile enabled.
 
 Apicurio Registry supports 4 persistence implementations:
  - In-Memory
@@ -25,9 +25,6 @@ Additionally, there are 2 main configuration profiles:
 
 ### Build Options
  
- - `-Pkafka` enables a build of `storage/kafka` module and produces `apicurio-registry-storage-kafka-<version>-all.zip`.
- - `-Pjpa` enables a build of `storage/jpa` module and produces `apicurio-registry-storage-jpa-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
-   and `PostgreSQL` driver in *prod* mode.
  - `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment, 
    e.g. a higher logging level.
  - `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable). 
@@ -54,7 +51,7 @@ To see additional options, visit:
 
 ### Kafka
 
- - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
+ - In the *dev* mode, environment variable `KAFKA_BOOTSTRAP_SERVERS` can be used or if not present the application expects a Kafka broker running at `localhost:9092`.
  - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers
 
 Kafka storage implementation uses the following Kafka API / architecture
@@ -84,7 +81,7 @@ To help setup development / testing environment for the module, see kafka_setup.
 
 Streams storage implementation goes beyond plain Kafka usage and uses Kafka Streams to handle storage in a distributed and fault-tolerant way.
 
- - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
+ - In the *dev* mode, environment variable `KAFKA_BOOTSTRAP_SERVERS` can be used or if not present the application expects a Kafka broker running at `localhost:9092`.
  - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers and `APPLICATION_ID` to name your Kafka Streams application
 
 Both modes require 2 topics: storage topic and globalId topic. This is configurable, by default we use storage-topic and global-id-topic names.

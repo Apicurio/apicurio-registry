@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -40,6 +39,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
@@ -63,7 +63,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(CLUSTER)
-public class KafkaConnectConverterIT extends BaseIT {
+@Disabled
+public class KafkaConnectConverterIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConnectConverterIT.class);
 
@@ -134,7 +135,7 @@ public class KafkaConnectConverterIT extends BaseIT {
 
     private ConnectorConfiguration getConfiguration(int id, String converter, String... options) {
         final String apicurioUrl = TestUtils.isExternalRegistry() ?
-                TestUtils.getRegistryUrl()
+                TestUtils.getRegistryApiUrl()
                 :
                 "http://host.testcontainers.internal:8081/api/";
 

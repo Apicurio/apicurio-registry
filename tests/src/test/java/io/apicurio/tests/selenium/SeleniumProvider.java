@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
@@ -135,8 +134,9 @@ public class SeleniumProvider {
             takeScreenShot();
             Files.createDirectories(path);
             for (Date key : browserScreenshots.keySet()) {
-                FileUtils.copyFile(browserScreenshots.get(key), new File(Paths.get(path.toString(),
-                        String.format("%s.%s_%s.png", className, methodName, dateFormat.format(key))).toString()));
+                Files.copy(browserScreenshots.get(key).toPath(),
+                        new File(Paths.get(path.toString(),
+                                String.format("%s.%s_%s.png", className, methodName, dateFormat.format(key))).toString()).toPath());
             }
             log.info("Screenshots stored");
         } catch (Exception ex) {

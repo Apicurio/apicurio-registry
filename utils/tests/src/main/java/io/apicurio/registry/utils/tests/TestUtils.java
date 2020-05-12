@@ -24,6 +24,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
@@ -76,21 +77,25 @@ public class TestUtils {
     }
 
     public static String getRegistryUIUrl() {
-        return getRegistryUrl().replace("/api", "/ui");
+        return getRegistryApiUrl().replace("/api", "/ui");
     }
 
-    public static String getRegistryUrl() {
-        return getRegistryUrl(
+    public static String getRegistryBaseUrl() {
+        return getRegistryApiUrl().replace("/api", "");
+    }
+
+    public static String getRegistryApiUrl() {
+        return getRegistryApiUrl(
             String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT),
             false
         );
     }
 
-    public static String getRegistryUrl(RegistryServiceTest rst) {
-        return getRegistryUrl(rst.value(), rst.localOnly());
+    public static String getRegistryApiUrl(RegistryServiceTest rst) {
+        return getRegistryApiUrl(rst.value(), rst.localOnly());
     }
 
-    public static String getRegistryUrl(String fallbackUrl, boolean localOnly) {
+    public static String getRegistryApiUrl(String fallbackUrl, boolean localOnly) {
         if (localOnly || !isExternalRegistry()) {
             return fallbackUrl;
         } else {
@@ -128,7 +133,7 @@ public class TestUtils {
      */
     public static boolean isReady(boolean logResponse) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().replace("/api", "/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryBaseUrl() + "/health/ready"));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info("Service registry is ready");
@@ -197,6 +202,14 @@ public class TestUtils {
     public static void writeFile(String filePath, String text) {
         try {
             Files.write(new File(filePath).toPath(), text.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            log.info("Exception during writing text in file");
+        }
+    }
+
+    public static void writeFile(Path filePath, String text) {
+        try {
+            Files.write(filePath, text.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             log.info("Exception during writing text in file");
         }

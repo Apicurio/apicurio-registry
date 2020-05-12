@@ -17,8 +17,10 @@
 package io.apicurio.registry.util;
 
 import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.SearchedVersion;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 
 import java.util.Comparator;
 
@@ -41,8 +43,8 @@ public class SearchUtil {
     }
 
     public static SearchedArtifact buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {
-        final SearchedArtifact searchedArtifact = new SearchedArtifact();
 
+        final SearchedArtifact searchedArtifact = new SearchedArtifact();
         searchedArtifact.setId(artifactMetaData.getId());
         searchedArtifact.setName(artifactMetaData.getName());
         searchedArtifact.setState(artifactMetaData.getState());
@@ -57,4 +59,18 @@ public class SearchUtil {
         return searchedArtifact;
     }
 
+    public static SearchedVersion buildSearchedVersion(ArtifactVersionMetaDataDto artifactVersionMetaData) {
+
+        final SearchedVersion searchedVersion = new SearchedVersion();
+        searchedVersion.setCreatedBy(artifactVersionMetaData.getCreatedBy());
+        searchedVersion.setCreatedOn(artifactVersionMetaData.getCreatedOn());
+        searchedVersion.setDescription(artifactVersionMetaData.getDescription());
+        searchedVersion.setGlobalId(artifactVersionMetaData.getGlobalId());
+        searchedVersion.setName(artifactVersionMetaData.getName());
+        searchedVersion.setState(artifactVersionMetaData.getState());
+        searchedVersion.setType(artifactVersionMetaData.getType());
+        searchedVersion.setVersion(artifactVersionMetaData.getVersion());
+
+        return searchedVersion;
+    }
 }

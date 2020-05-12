@@ -4,10 +4,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SearchedArtifact;
-import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
@@ -363,7 +360,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
         LongAdder itemsCount = new LongAdder();
         List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
             .peek(artifactId -> itemsCount.increment())
@@ -544,6 +541,27 @@ public class StreamsRegistryStorage implements RegistryStorage {
         } else {
             throw new ArtifactNotFoundException(artifactId);
         }
+    }
+
+    @Override
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
+
+        final VersionSearchResults versionSearchResults = new VersionSearchResults();
+        final LongAdder itemsCount = new LongAdder();
+
+
+        final List<SearchedVersion> versions = getArtifactVersions(artifactId).stream()
+                .peek(version -> itemsCount.increment())
+                .sorted(Long::compareTo)
+                .skip(offset)
+                .limit(limit)
+                .map(version -> SearchUtil.buildSearchedVersion(getArtifactVersionMetaData(artifactId, version)))
+                .collect(Collectors.toList());
+
+        versionSearchResults.setVersions(versions);
+        versionSearchResults.setCount(itemsCount.intValue());
+
+        return versionSearchResults;
     }
 
     @Override

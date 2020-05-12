@@ -148,7 +148,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         GenericData.Record record = new GenericData.Record(schema);
         record.put("bar", "somebar");
 
-        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(supplier.get()).asConfluent();
+        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(supplier.get()).asLegacyId();
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
@@ -158,7 +158,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
 
-        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(supplier.get()).asConfluent();
+        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(supplier.get()).asLegacyId();
         try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
             byte[] bytes = serializer2.serialize(subject, record);
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);

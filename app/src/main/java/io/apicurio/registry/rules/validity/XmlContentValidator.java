@@ -19,37 +19,15 @@ package io.apicurio.registry.rules.validity;
 import java.io.InputStream;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.util.DocumentBuilderAccessor;
 
 /**
  * @author cfoskin@redhat.com This class can be used to validate plain XML and only does syntax validation
  */
 @ApplicationScoped
 public class XmlContentValidator implements ContentValidator {
-
-    protected static ThreadLocal<DocumentBuilder> threadLocaldocBuilder = new ThreadLocal<DocumentBuilder>() {
-        @Override
-        protected DocumentBuilder initialValue() {
-            DocumentBuilder builder = null;
-            try {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                factory.setNamespaceAware(true);
-                builder = factory.newDocumentBuilder();
-            } catch (ParserConfigurationException e) {
-                throw new RuntimeException(e);
-            }
-            return builder;
-        }
-
-        @Override
-        public DocumentBuilder get() {
-            return super.get();
-        }
-    };
 
     /**
      * Constructor.
@@ -65,7 +43,7 @@ public class XmlContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
-                threadLocaldocBuilder.get().parse(stream);
+                DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
             } catch (Exception e) {
                 throw new InvalidContentException("Syntax violation for XML Schema artifact.", e);
             }

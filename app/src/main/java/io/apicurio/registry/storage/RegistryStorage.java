@@ -20,6 +20,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -239,6 +240,15 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Fetch the versions of the given artifact
+     * @return the artifact versions, limited
+     * @param artifactId the artifact used to fetch versions
+     * @param limit the result size limit
+     * @param offset the number of versions to skip
+     */
+    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit);
 
     /**
      * Gets the most recent version of the content of the artifact with the given global ID.

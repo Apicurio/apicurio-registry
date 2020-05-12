@@ -117,7 +117,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    void testSearch(Supplier<RegistryService> supplier) throws Exception {
+    void testSearchArtifact(Supplier<RegistryService> supplier) throws Exception {
         RegistryService client = supplier.get();
 
         // warm-up
@@ -152,5 +152,47 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         } finally {
             client.deleteArtifact(artifactId);
         }
+    }
+
+    @RegistryServiceTest
+    void testSearchVersion(Supplier<RegistryService> supplier) throws Exception {
+
+        RegistryService client = supplier.get();
+
+        // warm-up
+        client.listArtifacts();
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = UUID.randomUUID().toString();
+        ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
+        client.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client.createArtifactVersion(artifactId, ArtifactType.JSON, stream);
+        client.reset();
+        try {
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+            });
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName(name);
+            client.updateArtifactMetaData(artifactId, emd);
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals(name, artifactMetaData.getName());
+            });
+
+            VersionSearchResults results = client.searchVersions(artifactId, 0, 2);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(name, results.getVersions().get(0).getName());
+        } finally {
+            client.deleteArtifact(artifactId);
+        }
+
+
     }
 }

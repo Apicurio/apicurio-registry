@@ -21,11 +21,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -49,6 +45,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.SearchUtil;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -74,7 +71,9 @@ import java.util.TreeSet;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -249,28 +248,13 @@ public class JPARegistryStorage implements RegistryStorage {
         return buildSearchResultsFromMetaData(artifactsMetaData, itemCount);
     }
 
-    private static SearchedArtifact buildFromMetadata(ArtifactMetaDataDto artifactMetaData) {
-
-        final SearchedArtifact searchedArtifact = new SearchedArtifact();
-        searchedArtifact.setId(artifactMetaData.getId());
-        searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
-        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
-        searchedArtifact.setDescription(artifactMetaData.getDescription());
-        searchedArtifact.setState(artifactMetaData.getState());
-        searchedArtifact.setName(artifactMetaData.getName());
-        searchedArtifact.setType(artifactMetaData.getType());
-        //TODO add labels
-
-        return searchedArtifact;
-    }
-
     private static ArtifactSearchResults buildSearchResultsFromMetaData(List<ArtifactMetaDataDto> artifactsMetaData, Integer itemCount) {
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         final List<SearchedArtifact> searchedArtifacts = new ArrayList<>();
         for (ArtifactMetaDataDto artifactMetaDataDto : artifactsMetaData) {
 
-            SearchedArtifact searchedArtifact = buildFromMetadata(artifactMetaDataDto);
+            SearchedArtifact searchedArtifact = SearchUtil.buildSearchedArtifact(artifactMetaDataDto);
             searchedArtifacts.add(searchedArtifact);
         }
         artifactSearchResults.setArtifacts(searchedArtifacts);
@@ -754,6 +738,33 @@ public class JPARegistryStorage implements RegistryStorage {
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
+    }
+
+    @Override
+    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
+
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+
+        final VersionSearchResults versionSearchResults = new VersionSearchResults();
+        final LongAdder itemsCount = new LongAdder();
+
+        final List<SearchedVersion> versions = getArtifactVersions(artifactId).stream()
+                .peek(version -> itemsCount.increment())
+                .sorted(Long::compareTo)
+                .skip(offset)
+                .limit(limit)
+                .map(version -> SearchUtil.buildSearchedVersion(getArtifactVersionMetaData(artifactId, version)))
+                .collect(Collectors.toList());
+
+        versionSearchResults.setVersions(versions);
+        versionSearchResults.setCount(itemsCount.intValue());
+
+        return versionSearchResults;
     }
 
     @Override

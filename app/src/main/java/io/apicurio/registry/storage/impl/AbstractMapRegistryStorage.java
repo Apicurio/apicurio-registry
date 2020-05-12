@@ -527,10 +527,10 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(String, Integer, Integer) (java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(String, int, int) (java.lang.String)
      */
     @Override
-    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) throws ArtifactNotFoundException, RegistryStorageException {
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException {
 
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);

@@ -741,7 +741,7 @@ public class JPARegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
 
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final LongAdder itemsCount = new LongAdder();

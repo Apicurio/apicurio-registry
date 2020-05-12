@@ -248,7 +248,7 @@ public interface RegistryStorage {
      * @param limit the result size limit
      * @param offset the number of versions to skip
      */
-    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit);
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit);
 
     /**
      * Gets the most recent version of the content of the artifact with the given global ID.

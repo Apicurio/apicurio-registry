@@ -72,6 +72,7 @@ public class ObjectSchemaWrapper implements SchemaWrapper {
         return wrap(wrapped.getSchemaOfAdditionalProperties());
     }
 
+    @SuppressWarnings("deprecation")
     public Map<Pattern, SchemaWrapper> getRegexpPatternProperties() {
         return wrap(wrapped.getPatternProperties()); // TODO Possible deprecation issue
     }

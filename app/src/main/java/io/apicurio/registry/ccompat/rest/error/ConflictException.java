@@ -24,6 +24,8 @@ import io.apicurio.registry.types.RegistryException;
  */
 public class ConflictException extends RegistryException {
 
+    private static final long serialVersionUID = 5511072429790259605L;
+
     public ConflictException(String message) {
         super(message);
     }

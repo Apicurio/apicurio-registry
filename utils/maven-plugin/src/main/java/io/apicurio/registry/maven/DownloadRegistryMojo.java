@@ -112,6 +112,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
                     } else {
                         Files.copy(stream, outputFile.toPath());
                     }
+                } finally {
+                    response.close();
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(

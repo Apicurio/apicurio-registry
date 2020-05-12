@@ -344,18 +344,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, Integer, Integer, SearchOver, SortOrder) ()
+     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(String, int, int, SearchOver, SortOrder) ()
      */
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null) {
-            limit = 10;
-        }
-        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
-        final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver over, SortOrder order) {
+
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
             .stream()
@@ -538,13 +531,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) throws ArtifactNotFoundException, RegistryStorageException {
-
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null) {
-            limit = 10;
-        }
 
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);

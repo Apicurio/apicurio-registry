@@ -76,10 +76,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceException;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import javax.transaction.Transactional;
 
 @ApplicationScoped
@@ -267,9 +264,9 @@ public class JPARegistryStorage implements RegistryStorage {
 
         switch (searchOver) {
         case description:
-            return "AND (m.key= 'description' (0 < LOCATE(:search, m.value))) ";
+            return "AND (m.key= 'description' AND (0 < LOCATE(:search, m.value))) ";
         case name:
-            return "AND (m.key= 'name' and (0 < LOCATE(:search, m.value))) ";
+            return "AND (m.key= 'name' AND (0 < LOCATE(:search, m.value))) ";
         case labels:
             //TODO not implemented yet
         default:
@@ -449,38 +446,41 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset,
-            Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+    public ArtifactSearchResults searchArtifacts(String search, int offset,
+            int limit, SearchOver searchOver, SortOrder sortOrder) {
 
         final String countQuery =
-                "SELECT count (m.artifactId)  FROM MetaData m "
+                "SELECT count ( distinct m.artifactId)  FROM MetaData m "
                         + "WHERE m.version = "
                         + "(SELECT max(m2.version) "
                         + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
-                        + buildSearchAndClauseFromSearchOver(searchOver)
-                + " AND m.artifactId IN (select a.artifactId from Artifact a)";
+                        + (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver))
+                + " AND m.artifactId IN (select a.artifactId from Artifact a) ";
 
         final String searchQuery =
-                "SELECT m.artifactId FROM MetaData m "
+                "SELECT distinct m.artifactId FROM MetaData m "
                         + "WHERE m.version = "
                         + "(SELECT max(m2.version) "
                         + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
-                        + buildSearchAndClauseFromSearchOver(searchOver)
+                        +  (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver))
                         + " AND m.artifactId IN (select a.artifactId from Artifact a) "
-                        + "ORDER BY m.id " + sortOrder
+                        + "ORDER BY m.artifactId " + sortOrder
                         .value();
 
-        final Integer itemsCount = entityManager.createQuery(countQuery, Long.class)
-                .setParameter("search", search)
-                .getSingleResult().intValue();
+        final TypedQuery<Long> count = entityManager.createQuery(countQuery, Long.class);
+        final TypedQuery<String> matchedArtifactsQuery = entityManager.createQuery(searchQuery, String.class);
 
-        final List<String> matchedArtifacts = entityManager.createQuery(searchQuery, String.class)
-                .setParameter("search", search)
+        if (null != search) {
+            count.setParameter("search", search);
+            matchedArtifactsQuery.setParameter("search", search);
+        }
+
+        final List<String> matchedArtifacts = matchedArtifactsQuery
                 .setFirstResult(offset)
                 .setMaxResults(limit)
                 .getResultList();
 
-        return buildSearchResultFromIds(matchedArtifacts, itemsCount);
+        return buildSearchResultFromIds(matchedArtifacts, count.getSingleResult().intValue());
     }
 
     // =======================================================
@@ -742,13 +742,6 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null) {
-            limit = 10;
-        }
 
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final LongAdder itemsCount = new LongAdder();

@@ -360,7 +360,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
         LongAdder itemsCount = new LongAdder();
         List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
             .peek(artifactId -> itemsCount.increment())
@@ -546,15 +546,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
 
-        if (offset == null) {
-            offset = 0;
-        }
-        if (limit == null) {
-            limit = 10;
-        }
-
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final LongAdder itemsCount = new LongAdder();
+
 
         final List<SearchedVersion> versions = getArtifactVersions(artifactId).stream()
                 .peek(version -> itemsCount.increment())

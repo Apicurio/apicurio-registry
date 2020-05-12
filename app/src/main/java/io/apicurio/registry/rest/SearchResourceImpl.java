@@ -66,11 +66,29 @@ public class SearchResourceImpl  implements SearchResource, Headers{
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-        return registryStorage.searchArtifacts(search, offset, limit, searchOver, sortOrder);
+
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
+        final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
+
+        return registryStorage.searchArtifacts(search, offset, limit, over, order);
     }
 
 	@Override
 	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
+
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 10;
+        }
+
         return registryStorage.searchVersions(artifactId, offset, limit);
 	}
 }

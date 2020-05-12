@@ -134,7 +134,7 @@ public interface RegistryStorage {
      * @param searchOver the fields to search over
      * @param sortOrder the ordering used
      */
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder);
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder);
 
     /**
      * Gets the stored meta-data for an artifact by ID.  This will include client-editable meta-data such as 

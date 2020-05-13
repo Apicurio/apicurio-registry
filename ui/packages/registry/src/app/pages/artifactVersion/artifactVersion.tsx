@@ -112,7 +112,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                                artifactId={this.artifactId()} />
                 </PageSection>
                 {
-                    this.state.isLoading ?
+                    this.isLoading() ?
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <Flex>
                         <FlexItem><Spinner size="lg"/></FlexItem>
@@ -172,12 +172,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             artifact: null,
             artifactContent: "",
             artifactIsText: true,
-            error: null,
-            errorInfo: null,
-            errorType: null,
             isDeleteModalOpen: false,
             isEditModalOpen: false,
-            isError: false,
             isLoading: true,
             isUploadFormValid: false,
             isUploadModalOpen: false,

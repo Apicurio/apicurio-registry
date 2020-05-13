@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-export * from './config.service';
-export * from './config.type';
+export * from "./config.service";
+export * from "./config.type";

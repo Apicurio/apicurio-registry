@@ -73,7 +73,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.state.isLoading ?
+                        this.isLoading() ?
                             <Flex>
                                 <FlexItem><Spinner size="lg"/></FlexItem>
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
@@ -110,10 +110,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 type: "everything",
                 value: "",
             },
-            error: null,
-            errorInfo: null,
-            errorType: null,
-            isError: false,
             isLoading: true,
             isUploadFormValid: false,
             isUploadModalOpen: false,

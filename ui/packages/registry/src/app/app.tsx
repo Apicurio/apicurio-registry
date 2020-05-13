@@ -24,6 +24,7 @@ import {ArtifactsPage} from "./pages/artifacts";
 import {ArtifactRedirectPage} from "./pages/artifact";
 import {ArtifactVersionPage} from "./pages/artifactVersion";
 import {Services} from "@apicurio/registry-services";
+import {RootRedirectPage} from "./pages/root";
 
 
 /**
@@ -56,7 +57,7 @@ export default class App extends React.PureComponent<{}, {}> {
                     isManagedSidebar={false}
                     header={<AppHeader/>}
                 >
-                    <Route path='/' exact={true} component={ArtifactsPage}/>
+                    <Route path='/' exact={true} component={RootRedirectPage}/>
                     <Route path='/rules' exact={true} component={RulesPage}/>
                     <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
                     <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>

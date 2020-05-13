@@ -16,15 +16,14 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
+import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -33,8 +32,20 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import org.junit.jupiter.api.Assertions;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.quarkus.test.junit.QuarkusTest;
 
 /**
  * @author Ales Justin
@@ -143,6 +154,19 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals(name, artifactMetaData.getName());
             });
+            
+            try {
+                System.out.println("--------------");
+                URL url = new URL("http://localhost:8081/api/search/artifacts");
+                URLConnection connection = url.openConnection();
+                HttpURLConnection httpConn = (HttpURLConnection) connection;
+                System.out.println(httpConn.getResponseCode());
+                System.out.println(httpConn.getResponseMessage());
+                System.out.println(IoUtil.toString((InputStream) httpConn.getContent()));
+                System.out.println("--------------");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
             Assertions.assertNotNull(results);

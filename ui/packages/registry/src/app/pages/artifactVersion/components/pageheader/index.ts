@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-export * from './pageheader';
-export * from './version-selector';
+export * from "./pageheader";
+export * from "./version-selector";

@@ -158,7 +158,6 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
-        deserializer1.close();
 
         AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
         serializer2.asLegacyId();
@@ -167,7 +166,6 @@ public class SerdeMixTest extends AbstractResourceTestBase {
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
-        serializer2.close();
     }
 
 }

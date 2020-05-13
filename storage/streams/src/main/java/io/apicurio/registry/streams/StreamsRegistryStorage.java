@@ -537,18 +537,17 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     result.add((long) (i + 1));
                 }
             }
-            return result;
-        } else {
-            throw new ArtifactNotFoundException(artifactId);
+            if (result.size() > 0) {
+                return result;
+            }
         }
+        throw new ArtifactNotFoundException(artifactId);
     }
 
     @Override
     public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
-
         final VersionSearchResults versionSearchResults = new VersionSearchResults();
         final LongAdder itemsCount = new LongAdder();
-
 
         final List<SearchedVersion> versions = getArtifactVersions(artifactId).stream()
                 .peek(version -> itemsCount.increment())

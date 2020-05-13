@@ -122,11 +122,10 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     }
 
     private static Error toError(Throwable t, int code) {
-        Throwable root = getRootCause(t);
         Error error = new Error();
         error.setErrorCode(code);
-        error.setMessage(root.getLocalizedMessage());
-        error.setDetail(getStackTrace(root));
+        error.setMessage(t.getLocalizedMessage());
+        error.setDetail(getStackTrace(t));
         return error;
     }
     
@@ -144,11 +143,4 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
     }
     
-    private static Throwable getRootCause(Throwable t) {
-        Throwable rval = t;
-        while (rval.getCause() != null && rval.getCause() != rval) {
-            rval = rval.getCause();
-        }
-        return rval;
-    }
 }

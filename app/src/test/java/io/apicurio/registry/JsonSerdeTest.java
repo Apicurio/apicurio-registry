@@ -60,8 +60,8 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(supplier.get(), true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(supplier.get(), true)) 
-        {
+             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(supplier.get(), true)) {
+            
             serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
 
             Headers headers = new RecordHeaders();

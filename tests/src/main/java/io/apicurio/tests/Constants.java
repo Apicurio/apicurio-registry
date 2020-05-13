@@ -15,6 +15,8 @@
  */
 package io.apicurio.tests;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
@@ -34,4 +36,10 @@ public interface Constants {
      * Tag for tests, which are working with the cluster (integration of kafka with registries)
      */
     String CLUSTER = "cluster";
+    /**
+     * Tag for web ui tests
+     */
+    String UI = "ui";
+
+    Path LOGS_DIR = Paths.get("target/logs/");
 }

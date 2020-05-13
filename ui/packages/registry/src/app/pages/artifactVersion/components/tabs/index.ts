@@ -15,6 +15,6 @@
  * limitations under the License.
  */
 
-export * from './content';
-export * from './documentation';
-export * from './info';
+export * from "./content";
+export * from "./documentation";
+export * from "./info";

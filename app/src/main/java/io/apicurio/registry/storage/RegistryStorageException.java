@@ -40,16 +40,12 @@ public class RegistryStorageException extends StorageException {
         super(reason, cause);
     }
 
+    /**
+     * Constructor.
+     * @param reason
+     */
     public RegistryStorageException(String reason) {
         super(reason);
-    }
-
-    /**
-     * @see java.lang.Throwable#getMessage()
-     */
-    @Override
-    public String getMessage() {
-        return "An unexpected server error was encountered.";
     }
 
 }

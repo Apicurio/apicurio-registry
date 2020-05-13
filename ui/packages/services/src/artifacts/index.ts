@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-export * from './artifacts.service';
+export * from "./artifacts.service";

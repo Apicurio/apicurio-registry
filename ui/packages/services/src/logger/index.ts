@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-export * from './logger.service';
+export * from "./logger.service";

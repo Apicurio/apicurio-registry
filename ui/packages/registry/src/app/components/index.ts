@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-export * from './common';
-export * from './header';
-export * from './ruleList';
-export * from './baseComponent';
+export * from "./common";
+export * from "./errorPage";
+export * from "./header";
+export * from "./ruleList";
+export * from "./baseComponent";

@@ -15,6 +15,6 @@
  * limitations under the License.
  */
 
-export * from './app';
-export * from './pages';
-export * from './components';
+export * from "./app";
+export * from "./pages";
+export * from "./components";

@@ -70,7 +70,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-        int id = res.extract().jsonPath().getInt("id");
+        /*int id = */res.extract().jsonPath().getInt("id");
         // Verify
         given()
             .when()

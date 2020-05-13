@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-export * from './artifacts';
-export * from './components';
+export * from "./artifacts";
+export * from "./components";

@@ -24,6 +24,8 @@ public class Error {
     private String message;
     @JsonProperty("error_code")
     private Integer errorCode;
+    @JsonProperty("error_code")
+    private String detail;
 
     @JsonProperty("message")
     public String getMessage() {
@@ -43,6 +45,16 @@ public class Error {
     @JsonProperty("error_code")
     public void setErrorCode(Integer errorCode) {
         this.errorCode = errorCode;
+    }
+
+    @JsonProperty("detail")
+    public String getDetail() {
+        return detail;
+    }
+
+    @JsonProperty("detail")
+    public void setDetail(String detail) {
+        this.detail = detail;
     }
 
 }

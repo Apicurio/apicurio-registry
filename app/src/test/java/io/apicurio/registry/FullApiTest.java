@@ -19,6 +19,7 @@ package io.apicurio.registry;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +59,8 @@ public class FullApiTest extends AbstractResourceTestBase {
             .statusCode(204)
             .body(anything());
 
+        String syntaxViolation = "Unexpected character ('}' (code 125)): was expecting double-quote to start field name";
+        
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
         given()
@@ -70,7 +73,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(400)
                 .body("error_code", equalTo(400))
-                .body("message", equalTo("Syntax violation for OpenAPI artifact."));
+                .body("message", containsString(syntaxViolation));
 
     }
 
@@ -105,7 +108,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(400)
                 .body("error_code", equalTo(400))
-                .body("message", equalTo("Syntax violation for Protobuf artifact."));
+                .body("message", equalTo("Syntax error in :1:1: unexpected label: messae"));
 
     }
 

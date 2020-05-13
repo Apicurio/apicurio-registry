@@ -59,7 +59,10 @@ public class StreamsRegistryConfiguration {
     @Produces
     @ApplicationScoped
     public StreamsProperties streamsProperties(
-        @RegistryProperties("registry.streams.topology.") Properties properties
+        @RegistryProperties(
+            value = "registry.streams.topology.",
+            empties = {"ssl.endpoint.identification.algorithm="}
+        ) Properties properties
     ) {
         return new StreamsPropertiesImpl(properties);
     }
@@ -67,7 +70,10 @@ public class StreamsRegistryConfiguration {
     @Produces
     @ApplicationScoped
     public ProducerActions<String, Str.StorageValue> storageProducer(
-        @RegistryProperties("registry.streams.storage-producer.") Properties properties
+        @RegistryProperties(
+            value = "registry.streams.storage-producer.",
+            empties = {"ssl.endpoint.identification.algorithm="}
+        ) Properties properties
     ) {
         return new AsyncProducer<>(
             properties,

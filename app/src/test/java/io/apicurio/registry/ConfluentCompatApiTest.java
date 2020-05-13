@@ -17,6 +17,8 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.ValidatableResponse;
@@ -50,7 +52,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private static final String SCHEMA_2_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
             "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
             "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\"}\"";
-
+    
     private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
     /**
@@ -126,5 +128,85 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("is_compatible", equalTo(false));
+    }
+    
+    @Test
+    public void testDisabledStateCheck() {
+        final String SUBJECT = "subject3";
+        // Prepare
+        given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        //verify
+        given()
+            .when()
+                .get("/artifacts/{artifactId}", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
+        
+        //Update state
+        UpdateState updateState = new UpdateState();
+        updateState.setState(ArtifactState.DISABLED);
+        given()
+           .when()
+               .contentType(ContentTypes.JSON)
+               .body(updateState)
+               .put("/artifacts/{artifactId}/state", SUBJECT)
+           .then()
+               .statusCode(204);
+        
+        // GET - shouldn't return as the state has been changed to DISABLED
+        given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+            .then()
+                .statusCode(400);
+    }
+    
+    @Test
+    public void testDeletedStateCheck() {
+        final String SUBJECT = "subject4";
+        // Prepare
+        given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then().log().all()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        //verify
+        given()
+            .when()
+                .get("/artifacts/{artifactId}", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
+        
+        //Update state
+        UpdateState us = new UpdateState();
+        us.setState(ArtifactState.DELETED);
+        given()
+           .when()
+               .contentType(ContentTypes.JSON)
+               .body(us)
+               .put("/artifacts/{artifactId}/state", SUBJECT)
+           .then()
+               .statusCode(204);
+        
+        // GET - shouldn't return as the state has been changed to DELETED
+        given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+            .then()
+            .statusCode(404); 
     }
 }

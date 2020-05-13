@@ -123,11 +123,6 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     private static Error toError(Throwable t, int code) {
         Throwable root = getRootCause(t);
-        System.out.println("\n\n\n\n\n\n\n");
-        System.out.println(root.getMessage());
-        System.out.println(root.getLocalizedMessage());
-        root.printStackTrace();
-        System.out.println("\n\n\n\n\n\n\n");
         Error error = new Error();
         error.setErrorCode(code);
         error.setMessage(root.getLocalizedMessage());

@@ -149,7 +149,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals(name, artifactMetaData.getName());
             });
-            
+
             ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
             Assertions.assertNotNull(results);
             Assertions.assertEquals(1, results.getCount());
@@ -198,7 +198,5 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         } finally {
             client.deleteArtifact(artifactId);
         }
-
-
     }
 }

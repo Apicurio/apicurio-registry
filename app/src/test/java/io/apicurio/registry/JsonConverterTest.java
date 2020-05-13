@@ -16,16 +16,15 @@
 
 package io.apicurio.registry;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
-import org.apache.kafka.connect.storage.Converter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * @author Ales Justin
@@ -38,7 +37,7 @@ public class JsonConverterTest {
     }
 
     private void testJson(boolean enableSchemas) {
-        Converter converter = new JsonConverter();
+        JsonConverter converter = new JsonConverter();
         converter.configure(Collections.singletonMap(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, enableSchemas), false);
 
         org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
@@ -52,5 +51,7 @@ public class JsonConverterTest {
         Object result = converter.toConnectData("qwerty123", bytes).value();
         Object value = (result instanceof Struct) ? Struct.class.cast(result).get("bar") : Map.class.cast(result).get("bar");
         Assertions.assertEquals("somebar", value.toString());
+        
+        converter.close();
     }
 }

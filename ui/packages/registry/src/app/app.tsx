@@ -17,7 +17,7 @@
 
 import React from "react";
 import {Page} from "@patternfly/react-core";
-import {BrowserRouter as Router, Route} from 'react-router-dom';
+import {BrowserRouter as Router, Route, Switch} from 'react-router-dom';
 import {AppHeader} from "./components/header";
 import {RulesPage} from "./pages/rules";
 import {ArtifactsPage} from "./pages/artifacts";
@@ -25,6 +25,7 @@ import {ArtifactRedirectPage} from "./pages/artifact";
 import {ArtifactVersionPage} from "./pages/artifactVersion";
 import {Services} from "@apicurio/registry-services";
 import {RootRedirectPage} from "./pages/root";
+import {NotFoundPage} from "./pages/404";
 
 
 /**
@@ -57,11 +58,14 @@ export default class App extends React.PureComponent<{}, {}> {
                     isManagedSidebar={false}
                     header={<AppHeader/>}
                 >
-                    <Route path='/' exact={true} component={RootRedirectPage}/>
-                    <Route path='/rules' exact={true} component={RulesPage}/>
-                    <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
-                    <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>
-                    <Route path='/artifacts/:artifactId/versions/:version' exact={true} component={artifactVersionPage} />
+                    <Switch>
+                        <Route path='/' exact={true} component={RootRedirectPage}/>
+                        <Route path='/rules' exact={true} component={RulesPage}/>
+                        <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
+                        <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>
+                        <Route path='/artifacts/:artifactId/versions/:version' exact={true} component={artifactVersionPage} />
+                        <Route component={NotFoundPage} />
+                    </Switch>
                 </Page>
             </Router>
         );

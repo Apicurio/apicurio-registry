@@ -15,9 +15,4 @@
  * limitations under the License.
  */
 
-export * from "./404";
-export * from "./artifact";
-export * from "./artifacts";
-export * from "./artifactVersion";
-export * from "./root";
-export * from "./rules";
+export * from './404';

@@ -27,6 +27,7 @@ import java.io.IOException;
 /**
  * @author Ales Justin
  */
+@SuppressWarnings("deprecation")
 public class ArtifactMarshaller implements MessageMarshaller<Search.Artifact> {
     @Override
     public Search.Artifact readFrom(ProtoStreamReader reader) throws IOException {

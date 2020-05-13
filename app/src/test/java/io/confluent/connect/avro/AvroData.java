@@ -1135,7 +1135,7 @@ private static Object fromConnectData(
             ObjectNode node = JsonNodeFactory.instance.objectNode();
             for (Map.Entry<String, Object> entry : ((Map<String, Object>) defaultVal).entrySet()) {
               JsonNode entryDef = defaultValueFromConnect(schema.valueSchema(), entry.getValue());
-              node.put(entry.getKey(), entryDef);
+              node.replace(entry.getKey(), entryDef);
             }
             return node;
           } else {
@@ -1155,7 +1155,7 @@ private static Object fromConnectData(
           Struct struct = ((Struct) defaultVal);
           for (Field field : (schema.fields())) {
             JsonNode fieldDef = defaultValueFromConnect(field.schema(), struct.get(field));
-            node.put(field.name(), fieldDef);
+            node.replace(field.name(), fieldDef);
           }
           return node;
         }

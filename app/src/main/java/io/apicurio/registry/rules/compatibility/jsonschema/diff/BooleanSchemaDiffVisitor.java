@@ -23,8 +23,8 @@ import org.everit.json.schema.BooleanSchema;
 /**
  * @author Jakub Senko <jsenko@redhat.com>
  */
+@SuppressWarnings("unused")
 public class BooleanSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
-
 
     private final DiffContext ctx;
     private final BooleanSchema original;

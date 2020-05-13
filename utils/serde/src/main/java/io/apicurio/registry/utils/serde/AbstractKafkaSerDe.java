@@ -19,7 +19,7 @@ package io.apicurio.registry.utils.serde;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.strategy.ConfluentIdHandler;
+import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
 import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
 import io.apicurio.registry.utils.serde.strategy.IdHandler;
 import io.apicurio.registry.utils.serde.util.Utils;
@@ -84,8 +84,8 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         return self();
     }
 
-    public T asConfluent() {
-        return setIdHandler(new ConfluentIdHandler());
+    public T asLegacyId() {
+        return setIdHandler(new Legacy4ByteIdHandler());
     }
 
     protected void configure(Map<String, ?> configs) {
@@ -110,10 +110,10 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             instantiate(IdHandler.class, idh, this::setIdHandler);
 
             if (Utils.isTrue(configs.get(REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM))) {
-                if (idHandler != null && !(idHandler instanceof ConfluentIdHandler)) {
+                if (idHandler != null && !(idHandler instanceof Legacy4ByteIdHandler)) {
                     log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh, "as-confluent"));
                 }
-                setIdHandler(new ConfluentIdHandler());
+                setIdHandler(new Legacy4ByteIdHandler());
             }
         }
     }

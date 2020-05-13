@@ -184,8 +184,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
-             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) 
-        {
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
+
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             
             GenericData.Record record = new GenericData.Record(schema);
@@ -207,8 +207,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     @RegistryServiceTest
     public void testAvroReflect(Supplier<RegistryService> supplier) throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(supplier.get());
-             AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(supplier.get()))
-        {
+             AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(supplier.get())) {
+
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             serializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
             deserializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
@@ -229,8 +229,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     @RegistryServiceTest
     public void testProto(Supplier<RegistryService> supplier) throws Exception {
         try (ProtobufKafkaSerializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(supplier.get());
-             Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(supplier.get())) 
-        {
+             Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(supplier.get())) {
+
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
 
             TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();

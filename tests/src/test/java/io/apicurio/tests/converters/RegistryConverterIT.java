@@ -144,8 +144,8 @@ public class RegistryConverterIT extends BaseIT {
     public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         RegistryService service = supplier.get();
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service);
-             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) 
-        {
+             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(service)) {
+
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
             try (AvroConverter converter = new AvroConverter<>(serializer, deserializer, avroData)) {

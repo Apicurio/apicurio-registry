@@ -47,9 +47,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidJsonSchemaVersion() throws Exception {
         ContentHandle content = resourceToContentHandle("jsonschema-valid-d7.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content);
-        });
+        validator.validate(ValidityLevel.FULL, content);
     }
 
 }

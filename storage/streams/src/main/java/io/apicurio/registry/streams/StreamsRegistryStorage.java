@@ -156,17 +156,17 @@ public class StreamsRegistryStorage implements RegistryStorage {
                         SearchOver so = SearchOver.fromValue(over);
                         switch (so) {
                             case name:
-                                if (name != null && name.contains(filter)) {
+                                if (stringMetadataContainsFilter(filter, name)) {
                                     return metadata;
                                 }
                             case description:
-                                if (desc != null && desc.contains(filter)) {
+                                if (stringMetadataContainsFilter(filter, desc)) {
                                     return metadata;
                                 }
                             case labels:
                                 return null; // TODO
                             default:
-                                if ((name != null && name.contains(filter)) || (desc != null && desc.contains(filter))) {
+                                if (metaDataContainsFilter(filter, metadata.values())) {
                                     return metadata;
                                 }
                         }
@@ -176,6 +176,16 @@ public class StreamsRegistryStorage implements RegistryStorage {
             }
         }
         return null;
+    }
+
+    private static boolean stringMetadataContainsFilter(String filter, String name) {
+        return null == filter || (name != null && name.contains(filter));
+    }
+
+    private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {
+
+        return null == filter || metadataValues.stream().anyMatch(value ->
+                value != null && value.contains(filter));
     }
 
     private <T> T handleVersion(String artifactId, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {

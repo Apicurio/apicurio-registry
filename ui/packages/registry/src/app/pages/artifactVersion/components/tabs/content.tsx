@@ -87,6 +87,7 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
                         enableSnippets: false,
                         showLineNumbers: true,
                         tabSize: 2,
+                        useWorker: false
                     }}
                 />
             </div>

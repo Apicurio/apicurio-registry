@@ -330,7 +330,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 type: this.artifactType()
             };
             Services.getArtifactsService().createArtifactVersion(artifactId, data).then(versionMetaData => {
-                const artifactVersionLocation: string = `/artifacts/${ versionMetaData.id }/versions/${versionMetaData.version}`;
+                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
                 Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(artifactVersionLocation)();
             }).catch( error => {

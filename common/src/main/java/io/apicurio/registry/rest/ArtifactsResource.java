@@ -300,23 +300,6 @@ public interface ArtifactsResource {
       @PathParam("artifactId") String artifactId);
 
   /**
-   * Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`
-   * are needed.  If this is the only version of the artifact, this operation is the same as 
-   * deleting the entire artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions/{version}")
-  @DELETE
-  void deleteArtifactVersion(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
-
-  /**
    * Updates the state of a specific version of an artifact.  For example, you can use 
    * this operation to disable a specific version.
    *

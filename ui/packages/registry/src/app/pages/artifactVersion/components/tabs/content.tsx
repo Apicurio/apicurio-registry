@@ -20,7 +20,9 @@ import "./content.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/theme-tomorrow";
+import "ace-builds/src-noconflict/mode-protobuf";
+import "ace-builds/src-noconflict/mode-xml";
+import "ace-builds/src-noconflict/mode-graphqlschema";
 import "ace-builds/src-noconflict/theme-monokai";
 
 
@@ -30,6 +32,7 @@ import "ace-builds/src-noconflict/theme-monokai";
 // tslint:disable-next-line:no-empty-interface
 export interface ContentTabContentProps extends PureComponentProps {
     artifactContent: string;
+    artifactType: string;
 }
 
 /**
@@ -60,14 +63,13 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
                 this.setSingleState("editorHeight", height + "px");
             }
         }
-
     }
 
     public render(): React.ReactElement {
         return (
             <div className="ace-wrapper" id="ace-wrapper">
                 <AceEditor
-                    mode="json"
+                    mode={this.editorMode()}
                     theme="monokai"
                     name="artifactContent"
                     className="artifactContent"
@@ -97,6 +99,19 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
             editorHeight: "500px",
             editorWidth: "100%"
         };
+    }
+
+    private editorMode(): string {
+        if (this.props.artifactType === "PROTOBUF") {
+            return "protobuf";
+        }
+        if (this.props.artifactType === "WSDL" || this.props.artifactType === "XSD" || this.props.artifactType === "XML") {
+            return "xml";
+        }
+        if (this.props.artifactType === "GRAPHQL") {
+            return "graphqlschema";
+        }
+        return "json";
     }
 }
 

@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../components";
+import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
 import {
     Flex,
     FlexItem,
@@ -48,11 +48,9 @@ export interface PageProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface PageState extends PureComponentState {
-    isLoading: boolean;
-    isError: boolean;
-    error: any|null;
-    errorInfo: any|null;
-    errorType: PageErrorType|null;
+    isLoading?: boolean;
+    isError?: boolean;
+    error?: PageError;
 }
 
 
@@ -71,26 +69,9 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
     }
 
     public render(): React.ReactElement {
-        if (this.state.isError) {
+        if (this.isError()) {
             return (
-                <React.Fragment>
-                    <PageSection className="ps_error-header" variant={PageSectionVariants.light}>
-                        <Flex className="example-border">
-                            <FlexItem>
-                                <TextContent>
-                                    <Text component={TextVariants.h1}><ExclamationIcon />Error Detected</Text>
-                                </TextContent>
-                            </FlexItem>
-                            <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                                <Link to="/">Reload artifacts</Link>
-                            </FlexItem>
-                        </Flex>
-                    </PageSection>
-                    <PageSection className="ps_error-body" variant={PageSectionVariants.light}>
-                        <h1>{ this.errorInfo() }</h1>
-                        <TextArea value={ this.error() } readOnly={true} style={ {height: "275px", marginTop: "20px"} } />
-                    </PageSection>
-                </React.Fragment>
+                <ErrorPage error={this.state.error} />
             );
         } else {
             return this.renderPage();
@@ -114,8 +95,8 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         this.setSingleState("isLoading", false);
     }
 
-    protected handleServerError(error: any, errorInfo: string): void {
-        this.handleError(PageErrorType.Server, error, errorInfo);
+    protected handleServerError(error: any, errorMessage: string): void {
+        this.handleError(PageErrorType.Server, error, errorMessage);
     }
 
     protected getPathParam(paramName: string): string {
@@ -123,32 +104,24 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         return this.props.match.params[paramName];
     }
 
-    private handleError(errorType: PageErrorType, error: any, errorInfo: any): void {
+    protected isLoading(): boolean {
+        return this.state.isLoading ? true : false;
+    }
+
+    private isError(): boolean {
+        return this.state.isError ? true : false;
+    }
+
+    private handleError(errorType: PageErrorType, error: any, errorMessage: any): void {
         Services.getLoggerService().error("[PageComponent] Handling an error of type: ", errorType);
-        Services.getLoggerService().error("[PageComponent] ", errorInfo);
+        Services.getLoggerService().error("[PageComponent] ", errorMessage);
         Services.getLoggerService().error("[PageComponent] ", error);
         this.setMultiState({
-            error,
-            errorInfo,
-            errorType,
+            error: {
+                error, errorMessage,
+                type: errorType
+            },
             isError: true
         });
     }
-
-    private errorInfo(): string {
-        if (this.state.errorInfo) {
-            return JSON.stringify(this.state.errorInfo, null, 3);
-        } else {
-            return "Error info not available";
-        }
-    }
-
-    private error(): string {
-        if (this.state.error) {
-            return JSON.stringify(this.state.error, null, 3);
-        } else {
-            return "Error not available";
-        }
-    }
-
 }

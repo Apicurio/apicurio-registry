@@ -25,7 +25,6 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
@@ -66,7 +65,6 @@ public class SearchResourceImpl  implements SearchResource, Headers{
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
-
         if (offset == null) {
             offset = 0;
         }
@@ -75,7 +73,7 @@ public class SearchResourceImpl  implements SearchResource, Headers{
         }
         final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
         final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
-
+        
         return registryStorage.searchArtifacts(search, offset, limit, over, order);
     }
 

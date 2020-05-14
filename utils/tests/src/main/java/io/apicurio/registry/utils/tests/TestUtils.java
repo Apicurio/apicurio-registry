@@ -187,6 +187,7 @@ public class TestUtils {
     public static <T> T retry(Callable<T> callable) throws Exception {
         Throwable error = null;
         int tries = 5;
+        int attempt = 1;
         while (tries > 0) {
             try {
                 return callable.call();
@@ -196,8 +197,9 @@ public class TestUtils {
                 } else {
                     error.addSuppressed(t);
                 }
-                Thread.sleep(100L);
+                Thread.sleep(100L * attempt);
                 tries--;
+                attempt++;
             }
         }
         Assertions.assertTrue(tries > 0, String.format("Failed handle callable: %s [%s]", callable, error));

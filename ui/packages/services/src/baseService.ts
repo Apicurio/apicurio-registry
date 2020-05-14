@@ -110,6 +110,8 @@ export abstract class BaseService implements Service {
                 } else {
                     return data;
                 }
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -135,6 +137,8 @@ export abstract class BaseService implements Service {
                 } else {
                     return;
                 }
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -161,6 +165,8 @@ export abstract class BaseService implements Service {
                 } else {
                     return data;
                 }
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -186,6 +192,8 @@ export abstract class BaseService implements Service {
                 } else {
                     return;
                 }
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -212,6 +220,8 @@ export abstract class BaseService implements Service {
                 } else {
                     return data;
                 }
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -231,6 +241,8 @@ export abstract class BaseService implements Service {
         return axios.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;
+            }).catch(error => {
+                return Promise.reject(this.unwrapErrorData(error));
             });
     }
 
@@ -243,6 +255,13 @@ export abstract class BaseService implements Service {
                     return status >= 200 && status < 300;
                 }
             }, ...options};
+    }
+
+    private unwrapErrorData(error: any): any {
+        if (error.response && error.response.data) {
+            return error.response.data;
+        }
+        return error;
     }
 
 }

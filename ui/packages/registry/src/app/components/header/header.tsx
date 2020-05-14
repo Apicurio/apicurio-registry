@@ -20,7 +20,6 @@ import "./header.css"
 import {Brand, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
 import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {ArtifactsPageEmptyStateState} from "../../pages/artifacts/components/empty";
 import {CogIcon} from "@patternfly/react-icons";
 import {Link} from "react-router-dom";
 
@@ -60,7 +59,7 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
         />);
     }
 
-    protected initializeState(): ArtifactsPageEmptyStateState {
+    protected initializeState(): AppHeaderState {
         return {};
     }
 

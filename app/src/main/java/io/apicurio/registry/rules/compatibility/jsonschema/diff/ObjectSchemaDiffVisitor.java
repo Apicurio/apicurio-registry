@@ -198,6 +198,7 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         super.visitSchemaOfAdditionalProperties(schemaOfAdditionalProperties);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void visitPatternProperties(Map<Pattern, SchemaWrapper> patternProperties) {
         diffSetChanged(ctx.sub("patternProperties"),
@@ -211,6 +212,7 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         super.visitPatternProperties(patternProperties);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void visitPatternPropertySchema(Pattern propertyNamePattern, SchemaWrapper schema) {
         final Map<String, Schema> stringifiedOriginal = original.getPatternProperties().entrySet().stream()

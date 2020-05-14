@@ -15,6 +15,6 @@
  * limitations under the License.
  */
 
-export * from './ruleList';
-export * from './compatibility-dropdown';
-export * from './validity-dropdown';
+export * from "./ruleList";
+export * from "./compatibility-dropdown";
+export * from "./validity-dropdown";

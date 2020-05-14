@@ -27,7 +27,6 @@ import {
     DataListItemRow
 } from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {ArtifactsPageEmptyStateState} from "../../pages/artifacts/components/empty";
 import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
 import {Rule} from "@apicurio/registry-models";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
@@ -120,7 +119,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         );
     }
 
-    protected initializeState(): ArtifactsPageEmptyStateState {
+    protected initializeState(): RuleListState {
         return {};
     }
 

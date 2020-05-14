@@ -24,34 +24,33 @@ import {Redirect} from "react-router";
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactRedirectPageProps extends PageProps {
+export interface RootRedirectPageProps extends PageProps {
 }
 
 /**
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactRedirectPageState extends PageState {
+export interface RootRedirectPageState extends PageState {
 }
 
 /**
  * The artifact details redirect page.
  */
-export class ArtifactRedirectPage extends PageComponent<ArtifactRedirectPageProps, ArtifactRedirectPageState> {
+export class RootRedirectPage extends PageComponent<RootRedirectPageProps, RootRedirectPageState> {
 
-    constructor(props: Readonly<ArtifactRedirectPageProps>) {
+    constructor(props: Readonly<RootRedirectPageProps>) {
         super(props);
     }
 
     public renderPage(): React.ReactElement {
-        const artifactId: any = this.getPathParam("artifactId");
-        const redirect: string = `/artifacts/${artifactId}/versions/latest`;
+        const redirect: string = `/artifacts`;
         return (
             <Redirect to={redirect}  />
         );
     }
 
-    protected initializeState(): ArtifactRedirectPageState {
+    protected initializeState(): RootRedirectPageState {
         return {};
     }
 }

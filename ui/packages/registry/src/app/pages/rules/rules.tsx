@@ -64,7 +64,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.state.isLoading ?
+                        this.isLoading() ?
                             <Flex>
                                 <FlexItem><Spinner size="lg"/></FlexItem>
                                 <FlexItem><span>Loading, please wait...</span></FlexItem>
@@ -84,10 +84,6 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     protected initializeState(): RulesPageState {
         return {
-            error: null,
-            errorInfo: null,
-            errorType: null,
-            isError: false,
             isLoading: true,
             rules: null
         };

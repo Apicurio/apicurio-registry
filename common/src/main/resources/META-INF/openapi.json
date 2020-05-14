@@ -1524,15 +1524,9 @@
                 "requestBody": {
                     "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
                     "content": {
-                        "application/json": {
-
-                        },
-                        "application/x-protobuf": {
-
-                        },
-                        "application/x-protobuffer": {
-
-                        }
+                        "application/json": {},
+                        "application/x-protobuf": {},
+                        "application/x-protobuffer": {}
                     },
                     "required": true
                 },
@@ -1715,11 +1709,11 @@
                         },
                         "description": "On a successful response, returns a result set of versions - one for each version\nof the artifact."
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "searchVersions",
@@ -1915,11 +1909,17 @@
                 "type": "object",
                 "properties": {
                     "message": {
+                        "description": "The short error message.",
                         "type": "string"
                     },
                     "error_code": {
                         "format": "int32",
+                        "description": "The server-side error code.",
                         "type": "integer"
+                    },
+                    "detail": {
+                        "description": "Full details about the error.  This might contain a server stack trace, for example.",
+                        "type": "string"
                     }
                 },
                 "example": {

@@ -5,12 +5,12 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Confluent's IdHandler.
+ * IdHandler that assumes 4 bytes for the magic number (the ID).
  *
  * @author Ales Justin
  */
-public class ConfluentIdHandler implements IdHandler {
-    static final int idSize = 4; // Confluent uses 4 / int
+public class Legacy4ByteIdHandler implements IdHandler {
+    static final int idSize = 4; // e.g. Confluent uses 4 / int
 
     public void writeId(long id, OutputStream out) throws IOException {
         out.write(ByteBuffer.allocate(idSize).putInt((int) id).array());

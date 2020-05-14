@@ -1,5 +1,6 @@
-/*
- * Copyright 2019 Red Hat
+/**
+ * @license
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +15,4 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
-
-//@SubstrateTest
-public class NativeSubjectsResourceIT_bak extends SubjectsResourceTest {
-
-    // Execute the same tests but in native mode.
-    // TODO ... not used atm
-}
+export * from "./root";

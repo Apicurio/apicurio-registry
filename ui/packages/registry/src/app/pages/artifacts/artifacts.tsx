@@ -145,7 +145,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
             Services.getArtifactsService().createArtifact(this.state.uploadFormData).then(metaData => {
-                const artifactLocation: string = `/artifacts/${ metaData.id }`;
+                const artifactLocation: string = `/artifacts/${ encodeURIComponent(metaData.id) }`;
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
@@ -169,10 +169,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     private artifactsCount(): number {
         return this.state.results ? this.state.results.artifacts.length : 0;
-    }
-
-    private totalArtifactsCount(): number {
-        return this.state.results ? this.state.results.count : 0;
     }
 
     private onFilterChange = (criteria: GetArtifactsCriteria): void => {

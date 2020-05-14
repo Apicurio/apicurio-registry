@@ -27,6 +27,7 @@ import {
 import {SearchedArtifact} from "@apicurio/registry-models";
 import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {Services} from "@apicurio/registry-services";
 
 /**
  * Properties
@@ -84,7 +85,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                     aria-labelledby="artifact-actions"
                                     aria-label="Actions"
                                 >
-                                    <Link className="pf-c-button pf-m-secondary" to={ `/artifacts/${artifact.id}` }>View artifact</Link>
+                                    <Link className="pf-c-button pf-m-secondary" to={this.artifactLink(artifact)}>View artifact</Link>
                                 </DataListAction>
                             </DataListItemRow>
                     )
@@ -99,6 +100,11 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
 
     private labels(artifact: SearchedArtifact): string[] {
         return artifact.labels ? artifact.labels : [];
+    }
+
+    private artifactLink(artifact: SearchedArtifact): string {
+        const link: string = `/artifacts/${ encodeURIComponent(artifact.id) }`;
+        return link;
     }
 
 }

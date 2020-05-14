@@ -72,7 +72,7 @@ public class ClusterIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client1.createArtifact(ArtifactType.JSON, artifactId, null, stream);
         try {
             TestUtils.retry(() -> {
                 ArtifactMetaData amd = client2.getArtifactMetaData(artifactId);
@@ -121,7 +121,7 @@ public class ClusterIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client1.createArtifact(ArtifactType.JSON, artifactId, null, stream);
         try {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();

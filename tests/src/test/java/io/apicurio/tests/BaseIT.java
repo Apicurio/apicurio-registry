@@ -124,7 +124,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, artifactData);
+            CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, null, artifactData);
 
             // Make sure artifact is fully registered
             ArtifactMetaData amd = ConcurrentUtil.result(csResult);
@@ -148,6 +148,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
                 ArtifactType.AVRO,
                 artifactName,
+                null, 
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);

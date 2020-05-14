@@ -105,8 +105,9 @@ class CachedRegistryService implements RegistryService {
     }
 
     @Override
-    public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, InputStream data) {
-        CompletionStage<ArtifactMetaData> cs = getDelegate().createArtifact(xRegistryArtifactType, xRegistryArtifactId, data);
+    public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
+            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+        CompletionStage<ArtifactMetaData> cs = getDelegate().createArtifact(xRegistryArtifactType, xRegistryArtifactId, ifExists, data);
         return cs.thenApply(amd -> {
             globalAMD.put(amd.getGlobalId(), amd);
             return amd;

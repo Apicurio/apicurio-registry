@@ -70,7 +70,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testFindBySchema(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
         retry(() -> supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -84,7 +84,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testGetOrCreate(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
-        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
         retry(() -> supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -127,6 +127,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(
             ArtifactType.AVRO,
             artifactId + "-myrecord3",
+            null, 
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData amd = ConcurrentUtil.result(csa);

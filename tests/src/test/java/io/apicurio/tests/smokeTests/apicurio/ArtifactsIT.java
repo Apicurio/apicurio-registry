@@ -178,7 +178,7 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, artifactData);
+        CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
         // Make sure artifact is fully registered
         ArtifactMetaData amd = ConcurrentUtil.result(csResult);
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));

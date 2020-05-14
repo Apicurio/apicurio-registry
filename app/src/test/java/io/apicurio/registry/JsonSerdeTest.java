@@ -50,7 +50,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, jsonSchema);
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, jsonSchema);
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
 
         // make sure we have schema registered

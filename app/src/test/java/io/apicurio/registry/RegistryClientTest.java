@@ -64,7 +64,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, stream);
+            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, stream);
             ConcurrentUtil.result(csResult);
 
             EditableMetaData emd = new EditableMetaData();
@@ -88,7 +88,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     void deleteArtifactSpecificVersion(Supplier<RegistryService> supplier) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = generateArtifactId();
-        ConcurrentUtil.result(supplier.get().createArtifact(ArtifactType.AVRO, artifactId, artifactData));
+        ConcurrentUtil.result(supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, artifactData));
 
         for (int x = 0; x < 9; x++) {
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
@@ -132,7 +132,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = UUID.randomUUID().toString();
         String name = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
-        client.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client.createArtifact(ArtifactType.JSON, artifactId, null, stream);
         client.reset();
         try {
             retry(() -> {
@@ -171,7 +171,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = UUID.randomUUID().toString();
         String name = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
-        client.createArtifact(ArtifactType.JSON, artifactId, stream);
+        client.createArtifact(ArtifactType.JSON, artifactId, null, stream);
         client.createArtifactVersion(artifactId, ArtifactType.JSON, stream);
         client.reset();
         try {

@@ -51,7 +51,7 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
         } catch (WebApplicationException e) {
             if (isNotFound(e.getResponse())) {
                 try (InputStream stream = handle.stream()) {
-                    CompletionStage<ArtifactMetaData> cs = getClient().createArtifact(artifactType, artifactId, stream);
+                    CompletionStage<ArtifactMetaData> cs = getClient().createArtifact(artifactType, artifactId, null, stream);
                     return unwrap(cs);
                 }
             } else {

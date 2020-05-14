@@ -74,13 +74,13 @@ export class VersionSelector extends PureComponent<VersionSelectorProps, Version
                     </div>
                 </div>
                 <div className="version-list">
-                    <Link key="latest" to={`/artifacts/${this.props.artifactId}/versions/latest`} className="version-item latest">
+                    <Link key="latest" to={`/artifacts/${encodeURIComponent(this.props.artifactId)}/versions/latest`} className="version-item latest">
                         <span className="name">latest</span>
                         <span className="date" />
                     </Link>
                     {
                         this.props.versions.map(v =>
-                            <Link key={v.version} to={`/artifacts/${this.props.artifactId}/versions/${v.version}`} className="version-item">
+                            <Link key={v.version} to={`/artifacts/${encodeURIComponent(this.props.artifactId)}/versions/${v.version}`} className="version-item">
                                 <span className="name">{ v.version }</span>
                                 <span className="date"><Moment date={v.createdOn} fromNow={true} /></span>
                             </Link>

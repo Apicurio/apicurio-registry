@@ -102,6 +102,7 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
                                             enableSnippets: false,
                                             showLineNumbers: true,
                                             tabSize: 2,
+                                            useWorker: false
                                         }}
                                     />
                                 </div>

@@ -17,20 +17,7 @@
 
 import React from "react";
 import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
-import {
-    Flex,
-    FlexItem,
-    FlexModifiers,
-    PageSection,
-    PageSectionVariants,
-    Text,
-    TextArea,
-    TextContent,
-    TextVariants
-} from "@patternfly/react-core";
 import {Services} from "@apicurio/registry-services";
-import {ExclamationIcon} from "@patternfly/react-icons";
-import {Link} from "react-router-dom";
 
 export enum PageErrorType {
     React, Server
@@ -101,7 +88,7 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected getPathParam(paramName: string): string {
         // @ts-ignore
-        return this.props.match.params[paramName];
+        return decodeURIComponent(this.props.match.params[paramName]);
     }
 
     protected isLoading(): boolean {

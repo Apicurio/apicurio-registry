@@ -74,16 +74,7 @@ export class NotFoundPage extends PageComponent<NotFoundPageProps, NotFoundPageS
     }
 
     protected initializeState(): NotFoundPageState {
-        return {
-            error: null,
-            errorInfo: null,
-            errorType: null,
-            isError: false,
-            isLoading: true
-        };
-    }
-
-    protected loadPageData(): void {
+        return {};
     }
 
 }

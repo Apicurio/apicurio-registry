@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {ConfigType} from './config.type';
+import {ConfigType, FeaturesConfig} from './config.type';
 import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -23,7 +23,9 @@ const DEFAULT_CONFIG: ConfigType = {
         type: "rest",
         url: "http://localhost:8080/api/"
     },
-    features: {},
+    features: {
+        readOnly: false
+    },
     mode: "dev",
     ui: {
         contextPath: null,
@@ -79,6 +81,20 @@ export class ConfigService implements Service {
             return undefined;
         }
         return this.config.ui.contextPath;
+    }
+
+    public features(): FeaturesConfig {
+        if (!this.config.features) {
+            return {};
+        }
+        return this.config.features;
+    }
+
+    public featureReadOnly(): boolean {
+        if (!this.config.features || !this.config.features.readOnly) {
+            return false;
+        }
+        return this.config.features.readOnly;
     }
 
 }

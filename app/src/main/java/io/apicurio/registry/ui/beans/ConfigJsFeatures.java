@@ -19,11 +19,8 @@ package io.apicurio.registry.ui.beans;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ConfigJs {
+public class ConfigJsFeatures {
     
-    public String mode;
-    public ConfigJsArtifacts artifacts = new ConfigJsArtifacts();
-    public ConfigJsUi ui = new ConfigJsUi();
-    public ConfigJsFeatures features = new ConfigJsFeatures();
+    public boolean readOnly;
 
 }

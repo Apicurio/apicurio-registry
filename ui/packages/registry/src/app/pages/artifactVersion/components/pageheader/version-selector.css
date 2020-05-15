@@ -3,6 +3,10 @@
     max-width: 425px;
 }
 
+.version-selector-dropdown.dropdown-align-right .pf-c-dropdown__menu {
+    right: 0;
+}
+
 .version-selector-dropdown .version-filter {
     padding-left: 5px;
     padding-right: 5px;

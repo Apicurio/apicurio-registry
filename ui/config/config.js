@@ -9,5 +9,6 @@ var ApicurioRegistryConfig = {
         url: "http://localhost:8888/ui"
     },
     features: {
+        readOnly: false
     }
 };

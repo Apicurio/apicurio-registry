@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import io.apicurio.registry.rest.beans.IfExistsType;
 import org.hamcrest.CustomMatcher;
@@ -871,30 +872,32 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testCreateAlreadyExistingArtifact() {
+
+        final String artifactId = UUID.randomUUID().toString();
         final String artifactContent = resourceToString("openapi-empty.json");
         final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
 
         // Create OpenAPI artifact - indicate the type via a header param
-        createArtifact("testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Try to create the same artifact ID (should fail)
         given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .header("X-Registry-ArtifactId", artifactId)
                 .body(artifactContent)
                 .post("/artifacts")
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/1' already exists."));
+                .body("message", equalTo("An artifact with ID '"+artifactId+"' already exists."));
 
         // Try to create the same artifact ID with Return for if exists (should return same artifact)
         given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .header("X-Registry-ArtifactId", artifactId)
                 .queryParam("ifExists", IfExistsType.RETURN)
                 .body(artifactContent)
                 .post("/artifacts")
@@ -910,7 +913,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .header("X-Registry-ArtifactId", artifactId)
                 .queryParam("ifExists", IfExistsType.UPDATE)
                 .body(updatedArtifactContent)
                 .post("/artifacts")

@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.util;
 
+import java.io.BufferedReader;
+import java.io.StringReader;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -73,11 +76,22 @@ class ContentTypeUtilTest {
      * Test method for {@link io.apicurio.registry.util.ContentTypeUtil#yamlToJson(io.apicurio.registry.content.ContentHandle)}.
      */
     @Test
-    void testYamlToJson() {
+    void testYamlToJson() throws Exception {
         ContentHandle yaml = ContentHandle.create(YAML_CONTENT);
         ContentHandle json = ContentTypeUtil.yamlToJson(yaml);
-        Assertions.assertEquals(JSON_CONTENT, json.content());
-
+        Assertions.assertEquals(normalize(JSON_CONTENT), normalize(json.content()));
+    }
+    
+    private static final String normalize(String value) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new StringReader(value));
+        String line = reader.readLine();
+        while (line != null) {
+            builder.append(line);
+            builder.append("\n");
+            line = reader.readLine();
+        }
+        return builder.toString();
     }
 
 }

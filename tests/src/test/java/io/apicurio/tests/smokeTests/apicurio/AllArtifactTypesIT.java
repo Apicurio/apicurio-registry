@@ -25,6 +25,7 @@ import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 
 import static io.apicurio.tests.Constants.SMOKE;
@@ -127,4 +128,8 @@ class AllArtifactTypesIT extends BaseIT {
         doTest(service, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
     }
 
+    @AfterEach
+    void deleteRules(RegistryService service) {
+        service.deleteAllGlobalRules();
+    }
 }

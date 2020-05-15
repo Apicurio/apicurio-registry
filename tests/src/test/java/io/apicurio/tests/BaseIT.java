@@ -30,6 +30,7 @@ import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
@@ -98,6 +99,11 @@ public abstract class BaseIT implements TestSeparator, Constants {
             //noinspection OptionalGetWithoutIsPresent
             storeRegistryLog(info.getTestClass().get().getCanonicalName());
         }
+    }
+
+    @AfterEach
+    void clear() throws IOException, RestClientException {
+        clearAllConfluentSubjects();
     }
 
     private static void storeRegistryLog(String className) {

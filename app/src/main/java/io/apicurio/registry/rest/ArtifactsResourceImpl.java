@@ -30,12 +30,7 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.search.client.SearchClient;
 import io.apicurio.registry.search.common.Search;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -64,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
@@ -185,6 +181,42 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
     }
 
+    private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType xRegistryArtifactType,
+            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+
+        try {
+            final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
+
+            switch (ifExists) {
+            case UPDATE:
+                return updateArtifact(xRegistryArtifactId, xRegistryArtifactType, data);
+            case RETURN:
+                return CompletableFuture.completedFuture(artifactMetaData);
+            case FAIL:
+                throw new ArtifactAlreadyExistsException(xRegistryArtifactId);
+            }
+        } catch (ArtifactNotFoundException ex) {}
+
+        //XX Intended null return
+        return null;
+    }
+
+    private CompletionStage<ArtifactMetaData> handleNotExistingArtifactCreation(ArtifactType xRegistryArtifactType,
+            String xRegistryArtifactId, InputStream data) {
+        String artifactId = xRegistryArtifactId;
+        if (artifactId == null || artifactId.trim().isEmpty()) {
+            artifactId = idGenerator.generate();
+        }
+        ContentHandle content = ContentHandle.create(data);
+
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
+        String finalArtifactId = artifactId;
+        return storage.createArtifact(artifactId, artifactType, content)
+                .thenCompose(amdd -> indexArtifact(finalArtifactId, content, amdd))
+                .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
+    }
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
      */
@@ -231,18 +263,16 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
             String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
-        String artifactId = xRegistryArtifactId;
-        if (artifactId == null || artifactId.trim().isEmpty()) {
-            artifactId = idGenerator.generate();
-        }
-        ContentHandle content = ContentHandle.create(data);
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
-        String finalArtifactId = artifactId;
-        return storage.createArtifact(artifactId, artifactType, content)
-                      .thenCompose(amdd -> indexArtifact(finalArtifactId, content, amdd))
-                      .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
+        final CompletionStage<ArtifactMetaData> alreadyExistingArtifactResult = handleIfExists(
+                xRegistryArtifactType, xRegistryArtifactId, ifExists, data);
+
+        if ( null != alreadyExistingArtifactResult) {
+
+            return alreadyExistingArtifactResult;
+        }
+
+        return handleNotExistingArtifactCreation(xRegistryArtifactType, xRegistryArtifactId, data);
     }
 
     /**

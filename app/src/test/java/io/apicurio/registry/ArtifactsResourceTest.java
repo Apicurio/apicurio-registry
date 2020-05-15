@@ -19,13 +19,12 @@ package io.apicurio.registry;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.apicurio.registry.rest.beans.IfExistsType;
 import org.hamcrest.CustomMatcher;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -867,6 +866,61 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .get("/artifacts/{artifactId}/versions/{version}/meta")
             .then()
                 .statusCode(404);
+
+    }
+
+    @Test
+    public void testCreateAlreadyExistingArtifact() {
+        final String artifactContent = resourceToString("openapi-empty.json");
+        final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+
+
+        // Create OpenAPI artifact - indicate the type via a header param
+        createArtifact("testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent);
+
+        // Try to create the same artifact ID (should fail)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .body(artifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/1' already exists."));
+
+        // Try to create the same artifact ID with Return for if exists (should return same artifact)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .queryParam("ifExists", IfExistsType.RETURN)
+                .body(artifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("version", equalTo(1))
+                .body("createdOn", anything())
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."));;
+
+        // Try to create the same artifact ID with Update for if exists (should update the artifact)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
+                .queryParam("ifExists", IfExistsType.UPDATE)
+                .body(updatedArtifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("createdOn", anything())
+                .body("version", equalTo(2))
+                .body("description", equalTo("An example API design using OpenAPI."));;
+
 
     }
 }

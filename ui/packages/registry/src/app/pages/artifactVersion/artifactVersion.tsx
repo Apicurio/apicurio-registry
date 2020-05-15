@@ -30,7 +30,7 @@ import {
     Tabs
 } from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, VersionMetaData} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
 import {CreateVersionData, Services, EditableMetaData} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
@@ -264,13 +264,29 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     private doDownloadArtifact = (): void => {
         const content: string = this.state.artifactContent;
 
-        // TODO support all types here - graphql, etc.
-        let contentType: string = "application/json";
+        let contentType: string = ContentTypes.APPLICATION_JSON;
         let fext: string = "json";
-        if (this.state.artifact?.type === "PROTOBUF") {
-            contentType = "application/x-protobuf";
+        if (this.state.artifact?.type === ArtifactTypes.PROTOBUF) {
+            contentType = ContentTypes.APPLICATION_PROTOBUF;
             fext = "proto";
         }
+        if (this.state.artifact?.type === ArtifactTypes.WSDL) {
+            contentType = ContentTypes.APPLICATION_XML;
+            fext = "wsdl";
+        }
+        if (this.state.artifact?.type === ArtifactTypes.XSD) {
+            contentType = ContentTypes.APPLICATION_XML;
+            fext = "xsd";
+        }
+        if (this.state.artifact?.type === ArtifactTypes.XML) {
+            contentType = ContentTypes.APPLICATION_XML;
+            fext = "xml";
+        }
+        if (this.state.artifact?.type === ArtifactTypes.GRAPHQL) {
+            contentType = ContentTypes.APPLICATION_JSON;
+            fext = "graphql";
+        }
+
         const fname: string = this.artifactNameOrId() + "." + fext;
         Services.getDownloaderService().downloadToFS(content, contentType, fname);
     };

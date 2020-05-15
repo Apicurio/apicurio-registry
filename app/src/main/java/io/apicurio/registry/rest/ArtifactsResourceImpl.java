@@ -41,6 +41,7 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ProtoUtil;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -220,6 +221,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
+        if (ContentTypeUtil.isApplicationYaml(request)) {
+            content = ContentTypeUtil.yamlToJson(content);
+        }
+
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
@@ -235,12 +240,16 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             artifactId = idGenerator.generate();
         }
         ContentHandle content = ContentHandle.create(data);
+        if (ContentTypeUtil.isApplicationYaml(request)) {
+            content = ContentTypeUtil.yamlToJson(content);
+        }
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
-        String finalArtifactId = artifactId;
+        final String finalArtifactId = artifactId;
+        final ContentHandle finalContent = content;
         return storage.createArtifact(artifactId, artifactType, content)
-                      .thenCompose(amdd -> indexArtifact(finalArtifactId, content, amdd))
+                      .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd))
                       .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
     }
 
@@ -252,9 +261,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifact(artifactId);
 
+        // The content-type will be different for protobuf artifacts and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
+        }
+        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
+            contentType = ArtifactMediaTypes.XML;
         }
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
@@ -269,10 +282,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
+        if (ContentTypeUtil.isApplicationYaml(request)) {
+            content = ContentTypeUtil.yamlToJson(content);
+        }
+        
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        final ContentHandle finalContent = content;
         return storage.updateArtifact(artifactId, artifactType, content)
-                      .thenCompose(amdd -> indexArtifact(artifactId, content, amdd))
+                      .thenCompose(amdd -> indexArtifact(artifactId, finalContent, amdd))
                       .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
@@ -300,10 +318,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
+        if (ContentTypeUtil.isApplicationYaml(request)) {
+            content = ContentTypeUtil.yamlToJson(content);
+        }
+
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        final ContentHandle finalContent = content;
         return storage.updateArtifact(artifactId, artifactType, content)
-                      .thenCompose(amdd -> indexArtifact(artifactId, content, amdd))
+                      .thenCompose(amdd -> indexArtifact(artifactId, finalContent, amdd))
                       .thenApply(dto -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, dto));
     }
 
@@ -315,10 +338,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 
-        // protobuf - the content-type will be different for protobuf artifacts
+        // The content-type will be different for protobuf artifacts and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
+        }
+        if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
+            contentType = ArtifactMediaTypes.XML;
         }
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
@@ -409,6 +435,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
+        if (ContentTypeUtil.isApplicationYaml(request)) {
+            content = ContentTypeUtil.yamlToJson(content);
+        }
+
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }

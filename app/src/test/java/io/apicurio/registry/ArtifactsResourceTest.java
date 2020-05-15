@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +35,8 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.config.EncoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 
 /**
@@ -94,7 +97,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/detect"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
-
     }
 
     @Test
@@ -783,5 +785,70 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(404);
 
+    }
+    
+    @Test
+    public void testYamlContentType() {
+        String artifactId = "testYamlContentType";
+        ArtifactType artifactType = ArtifactType.OPENAPI;
+        String artifactContent = resourceToString("openapi-empty.yaml");
+        
+        // Create OpenAPI artifact (from YAML)
+        given()
+            .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_YAML, ContentType.TEXT)))
+            .when()
+                .contentType(CT_YAML)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."))
+                .body("type", equalTo(artifactType.name()));
+
+        // Get the artifact content (should be JSON)
+        given()
+            .when()
+                .pathParam("artifactId", "testYamlContentType")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .header("Content-Type", Matchers.containsString(CT_JSON))
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+    }
+    
+
+    @Test
+    public void testWsdlArtifact() {
+        String artifactId = "testWsdlArtifact";
+        ArtifactType artifactType = ArtifactType.WSDL;
+        String artifactContent = resourceToString("sample.wsdl");
+        
+        // Create OpenAPI artifact (from YAML)
+        given()
+            .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_XML, ContentType.TEXT)))
+            .when()
+                .contentType(CT_XML)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        // Get the artifact content (should be XML)
+        given()
+            .when()
+                .pathParam("artifactId", "testWsdlArtifact")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .header("Content-Type", Matchers.containsString(CT_XML));
     }
 }

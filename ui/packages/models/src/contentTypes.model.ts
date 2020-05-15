@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./versionMetaData.model";
+// tslint:disable-next-line:interface-name
+export class ContentTypes {
+
+    public static APPLICATION_JSON: string = "application/json";
+    public static APPLICATION_YAML: string = "application/x-yaml";
+    public static APPLICATION_XML: string = "application/xml";
+    public static APPLICATION_PROTOBUF: string = "application/x-protobuf";
+
+}

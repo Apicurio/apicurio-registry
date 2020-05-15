@@ -15,7 +15,14 @@
  * limitations under the License.
  */
 
-import {SearchedArtifact, SearchedVersion, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {
+    SearchedArtifact,
+    SearchedVersion,
+    ArtifactMetaData,
+    Rule,
+    VersionMetaData,
+    ContentTypes
+} from "@apicurio/registry-models";
 import {BaseService} from "../baseService";
 
 export interface CreateArtifactData {
@@ -67,12 +74,7 @@ export class ArtifactsService extends BaseService {
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
         }
-        if (data.type === "PROTOBUF") {
-            headers["Content-Type"] = "application/x-protobuf";
-        } else {
-            headers["Content-Type"] = "application/json";
-        }
-
+        headers["Content-Type"] = this.contentType(data.type, data.content);
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 
@@ -82,12 +84,7 @@ export class ArtifactsService extends BaseService {
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
         }
-        if (data.type === "PROTOBUF") {
-            headers["Content-Type"] = "application/x-protobuf";
-        } else {
-            headers["Content-Type"] = "application/json";
-        }
-
+        headers["Content-Type"] = this.contentType(data.type, data.content);
         return this.httpPostWithReturn<any, VersionMetaData>(endpoint, data.content, this.options(headers));
     }
 
@@ -205,5 +202,46 @@ export class ArtifactsService extends BaseService {
         this.logger.info("[ArtifactsService] Deleting artifact:", artifactId);
         const endpoint: string = this.endpoint("/artifacts/:artifactId", { artifactId });
         return this.httpDelete(endpoint);
+    }
+
+    private contentType(type: string, content: string): string {
+        switch (type) {
+            case "PROTOBUF":
+                return ContentTypes.APPLICATION_PROTOBUF;
+            case "WSDL":
+            case "XSD":
+            case "XML":
+                return ContentTypes.APPLICATION_XML;
+            case "GRAPHQL":
+                // TODO need a better content-type for GraphQL!
+                return ContentTypes.APPLICATION_JSON;
+        }
+        if (this.isJson(content)) {
+            return ContentTypes.APPLICATION_JSON;
+        } else if (this.isXml(content)) {
+            return ContentTypes.APPLICATION_XML;
+        } else {
+            return ContentTypes.APPLICATION_YAML;
+        }
+    }
+
+    private isJson(content: string): boolean {
+        try {
+            JSON.parse(content);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    private isXml(content: string): boolean {
+        try {
+            const xmlParser: DOMParser = new DOMParser();
+            const dom: Document = xmlParser.parseFromString(content, "application/xml");
+            const isParseError: boolean = dom.documentElement.nodeName === "parsererror";
+            return !isParseError;
+        } catch (e) {
+            return false;
+        }
     }
 }

@@ -17,6 +17,7 @@
 import React from "react";
 import "./artifactTypeIcon.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
+import {ArtifactTypes} from "@apicurio/registry-models";
 
 /**
  * Properties
@@ -55,37 +56,34 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
     private getTitle(): string {
         let title: string = this.props.type;
         switch (this.props.type) {
-            case "AVRO":
+            case ArtifactTypes.AVRO:
                 title = "Avro Schema";
                 break;
-            case "PROTOBUF":
+            case ArtifactTypes.PROTOBUF:
                 title = "Protobuf Schema";
                 break;
-            case "PROTOBUF_FD":
-                title = "Protobuf Schema";
-                break;
-            case "JSON":
+            case ArtifactTypes.JSON:
                 title = "JSON Schema";
                 break;
-            case "OPENAPI":
+            case ArtifactTypes.OPENAPI:
                 title = "OpenAPI Definition";
                 break;
-            case "ASYNCAPI":
+            case ArtifactTypes.ASYNCAPI:
                 title = "AsyncAPI Definition";
                 break;
-            case "GRAPHQL":
+            case ArtifactTypes.GRAPHQL:
                 title = "GraphQL Definition";
                 break;
-            case "KCONNECT":
+            case ArtifactTypes.KCONNECT:
                 title = "Kafka Connect Schema";
                 break;
-            case "WSDL":
+            case ArtifactTypes.WSDL:
                 title = "WSDL";
                 break;
-            case "XSD":
+            case ArtifactTypes.XSD:
                 title = "XML Schema";
                 break;
-            case "XML":
+            case ArtifactTypes.XML:
                 title = "XML";
                 break;
         }
@@ -95,37 +93,34 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
     private getClassNames(): string {
         let classes: string = "artifact-type-icon";
         switch (this.props.type) {
-            case "AVRO":
+            case ArtifactTypes.AVRO:
                 classes += " avro-icon24";
                 break;
-            case "PROTOBUF":
+            case ArtifactTypes.PROTOBUF:
                 classes += " protobuf-icon24";
                 break;
-            case "PROTOBUF_FD":
-                classes += " protobuf-icon24";
-                break;
-            case "JSON":
+            case ArtifactTypes.JSON:
                 classes += " json-icon24";
                 break;
-            case "OPENAPI":
+            case ArtifactTypes.OPENAPI:
                 classes += " oai-icon24";
                 break;
-            case "ASYNCAPI":
+            case ArtifactTypes.ASYNCAPI:
                 classes += " aai-icon24";
                 break;
-            case "GRAPHQL":
+            case ArtifactTypes.GRAPHQL:
                 classes += " graphql-icon24";
                 break;
-            case "KCONNECT":
+            case ArtifactTypes.KCONNECT:
                 classes += " kconnect-icon24";
                 break;
-            case "WSDL":
+            case ArtifactTypes.WSDL:
                 classes += " xml-icon24";
                 break;
-            case "XSD":
+            case ArtifactTypes.XSD:
                 classes += " xml-icon24";
                 break;
-            case "XML":
+            case ArtifactTypes.XML:
                 classes += " xml-icon24";
                 break;
         }

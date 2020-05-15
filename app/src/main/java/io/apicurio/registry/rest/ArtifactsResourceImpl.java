@@ -272,7 +272,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             return alreadyExistingArtifactResult;
         }
 
-        return handleNotExistingArtifactCreation(xRegistryArtifactType, xRegistryArtifactId, data);
+        try {
+            return handleNotExistingArtifactCreation(xRegistryArtifactType, xRegistryArtifactId, data);
+        } catch (ArtifactAlreadyExistsException ex) {
+            return CompletableFuture.completedFuture(getArtifactMetaData(xRegistryArtifactId));
+        }
     }
 
     /**

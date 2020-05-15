@@ -30,18 +30,19 @@ import {
 } from "@patternfly/react-core";
 import {CaretDownIcon} from "@patternfly/react-icons";
 import {CreateArtifactData} from "@apicurio/registry-services";
+import {ArtifactTypes} from "@apicurio/registry-models";
 
 
 const artifactTypes: any[] = [
-    { id: "AVRO", label: "Avro Schema" },
-    { id: "PROTOBUF", label: "Protocol Buffer Schema" },
-    { id: "JSON", label: "JSON Schema" },
-    { id: "OPENAPI", label: "OpenAPI" },
-    { id: "ASYNCAPI", label: "AsyncAPI" },
-    { id: "GRAPHQL", label: "GraphQL" },
-    { id: "KCONNECT", label: "Kafka Connect Schema" },
-    { id: "WSDL", label: "WSDL" },
-    { id: "XSD", label: "XML Schema" },
+    { id: ArtifactTypes.AVRO, label: "Avro Schema" },
+    { id: ArtifactTypes.PROTOBUF, label: "Protocol Buffer Schema" },
+    { id: ArtifactTypes.JSON, label: "JSON Schema" },
+    { id: ArtifactTypes.OPENAPI, label: "OpenAPI" },
+    { id: ArtifactTypes.ASYNCAPI, label: "AsyncAPI" },
+    { id: ArtifactTypes.GRAPHQL, label: "GraphQL" },
+    { id: ArtifactTypes.KCONNECT, label: "Kafka Connect Schema" },
+    { id: ArtifactTypes.WSDL, label: "WSDL" },
+    { id: ArtifactTypes.XSD, label: "XML Schema" },
 ];
 
 /**

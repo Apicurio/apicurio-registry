@@ -15,7 +15,14 @@
  * limitations under the License.
  */
 
-import {SearchedArtifact, SearchedVersion, ArtifactMetaData, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {
+    SearchedArtifact,
+    SearchedVersion,
+    ArtifactMetaData,
+    Rule,
+    VersionMetaData,
+    ContentTypes
+} from "@apicurio/registry-models";
 import {BaseService} from "../baseService";
 
 export interface CreateArtifactData {
@@ -200,21 +207,21 @@ export class ArtifactsService extends BaseService {
     private contentType(type: string, content: string): string {
         switch (type) {
             case "PROTOBUF":
-                return "application/x-protobuf";
+                return ContentTypes.APPLICATION_PROTOBUF;
             case "WSDL":
             case "XSD":
             case "XML":
-                return "application/xml";
+                return ContentTypes.APPLICATION_XML;
             case "GRAPHQL":
                 // TODO need a better content-type for GraphQL!
-                return "application/json";
+                return ContentTypes.APPLICATION_JSON;
         }
         if (this.isJson(content)) {
-            return "application/json";
+            return ContentTypes.APPLICATION_JSON;
         } else if (this.isXml(content)) {
-            return "application/xml";
+            return ContentTypes.APPLICATION_XML;
         } else {
-            return "application/x-yaml";
+            return ContentTypes.APPLICATION_YAML;
         }
     }
 

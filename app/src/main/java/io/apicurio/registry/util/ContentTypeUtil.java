@@ -28,6 +28,10 @@ import io.apicurio.registry.content.ContentHandle;
  * @author eric.wittmann@gmail.com
  */
 public final class ContentTypeUtil {
+    
+    public static final String CT_APPLICATION_JSON = "application/json";
+    public static final String CT_APPLICATION_YAML = "application/x-yaml";
+    public static final String CT_APPLICATION_XML = "application/xml";
 
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private static final ObjectMapper jsonMapper = new ObjectMapper();
@@ -41,7 +45,7 @@ public final class ContentTypeUtil {
         if (ct == null) {
             return false;
         }
-        return ct.contains("application/json");
+        return ct.contains(CT_APPLICATION_JSON);
     }
 
     /**
@@ -53,7 +57,7 @@ public final class ContentTypeUtil {
         if (ct == null) {
             return false;
         }
-        return ct.contains("application/x-yaml");
+        return ct.contains(CT_APPLICATION_YAML);
     }
     
     public static final ContentHandle yamlToJson(ContentHandle yaml) {

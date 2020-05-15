@@ -19,6 +19,7 @@
 import {LoggerService} from "./logger";
 import {ConfigService} from "./config";
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import {ContentTypes} from "@apicurio/registry-models";
 
 /**
  * Interface implemented by all services.
@@ -98,7 +99,7 @@ export abstract class BaseService implements Service {
         this.logger.info("[BaseService] Making a GET request to: ", url);
 
         if (!options) {
-            options = this.options({ "Accept": "application/json" });
+            options = this.options({ "Accept": ContentTypes.APPLICATION_JSON });
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("get", url, options);
@@ -126,7 +127,7 @@ export abstract class BaseService implements Service {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
         if (!options) {
-            options = this.options({ "Content-Type": "application/json" });
+            options = this.options({ "Content-Type": ContentTypes.APPLICATION_JSON });
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
@@ -153,7 +154,7 @@ export abstract class BaseService implements Service {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
         if (!options) {
-            options = this.options({ "Accept": "application/json", "Content-Type": "application/json" });
+            options = this.options({ "Accept": ContentTypes.APPLICATION_JSON, "Content-Type": ContentTypes.APPLICATION_JSON });
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
@@ -181,7 +182,7 @@ export abstract class BaseService implements Service {
         this.logger.info("[BaseService] Making a PUT request to: ", url);
 
         if (!options) {
-            options = this.options({ "Content-Type": "application/json" });
+            options = this.options({ "Content-Type": ContentTypes.APPLICATION_JSON });
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
@@ -208,7 +209,7 @@ export abstract class BaseService implements Service {
         this.logger.info("[BaseService] Making a PUT request to: ", url);
 
         if (!options) {
-            options = this.options({ "Accept": "application/json", "Content-Type": "application/json" });
+            options = this.options({ "Accept": ContentTypes.APPLICATION_JSON, "Content-Type": ContentTypes.APPLICATION_JSON });
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);

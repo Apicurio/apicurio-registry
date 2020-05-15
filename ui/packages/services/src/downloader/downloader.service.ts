@@ -57,7 +57,7 @@ export class DownloaderService implements Service {
             window.navigator.msSaveBlob(blob, filename);
         } else {
             // Firefox version
-            const file: File = new File([content], filename, { type: 'application/force-download' });
+            const file: File = new File([content], filename, { type: "application/force-download" });
             window.open(URL.createObjectURL(file));
         }
         // Not async right now - so just resolve to true

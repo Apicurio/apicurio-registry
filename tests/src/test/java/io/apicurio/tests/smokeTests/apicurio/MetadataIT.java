@@ -125,10 +125,6 @@ class MetadataIT extends BaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        service.deleteArtifactVersion(2, artifactId);
-
-        TestUtils.assertWebError(404, () -> service.getArtifactVersionMetaData(2, artifactId), true);
-
         versionMetaData = service.getArtifactVersionMetaData(1, artifactId);
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);

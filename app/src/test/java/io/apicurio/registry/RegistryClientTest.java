@@ -16,17 +16,13 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.Assertions;
 
@@ -82,44 +78,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         } finally {
             supplier.get().deleteArtifact(artifactId);
         }
-    }
-
-    @RegistryServiceTest
-    void deleteArtifactSpecificVersion(Supplier<RegistryService> supplier) throws Exception {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        String artifactId = generateArtifactId();
-        ConcurrentUtil.result(supplier.get().createArtifact(ArtifactType.AVRO, artifactId, artifactData));
-
-        for (int x = 0; x < 9; x++) {
-            String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
-            artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            ConcurrentUtil.result(supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, artifactData));
-        }
-
-        retry(() -> {
-            List<Long> artifactVersions = supplier.get().listArtifactVersions(artifactId);
-            List<Long> expectedVersions = LongStream.range(1, 11).boxed().collect(Collectors.toList());
-            Assertions.assertEquals(artifactVersions, expectedVersions);
-        });
-
-        supplier.get().deleteArtifactVersion(4, artifactId);
-
-        retry(() -> {
-            List<Long> artifactVersions = supplier.get().listArtifactVersions(artifactId);
-            List<Long> expectedVersions = LongStream.range(1, 11).boxed().filter(l -> l != 4).collect(Collectors.toList());
-            Assertions.assertEquals(artifactVersions, expectedVersions);
-        });
-
-        assertWebError(404, () -> supplier.get().getArtifactVersion(4, artifactId));
-
-        artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, artifactData);
-
-        retry(() -> {
-            List<Long> artifactVersions = supplier.get().listArtifactVersions(artifactId);
-            List<Long> expectedVersions = LongStream.range(1, 12).boxed().filter(l -> l != 4).collect(Collectors.toList());
-            Assertions.assertEquals(artifactVersions, expectedVersions);
-        });
     }
 
     @RegistryServiceTest

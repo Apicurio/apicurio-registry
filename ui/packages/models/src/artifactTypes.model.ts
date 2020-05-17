@@ -15,10 +15,18 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./versionMetaData.model";
+// tslint:disable-next-line:interface-name
+export class ArtifactTypes {
+
+    public static AVRO: string = "AVRO";
+    public static PROTOBUF: string = "PROTOBUF";
+    public static JSON: string = "JSON";
+    public static OPENAPI: string = "OPENAPI";
+    public static ASYNCAPI: string = "ASYNCAPI";
+    public static GRAPHQL: string = "GRAPHQL";
+    public static KCONNECT: string = "KCONNECT";
+    public static WSDL: string = "WSDL";
+    public static XSD: string = "XSD";
+    public static XML: string = "XML";
+
+}

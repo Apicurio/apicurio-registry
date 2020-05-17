@@ -24,10 +24,11 @@ import {
     PureComponentState,
     RuleList
 } from "../../../../components";
-import {Badge, Button, DataListCell, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
+import {Badge, Button, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
-import {DownloadIcon, EditIcon, Remove2Icon} from "@patternfly/react-icons";
+import {DownloadIcon, EditIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
+import {IfFeature} from "../../../../components/common/ifFeature";
 
 /**
  * Properties
@@ -69,10 +70,12 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
                             <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
                             <SplitItem className="actions">
-                                <Button id="edit-action"
-                                        title="Edit artifact meta-data"
-                                        onClick={this.props.onEditMetaData}
-                                        variant="plain"><EditIcon /></Button>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <Button id="edit-action"
+                                            title="Edit artifact meta-data"
+                                            onClick={this.props.onEditMetaData}
+                                            variant="plain"><EditIcon /></Button>
+                                </IfFeature>
                             </SplitItem>
                         </Split>
                     </div>

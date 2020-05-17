@@ -31,6 +31,7 @@ import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
 import {Rule} from "@apicurio/registry-models";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
 import {ValidityDropdown} from "./validity-dropdown";
+import {IfFeature} from "../common/ifFeature";
 
 
 export interface RuleListProps extends PureComponentProps {
@@ -87,13 +88,15 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                             <DataListCell key="rule-description">Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
                         ]}
                         />
-                        <DataListAction
-                            aria-labelledby="selectable-action-item1 selectable-action-action1"
-                            id="selectable-action-action1"
-                            aria-label="Actions"
-                        >
-                            { validityRuleActions}
-                        </DataListAction>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <DataListAction
+                                aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                id="selectable-action-action1"
+                                aria-label="Actions"
+                            >
+                                { validityRuleActions}
+                            </DataListAction>
+                        </IfFeature>
                     </DataListItemRow>
                 </DataListItem>
                 <DataListItem aria-labelledby="compatibility-rule-name">
@@ -106,13 +109,15 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                             <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (e.g. Backwards Compatibility).</DataListCell>
                         ]}
                         />
-                        <DataListAction
-                            aria-labelledby="selectable-action-item1 selectable-action-action1"
-                            id="selectable-action-action2"
-                            aria-label="Actions"
-                        >
-                            { compatibilityRuleActions }
-                        </DataListAction>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <DataListAction
+                                aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                id="selectable-action-action2"
+                                aria-label="Actions"
+                            >
+                                { compatibilityRuleActions }
+                            </DataListAction>
+                        </IfFeature>
                     </DataListItemRow>
                 </DataListItem>
             </DataList>

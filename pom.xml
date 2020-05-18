@@ -588,18 +588,6 @@
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <name>Confluent</name>
-            <url>https://packages.confluent.io/maven/</url>
-        </repository>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -694,6 +682,31 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <!-- 
+            conditional repo to be excluded in productization 
+            build in prod with:
+            mvn ... -P '!external_repos'
+        -->
+        <profile>
+            <id>external_repos</id>
+                <activation>
+                    <property>
+                        <!-- fake property, assumed never set -->
+                        <name>!skipDefault</name>
+                    </property>
+                </activation>
+            <repositories>
+                <repository>
+                    <id>confluent</id>
+                    <name>Confluent</name>
+                    <url>https://packages.confluent.io/maven/</url>
+                </repository>
+                <repository>
+                    <id>jitpack.io</id>
+                    <url>https://jitpack.io</url>
+                </repository>
+            </repositories>
         </profile>
     </profiles>
     

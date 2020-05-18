@@ -60,8 +60,9 @@ public class TestUtils {
     }
 
     public static String getRegistryUrl() {
+        String api = REGISTRY_HOST.equals("localhost") ? "/api" : "";
         return getRegistryUrl(
-            String.format("http://%s:%s/api", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT),
+            String.format("http://%s:%s%s", REGISTRY_HOST, REGISTRY_PORT, api),
             false
         );
     }

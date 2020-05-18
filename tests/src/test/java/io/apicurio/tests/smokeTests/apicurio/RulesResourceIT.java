@@ -26,6 +26,7 @@ import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +48,6 @@ class RulesResourceIT extends BaseIT {
 
     @RegistryServiceTest(localOnly = false)
     void createAndDeleteGlobalRules(RegistryService service) throws Exception {
-        // clear
-        service.deleteAllGlobalRules();
-
         // Create a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -82,9 +80,6 @@ class RulesResourceIT extends BaseIT {
 
     @RegistryServiceTest(localOnly = false)
     void createAndValidateGlobalRules(RegistryService service) throws Exception {
-        // clear
-        service.deleteAllGlobalRules();
-
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
@@ -171,5 +166,10 @@ class RulesResourceIT extends BaseIT {
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId2, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L));
         });
+    }
+
+    @AfterEach
+    void clearRules(RegistryService service) {
+        service.deleteAllGlobalRules();
     }
 }

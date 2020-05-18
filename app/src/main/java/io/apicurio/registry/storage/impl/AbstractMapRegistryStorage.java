@@ -138,19 +138,23 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (search == null || search.trim().isEmpty()) {
             return true;
         }
-        switch (searchOver) {
-            case name:
-            case description:
-                String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
-                return value != null && value.contains(search);
-            case labels:
-                //TODO not implemented yet
-                return false;
-            default:
-                return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
-                    .values()
-                    .stream()
-                    .anyMatch(v -> v != null && v.contains(search));
+        try {
+            switch (searchOver) {
+                case name:
+                case description:
+                    String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
+                    return value != null && value.contains(search);
+                case labels:
+                    //TODO not implemented yet
+                    return false;
+                default:
+                    return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
+                        .values()
+                        .stream()
+                        .anyMatch(v -> v != null && v.contains(search));
+            }
+        } catch (ArtifactNotFoundException notFound) {
+            return false;
         }
     }
 

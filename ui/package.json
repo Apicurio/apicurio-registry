@@ -19,7 +19,7 @@
     "start:registry": "lerna run start --scope=@apicurio/registry"
   },
   "devDependencies": {
-    "lerna": "^3.15.0"
+    "lerna": "3.21.0"
   },
   "name": "apicurio-registry-ui"
 }

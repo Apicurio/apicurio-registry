@@ -42,7 +42,7 @@ jobs:
         run: |
           git init
           git config --global user.name "apicurio-ci"
-          git config --global user.email "eric.wittmann+apicurio-ci@gmail.com"
+          git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
           git fetch
           git checkout master

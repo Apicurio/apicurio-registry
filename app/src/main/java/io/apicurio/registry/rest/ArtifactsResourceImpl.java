@@ -183,18 +183,18 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType xRegistryArtifactType,
-            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+        String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
 
-            final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
+        final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
 
-            switch (ifExists) {
-            case UPDATE:
-                return updateArtifact(xRegistryArtifactId, xRegistryArtifactType, data);
-            case RETURN:
-                return CompletableFuture.completedFuture(artifactMetaData);
-            default:
-                throw new ArtifactAlreadyExistsException(xRegistryArtifactId);
-            }
+        switch (ifExists) {
+        case UPDATE:
+            return updateArtifact(xRegistryArtifactId, xRegistryArtifactType, data);
+        case RETURN:
+            return CompletableFuture.completedFuture(artifactMetaData);
+        default:
+            throw new ArtifactAlreadyExistsException(xRegistryArtifactId);
+        }
     }
 
 

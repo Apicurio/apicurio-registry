@@ -23,6 +23,7 @@ import {VersionMetaData} from "@apicurio/registry-models";
 import {SearchIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
 import {Link} from "react-router-dom";
+import {Services} from "@apicurio/registry-services";
 
 
 /**
@@ -55,7 +56,7 @@ export class VersionSelector extends PureComponent<VersionSelectorProps, Version
     public render(): React.ReactElement {
         return (
             <Dropdown
-                className="version-selector-dropdown"
+                className={this.dropdownClasses()}
                 toggle={<DropdownToggle onToggle={this.onToggle}>Version: { this.props.version }</DropdownToggle>}
                 isOpen={this.state.isOpen}
             >
@@ -95,6 +96,14 @@ export class VersionSelector extends PureComponent<VersionSelectorProps, Version
         return {
             isOpen: false
         };
+    }
+
+    private dropdownClasses(): string {
+        const classes: string[] = [ "version-selector-dropdown" ];
+        if (Services.getConfigService().featureReadOnly()) {
+            classes.push("dropdown-align-right");
+        }
+        return classes.join(' ');
     }
 
     private onToggle = (isOpen: boolean): void => {

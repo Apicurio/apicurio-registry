@@ -33,6 +33,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.restassured.RestAssured;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -97,7 +98,7 @@ public class RegistryConverterIT extends BaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081/api");
+        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, RestAssured.baseURI);
         config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
         config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());

@@ -76,7 +76,7 @@ public interface ArtifactsResource {
    */
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
   CompletionStage<ArtifactMetaData> createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
@@ -95,7 +95,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml"})
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**
@@ -137,7 +137,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}")
   @PUT
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
   CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -222,7 +222,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/meta")
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
   ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
       InputStream data);
 
@@ -282,7 +282,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions")
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
   CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -301,25 +301,8 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml"})
   Response getArtifactVersion(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
-
-  /**
-   * Deletes a single version of the artifact.  Both the `artifactId` and the unique `version`
-   * are needed.  If this is the only version of the artifact, this operation is the same as 
-   * deleting the entire artifact.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{artifactId}/versions/{version}")
-  @DELETE
-  void deleteArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
   /**
@@ -541,7 +524,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/test")
   @PUT
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
   void testUpdateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 }

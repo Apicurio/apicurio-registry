@@ -166,3 +166,62 @@ you can put the following system properties into JAVA_OPTIONS env var:
 * etc ...
 
 Of course that %dev depends on the Quarkus profile you're gonna use -- should be %prod when used in production.
+
+
+## Eclipse IDE
+
+Some notes about using the Eclipse IDE with the Apicurio Registry codebase.  Before
+importing the registry into your workspace, we recommend some configuration of the 
+Eclipse IDE.
+
+### Lombok Integration
+
+We use the Lombok code generation utility in a few places.  This will cause problems
+when Eclipse builds the sources unless you install the Lombok+Eclipse integration.  To
+do this, either download the Lombok JAR or find it in your `.m2/repository`
+directory (it will be available in `.m2` if you've done a maven build of the registry).
+Once you find that JAR, simply "run" it (e.g. double-click it) and using the resulting
+UI installer to install Lombok support in Eclipse.
+
+### Maven Dependency Plugin (unpack, unpack-dependencies)
+
+We use the **maven-dependency-plugin** in a few places to unpack a maven module in the
+reactor into another module.  For example, the `app` module unpacks the contents of
+the `ui` module to include/embed the user interface into the running application.
+Eclipse does not like this.  To fix this, configure the Eclipse Maven "Lifecycle Mappings"
+to ignore the usage of **maven-dependency-plugin**.  
+
+* Open up **Window->Preferences**
+* Choose **Maven->Lifecycle Mappings**
+* Click the button labeled **Open workspace lifecycle mappings metadata**
+* This will open an XML file behind the preferences dialog.  Click **Cancel** to close the Preferences.
+* Add the following section to the file:
+
+```
+    <pluginExecution>
+      <pluginExecutionFilter>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <versionRange>3.1.2</versionRange>
+        <goals>
+          <goal>unpack</goal>
+          <goal>unpack-dependencies</goal>
+        </goals>
+      </pluginExecutionFilter>
+      <action>
+        <ignore />
+      </action>
+    </pluginExecution>
+```
+
+* Now go back into **Maven->Lifecycle Mappings** -> **Maven->Lifecycle Mappings** and click 
+the **Reload workspace lifecycle mappings metadata** button.
+* If you've already imported the Apicurio projects, select all of them and choose **Maven->Update Project**.
+
+### Prevent Eclipse from aggressively cleaning generated classes
+
+We use some Google Protobuf files and a maven plugin to generate some Java classes that
+get stored in various modules' `target` directories.  These are then recognized by m2e
+but are sometimes deleted during the Eclipse "clean" phase.  To prevent Eclipse from
+over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your 
+`.m2/repository` directory and copy it into `$ECLIPSE_HOME/dropins`.

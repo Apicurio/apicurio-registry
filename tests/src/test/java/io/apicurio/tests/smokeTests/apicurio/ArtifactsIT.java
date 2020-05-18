@@ -15,6 +15,23 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -30,23 +47,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.vertx.core.json.JsonObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 @Tag(SMOKE)
 class ArtifactsIT extends BaseIT {
@@ -120,57 +120,6 @@ class ArtifactsIT extends BaseIT {
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
             TestUtils.assertWebError(404, () -> service.getLatestArtifact(entry.getValue()), true);
         }
-    }
-
-    @RegistryServiceTest(localOnly = false)
-    void deleteArtifactSpecificVersion(RegistryService service) throws Exception {
-        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
-        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
-        // Make sure artifact is fully registered
-        ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
-
-        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
-
-        LOGGER.info("Created record with name:{} and content:{}", response.getString("name"), response.toString());
-
-        for (int x = 0; x < 9; x++) {
-            String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + x + "\",\"type\":\"string\"}]}";
-            artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
-            LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
-        }
-
-        TestUtils.retry(() -> {
-            List<Long> artifactVersions = service.listArtifactVersions(artifactId);
-
-            LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
-            assertThat(artifactVersions, hasItems(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L));
-
-            service.deleteArtifactVersion(4, artifactId);
-            LOGGER.info("Version 4 of artifact {} was deleted", artifactId);
-
-            artifactVersions = service.listArtifactVersions(artifactId);
-
-            LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
-            assertThat(artifactVersions, hasItems(1L, 2L, 3L, 5L, 6L, 7L, 8L, 9L, 10L));
-            assertThat(artifactVersions, not(hasItems(4L)));
-
-            TestUtils.assertWebError(404, () -> service.getArtifactVersion(4, artifactId));
-
-            ByteArrayInputStream bais = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo11\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, bais);
-            LOGGER.info("Artifact with ID {} was updated: {}", artifactId, amd.toString());
-
-            artifactVersions = service.listArtifactVersions(artifactId);
-
-            LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
-
-            assertThat(artifactVersions, hasItems(1L, 2L, 3L, 5L, 6L, 7L, 8L, 9L, 10L, 11L));
-            assertThat(artifactVersions, not(hasItems(4L)));
-        });
     }
 
     @RegistryServiceTest(localOnly = false)

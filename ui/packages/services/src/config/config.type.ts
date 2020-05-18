@@ -15,12 +15,23 @@
  * limitations under the License.
  */
 
-export type ConfigType = {
-    mode: string,
-    artifacts: {
-        url: string,
-        type: string
-    },
-    features: any,
-    ui: any
-};
+export interface FeaturesConfig {
+    readOnly?: boolean
+}
+
+export interface ArtifactsConfig {
+    url: string;
+    type: string;
+}
+
+export interface UiConfig {
+    url: string;
+    contextPath: string;
+}
+
+export interface ConfigType {
+    mode: string;
+    artifacts: ArtifactsConfig;
+    features?: FeaturesConfig;
+    ui: UiConfig;
+}

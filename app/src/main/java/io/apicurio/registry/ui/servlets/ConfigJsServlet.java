@@ -21,10 +21,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
+import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -41,6 +44,11 @@ import io.apicurio.registry.ui.beans.ConfigJs;
 public class ConfigJsServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1624928159818173418L;
+    
+    @Inject
+    @ConfigProperty(name = "registry.ui.features.readOnly")
+    Boolean featureReadOnly;
+    
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -65,6 +73,8 @@ public class ConfigJsServlet extends HttpServlet {
             
             config.ui.url = this.generateUiUrl(request);
             config.ui.contextPath = "/ui";
+            
+            config.features.readOnly = this.isFeatureReadOnly();
             
             g.writeObject(config);
 
@@ -101,6 +111,13 @@ public class ConfigJsServlet extends HttpServlet {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    /**
+     * Returns true if the "read only" feature is enabled.
+     */
+    private boolean isFeatureReadOnly() {
+        return featureReadOnly == null ? false : featureReadOnly;
     }
 
 }

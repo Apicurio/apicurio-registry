@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import io.apicurio.registry.rest.beans.IfExistsType;
 import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +35,8 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.config.EncoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 
 /**
@@ -94,7 +97,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/detect"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
-
     }
 
     @Test
@@ -422,91 +424,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Should return the same meta-data
         Assertions.assertEquals(globalId1, globalId2);
-    }
-
-
-    @Test
-    public void testDeleteArtifactVersion() {
-        String artifactContent = resourceToString("openapi-empty.json");
-        
-        // Create an artifact
-        createArtifact("testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
-
-        // Update the artifact 5 times
-        List<Integer> versions = new ArrayList<>();
-        for (int idx = 0; idx < 5; idx++) {
-            Integer version = given()
-                .when()
-                    .contentType(CT_JSON)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
-                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
-                    .put("/artifacts/{artifactId}")
-                .then()
-                    .statusCode(200)
-                    .body("id", equalTo("testDeleteArtifactVersion/EmptyAPI"))
-                    .body("type", equalTo(ArtifactType.OPENAPI.name()))
-                .extract().body().path("version");
-//            System.out.println("Update.  Created version: " + version);
-            versions.add(version);
-        }
-        
-        // Delete odd artifact versions
-        for (int idx = 0; idx < 5; idx++) {
-            if (idx % 2 == 0) {
-                continue;
-            }
-            
-            Integer version = versions.get(idx);
-//            System.out.println("Deleting version: " + version);
-            given()
-                .when()
-                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                    .pathParam("version", version)
-                    .delete("/artifacts/{artifactId}/versions/{version}")
-                .then()
-                    .statusCode(204);
-        }
-        
-        // Check that the correct versions were deleted
-        for (int idx = 0; idx < 5; idx++) {
-            Integer version = versions.get(idx);
-            int expectedCode;
-            // Even indexes are still there, odd were deleted
-            if (idx % 2 == 0) {
-                expectedCode = 200;
-            } else {
-                expectedCode = 404;
-            }
-//            System.out.println("Checking version: " + version);
-            given()
-                .when()
-                    .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                    .pathParam("version", version)
-                    .get("/artifacts/{artifactId}/versions/{version}")
-                .then()
-                    .statusCode(expectedCode);
-        }
-
-        // Now try to delete a version that doesn't exist.
-        given()
-            .when()
-                .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI")
-                .pathParam("version", 12345)
-                .get("/artifacts/{artifactId}/versions/{version}")
-            .then()
-                .statusCode(404);
-
-        // Try to delete a version of an artifact where the artifact doesn't exist
-        given()
-            .when()
-                .pathParam("artifactId", "testGetArtifactVersion/MissingAPI")
-                .pathParam("version", 1)
-                .get("/artifacts/{artifactId}/versions/{version}")
-            .then()
-                .statusCode(404);
-        
-        // TODO test deleting ALL versions of an artifact - the entire artifact should be deleted
     }
 
     @Test
@@ -868,6 +785,71 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(404);
 
+    }
+
+    @Test
+    public void testYamlContentType() {
+        String artifactId = "testYamlContentType";
+        ArtifactType artifactType = ArtifactType.OPENAPI;
+        String artifactContent = resourceToString("openapi-empty.yaml");
+
+        // Create OpenAPI artifact (from YAML)
+        given()
+            .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_YAML, ContentType.TEXT)))
+            .when()
+                .contentType(CT_YAML)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."))
+                .body("type", equalTo(artifactType.name()));
+
+        // Get the artifact content (should be JSON)
+        given()
+            .when()
+                .pathParam("artifactId", "testYamlContentType")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .header("Content-Type", Matchers.containsString(CT_JSON))
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+    }
+
+
+    @Test
+    public void testWsdlArtifact() {
+        String artifactId = "testWsdlArtifact";
+        ArtifactType artifactType = ArtifactType.WSDL;
+        String artifactContent = resourceToString("sample.wsdl");
+
+        // Create OpenAPI artifact (from YAML)
+        given()
+            .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_XML, ContentType.TEXT)))
+            .when()
+                .contentType(CT_XML)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+                .post("/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        // Get the artifact content (should be XML)
+        given()
+            .when()
+                .pathParam("artifactId", "testWsdlArtifact")
+                .get("/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .header("Content-Type", Matchers.containsString(CT_XML));
     }
 
     @Test

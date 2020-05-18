@@ -16,6 +16,18 @@
 
 package io.apicurio.registry;
 
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
+
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.junit.jupiter.api.Assertions;
+
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -29,17 +41,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.junit.jupiter.api.Assertions;
-
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
 @QuarkusTest
 public class SerdeMixTest extends AbstractResourceTestBase {
@@ -115,27 +116,9 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertFalse(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
         Assertions.assertTrue(versions2.contains(3L));
-
-        supplier.get().deleteArtifactVersion(2, subject);
-
-        retry(() -> {
-            try {
-                supplier.get().getArtifactVersionMetaData(2, subject);
-                Assertions.fail();
-            } catch (Exception ignored) {
-            }
-            return null;
-        });
-
-        versions1 = client.getAllVersions(subject);
-        Assertions.assertEquals(1, versions1.size());
-        Assertions.assertTrue(versions1.contains(3));
-
-        versions2 = supplier.get().listArtifactVersions(subject);
-        Assertions.assertEquals(1, versions2.size());
-        Assertions.assertTrue(versions2.contains(3L));
     }
 
+    @SuppressWarnings("resource")
     @RegistryServiceTest
     public void testSerdeMix(Supplier<RegistryService> supplier) throws Exception {
         SchemaRegistryClient client = buildClient();

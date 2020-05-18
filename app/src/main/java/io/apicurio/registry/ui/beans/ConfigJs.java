@@ -24,5 +24,6 @@ public class ConfigJs {
     public String mode;
     public ConfigJsArtifacts artifacts = new ConfigJsArtifacts();
     public ConfigJsUi ui = new ConfigJsUi();
+    public ConfigJsFeatures features = new ConfigJsFeatures();
 
 }

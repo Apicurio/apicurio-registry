@@ -201,12 +201,6 @@ class CachedRegistryService implements RegistryService {
     }
 
     @Override
-    public void deleteArtifactVersion(Integer version, String artifactId) {
-        getDelegate().deleteArtifactVersion(version, artifactId);
-        reset();
-    }
-
-    @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
         getDelegate().deleteArtifactVersionMetaData(version, artifactId);
         reset();

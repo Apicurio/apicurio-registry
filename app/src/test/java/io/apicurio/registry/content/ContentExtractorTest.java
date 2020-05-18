@@ -180,7 +180,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         String name = generateArtifactId();
         String content = String.format(avroFormat, name);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
 
@@ -217,7 +217,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
 
@@ -254,7 +254,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.OPENAPI, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.OPENAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
 
@@ -291,7 +291,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.ASYNCAPI, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.ASYNCAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
 
@@ -324,7 +324,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         String content = wsdlFormat;
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.WSDL, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.WSDL, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals("StockQuote", amd.getName());
         Assertions.assertNull(amd.getDescription());
@@ -349,7 +349,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         String content = xsdFormat;
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.XSD, artifactId, new ByteArrayInputStream(content.getBytes()));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.XSD, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals("http://tempuri.org/PurchaseOrderSchema.xsd", amd.getName());
         Assertions.assertNull(amd.getDescription());

@@ -329,6 +329,19 @@
                             "type": "string"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "ifExists",
+                        "description": "Set this option to instruct the server on what to do if the artifact already exists.",
+                        "schema": {
+                            "enum": [
+                                "FAIL",
+                                "UPDATE",
+                                "RETURN"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query"
                     }
                 ],
                 "responses": {

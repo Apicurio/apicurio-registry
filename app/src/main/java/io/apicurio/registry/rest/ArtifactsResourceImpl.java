@@ -22,6 +22,7 @@ import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
@@ -29,12 +30,7 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.search.client.SearchClient;
 import io.apicurio.registry.search.common.Search;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -64,6 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
@@ -185,6 +182,22 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
     }
 
+    private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType xRegistryArtifactType,
+        String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+
+        final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
+
+        switch (ifExists) {
+        case UPDATE:
+            return updateArtifact(xRegistryArtifactId, xRegistryArtifactType, data);
+        case RETURN:
+            return CompletableFuture.completedFuture(artifactMetaData);
+        default:
+            throw new ArtifactAlreadyExistsException(xRegistryArtifactId);
+        }
+    }
+
+
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
      */
@@ -230,27 +243,35 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.beans.IfExistsType, java.io.InputStream)
      */
     @Override
-    public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
-                                                            InputStream data) {
-        String artifactId = xRegistryArtifactId;
-        if (artifactId == null || artifactId.trim().isEmpty()) {
-            artifactId = idGenerator.generate();
-        }
-        ContentHandle content = ContentHandle.create(data);
-        if (ContentTypeUtil.isApplicationYaml(request)) {
-            content = ContentTypeUtil.yamlToJson(content);
-        }
+    public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
+            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
-        final String finalArtifactId = artifactId;
-        final ContentHandle finalContent = content;
-        return storage.createArtifact(artifactId, artifactType, content)
-                      .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd))
-                      .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
+        try {
+            String artifactId = xRegistryArtifactId;
+
+            if (artifactId == null || artifactId.trim().isEmpty()) {
+                artifactId = idGenerator.generate();
+            }
+            ContentHandle content = ContentHandle.create(data);
+            if (ContentTypeUtil.isApplicationYaml(request)) {
+                content = ContentTypeUtil.yamlToJson(content);
+            }
+
+            ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+            rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
+            final String finalArtifactId = artifactId;
+            final ContentHandle finalContent = content;
+            return storage.createArtifact(artifactId, artifactType, content)
+                    .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd))
+                    .thenApply(dto -> DtoUtil.dtoToMetaData(finalArtifactId, artifactType, dto));
+
+        } catch (ArtifactAlreadyExistsException ex) {
+
+            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, data);
+        }
     }
 
     /**
@@ -285,7 +306,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         if (ContentTypeUtil.isApplicationYaml(request)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
-        
+
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         final ContentHandle finalContent = content;

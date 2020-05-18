@@ -60,7 +60,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, stream);
+            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, stream);
             ConcurrentUtil.result(csResult);
 
             EditableMetaData emd = new EditableMetaData();
@@ -88,34 +88,22 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         client.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
-        String name = UUID.randomUUID().toString();
-        ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
-        client.createArtifact(ArtifactType.JSON, artifactId, stream);
-        client.reset();
-        try {
-            retry(() -> {
-                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
-                Assertions.assertNotNull(artifactMetaData);
-            });
+        String name = "myrecordx";
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+                "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}"
+                        .getBytes(StandardCharsets.UTF_8));
 
-            EditableMetaData emd = new EditableMetaData();
-            emd.setName(name);
-            client.updateArtifactMetaData(artifactId, emd);
+        client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData)
+                .whenComplete((artifactMetaData, throwable) -> {
 
-            retry(() -> {
-                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
-                Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals(name, artifactMetaData.getName());
-            });
+                    ArtifactSearchResults results = client
+                            .searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
+                    Assertions.assertNotNull(results);
+                    Assertions.assertEquals(1, results.getCount());
+                    Assertions.assertEquals(1, results.getArtifacts().size());
+                    Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+                });
 
-            ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
-            Assertions.assertNotNull(results);
-            Assertions.assertEquals(1, results.getCount());
-            Assertions.assertEquals(1, results.getArtifacts().size());
-            Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
-        } finally {
-            client.deleteArtifact(artifactId);
-        }
     }
 
     @RegistryServiceTest
@@ -127,34 +115,21 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         client.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
-        String name = UUID.randomUUID().toString();
-        ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"" + name + "\"}").getBytes(StandardCharsets.UTF_8));
-        client.createArtifact(ArtifactType.JSON, artifactId, stream);
-        client.createArtifactVersion(artifactId, ArtifactType.JSON, stream);
-        client.reset();
-        try {
-            retry(() -> {
-                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
-                Assertions.assertNotNull(artifactMetaData);
-            });
+        String name = "myrecordx";
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+                "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}"
+                        .getBytes(StandardCharsets.UTF_8));
 
-            EditableMetaData emd = new EditableMetaData();
-            emd.setName(name);
-            client.updateArtifactMetaData(artifactId, emd);
+        client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData).
+                whenComplete((artifactMetaData, throwable) ->
+                        client.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData)
+                        .whenComplete((versionMetaData, throwable1) -> {
+                            VersionSearchResults results = client.searchVersions(artifactId, 0, 2);
+                            Assertions.assertNotNull(results);
+                            Assertions.assertEquals(1, results.getCount());
+                            Assertions.assertEquals(1, results.getVersions().size());
+                            Assertions.assertEquals(name, results.getVersions().get(0).getName());
+                        }));
 
-            retry(() -> {
-                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
-                Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals(name, artifactMetaData.getName());
-            });
-
-            VersionSearchResults results = client.searchVersions(artifactId, 0, 2);
-            Assertions.assertNotNull(results);
-            Assertions.assertEquals(1, results.getCount());
-            Assertions.assertEquals(1, results.getVersions().size());
-            Assertions.assertEquals(name, results.getVersions().get(0).getName());
-        } finally {
-            client.deleteArtifact(artifactId);
-        }
     }
 }

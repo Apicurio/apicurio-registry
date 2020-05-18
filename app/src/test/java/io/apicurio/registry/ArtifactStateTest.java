@@ -58,6 +58,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         CompletionStage<ArtifactMetaData> a1 = supplier.get().createArtifact(
             ArtifactType.JSON,
             artifactId,
+            null,
             new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
         ConcurrentUtil.result(a1);
@@ -170,6 +171,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         CompletionStage<ArtifactMetaData> a1 = supplier.get().createArtifact(
             ArtifactType.JSON,
             artifactId,
+            null,
             new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData md = ConcurrentUtil.result(a1);

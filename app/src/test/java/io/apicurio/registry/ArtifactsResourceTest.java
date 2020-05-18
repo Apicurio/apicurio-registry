@@ -19,13 +19,13 @@ package io.apicurio.registry;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+import io.apicurio.registry.rest.beans.IfExistsType;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -786,13 +786,13 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
 
     }
-    
+
     @Test
     public void testYamlContentType() {
         String artifactId = "testYamlContentType";
         ArtifactType artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-empty.yaml");
-        
+
         // Create OpenAPI artifact (from YAML)
         given()
             .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_YAML, ContentType.TEXT)))
@@ -820,14 +820,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
     }
-    
+
 
     @Test
     public void testWsdlArtifact() {
         String artifactId = "testWsdlArtifact";
         ArtifactType artifactType = ArtifactType.WSDL;
         String artifactContent = resourceToString("sample.wsdl");
-        
+
         // Create OpenAPI artifact (from YAML)
         given()
             .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_XML, ContentType.TEXT)))
@@ -850,5 +850,62 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .header("Content-Type", Matchers.containsString(CT_XML));
+    }
+
+    @Test
+    public void testCreateAlreadyExistingArtifact() {
+
+        final String artifactId = UUID.randomUUID().toString();
+        final String artifactContent = resourceToString("openapi-empty.json");
+        final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+
+
+        // Create OpenAPI artifact - indicate the type via a header param
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Try to create the same artifact ID (should fail)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", artifactId)
+                .body(artifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("An artifact with ID '"+artifactId+"' already exists."));
+
+        // Try to create the same artifact ID with Return for if exists (should return same artifact)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", artifactId)
+                .queryParam("ifExists", IfExistsType.RETURN)
+                .body(artifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("version", equalTo(1))
+                .body("createdOn", anything())
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."));;
+
+        // Try to create the same artifact ID with Update for if exists (should update the artifact)
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", artifactId)
+                .queryParam("ifExists", IfExistsType.UPDATE)
+                .body(updatedArtifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("createdOn", anything())
+                .body("version", equalTo(2))
+                .body("description", equalTo("An example API design using OpenAPI."));;
+
+
     }
 }

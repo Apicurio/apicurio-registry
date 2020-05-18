@@ -60,7 +60,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         cs.toCompletableFuture().get();
 
         Rule rule = new Rule();

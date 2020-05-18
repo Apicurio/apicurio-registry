@@ -72,7 +72,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData createArtifact(RegistryService apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
-        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(atype, artifactId, artifactData);
+        CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(atype, artifactId, null, artifactData);
         return ConcurrentUtil.result(csResult);
     }
 

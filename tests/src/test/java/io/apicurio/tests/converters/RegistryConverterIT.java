@@ -84,6 +84,7 @@ public class RegistryConverterIT extends BaseIT {
         CompletionStage<ArtifactMetaData> csa = service.createArtifact(
             ArtifactType.AVRO,
             artifactId + "-myrecord4",
+            null, 
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData amd = ConcurrentUtil.result(csa);

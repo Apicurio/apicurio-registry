@@ -50,7 +50,7 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
             return initialLookup(service, artifactId, artifactType, schema);
         } catch (WebApplicationException e) {
             if (isNotFound(e.getResponse())) {
-                CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, toStream(schema));
+                CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, null, toStream(schema));
                 ArtifactMetaData amd = unwrap(cs);
                 afterCreateArtifact(schema, amd);
                 return amd.getGlobalId();

@@ -201,9 +201,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        Response ar = ArtifactUtils.getArtifact(subjectName);
-        LOGGER.info(ar.asString());
-
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(globalId));
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -227,12 +224,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.waitFor("artifact deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            return service.getLatestArtifact(subjectName) == null;
-        });
-
-        rules = service.listArtifactRules(subjectName);
-        assertThat(0, is(rules.size()));
+        TestUtils.assertWebError(404, () -> service.getLatestArtifact(subjectName), true);
+        TestUtils.assertWebError(404, () -> service.listArtifactRules(subjectName), true);
+        TestUtils.assertWebError(404, () -> service.getArtifactRuleConfig(rules.get(0), subjectName), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

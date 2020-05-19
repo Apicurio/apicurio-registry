@@ -19,6 +19,7 @@ package io.apicurio.registry.kafka;
 import io.apicurio.registry.common.proto.Cmmn;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -84,6 +85,7 @@ import javax.inject.Inject;
 @Counted(name = STORAGE_OPERATION_COUNT + "_KafkaRegistryStorage", description = STORAGE_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_COUNT}, reusable = true)
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT + "_KafkaRegistryStorage", description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT}, reusable = true)
 @Timed(name = STORAGE_OPERATION_TIME + "_KafkaRegistryStorage", description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS, reusable = true)
+@Logged
 public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements KafkaRegistryStorageHandle {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaRegistryStorage.class);

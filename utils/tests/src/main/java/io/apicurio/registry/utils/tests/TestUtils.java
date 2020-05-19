@@ -74,7 +74,7 @@ public class TestUtils {
         if (localOnly || !isExternalRegistry()) {
             return fallbackUrl;
         } else {
-            return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
+            return String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT);
         }
     }
 

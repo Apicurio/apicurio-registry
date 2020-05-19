@@ -269,32 +269,5 @@
                 <npm-verbose>--loglevel=silly</npm-verbose>
             </properties>
         </profile>
-        <profile>
-            <id>macosx</id>
-            <activation>
-                <os><family>mac</family></os>
-            </activation>
-            <properties>
-                <os.type>darwin</os.type>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux</id>
-            <activation>
-                <os><name>Linux</name></os>
-            </activation>
-            <properties>
-                <os.type>linux</os.type>
-            </properties>
-        </profile>
-        <profile>
-            <id>windows</id>
-            <activation>
-                <os><name>Windows</name></os>
-            </activation>
-            <properties>
-                <os.type>win32</os.type>
-            </properties>
-        </profile>
     </profiles>
 </project>

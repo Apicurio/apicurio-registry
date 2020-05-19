@@ -35,29 +35,33 @@ import io.apicurio.registry.rest.RegistryApplication;
 @Logged
 public class LoggingInterceptor {
     
-    private static final Map<Class, Logger> loggers = new HashMap<>();
+    private static final Map<Class<?>, Logger> loggers = new HashMap<>();
     
     @AroundInvoke
     public Object logMethodEntry(InvocationContext context) throws Exception {
+        Logger logger = null;
         try {
-            Class targetClass = RegistryApplication.class;
+            Class<?> targetClass = RegistryApplication.class;
             Object target = context.getTarget();
             if (target != null) {
                 targetClass = target.getClass();
             }
             
-            Logger logger = getLogger(targetClass);
-            logger.info("Entering method [{}] with parameters: {}", context.getMethod().getName(), context.getParameters());
+            logger = getLogger(targetClass);
         } catch (Throwable t) {
         }
-        return context.proceed();
+
+        logger.debug("ENTERING method [{}] with {} parameters", context.getMethod().getName(), context.getParameters().length);
+        Object rval = context.proceed();
+        logger.debug("LEAVING method [{}]", context.getMethod().getName());
+        return rval;
     }
 
     /**
      * Gets a logger for the given target class.
      * @param targetClass
      */
-    private Logger getLogger(Class targetClass) {
+    private Logger getLogger(Class<?> targetClass) {
         return loggers.computeIfAbsent(targetClass, k -> {
             return LoggerFactory.getLogger(targetClass);
         });

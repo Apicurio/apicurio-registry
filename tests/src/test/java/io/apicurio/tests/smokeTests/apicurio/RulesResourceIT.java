@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -168,8 +169,37 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
+    @RegistryServiceTest(localOnly = false)
+    void testRulesDeletedWithArtifact(RegistryService service) throws Exception {
+        String artifactId1 = TestUtils.generateArtifactId();
+        String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId1, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
+        ArtifactMetaData amd1 = metaData;
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("SYNTAX_ONLY");
+
+        service.createArtifactRule(artifactId1, rule);
+        LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
+
+        service.deleteArtifact(artifactId1);
+
+        assertThat(0, is(service.listArtifacts().size()));
+
+        TestUtils.assertWebError(404, () -> service.listArtifactRules(artifactId1));
+        TestUtils.assertWebError(404, () -> service.getArtifactRuleConfig(RuleType.VALIDITY, artifactId1));
+    }
+
     @AfterEach
     void clearRules(RegistryService service) {
         service.deleteAllGlobalRules();
+        service.listArtifacts().forEach(artifactId -> {
+            service.deleteArtifact(artifactId);
+        });
     }
 }

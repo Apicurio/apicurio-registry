@@ -23,14 +23,10 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.interfaces.TestSeparator;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
@@ -62,9 +58,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
     protected static KafkaFacade kafkaCluster = new KafkaFacade();
     private static RegistryFacade registry = new RegistryFacade();
 
-    protected static SchemaRegistryClient confluentService;
-
-
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
             Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
@@ -83,12 +76,11 @@ public abstract class BaseIT implements TestSeparator, Constants {
         }
         TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryUrl() + " in timeout!",
                           Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
+        TestUtils.waitFor("Registry reports is ready",
+                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
         RestAssured.baseURI = TestUtils.getRegistryUrl();
         LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
-        confluentService = new CachedSchemaRegistryClient(RestAssured.baseURI + "/ccompat", 3);
-
-        clearAllConfluentSubjects();
     }
 
     @AfterAll
@@ -99,11 +91,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
             //noinspection OptionalGetWithoutIsPresent
             storeRegistryLog(info.getTestClass().get().getCanonicalName());
         }
-    }
-
-    @AfterEach
-    void clear() throws IOException, RestClientException {
-        clearAllConfluentSubjects();
     }
 
     private static void storeRegistryLog(String className) {
@@ -154,7 +141,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         CompletionStage<ArtifactMetaData> csa = apicurioService.createArtifact(
                 ArtifactType.AVRO,
                 artifactName,
-                null, 
+                null,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData artifactMetadata = ConcurrentUtil.result(csa);
@@ -190,33 +177,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
                 assertThat(metadata.getName(), is(artifactName));
                 return true;
             });
-    }
-
-    public int createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
-        int idOfSchema = confluentService.register(artifactName, schema);
-        confluentService.reset(); // clear cache
-        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
-            () -> {
-                try {
-                    Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
-                    LOGGER.info("Checking that created schema is equal to the get schema");
-                    assertThat(schema.toString(), is(newSchema.toString()));
-                    assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
-                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
-                    return true;
-                } catch (IOException | RestClientException e) {
-                    e.printStackTrace();
-                    return false;
-                }
-            });
-        return idOfSchema;
-    }
-
-    protected static void clearAllConfluentSubjects() throws IOException, RestClientException {
-        for (String confluentSubject : confluentService.getAllSubjects()) {
-            LOGGER.info("Deleting confluent schema {}", confluentSubject);
-            confluentService.deleteSubject(confluentSubject);
-        }
     }
 
     protected String generateArtifactId() {

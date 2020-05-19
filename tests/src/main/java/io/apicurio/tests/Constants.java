@@ -23,6 +23,7 @@ import java.time.Duration;
 public interface Constants {
     long POLL_INTERVAL = Duration.ofSeconds(1).toMillis();
     long TIMEOUT_FOR_REGISTRY_START_UP = Duration.ofSeconds(15).toMillis();
+    long TIMEOUT_FOR_REGISTRY_READY = Duration.ofSeconds(25).toMillis();
     long TIMEOUT_GLOBAL = Duration.ofSeconds(30).toMillis();
 
     /**

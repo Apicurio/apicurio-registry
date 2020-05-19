@@ -19,6 +19,12 @@ package io.apicurio.registry.utils.tests;
 
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.utils.IoUtil;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +100,28 @@ public class TestUtils {
         } catch (IOException ex) {
             log.warn("Cannot connect to Registry instance: {}", ex.getMessage());
             return false; // Either timeout or unreachable or failed DNS lookup.
+        }
+    }
+
+    /**
+     * Checks the readniess endpoint of the registry
+     *
+     * @return true if registry readiness endpoint replies sucessfully
+     */
+    public static boolean isReady(boolean logResponse) {
+        try {
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().replace("/api", "/health/ready")));
+            boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
+            if (ok) {
+                log.info("Service registry is ready");
+            }
+            if (logResponse) {
+                log.info(IoUtil.toString(res.getEntity().getContent()));
+            }
+            return ok;
+        } catch (IOException e) {
+            log.warn("Service registry is not ready {}", e.getMessage());
+            return false;
         }
     }
 

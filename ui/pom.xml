@@ -43,6 +43,7 @@
                     <!-- Install Node and Yarn -->
                     <execution>
                         <id>install node and yarn</id>
+                        <phase>initialize</phase>
                         <goals>
                             <goal>install-node-and-yarn</goal>
                         </goals>
@@ -54,6 +55,7 @@
                     <!-- Install npm/yarn dependencies -->
                     <execution>
                         <id>yarn install</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>yarn</goal>
                         </goals>
@@ -64,10 +66,10 @@
                     <!-- Build the app -->
                     <execution>
                         <id>yarn build</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>yarn</goal>
                         </goals>
-                        <phase>generate-resources</phase>
                         <configuration>
                             <arguments>build</arguments>
                         </configuration>
@@ -104,5 +106,195 @@
             </plugin>
         </plugins>
     </build>
-
+    <profiles>
+        <profile>
+            <id>with-proxy</id>
+            <activation>
+            <property>
+                <name>proxy-server</name>
+            </property>
+            </activation>
+            <properties>
+                <yarn-install-args>--network-concurrency=30 --child-concurrency=1 --network-timeout=100000</yarn-install-args>
+            </properties>
+            <build>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <executions>
+                        <execution>
+                        <id>require-proxy-properties</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                            <requireProperty>
+                                <property>proxy-user</property>
+                            </requireProperty>
+                            <requireProperty>
+                                <property>proxy-password</property>
+                            </requireProperty>
+                            <requireProperty>
+                                <property>proxy-port</property>
+                            </requireProperty>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>set https proxy</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>yarn</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>config set https-proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>set http proxy</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>yarn</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>config set proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>set maxconn</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>yarn</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>config set maxsockets 30</arguments>
+                            </configuration>
+                        </execution>
+                    </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>with-custom-registry</id>
+            <activation>
+            <property>
+                <name>custom-registry</name>
+            </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                            <id>yarn set registry</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>yarn</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>config set registry ${custom-registry}</arguments>
+                            </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>with-custom-cafile</id>
+            <activation>
+                <property>
+                <name>custom-cafile</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <executions>
+                    <execution>
+                        <id>yarn set cafile</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                        <goal>yarn</goal>
+                        </goals>
+                        <configuration>
+                        <arguments>config set cafile ${custom-cafile}</arguments>
+                        </configuration>
+                    </execution>
+                    </executions>
+                </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>insecure</id>
+            <build>
+            <plugins>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>yarn set no-strict ssl</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                            <goal>yarn</goal>
+                            </goals>
+                            <configuration>
+                            <arguments>config set strict-ssl false</arguments>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>verbose</id>
+            <properties>
+                <yarn-verbose>--verbose</yarn-verbose>
+                <npm-verbose>--loglevel=silly</npm-verbose>
+            </properties>
+        </profile>
+        <profile>
+            <id>macosx</id>
+            <activation>
+                <os><family>mac</family></os>
+            </activation>
+            <properties>
+                <os.type>darwin</os.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>linux</id>
+            <activation>
+                <os><name>Linux</name></os>
+            </activation>
+            <properties>
+                <os.type>linux</os.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os><name>Windows</name></os>
+            </activation>
+            <properties>
+                <os.type>win32</os.type>
+            </properties>
+        </profile>
+    </profiles>
 </project>

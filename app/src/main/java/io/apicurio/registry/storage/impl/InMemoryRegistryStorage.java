@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl;
 
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -37,6 +38,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Counted(name = STORAGE_OPERATION_COUNT + "_InMemoryRegistryStorage", description = STORAGE_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_COUNT}, reusable = true)
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT + "_InMemoryRegistryStorage", description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT}, reusable = true)
 @Timed(name = STORAGE_OPERATION_TIME + "_InMemoryRegistryStorage", description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS, reusable = true)
+@Logged
 public class InMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
     private AtomicLong counter = new AtomicLong(1);

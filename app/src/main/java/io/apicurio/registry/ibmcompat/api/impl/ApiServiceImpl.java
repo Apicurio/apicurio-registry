@@ -16,6 +16,7 @@ import io.apicurio.registry.ibmcompat.model.Schema;
 import io.apicurio.registry.ibmcompat.model.SchemaInfo;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaVersion;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 
@@ -35,6 +36,7 @@ import javax.ws.rs.core.Response;
  */
 @ApplicationScoped
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
+@Logged
 public class ApiServiceImpl implements ApiService {
 
     @Inject

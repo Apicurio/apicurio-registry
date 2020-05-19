@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.infinispan;
 
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
@@ -53,6 +54,7 @@ import javax.inject.Inject;
 @Counted(name = STORAGE_OPERATION_COUNT + "_InfinispanRegistryStorage", description = STORAGE_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_COUNT}, reusable = true)
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT + "_InfinispanRegistryStorage", description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT}, reusable = true)
 @Timed(name = STORAGE_OPERATION_TIME + "_InfinispanRegistryStorage", description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS, reusable = true)
+@Logged
 public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
     private static String KEY = "_ck";

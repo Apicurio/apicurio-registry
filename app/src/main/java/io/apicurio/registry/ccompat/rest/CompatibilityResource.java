@@ -62,7 +62,7 @@ public interface CompatibilityResource {
      *         Error code 40401 – Subject not found
      *         Error code 40402 – Version not found
      *     422 Unprocessable Entity
-     *         Error code 42201 – Invalid Avro schema
+     *         Error code 42201 – Invalid schema
      *         Error code 42202 – Invalid version
      *     500 Internal Server Error
      *         Error code 50001 – Error in the backend data store

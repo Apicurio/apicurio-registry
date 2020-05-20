@@ -20,7 +20,7 @@ import io.apicurio.registry.types.RegistryException;
 
 /**
  * This exception covers the following errors in the compat API:
- * - 409 Conflict – Incompatible Avro schema
+ * - 409 Conflict – Incompatible schema
  */
 public class ConflictException extends RegistryException {
 

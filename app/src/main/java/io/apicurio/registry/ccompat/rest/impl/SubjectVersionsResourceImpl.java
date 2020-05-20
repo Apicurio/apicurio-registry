@@ -61,7 +61,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             String subject,
             SchemaContent request) throws Exception {
 
-        facade.createSchema(subject, request.getSchema())
+        facade.createSchema(subject, request.getSchema(), request.getSchemaType())
                 .thenApply(FacadeConverter::convertUnsigned)
                 .whenComplete((id, t) -> {
                     if (t != null) {

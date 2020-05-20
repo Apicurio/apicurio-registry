@@ -18,11 +18,7 @@ package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
@@ -30,13 +26,18 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
  * @author Jakub Senko <jsenko@redhat.com>
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
-@NoArgsConstructor // required for Jackson
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @EqualsAndHashCode
 @ToString
+@Builder
 public class SchemaContent {
 
     @JsonProperty("schema")
     private String schema;
+
+    @JsonProperty("schemaType")
+    @Builder.Default
+    private String schemaType = "AVRO";
 }

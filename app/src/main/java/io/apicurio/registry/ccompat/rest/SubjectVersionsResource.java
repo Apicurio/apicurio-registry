@@ -100,13 +100,13 @@ public interface SubjectVersionsResource {
      * Request JSON Object:
      *
      *
-     *     schema – The Avro schema string
+     *     schema – The schema string
      *
      * Status Codes:
      *
-     *     409 Conflict – Incompatible Avro schema
+     *     409 Conflict – Incompatible schema
      *     422 Unprocessable Entity –
-     *         Error code 42201 – Invalid Avro schema
+     *         Error code 42201 – Invalid schema
      *     500 Internal Server Error –
      *         Error code 50001 – Error in the backend data store
      *         Error code 50002 – Operation timed out
@@ -135,7 +135,7 @@ public interface SubjectVersionsResource {
      *     subject (string) – Name of the subject that this schema is registered under
      *     globalId (int) – Globally unique identifier of the schema
      *     version (int) – Version of the returned schema
-     *     schema (string) – The Avro schema string
+     *     schema (string) – The schema string
      *
      * Status Codes:
      *
@@ -193,7 +193,7 @@ public interface SubjectVersionsResource {
 
 
     /**
-     * Get the avro schema for the specified version of this subject. The unescaped schema only is returned.
+     * Get the schema for the specified version of this subject. The unescaped schema only is returned.
      * Parameters:
      *
      *     subject (string) – Name of the subject
@@ -202,7 +202,7 @@ public interface SubjectVersionsResource {
      * Response JSON Object:
      *
      *
-     *     schema (string) – The Avro schema string (unescaped)
+     *     schema (string) – The schema string (unescaped)
      *
      * Status Codes:
      *

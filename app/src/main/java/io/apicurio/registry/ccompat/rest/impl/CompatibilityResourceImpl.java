@@ -68,9 +68,8 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             SchemaContent request) throws Exception {
 
         CompatibilityCheckResponse result = facade.parseVersionString(subject, versionString, version -> {
-            // TODO are we safe to assume AVRO?
             try {
-                rules.applyRule(subject, version, ArtifactType.AVRO, ContentHandle.create(request.getSchema()));
+                rules.applyRule(subject, version, ArtifactType.fromValue(request.getSchemaType()), ContentHandle.create(request.getSchema()));
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;

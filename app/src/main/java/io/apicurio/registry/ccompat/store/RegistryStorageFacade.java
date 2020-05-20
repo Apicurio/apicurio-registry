@@ -30,7 +30,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 /**
- * Note: This facade is only expected to be used for AVRO artifact type.
+ *
  *
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
@@ -50,7 +50,7 @@ public interface RegistryStorageFacade {
      *
      * @return globalId as a future
      */
-    CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
     SchemaContent getSchemaContent(int globalId) throws RegistryStorageException;

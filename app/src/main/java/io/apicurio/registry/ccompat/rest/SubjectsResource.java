@@ -81,7 +81,7 @@ public interface SubjectsResource {
      *     subject (string) – Name of the subject that this schema is registered under
      *     globalId (int) – Globally unique identifier of the schema
      *     version (int) – Version of the returned schema
-     *     schema (string) – The Avro schema string
+     *     schema (string) – The schema string
      *
      * Status Codes:
      *

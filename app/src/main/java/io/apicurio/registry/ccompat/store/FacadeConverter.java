@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.store;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.ArtifactType;
 
 public class FacadeConverter {
 
@@ -38,7 +39,7 @@ public class FacadeConverter {
         );
     }
 
-    public static SchemaContent convert(StoredArtifact artifactVersion) {
-        return new SchemaContent(artifactVersion.getContent().content());
+    public static SchemaContent convert(StoredArtifact artifactVersion, ArtifactType artifactType) {
+        return new SchemaContent(artifactVersion.getContent().content(), artifactType.value());
     }
 }

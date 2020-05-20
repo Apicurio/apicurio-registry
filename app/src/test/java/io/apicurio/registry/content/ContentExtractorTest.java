@@ -175,9 +175,9 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @RegistryServiceTest
     public void testAvro(Supplier<RegistryService> supplier) {
-        String artifactId = "schema-" + generateArtifactId();
+        String artifactId = generateArtifactId();
 
-        String name = generateArtifactId();
+        String name = "schema-" + generateArtifactId();
         String content = String.format(avroFormat, name);
 
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(content.getBytes()));

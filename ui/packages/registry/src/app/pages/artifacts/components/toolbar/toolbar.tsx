@@ -106,7 +106,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                     <DataToolbarItem className="artifact-paging-item">
                         <Pagination
                             variant="bottom"
-                            dropDirection="up"
+                            dropDirection="down"
                             itemCount={this.totalArtifactsCount()}
                             perPage={this.props.paging.pageSize}
                             page={this.props.paging.page}

@@ -162,7 +162,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testAvro() {
-        String name = generateArtifactId();
+        String name = "schema-" + generateArtifactId();
         String content = String.format(avroFormat, name);
 
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.AVRO);
@@ -175,7 +175,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @RegistryServiceTest
     public void testAvro(Supplier<RegistryService> supplier) {
-        String artifactId = generateArtifactId();
+        String artifactId = "schema-" + generateArtifactId();
 
         String name = generateArtifactId();
         String content = String.format(avroFormat, name);
@@ -186,7 +186,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         // test update
 
-        name = generateArtifactId();
+        name = "schema-" + generateArtifactId();
         content = String.format(avroFormat, name);
 
         cs = supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
@@ -196,7 +196,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testJsonSchema() {
-        String name = generateArtifactId();
+        String name = "schema-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
@@ -213,7 +213,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     public void testJsonSchema(Supplier<RegistryService> supplier) {
         String artifactId = generateArtifactId();
 
-        String name = generateArtifactId();
+        String name = "schema-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
@@ -223,7 +223,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         // test update
 
-        name = generateArtifactId();
+        name = "schema-" + generateArtifactId();
         content = String.format(jsonFormat, name, description);
 
         cs = supplier.get().updateArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
@@ -233,7 +233,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testOpenApi() {
-        String name = generateArtifactId();
+        String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
@@ -250,7 +250,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     public void testOpenApi(Supplier<RegistryService> supplier) {
         String artifactId = generateArtifactId();
 
-        String name = generateArtifactId();
+        String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
@@ -260,7 +260,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         // test update
 
-        name = generateArtifactId();
+        name = "api-" + generateArtifactId();
         content = String.format(openapiFormat, name, description);
 
         cs = supplier.get().updateArtifact(artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
@@ -270,7 +270,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
     @Test
     public void testAsyncApi() {
-        String name = generateArtifactId();
+        String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
@@ -287,7 +287,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     public void testAsyncApi(Supplier<RegistryService> supplier) {
         String artifactId = generateArtifactId();
 
-        String name = generateArtifactId();
+        String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
@@ -297,7 +297,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         // test update
 
-        name = generateArtifactId();
+        name = "api-" + generateArtifactId();
         content = String.format(asyncapiFormat, name, description);
 
         cs = supplier.get().updateArtifact(artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));

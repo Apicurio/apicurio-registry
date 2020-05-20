@@ -30,8 +30,10 @@ import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -71,6 +73,9 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     @Inject
     ResponseErrorLivenessCheck liveness;
+
+    @Context
+    HttpServletRequest request;
 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
@@ -116,9 +121,24 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         Error error = toError(t, code);
+        if (isCompatEndpoint()) {
+            error.setDetail(null);
+        }
         return builder.type(MediaType.APPLICATION_JSON)
                       .entity(error)
                       .build();
+    }
+
+    /**
+     * Returns true if the endpoint that caused the error is a "ccompat" endpoint.  If so
+     * we need to simplify the error we return.  The apicurio error structure has at least 
+     * one additional property.
+     */
+    private boolean isCompatEndpoint() {
+        if (this.request != null) {
+            return this.request.getRequestURI().contains("ccompat");
+        }
+        return false;
     }
 
     private static Error toError(Throwable t, int code) {

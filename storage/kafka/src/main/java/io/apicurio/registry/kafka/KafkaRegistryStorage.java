@@ -165,7 +165,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         // first check for any stale CFs -- should not be many
         Iterator<Map.Entry<UUID, TimedFuture<Object>>> iter = outstandingRequests.entrySet().iterator();
         while (iter.hasNext()) {
-            TimedFuture tf = iter.next().getValue();
+            TimedFuture<Object> tf = iter.next().getValue();
             // remove if older then the period we check
             if (now - tf.getTimestamp() > TimeUnit.MINUTES.toMillis(schedulePeriod)) {
                 iter.remove();

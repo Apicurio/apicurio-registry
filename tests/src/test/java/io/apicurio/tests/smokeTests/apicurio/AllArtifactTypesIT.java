@@ -131,5 +131,8 @@ class AllArtifactTypesIT extends BaseIT {
     @AfterEach
     void deleteRules(RegistryService service) {
         service.deleteAllGlobalRules();
+        service.listArtifacts().forEach(artifactId -> {
+            service.deleteArtifact(artifactId);
+        });
     }
 }

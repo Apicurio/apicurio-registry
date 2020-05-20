@@ -16,8 +16,11 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.Constants;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -35,14 +38,17 @@ import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
+import javax.ws.rs.WebApplicationException;
+
 @Tag(SMOKE)
-public class SchemasConfluentIT extends BaseIT {
+public class SchemasConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);
 
@@ -160,6 +166,71 @@ public class SchemasConfluentIT extends BaseIT {
     @Test
     void deleteNonexistingSchema() {
         assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
+    }
+
+    @RegistryServiceTest(localOnly = false)
+    void createConfluentQueryApicurio(RegistryService service) throws IOException, RestClientException, TimeoutException {
+        String name = "schemaname";
+        String subjectName = TestUtils.generateArtifactId();
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        createArtifactViaConfluentClient(schema, subjectName);
+
+        assertThat(1, is(confluentService.getAllSubjects().size()));
+
+        Response ar = ArtifactUtils.getArtifact(subjectName);
+        assertEquals(rawSchema, ar.asString());
+        LOGGER.info(ar.asString());
+
+        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return service.getLatestArtifact(subjectName) != null;
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+    }
+
+    @RegistryServiceTest(localOnly = false)
+    void testCreateDeleteSchemaRuleIsDeleted(RegistryService service) throws Exception {
+
+        String name = "schemaname";
+        String subjectName = TestUtils.generateArtifactId();
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        int globalId = createArtifactViaConfluentClient(schema, subjectName);
+
+        assertThat(1, is(confluentService.getAllSubjects().size()));
+
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(globalId));
+
+        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return service.getLatestArtifact(subjectName) != null;
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+
+        List<RuleType> rules = service.listArtifactRules(subjectName);
+        assertThat(1, is(rules.size()));
+
+        confluentService.deleteSubject(subjectName);
+
+        TestUtils.waitFor("schema deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllSubjects().size() == 0;
+            } catch (IOException | RestClientException e) {
+                return false;
+            }
+        });
+
+        TestUtils.assertWebError(404, () -> service.getLatestArtifact(subjectName), true);
+        TestUtils.assertWebError(404, () -> service.listArtifactRules(subjectName), true);
+        TestUtils.assertWebError(404, () -> service.getArtifactRuleConfig(rules.get(0), subjectName), true);
+
+        //if rule was actually deleted creating same artifact again shouldn't fail
+        createArtifactViaConfluentClient(schema, subjectName);
+        assertThat(1, is(confluentService.getAllSubjects().size()));
     }
 
     @AfterEach

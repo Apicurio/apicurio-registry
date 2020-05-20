@@ -314,6 +314,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             long globalId = Long.parseLong(m.get(MetaDataKeys.GLOBAL_ID));
             global.remove(globalId);
         });
+        this.deleteArtifactRulesInternal(artifactId);
         return new TreeSet<>(v2c.keySet());
     }
 
@@ -458,6 +459,15 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
+        this.deleteArtifactRulesInternal(artifactId);
+    }
+    
+    /**
+     * Internal delete of artifact rules without checking for existence of artifact first.
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    protected void deleteArtifactRulesInternal(String artifactId) throws RegistryStorageException {
         // delete rules
         artifactRules.remove(artifactId);
     }

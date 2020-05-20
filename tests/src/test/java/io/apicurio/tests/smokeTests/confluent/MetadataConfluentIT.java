@@ -17,7 +17,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.ConfluentBaseIT;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.avro.Schema;
@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 @Tag(SMOKE)
-public class MetadataConfluentIT extends BaseIT {
+public class MetadataConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
 

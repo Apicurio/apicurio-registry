@@ -905,7 +905,81 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("createdOn", anything())
                 .body("version", equalTo(2))
                 .body("description", equalTo("An example API design using OpenAPI."));;
-
-
     }
+
+    @Test
+    public void testDeleteArtifactWithRule() {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String artifactId = "testDeleteArtifactWithRule/EmptyAPI";
+        
+        // Create an artifact
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Add a rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+        
+        // Get a single rule by name
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/VALIDITY")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("VALIDITY"))
+                .body("config", equalTo("FULL"));
+
+        // Delete the artifact
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .delete("/artifacts/{artifactId}")
+            .then()
+                .statusCode(204);
+        
+        // Get a single rule by name (should be 404 because the artifact is gone)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/VALIDITY")
+            .then()
+                .statusCode(404);
+
+        // Re-create the artifact
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Get a single rule by name (should be 404 because the artifact is gone)
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/rules/VALIDITY")
+            .then()
+                .statusCode(404);
+        
+        // Add the same rule - should work because the old rule was deleted when the artifact was deleted.
+        rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+    }
+
 }

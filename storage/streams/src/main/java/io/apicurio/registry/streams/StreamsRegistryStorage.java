@@ -324,6 +324,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     result.add((long) (i + 1));
                 }
             }
+            
+            // Also delete any rules configured for the artifact.
+            this.deleteArtifactRules(artifactId);
             return result;
         } else {
             throw new ArtifactNotFoundException(artifactId);

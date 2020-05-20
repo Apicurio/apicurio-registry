@@ -19,7 +19,7 @@ package io.apicurio.tests.serdes.confluent;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.serdes.KafkaClients;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.avro.Schema;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Tag(CLUSTER)
-public class BasicConfluentSerDesIT extends BaseIT {
+public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
     @Test
     void testAvroConfluentSerDes() throws IOException, RestClientException, InterruptedException, ExecutionException, TimeoutException {

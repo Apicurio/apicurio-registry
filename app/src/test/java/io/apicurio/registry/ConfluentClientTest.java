@@ -41,16 +41,22 @@ import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.HashMap;
+
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
-import java.util.*;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
 
-        final List<SchemaProvider> schemaProviders = Arrays.asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
+        final List<SchemaProvider> schemaProviders = Arrays
+                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
 
         return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/api/ccompat"), 3, schemaProviders, null, null);
     }

@@ -59,7 +59,7 @@ public abstract class ConfluentBaseIT extends BaseIT {
                     LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
                     return true;
                 } catch (IOException | RestClientException e) {
-                    e.printStackTrace();
+                    LOGGER.debug("", e);
                     return false;
                 }
             });

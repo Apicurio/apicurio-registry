@@ -28,7 +28,6 @@ import io.restassured.response.Response;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -68,7 +67,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         confluentService.deleteSubject(artifactId);
     }
 
-    @Disabled
     @Test
     void createAndDeleteMultipleSchemas() throws IOException, RestClientException, TimeoutException {
         String prefix = TestUtils.generateArtifactId();

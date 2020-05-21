@@ -324,6 +324,10 @@ public class JPARegistryStorage implements RegistryStorage {
             MetaDataMapperUpdater mdmu = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                 .update(MetaDataKeys.TYPE, artifactType.value());
+            // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
+            String currentTimeMillis = String.valueOf(System.currentTimeMillis());
+            mdmu.update(MetaDataKeys.CREATED_ON, currentTimeMillis);
+            mdmu.update(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
 
             extractMetaData(artifactType, content, mdmu);
 

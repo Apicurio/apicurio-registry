@@ -24,7 +24,7 @@ public class Error {
     private String message;
     @JsonProperty("error_code")
     private Integer errorCode;
-    @JsonProperty(value = "error_code", required = false)
+    @JsonProperty(value = "detail", required = false)
     private String detail;
 
     @JsonProperty("message")

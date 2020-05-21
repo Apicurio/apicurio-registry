@@ -507,6 +507,7 @@ public class JPARegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
      */
     @Override
+    @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
             requireNonNull(artifactId);
@@ -514,7 +515,7 @@ public class JPARegistryStorage implements RegistryStorage {
             // Get the meta-data for the artifact
             ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
 
-            // Create a canonicalizer for the artifact based on its type, and then 
+            // Create a canonicalizer for the artifact based on its type, and then
             // canonicalize the inbound content
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();

@@ -64,7 +64,7 @@ export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptySta
                         </EmptyStateBody>
                 }
                 <IfFeature feature="readOnly" isNot={true}>
-                    <Button variant="primary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                    <Button variant="primary" data-testid="empty-btn-upload" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
                 </IfFeature>
             </EmptyState>
         );

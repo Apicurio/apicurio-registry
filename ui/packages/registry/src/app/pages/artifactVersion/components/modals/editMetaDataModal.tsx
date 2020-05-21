@@ -57,8 +57,8 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                 onClose={this.props.onClose}
                 className="edit-artifact-metaData pf-m-redhat-font"
                 actions={[
-                    <Button key="edit" variant="primary" onClick={this.doEdit}>Edit</Button>,
-                    <Button key="cancel" variant="link" onClick={this.props.onClose}>Cancel</Button>
+                    <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={this.doEdit}>Edit</Button>,
+                    <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
                 <p>Use the form below to update the Name and Description of the artifact.</p>
@@ -72,6 +72,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                             isRequired={false}
                             type="text"
                             id="form-name"
+                            data-testid="form-name"
                             name="form-name"
                             aria-describedby="form-name-helper"
                             value={this.state.metaData.name}
@@ -87,6 +88,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                         <TextArea
                             isRequired={false}
                             id="form-description"
+                            data-testid="form-description"
                             name="form-description"
                             aria-describedby="form-description-helper"
                             value={this.state.metaData.description}

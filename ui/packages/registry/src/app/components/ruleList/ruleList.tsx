@@ -54,24 +54,40 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
 
     public render(): React.ReactElement {
         let validityRuleActions: React.ReactElement = (
-            <Button variant="secondary" key="enable-action" onClick={this.doEnableRule("VALIDITY")}>Enable</Button>
+            <Button variant="secondary"
+                    key="enable-action"
+                    data-testid="rules-validity-enable"
+                    onClick={this.doEnableRule("VALIDITY")}>Enable</Button>
         );
         if (this.isRuleEnabled("VALIDITY")) {
             validityRuleActions = (
                 <React.Fragment>
-                    <ValidityDropdown value={this.getRuleConfig("VALIDITY")} onSelect={this.doConfigureRule("VALIDITY")} />
-                    <Button variant="plain" key="delete-action" title="Disable the validity rule" onClick={this.doDisableRule("VALIDITY")}><TrashIcon /></Button>
+                    <ValidityDropdown value={this.getRuleConfig("VALIDITY")}
+                                      onSelect={this.doConfigureRule("VALIDITY")} />
+                    <Button variant="plain"
+                            key="delete-action"
+                            data-testid="rules-validity-disable"
+                            title="Disable the validity rule"
+                            onClick={this.doDisableRule("VALIDITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
         }
         let compatibilityRuleActions: React.ReactElement = (
-            <Button variant="secondary" key="enable-action" onClick={this.doEnableRule("COMPATIBILITY")}>Enable</Button>
+            <Button variant="secondary"
+                    key="enable-action"
+                    data-testid="rules-compatibility-enable"
+                    onClick={this.doEnableRule("COMPATIBILITY")}>Enable</Button>
         );
         if (this.isRuleEnabled("COMPATIBILITY")) {
             compatibilityRuleActions = (
                 <React.Fragment>
-                    <CompatibilityDropdown value={this.getRuleConfig("COMPATIBILITY")} onSelect={this.doConfigureRule("COMPATIBILITY")} />
-                    <Button variant="plain" key="delete-action" title="Disable the compatibility rule" onClick={this.doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
+                    <CompatibilityDropdown value={this.getRuleConfig("COMPATIBILITY")}
+                                           onSelect={this.doConfigureRule("COMPATIBILITY")} />
+                    <Button variant="plain"
+                            key="delete-action"
+                            data-testid="rules-compatibility-disable"
+                            title="Disable the compatibility rule"
+                            onClick={this.doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
                 </React.Fragment>
             );
         }

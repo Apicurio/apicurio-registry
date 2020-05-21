@@ -48,14 +48,20 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
 
     public render(): React.ReactElement {
         const dropdownItems = [
-            <DropdownItem key="FULL" id="FULL">Full</DropdownItem>,
-            <DropdownItem key="SYNTAX_ONLY" id="SYNTAX_ONLY">Syntax Only</DropdownItem>,
+            <DropdownItem key="FULL"
+                          id="FULL"
+                          data-testid="rules-validity-config-full">Full</DropdownItem>,
+            <DropdownItem key="SYNTAX_ONLY"
+                          id="SYNTAX_ONLY"
+                          data-testid="rules-validity-config-syntaxOnly">Syntax Only</DropdownItem>,
         ];
         return (
             <Dropdown
                 onSelect={this.onSelect}
                 toggle={
-                    <DropdownToggle id="toggle-id" onToggle={this.onToggle} iconComponent={CaretDownIcon}>
+                    <DropdownToggle id="toggle-id"
+                                    data-testid="rules-validity-config-toggle"
+                                    onToggle={this.onToggle} iconComponent={CaretDownIcon}>
                         {this.displayValue()}
                     </DropdownToggle>
                 }

@@ -44,7 +44,7 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
             <Toolbar className="header-toolbar">
                 <ToolbarGroup>
                     <ToolbarItem>
-                        <Link className="header-icon" to={ `/rules` }>
+                        <Link data-testid="masthead-lnk-settings" className="header-icon" to={ `/rules` }>
                             <CogIcon />
                         </Link>
                     </ToolbarItem>

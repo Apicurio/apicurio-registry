@@ -57,6 +57,7 @@ export class UploadVersionForm extends PureComponent<UploadVersionFormProps, Upl
                 >
                     <FileUpload
                         id="artifact-content"
+                        data-testid="form-upload"
                         type="text"
                         filename={this.state.contentFilename}
                         value={this.state.content}

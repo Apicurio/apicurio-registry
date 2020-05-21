@@ -324,9 +324,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     result.add((long) (i + 1));
                 }
             }
-            
+
             // Also delete any rules configured for the artifact.
-            this.deleteArtifactRules(artifactId);
+            this.deleteArtifactRulesInternal(artifactId);
             return result;
         } else {
             throw new ArtifactNotFoundException(artifactId);
@@ -407,7 +407,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
-            // Create a canonicalizer for the artifact based on its type, and then 
+            // Create a canonicalizer for the artifact based on its type, and then
             // canonicalize the inbound content
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
@@ -484,10 +484,14 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
-            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, null, null));
+            deleteArtifactRulesInternal(artifactId);
         } else if (!isGlobalRules(artifactId)) {
             throw new ArtifactNotFoundException(artifactId);
         }
+    }
+
+    public void deleteArtifactRulesInternal(String artifactId) {
+        ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, null, null));
     }
 
     @Override

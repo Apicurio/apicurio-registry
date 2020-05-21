@@ -118,8 +118,32 @@ For the actual configuration options check (although best config docs are in the
 
 To help setup development / testing environment for the module, see streams_setup.sh script. You just need to have KAFKA_HOME env variable set, and script does the rest.
 
-### Docker container
-The same options are available for the docker containers, but only in the form of environment variables (The command line parameters are for the `java` executable and at the moment it's not possible to pass them into the container).
+## Docker containers
+Every time a commit is pushed to `master` an updated set of docker images are built and pushed to Docker 
+Hub.  There are several docker images to choose from, one for each storage option.  The images include:
+
+* [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
+* [apicurio-registry-jpa](https://hub.docker.com/r/apicurio/apicurio-registry-jps)
+* [apicurio-registry-infinispan](https://hub.docker.com/r/apicurio/apicurio-registry-infinispan)
+* [apicurio-registry-streams](https://hub.docker.com/r/apicurio/apicurio-registry-streams)
+* [apicurio-registry-kafka](https://hub.docker.com/r/apicurio/apicurio-registry-kafka)
+
+Run one of the above docker images like this:
+
+    docker run -it -p 8080:8080 apicurio/apicurio-registry-mem
+
+The same configuration options are available for the docker containers, but only in the form of environment 
+variables (The command line parameters are for the `java` executable and at the moment it's not possible to 
+pass them into the container).  Each docker image will support the environment variable configuration options
+documented above for their respective storage type.
+
+There are a variety of docker image tags to choose from when running the registry docker images.  Each
+release of the project has a specific tag associated with it.  So release `1.2.0.Final` has an equivalent
+docker tag specific to that release.  We also support the following moving tags:
+
+* `latest-snapshot` : represents the most recent docker image produced whenever the `master` branch is updated
+* `latest-release` : represents the latest stable (released) build of Apicurio Registry
+* `latest` : represents the absolute newest build - essentially the newer of `latest-release` or `latest-snapshot`
 
 ## Examples
 

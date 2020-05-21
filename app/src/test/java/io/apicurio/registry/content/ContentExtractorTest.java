@@ -177,7 +177,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     public void testAvro(Supplier<RegistryService> supplier) {
         String artifactId = generateArtifactId();
 
-        String name = "schema-" + generateArtifactId();
+        // Avro schema names can only have letters, digits, and _
+        String name = "schema_" + System.currentTimeMillis();
         String content = String.format(avroFormat, name);
 
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(content.getBytes()));
@@ -186,7 +187,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
 
         // test update
 
-        name = "schema-" + generateArtifactId();
+        // Avro schema names can only have letters, digits, and _
+        name = "schema_" + System.currentTimeMillis();
         content = String.format(avroFormat, name);
 
         cs = supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));

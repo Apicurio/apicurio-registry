@@ -2,7 +2,7 @@
 <productnumber>{version}</productnumber>
 <subtitle>{registry}</subtitle>
 <abstract>
-    <para>This guide introduces {registry} features, explains how to install in your storage environment, and how to manage artifacts in {registry}.</para>
+    <para>This guide introduces {registry} concepts and features, explains how to install into your preferred registry storage environment, and how to manage your event schemas and API designs in {registry}.</para>
 </abstract>
 <authorgroup>
   <org>

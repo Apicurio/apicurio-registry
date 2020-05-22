@@ -3,33 +3,13 @@
 [id="registry-overview"]
 = {registry} overview
 
-{registry} is a datastore for standard event schemas and API designs. You can use {registry} to decouple the structure of your data from your applications and to share and manage your data structures and API descriptions at runtime using a REST interface. 
+{registry} is a datastore for sharing standard event schemas and API designs across API and event-driven architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
 
-For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required by services deployed in production and can register new schemas required for new services.
+For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.  
 
-{registry} provides the following capabilities:
+You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client code. For example, the registry can store schemas used to serialize and deserialize messages, which can then be referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
 
-* Support for multiple payload formats for standard event schemas and API specifications. 
-
-ifdef::rh-service-registry[]
-//* Pluggable storage options including Red Hat AMQ Streams, Data Grid, or Java Persistence API. 
-*  Apache Kafka-based storage in Red Hat AMQ Streams.
-endif::[]
-ifdef::apicurio-registry[]
-* Pluggable storage options including Apache Kafka, Infinispan, or Java Persistence API. 
-endif::[]
-
-* Manage registry content using a REST API, a Maven plug-in, or a Java client.
-
-* Rules for content validation and version compatibility to govern how registry content evolves over time.
-
-* Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems. 
-
-* Client serializers/deserializers (SerDes) to validate Kafka and other message types at runtime.
-
-* Cloud-native Quarkus Java runtime for low memory footprint and fast deployment.
-
-* Compatibility with existing Confluent schema registry client applications.
+Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and also creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} also provides a graphical user interface to make it easy for developers and administrators to manage registry content.
 
 
 ifdef::rh-service-registry[]
@@ -38,9 +18,36 @@ ifdef::rh-service-registry[]
 
 endif::[]
 
-== {registry} artifacts
+[discrete]
+== {registry} features
+{registry} provides the following main features:
 
-The items stored in {registry}, such as event schemas and API specifications, are known as _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
+* Support for multiple payload formats for standard event schemas and API specifications 
+
+ifdef::rh-service-registry[]
+* Pluggable storage options including Red Hat AMQ Streams, Data Grid, or Java Persistence API 
+endif::[]
+ifdef::apicurio-registry[]
+* Pluggable storage options including Apache Kafka, Infinispan, or Java Persistence API 
+endif::[]
+
+* Registry content management by user interface, REST API command, Maven plug-in, or Java client
+
+* Rules for content validation and version compatibility to govern how registry content evolves over time
+
+* Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems 
+
+* Client serializers/deserializers (SerDes) to validate Kafka and other message types at runtime
+
+* Cloud-native Quarkus Java runtime for low memory footprint and fast deployment times
+
+* Compatibility with existing Confluent schema registry client applications
+
+* Operator-based installation of {registry} on OpenShift
+
+= {registry} artifacts
+
+The items stored in {registry}, such as event schemas and API specifications, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
 
 [source,json]
 ----
@@ -66,13 +73,13 @@ When a schema or API contract is added as an artifact in the registry, client ap
 {registry} supports a wide range of message payload formats for standard event schemas and API specifications. For example, supported formats include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and others. For more details, see xref:registry-artifact-types[].
 
 [id="registry-rest-api"]
-== Registry REST API
+= Registry REST API
 Using the Registry REST API, client applications can manage the artifacts in {registry}. This API provides create, read, update, and delete operations for:
 
 Artifacts::
-Manage the schema and API design artifacts stored in the registry. You can also manage the lifecycle state of an artifact: enabled, disabled, or deprecated. 
+Manage the schema and API design artifacts stored in the registry. Also includes browse or search for artifacts, and manage the lifecycle state of an artifact: enabled, disabled, or deprecated. 
 Artifact versions::
-Manage the versions that are created when artifact content is updated. You can also manage the lifecycle state of a version: enabled, disabled, or deprecated.
+Manage the versions that are created when artifact content is updated. Also includes browse or search for versions, and manage the lifecycle state of a version: enabled, disabled, or deprecated.
 Artifact metadata::
 Manage details such as when the artifact was created, last updated, and so on.
 Global rules::
@@ -88,7 +95,7 @@ ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
 
-== Storage options
+= Storage options
 {registry} supports the following underlying storage implementations for artifacts: 
 
 ifdef::apicurio-registry[]
@@ -107,17 +114,49 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-* Red Hat AMQ Streams 1.4
-* Red Hat AMQ Streams 1.3
-
-//* Red Hat Data Grid 7.3
-//* Java Persistence API (PostgreSQL database)
+* Red Hat AMQ Streams 1.4 (General Availability)
+* Red Hat Data Grid 8.0 (Technical Preview only)
+* Java Persistence API - PostgreSQL 12 database (Technical Preview only)
 
 endif::[]
 
+For details on how to install into your preferred storage option, see xref:installing-the-registry[].
+
 //The {registry} Operator enables you to install and configure {registry} with your selected storage implementation on OpenShift.
 
-== Available distributions
+[id="client-serde"]
+= Client serializers/deserializers 
+Event-based producer applications can use serializers to encode messages that conform to a specific event schema. Consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. 
+
+.{registry} client serializer/deserializer architecture
+image::../images/getting-started/registry-serdes-architecture.png[Registry SerDes architecture]
+
+{registry} provides client serializers/deserializers to validate the following message types at runtime:
+
+* Apache Avro
+* Google protocol buffers
+* JSON Schema
+
+The {registry} Maven repository and source code distributions include the serializer/deserializer implementations for these message types, which client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
+
+ifdef::rh-service-registry[]
+.Additional resources
+For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+endif::[]
+
+[id="registry-demo"]
+= Registry demonstration examples
+{registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+
+This demonstration also provides simple examples of both Avro and JSON Schema serialization/deserialization with storage in Apache Kafka:
+https://github.com/Apicurio/apicurio-registry-demo/tree/master/src/main/java/io/apicurio/registry/demo/simple
+
+ifdef::rh-service-registry[]
+For another demonstration example with detailed instructions on Avro serialization/deserialization with storage in Apache Kafka, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
+endif::[]
+
+= Available distributions
 
 ifdef::apicurio-registry[]
 {registry} provides the following container images for different storage options: 
@@ -150,7 +189,13 @@ ifdef::rh-service-registry[]
 |===
 |Distribution
 |Location
-|Container image
+|OpenShift Operator for {registry}
+|OpenShift OperatorHub
+|Container image for Kakfa storage (General Availability)
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|Container image for Data Grid storage (General Availability)
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|Container image for JPA storage (General Availability)
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |Maven repository
 |link:{download-url-registry-fuse-maven}[Software Downloads for Red Hat Fuse]
@@ -161,31 +206,4 @@ ifdef::rh-service-registry[]
 |===
 
 NOTE: You must have a subscription for Red Hat Fuse and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
-endif::[]
-
-[id="client-serde"]
-== Client serializers/deserializers 
-Event-based producer applications can use serializers to encode messages that conform to a specific event schema. Consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. {registry} provides client serializers/deserializers to validate the following message types at runtime:
-
-* Apache Avro
-* Google protocol buffers
-* JSON Schema
-
-The {registry} Maven repository and source code distributions include the serializer/deserializer implementations for these message types, which client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
-
-ifdef::rh-service-registry[]
-.Additional resources
-For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
-link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
-endif::[]
-
-[id="registry-demo"]
-== Registry demonstration
-{registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
-
-This demonstration also provides simple examples of both Avro and JSON Schema serialization/deserialization with storage in Apache Kafka:
-https://github.com/Apicurio/apicurio-registry-demo/tree/master/src/main/java/io/apicurio/registry/demo/simple
-
-ifdef::rh-service-registry[]
-For another demonstration example with detailed instructions on Avro serialization/deserialization with storage in Apache Kafka, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
 endif::[]

@@ -26,4 +26,8 @@ You can store and manage the following artifact types in {registry}:
 |Google protocol buffers schema
 |`PROTOBUF_FD`
 |Google protocol buffers file descriptor
+|`XSD`
+|XML Schema Definition
+|`WSDL`
+|Web Services Definition Language
 |===

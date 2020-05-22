@@ -6,16 +6,16 @@
 :numbered:
 
 // Branding
-:apicurio-registry:
-//:rh-service-registry:
-:registry: Apicurio Registry
-//:registry: Service Registry
-:version: 1.1
+//:apicurio-registry:
+:rh-service-registry:
+//:registry: Apicurio Registry
+:registry: Service Registry
+:version: 1.2
 
 //integration products
 :fuse-version: 7.6
-:amq-version: 7.5
-:3scale-version: 2.7
+:amq-version: 7.6
+:3scale-version: 2.8
 
 // Characters
 :copy: ©
@@ -29,12 +29,12 @@ include::attributes-links.adoc[]
 
 // Download URLs
 :download-url-registry-container-catalog: https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7
-:download-url-registry-fuse-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.5.0&downloadType=distributions 
-:download-url-registry-fuse-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.5.0&downloadType=distributions
-:download-url-registry-fuse-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.5.0&downloadType=distributions 
+:download-url-registry-fuse-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.6.0&downloadType=distributions 
+:download-url-registry-fuse-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.6.0&downloadType=distributions
+:download-url-registry-fuse-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.6.0&downloadType=distributions 
 
 // Toggle downstream content "on"
-// The following attributes are used to conditionalize content from the Apicurio upstream project.
+// The following attributes are used to conditionalize content from the Apicurio upstream project:
 // * Upstream-only content is tagged with ifdef::apicurio-registry[]...endif::[]
 // * Downstream-only content is tagged with ifdef::rh-service-registry[]...endif::[]
 // Untagged content is common

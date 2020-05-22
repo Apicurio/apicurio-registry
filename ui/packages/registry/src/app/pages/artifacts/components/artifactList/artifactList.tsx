@@ -57,7 +57,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         return (
             <DataList aria-label="List of artifacts" className="artifact-list">
                 {
-                    this.props.artifacts.map( artifact =>
+                    this.props.artifacts.map( (artifact, idx) =>
                             <DataListItemRow className="artifact-list-item" key={artifact.id}>
                                 <DataListItemCells
                                     dataListCells={[
@@ -85,7 +85,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                     aria-labelledby="artifact-actions"
                                     aria-label="Actions"
                                 >
-                                    <Link className="pf-c-button pf-m-secondary" to={this.artifactLink(artifact)}>View artifact</Link>
+                                    <Link className="pf-c-button pf-m-secondary" data-testid={`artifacts-lnk-view-${idx}`} to={this.artifactLink(artifact)}>View artifact</Link>
                                 </DataListAction>
                             </DataListItemRow>
                     )

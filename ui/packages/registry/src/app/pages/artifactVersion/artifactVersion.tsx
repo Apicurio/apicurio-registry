@@ -100,7 +100,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             <React.Fragment>
                 <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light}>
                     <Breadcrumb>
-                        <BreadcrumbItem><Link to="/artifacts">Artifacts</Link></BreadcrumbItem>
+                        <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
                         <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
                     </Breadcrumb>
                 </PageSection>
@@ -137,8 +137,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     onClose={this.onUploadModalClose}
                     className="upload-artifact-modal pf-m-redhat-font"
                     actions={[
-                        <Button key="upload" variant="primary" onClick={this.doUploadArtifactVersion} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
-                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>
+                        <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={this.doUploadArtifactVersion} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onUploadModalClose}>Cancel</Button>
                     ]}
                 >
                     <UploadVersionForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />
@@ -150,8 +150,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     onClose={this.onDeleteModalClose}
                     className="delete-artifact-modal pf-m-redhat-font"
                     actions={[
-                        <Button key="delete" variant="primary" onClick={this.doDeleteArtifact}>Delete</Button>,
-                        <Button key="cancel" variant="link" onClick={this.onDeleteModalClose}>Cancel</Button>
+                        <Button key="delete" variant="primary" data-testid="modal-btn-delete" onClick={this.doDeleteArtifact}>Delete</Button>,
+                        <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onDeleteModalClose}>Cancel</Button>
                     ]}
                 >
                     <p>Do you want to delete this artifact and all of its versions?  This action cannot be undone.</p>

@@ -72,6 +72,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <SplitItem className="actions">
                                 <IfFeature feature="readOnly" isNot={true}>
                                     <Button id="edit-action"
+                                            data-testid="artifact-btn-edit"
                                             title="Edit artifact meta-data"
                                             onClick={this.props.onEditMetaData}
                                             variant="plain"><EditIcon /></Button>
@@ -103,6 +104,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </div>
                     <div className="actions">
                         <Button id="download-action"
+                                data-testid="artifact-btn-download"
                                 title="Download artifact content"
                                 onClick={this.props.onDownloadArtifact}
                                 variant="primary"><DownloadIcon /> Download</Button>

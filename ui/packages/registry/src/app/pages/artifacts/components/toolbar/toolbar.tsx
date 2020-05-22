@@ -76,20 +76,22 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                 <Dropdown
                                     onSelect={this.onFilterSelect}
                                     toggle={
-                                        <DropdownToggle onToggle={this.onFilterToggle}>{this.filterValueDisplay()}</DropdownToggle>
+                                        <DropdownToggle data-testid="toolbar-filter-toggle" onToggle={this.onFilterToggle}>{this.filterValueDisplay()}</DropdownToggle>
                                     }
                                     isOpen={this.state.filterIsExpanded}
                                     dropdownItems={[
-                                        <DropdownItem key="everything" id="everything" component="button">Everything</DropdownItem>,
-                                        <DropdownItem key="name" id="name" component="button">Name</DropdownItem>,
-                                        <DropdownItem key="description" id="description" component="button">Description</DropdownItem>,
+                                        <DropdownItem key="everything" id="everything" data-testid="toolbar-filter-everything" component="button">Everything</DropdownItem>,
+                                        <DropdownItem key="name" id="name" data-testid="toolbar-filter-name" component="button">Name</DropdownItem>,
+                                        <DropdownItem key="description" id="description" data-testid="toolbar-filter-description" component="button">Description</DropdownItem>,
                                     ]}
                                 />
                                 <TextInput name="filterValue" id="filterValue" type="search"
                                            onChange={this.onFilterValueChange}
+                                           data-testid="toolbar-filter-value"
                                            aria-label="search input example"/>
                                 <Button variant={ButtonVariant.control}
                                         onClick={this.onFilterSubmit}
+                                        data-testid="toolbar-btn-filter-search"
                                         aria-label="search button for search input">
                                     <SearchIcon/>
                                 </Button>
@@ -97,7 +99,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                         </Form>
                     </DataToolbarItem>
                     <DataToolbarItem className="sort-icon-item">
-                        <Button variant="plain" aria-label="edit" onClick={this.onToggleAscending}>
+                        <Button variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={this.onToggleAscending}>
                             {
                                 this.state.ascending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                             }

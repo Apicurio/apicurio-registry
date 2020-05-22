@@ -3,7 +3,7 @@
     "info": {
         "title": "Apicurio Registry API",
         "version": "1.2.0",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically pull the latest updates from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to access the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema\n\n",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -1590,7 +1590,7 @@
                 "parameters": [
                     {
                         "name": "search",
-                        "description": "The text to search",
+                        "description": "The text to search.",
                         "schema": {
                             "type": "string"
                         },
@@ -1598,7 +1598,7 @@
                     },
                     {
                         "name": "offset",
-                        "description": "The number of artifacts to skip before starting to collect the result set",
+                        "description": "The number of artifacts to skip before starting to collect the result set.",
                         "schema": {
                             "default": 0,
                             "type": "integer"
@@ -1608,7 +1608,7 @@
                     },
                     {
                         "name": "limit",
-                        "description": "The number of artifacts to return",
+                        "description": "The number of artifacts to return.",
                         "schema": {
                             "default": 20,
                             "type": "integer"
@@ -1675,7 +1675,7 @@
                 "parameters": [
                     {
                         "name": "offset",
-                        "description": "The number of versions to skip before starting to collect the result set",
+                        "description": "The number of versions to skip before starting to collect the result set.",
                         "schema": {
                             "type": "integer"
                         },
@@ -1684,7 +1684,7 @@
                     },
                     {
                         "name": "limit",
-                        "description": "The number of versions to return",
+                        "description": "The number of versions to return.",
                         "schema": {
                             "type": "integer"
                         },
@@ -1712,7 +1712,7 @@
                 },
                 "operationId": "searchVersions",
                 "summary": "Search artifact versions",
-                "description": "Searches for versions of a specific artifact.  This is typically used to get a listing\nof all versions of an Artifact (for example in a user interface)."
+                "description": "Searches for versions of a specific artifact.  This is typically used to get a listing\nof all versions of an artifact (for example, in a user interface)."
             },
             "parameters": [
                 {
@@ -1739,11 +1739,22 @@
                     },
                     "description": {
                         "type": "string"
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
                     "name": "Artifact Name",
-                    "description": "The description of the artifact."
+                    "description": "The description of the artifact.",
+                    "labels": [
+                        "regional",
+                        "global"
+                    ]
                 }
             },
             "VersionMetaData": {
@@ -1792,6 +1803,13 @@
                     "id": {
                         "description": "The artifact id.",
                         "type": "string"
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
@@ -1802,7 +1820,11 @@
                     "description": "The description of the artifact",
                     "createdBy": "user1",
                     "createdOn": "2019-05-17T12:00:00Z",
-                    "globalId": 183282932983
+                    "globalId": 183282932983,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ]
                 }
             },
             "ArtifactMetaData": {
@@ -1862,6 +1884,13 @@
                     "state": {
                         "$ref": "#/components/schemas/ArtifactState",
                         "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
@@ -1874,7 +1903,11 @@
                     "createdOn": "2019-03-22T12:51:19Z",
                     "modifiedBy": "user2",
                     "modifiedOn": "2019-07-19T15:09:00Z",
-                    "globalId": 12984719247
+                    "globalId": 12984719247,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ]
                 }
             },
             "Rule": {
@@ -2269,7 +2302,7 @@
         },
         {
             "name": "Search",
-            "description": "In order to browse/find the artifacts in the registry, this search API can be used."
+            "description": "The search API is used to browse or find artifacts in the registry. This section describes the operations for searching for artifacts and versions. "
         }
     ]
 }

@@ -36,6 +36,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import java.io.Serializable;
 
 @Entity
 @Table(
@@ -49,7 +50,7 @@ import javax.persistence.UniqueConstraint;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class RuleConfig {
+public class RuleConfig implements Serializable {
 
     @Id
     @GeneratedValue

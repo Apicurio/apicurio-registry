@@ -33,6 +33,7 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import java.io.Serializable;
 
 @Entity
 @Table(
@@ -46,7 +47,7 @@ import javax.persistence.UniqueConstraint;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class Rule {
+public class Rule implements Serializable {
 
     @Id
     @GeneratedValue

@@ -1,6 +1,8 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,7 +18,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "name",
-    "description"
+    "description",
+    "labels"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EditableMetaData {
@@ -25,6 +28,8 @@ public class EditableMetaData {
     private String name;
     @JsonProperty("description")
     private String description;
+    @JsonProperty("labels")
+    private List<String> labels;
 
     @JsonProperty("name")
     public String getName() {
@@ -44,6 +49,16 @@ public class EditableMetaData {
     @JsonProperty("description")
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    @JsonProperty("labels")
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    @JsonProperty("labels")
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
     }
 
 }

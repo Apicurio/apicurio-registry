@@ -315,6 +315,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(artifactId);
             }
 
+            // Delete any rules configured for the artifact.
+            this.deleteArtifactRulesInternal(artifactId);
+
             ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null));
 
             SortedSet<Long> result = new TreeSet<>();
@@ -325,8 +328,6 @@ public class StreamsRegistryStorage implements RegistryStorage {
                 }
             }
 
-            // Also delete any rules configured for the artifact.
-            this.deleteArtifactRulesInternal(artifactId);
             return result;
         } else {
             throw new ArtifactNotFoundException(artifactId);

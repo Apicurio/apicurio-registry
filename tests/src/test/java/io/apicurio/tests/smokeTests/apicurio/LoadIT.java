@@ -46,9 +46,9 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 
 @Tag(SMOKE)
-public class LoadTest extends BaseIT {
+public class LoadIT extends BaseIT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadIT.class);
 
     private String base = TestUtils.generateArtifactId();
 
@@ -83,7 +83,7 @@ public class LoadTest extends BaseIT {
         }, runnable -> new Thread(runnable).start());
 
         try {
-            List<CompletionStage<Void>> createResults = IntStream.range(0, 1000).mapToObj(i -> {
+            List<CompletionStage<Void>> createResults = IntStream.range(0, 250).mapToObj(i -> {
                 return createArtifactAsync(apicurioService, i)
                         .thenAccept(m ->
                             artifactsQueue.offer(m.getId())
@@ -101,7 +101,7 @@ public class LoadTest extends BaseIT {
         }
 
         try {
-            Throwable result = deleteingResult.get(60, TimeUnit.SECONDS);
+            Throwable result = deleteingResult.get(120, TimeUnit.SECONDS);
             if (result != null) {
                 deleteLoopFlag.set(false);
                 throw new IllegalStateException("Error deleteing artifacts", result);

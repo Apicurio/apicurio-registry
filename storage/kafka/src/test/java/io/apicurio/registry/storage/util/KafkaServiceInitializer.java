@@ -1,6 +1,8 @@
 package io.apicurio.registry.storage.util;
 
 import io.apicurio.registry.util.ServiceInitializer;
+import io.quarkus.test.common.QuarkusTestResource;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -16,6 +18,7 @@ import javax.enterprise.event.Observes;
 /**
  * @author Ales Justin
  */
+@QuarkusTestResource(KafkaTestContainerManager.class)
 public class KafkaServiceInitializer implements ServiceInitializer {
     private static final Logger log = LoggerFactory.getLogger(KafkaServiceInitializer.class);
 

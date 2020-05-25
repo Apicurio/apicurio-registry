@@ -31,6 +31,14 @@
         <javax-annotation-api.version>1.3.2</javax-annotation-api.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>OSSRH</id>
+            <name>OSS Sonatype</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
 
         <dependency>
@@ -172,7 +180,7 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-testing-testcontainers</artifactId>
-            <version>1.2.0.Beta2</version>
+            <version>1.2.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

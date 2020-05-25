@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.smokeTests.apicurio;
+package io.apicurio.tests.converters;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -46,41 +46,50 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import static io.apicurio.tests.Constants.SMOKE;
 
 @Tag(SMOKE)
-public class ConverterIT extends BaseIT {
+public class KafkaConnectConverterIT extends BaseIT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConverterIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConnectConverterIT.class);
 
-    private static final Network network = Network.newNetwork();
+    private static final Network NETWORK = Network.newNetwork();
 
-    private static final KafkaContainer kafkaContainer = new KafkaContainer()
-        .withNetwork(network);
+    private static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer()
+        .withNetwork(NETWORK);
 
-    private static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("debezium/postgres:11")
-        .withNetwork(network)
+    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>("debezium/postgres:11")
+        .withNetwork(NETWORK)
         .withNetworkAliases("postgres");
 
-    private static final GenericContainer apicurioContainer = new GenericContainer("apicurio/apicurio-registry-mem:latest-release")
-        .withNetwork(network)
+    private static final GenericContainer APICURIO_CONTAINER = new GenericContainer("apicurio/apicurio-registry-mem:1.1.2.Final")
+        .withNetwork(NETWORK)
         .withExposedPorts(8080)
         .waitingFor(new LogMessageWaitStrategy().withRegEx(".*apicurio-registry-app.*started in.*"));
 
-    public static DebeziumContainer debeziumContainer = new DebeziumContainer("debezium/connect:1.2.0.Beta2")
-        .withNetwork(network)
-        .withKafka(kafkaContainer)
+    public static ImageFromDockerfile apicurioDebeziumImage = new ImageFromDockerfile()
+        .withDockerfileFromBuilder(builder -> builder
+            .from("debezium/connect:1.1.1.Final")
+            .env("KAFKA_CONNECT_DEBEZIUM_DIR", "$KAFKA_CONNECT_PLUGINS_DIR/debezium-connector-postgres")
+            .env("APICURIO_VERSION", "1.1.2.Final")
+            .run("cd $KAFKA_CONNECT_DEBEZIUM_DIR && curl https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-distro-connect-converter/$APICURIO_VERSION/apicurio-registry-distro-connect-converter-$APICURIO_VERSION-converter.tar.gz | tar xzv")
+            .build());
+
+    public static DebeziumContainer debeziumContainer = new DebeziumContainer(apicurioDebeziumImage)
+        .withNetwork(NETWORK)
+        .withKafka(KAFKA_CONTAINER)
         .withLogConsumer(new Slf4jLogConsumer(LOGGER))
-        .dependsOn(kafkaContainer);
+        .dependsOn(KAFKA_CONTAINER);
 
     @Test
     public void testConvertToAvro() throws Exception {
-        try (Connection connection = getConnection(postgresContainer);
+        try (Connection connection = getConnection(POSTGRES_CONTAINER);
              Statement statement = connection.createStatement();
-             KafkaConsumer<byte[], byte[]> consumer = getConsumerBytes(kafkaContainer)) {
+             KafkaConsumer<byte[], byte[]> consumer = getConsumerBytes(KAFKA_CONTAINER)) {
 
             statement.execute("drop schema if exists todo cascade");
             statement.execute("create schema todo");
@@ -137,12 +146,12 @@ public class ConverterIT extends BaseIT {
     }
 
     private ConnectorConfiguration getConfiguration(int id, String converter, String... options) {
-        final String host = apicurioContainer.getContainerInfo().getConfig().getHostName();
-        final int port = (Integer) apicurioContainer.getExposedPorts().get(0);
+        final String host = APICURIO_CONTAINER.getContainerInfo().getConfig().getHostName();
+        final int port = (Integer) APICURIO_CONTAINER.getExposedPorts().get(0);
         final String apicurioUrl = "http://" + host + ":" + port;
 
         // host, database, user etc. are obtained from the container
-        final ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(postgresContainer)
+        final ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(POSTGRES_CONTAINER)
             .with("database.server.name", "dbserver" + id)
             .with("slot.name", "debezium_" + id)
             .with("key.converter", converter)
@@ -163,6 +172,6 @@ public class ConverterIT extends BaseIT {
     @BeforeClass
     public static void startContainers() {
         Startables.deepStart(Stream.of(
-            apicurioContainer, kafkaContainer, postgresContainer, debeziumContainer)).join();
+            APICURIO_CONTAINER, KAFKA_CONTAINER, POSTGRES_CONTAINER, debeziumContainer)).join();
     }
 }

@@ -173,6 +173,7 @@
                     <artifactId>resteasy-client-microprofile</artifactId>
                 </exclusion>
             </exclusions>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext.microprofile</groupId>

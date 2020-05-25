@@ -422,7 +422,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
@@ -432,6 +432,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (prevValue != null) {
             throw new RuleAlreadyExistsException(rule);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     /**

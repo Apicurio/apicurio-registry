@@ -18,6 +18,7 @@ import React from 'react';
 import "./uploadForm.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {
+    Button,
     debounce,
     Dropdown,
     DropdownItem,
@@ -88,6 +89,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                         isRequired={true}
                         type="text"
                         id="form-id"
+                        data-testid="form-id"
                         name="form-id"
                         aria-describedby="form-id-helper"
                         value={this.state.id}
@@ -103,17 +105,17 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                     <div>
                         <Dropdown
                             toggle={
-                                <DropdownToggle id="form-type-toggle" onToggle={this.onTypeToggle} iconComponent={CaretDownIcon}>
+                                <DropdownToggle id="form-type-toggle" data-testid="form-type-toggle" onToggle={this.onTypeToggle} iconComponent={CaretDownIcon}>
                                     { this.state.type ? this.typeLabel(this.state.type) : "Auto-Detect" }
                                 </DropdownToggle>
                             }
                             onSelect={this.onTypeSelect}
                             isOpen={this.state.typeIsExpanded}
                             dropdownItems={[
-                                <DropdownItem key="auto" id=""><i>Auto-Detect</i></DropdownItem>,
+                                <DropdownItem key="auto" id="" data-testid="form-type-auto"><i>Auto-Detect</i></DropdownItem>,
                                 <DropdownSeparator key="separator" />,
                                 ...artifactTypes.map(t =>
-                                    <DropdownItem key={t.id} id={t.id}>{ t.label }</DropdownItem>
+                                    <DropdownItem key={t.id} id={t.id} data-testid={`form-type-${t.id}`}>{ t.label }</DropdownItem>
                                 )
                             ]}
                         />
@@ -126,6 +128,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                 >
                     <FileUpload
                         id="artifact-content"
+                        data-testid="form-upload"
                         type="text"
                         filename={this.state.contentFilename}
                         value={this.state.content}

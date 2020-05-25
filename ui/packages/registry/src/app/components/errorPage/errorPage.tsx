@@ -18,7 +18,7 @@
 import React from 'react';
 import "./errorPage.css";
 import {
-    Button,
+    Button, DropdownItem,
     EmptyState, EmptyStateBody,
     EmptyStateIcon, EmptyStateSecondaryActions,
     EmptyStateVariant,
@@ -75,8 +75,12 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
                             </EmptyStateBody>
                             <Button variant="primary" onClick={this.reloadPage}>Reload page</Button>
                             <EmptyStateSecondaryActions>
-                                <Button variant="link" onClick={this.navigateTo("/")}>Back to artifacts</Button>
-                                <Button variant="link" onClick={this.showDetails}>Show details</Button>
+                                <Button variant="link"
+                                        data-testid="error-btn-artifacts"
+                                        onClick={this.navigateTo("/")}>Back to artifacts</Button>
+                                <Button variant="link"
+                                        data-testid="error-btn-details"
+                                        onClick={this.showDetails}>Show details</Button>
                             </EmptyStateSecondaryActions>
                         </EmptyState>
                         <div className="separator">&nbsp;</div>
@@ -84,6 +88,7 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
                             this.state.isShowDetails ?
                                 <div className="ace-wrapper pf-c-empty-state pf-m-lg" id="ace-wrapper">
                                     <AceEditor
+                                        data-testid="ace-details"
                                         mode="json"
                                         theme="tomorrow"
                                         name="errorDetail"

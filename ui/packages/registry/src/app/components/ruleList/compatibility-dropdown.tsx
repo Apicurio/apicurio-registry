@@ -48,18 +48,32 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
 
     public render(): React.ReactElement {
         const dropdownItems = [
-            <DropdownItem key="BACKWARD" id="BACKWARD">Backward</DropdownItem>,
-            <DropdownItem key="BACKWARD_TRANSITIVE" id="BACKWARD_TRANSITIVE">Backward Transitive</DropdownItem>,
-            <DropdownItem key="FORWARD" id="FORWARD">Forward</DropdownItem>,
-            <DropdownItem key="FORWARD_TRANSITIVE" id="FORWARD_TRANSITIVE">Forward Transitive</DropdownItem>,
-            <DropdownItem key="FULL" id="FULL">Full</DropdownItem>,
-            <DropdownItem key="FULL_TRANSITIVE" id="FULL_TRANSITIVE">Full Transitive</DropdownItem>,
+            <DropdownItem key="BACKWARD"
+                          data-testid="rules-compatibility-config-backward"
+                          id="BACKWARD">Backward</DropdownItem>,
+            <DropdownItem key="BACKWARD_TRANSITIVE"
+                          data-testid="rules-compatibility-config-backwardTrans"
+                          id="BACKWARD_TRANSITIVE">Backward Transitive</DropdownItem>,
+            <DropdownItem key="FORWARD"
+                          data-testid="rules-compatibility-config-forward"
+                          id="FORWARD">Forward</DropdownItem>,
+            <DropdownItem key="FORWARD_TRANSITIVE"
+                          data-testid="rules-compatibility-config-forwardTrans"
+                          id="FORWARD_TRANSITIVE">Forward Transitive</DropdownItem>,
+            <DropdownItem key="FULL"
+                          data-testid="rules-compatibility-config-full"
+                          id="FULL">Full</DropdownItem>,
+            <DropdownItem key="FULL_TRANSITIVE"
+                          data-testid="rules-compatibility-config-fullTrans"
+                          id="FULL_TRANSITIVE">Full Transitive</DropdownItem>,
         ];
         return (
             <Dropdown
                 onSelect={this.onSelect}
                 toggle={
-                    <DropdownToggle id="toggle-id" onToggle={this.onToggle} iconComponent={CaretDownIcon}>
+                    <DropdownToggle id="toggle-id"
+                                    data-testid="rules-compatibility-config-toggle"
+                                    onToggle={this.onToggle} iconComponent={CaretDownIcon}>
                         {this.displayValue()}
                     </DropdownToggle>
                 }

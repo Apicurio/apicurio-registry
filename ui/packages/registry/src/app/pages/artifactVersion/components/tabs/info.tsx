@@ -72,6 +72,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <SplitItem className="actions">
                                 <IfFeature feature="readOnly" isNot={true}>
                                     <Button id="edit-action"
+                                            data-testid="artifact-btn-edit"
                                             title="Edit artifact meta-data"
                                             onClick={this.props.onEditMetaData}
                                             variant="plain"><EditIcon /></Button>
@@ -79,7 +80,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             </SplitItem>
                         </Split>
                     </div>
-                    <div className="description">{this.props.artifact.description}</div>
+                    <div className="description">{this.description()}</div>
                     <div className="metaData">
                         <div className="metaDataItem">
                             <span className="label">Status</span>
@@ -103,6 +104,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </div>
                     <div className="actions">
                         <Button id="download-action"
+                                data-testid="artifact-btn-download"
                                 title="Download artifact content"
                                 onClick={this.props.onDownloadArtifact}
                                 variant="primary"><DownloadIcon /> Download</Button>
@@ -133,4 +135,9 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
         return [];
     }
 
+    private description(): string {
+        return this.props.artifact.description ?
+            this.props.artifact.description :
+            `An artifact of type ${this.props.artifact.type} with no description.`;
+    }
 }

@@ -38,8 +38,9 @@ public class RestMetricsInterceptor {
 
     private Timer timer;
 
+    private boolean init = false;
 
-    void init() {
+    synchronized void init() {
         // Total counter
         final Metadata m1 = Metadata.builder()
                 .withName(REST_REQUEST_COUNT)
@@ -65,11 +66,13 @@ public class RestMetricsInterceptor {
                 .build();
         final Tag[] tags3 = {new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_REQUEST_RESPONSE_TIME)};
         timer = metricRegistry.timer(m3, tags3);
+
+        init = true;
     }
 
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
-        if (counter == null) {
+        if (!init) {
             init(); // @PostConstruct causes MethodNotFound ex.
         }
         counter.inc();

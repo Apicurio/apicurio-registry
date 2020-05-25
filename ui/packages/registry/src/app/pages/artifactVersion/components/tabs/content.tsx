@@ -69,6 +69,7 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
         return (
             <div className="ace-wrapper" id="ace-wrapper">
                 <AceEditor
+                    data-testid="ace-content"
                     mode={this.editorMode()}
                     theme="monokai"
                     name="artifactContent"

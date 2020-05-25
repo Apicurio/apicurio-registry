@@ -56,7 +56,7 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
                     <IfFeature feature="readOnly" isNot={true}>
-                        <Button variant="secondary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                        <Button data-testid="btn-header-upload-artifact" variant="secondary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
                     </IfFeature>
                 </FlexItem>
             </Flex>

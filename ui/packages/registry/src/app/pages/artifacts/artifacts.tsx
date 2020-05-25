@@ -93,8 +93,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     onClose={this.onUploadModalClose}
                     className="upload-artifact-modal pf-m-redhat-font"
                     actions={[
-                        <Button key="upload" variant="primary" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
-                        <Button key="cancel" variant="link" onClick={this.onUploadModalClose}>Cancel</Button>
+                        <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={this.doUploadArtifact} isDisabled={!this.state.isUploadFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onUploadModalClose}>Cancel</Button>
                     ]}
                 >
                     <UploadArtifactForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />

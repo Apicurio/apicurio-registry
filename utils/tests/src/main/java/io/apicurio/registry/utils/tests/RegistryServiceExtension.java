@@ -45,6 +45,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
+    private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {
         REGISTRY_SERVICE,
@@ -119,7 +120,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private boolean testRegistryClient(String clientType) {
         String testRegistryClients = TestUtils.getTestRegistryClients();
-        return testRegistryClients == null || testRegistryClients.equalsIgnoreCase("all")
+        return testRegistryClients == null || testRegistryClients.equalsIgnoreCase(REGISTRY_CLIENT_ALL)
                 || testRegistryClients.equalsIgnoreCase(clientType);
     }
 

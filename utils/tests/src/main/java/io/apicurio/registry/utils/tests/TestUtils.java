@@ -56,6 +56,7 @@ public class TestUtils {
     private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
     private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
+    private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
 
     private TestUtils() {
         // All static methods
@@ -82,6 +83,10 @@ public class TestUtils {
         } else {
             return String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT);
         }
+    }
+
+    public static String getTestRegistryClients() {
+        return TEST_REGISTRY_CLIENT;
     }
 
     /**

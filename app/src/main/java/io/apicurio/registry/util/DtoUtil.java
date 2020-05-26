@@ -48,6 +48,7 @@ public final class DtoUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
+        metaData.setLabels(dto.getLabels());
         return metaData;
     }
 

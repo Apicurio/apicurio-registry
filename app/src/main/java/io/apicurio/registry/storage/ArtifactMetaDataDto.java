@@ -23,6 +23,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.List;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -43,6 +45,7 @@ public class ArtifactMetaDataDto {
     private long globalId; // TODO which? global ID points to a specific artifact version
     private ArtifactType type;
     private ArtifactState state;
+    private List<String> labels;
 
     /**
      * Constructor.
@@ -202,5 +205,19 @@ public class ArtifactMetaDataDto {
      */
     public void setGlobalId(long globalId) {
         this.globalId = globalId;
+    }
+
+    /**
+     * @return the labels
+     */
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    /**
+     * @param labels the labels to set
+     */
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
     }
 }

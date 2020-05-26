@@ -16,6 +16,7 @@
 
 package io.apicurio.registry;
 
+import graphql.Assert;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
@@ -26,6 +27,8 @@ import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
@@ -139,5 +142,34 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(2, results.getCount());
         Assertions.assertEquals(2, results.getVersions().size());
         Assertions.assertEquals(name, results.getVersions().get(0).getName());
+    }
+
+    @RegistryServiceTest
+    public void testLabels(Supplier<RegistryService> supplier) throws Exception {
+        String artifactId = generateArtifactId();
+        try {
+            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, stream);
+            ConcurrentUtil.result(csResult);
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName("myname");
+            final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON");
+            emd.setLabels(artifactLabels);
+            supplier.get().updateArtifactMetaData(artifactId, emd);
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = supplier.get().getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals(3, artifactMetaData.getLabels().size());
+                Assert.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
+            });
+
+            stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
+            csResult = supplier.get().updateArtifact(artifactId, ArtifactType.JSON, stream);
+            ConcurrentUtil.result(csResult);
+        } finally {
+            supplier.get().deleteArtifact(artifactId);
+        }
     }
 }

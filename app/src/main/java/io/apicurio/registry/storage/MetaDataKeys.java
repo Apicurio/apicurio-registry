@@ -18,6 +18,7 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 
@@ -37,6 +38,7 @@ public class MetaDataKeys {
     public static String MODIFIED_BY = "modifiedBy";
     public static String MODIFIED_ON = "modifiedOn";
     public static String STATE = "state";
+    public static String LABELS = "labels";
 
     // Internal
 
@@ -66,6 +68,9 @@ public class MetaDataKeys {
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         dto.setState(ArtifactStateExt.getState(content));
+        if (content.get(LABELS) != null) {
+            dto.setLabels(Arrays.asList(content.get(LABELS).split(",")));
+        }
         return dto;
     }
 

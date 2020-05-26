@@ -404,6 +404,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (metaData.getDescription() != null) {
             storage.put(artifactId, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            content.put(MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
+        }
     }
 
     /**
@@ -527,6 +530,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 .sorted(Long::compareTo)
                 .skip(offset)
                 .limit(limit)
+                .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
                 .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
                 .map(SearchUtil::buildSearchedVersion)
                 .collect(Collectors.toList());

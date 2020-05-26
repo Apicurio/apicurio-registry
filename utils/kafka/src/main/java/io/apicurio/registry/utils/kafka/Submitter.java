@@ -6,6 +6,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -49,13 +50,17 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description) {
+    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels) {
         Str.MetaDataValue.Builder builder = Str.MetaDataValue.newBuilder();
         if (name != null) {
             builder.setName(name);
         }
         if (description != null) {
             builder.setDescription(description);
+        }
+
+        if (labels != null && !labels.isEmpty()) {
+            builder.setLabels(String.join(",", labels));
         }
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.METADATA, actionType, artifactId, version).setMetadata(builder);

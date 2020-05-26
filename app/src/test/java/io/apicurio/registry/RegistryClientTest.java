@@ -34,7 +34,23 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
+<<<<<<< HEAD
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
+=======
+import org.junit.jupiter.api.Assertions;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.quarkus.test.junit.QuarkusTest;
+>>>>>>> Add streams storage labels support
 
 /**
  * @author Ales Justin
@@ -162,7 +178,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
                 Assertions.assertEquals(3, artifactMetaData.getLabels().size());
-                Assert.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
+                Assertions.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
             });
 
             stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));

@@ -343,7 +343,7 @@ public class ArtifactMetaData {
         return "ArtifactMetaData{" +
                 "name='" + name + '\'' +
                 ", description='" + description + '\'' +
-                ", labels='" + labels.toArray() + '\'' +
+                ", labels='" + labels + '\'' +
                 ", createdBy='" + createdBy + '\'' +
                 ", createdOn=" + createdOn +
                 ", modifiedBy='" + modifiedBy + '\'' +

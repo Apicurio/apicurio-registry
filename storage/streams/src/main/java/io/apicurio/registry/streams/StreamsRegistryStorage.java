@@ -463,19 +463,19 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
             Optional<Str.RuleValue> found = data.getRulesList()
-                .stream()
-                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                .findFirst();
+                    .stream()
+                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                    .findFirst();
             if (found.isPresent()) {
                 throw new RuleAlreadyExistsException(rule);
             }
-            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()));
+            return submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()).thenApply(o -> null);
         } else if (isGlobalRules(artifactId)) {
-            ConcurrentUtil.get(submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()));
+            return submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()).thenApply(o -> null);
         } else {
             throw new ArtifactNotFoundException(artifactId);
         }

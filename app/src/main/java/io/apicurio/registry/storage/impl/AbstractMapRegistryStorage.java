@@ -16,53 +16,32 @@
 
 package io.apicurio.registry.storage.impl;
 
-import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.SearchUtil;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of 
@@ -74,14 +53,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     @Inject
     protected ArtifactTypeUtilProviderFactory factory;
-    
-    protected Map<String, Map<Long, Map<String, String>>> storage;
-    protected Map<Long, Map<String, String>> global;
-    protected Map<String, Map<String, String>> artifactRules;
+
+    protected StorageMap storage;
+    protected Map<Long, TupleId> global;
+    protected MultiMap<String, String, String> artifactRules;
     protected Map<String, String> globalRules;
+
+    protected void beforeInit() {
+    }
 
     @PostConstruct
     public void init() {
+        beforeInit();
         storage = createStorageMap();
         global = createGlobalMap();
         globalRules = createGlobalRulesMap();
@@ -93,17 +76,21 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     protected abstract long nextGlobalId();
-    protected abstract Map<String, Map<Long, Map<String, String>>> createStorageMap();
-    protected abstract Map<Long, Map<String, String>> createGlobalMap();
+
+    protected abstract StorageMap createStorageMap();
+
+    protected abstract Map<Long, TupleId> createGlobalMap();
+
     protected abstract Map<String, String> createGlobalRulesMap();
-    protected abstract Map<String, Map<String, String>> createArtifactRulesMap();
+
+    protected abstract MultiMap<String, String, String> createArtifactRulesMap();
 
     private Map<Long, Map<String, String>> getVersion2ContentMap(String artifactId) throws ArtifactNotFoundException {
         Map<Long, Map<String, String>> v2c = storage.get(artifactId);
-        if (v2c == null) {
+        if (v2c == null || v2c.isEmpty()) {
             throw new ArtifactNotFoundException(artifactId);
         }
-        return v2c;
+        return Collections.unmodifiableMap(v2c);
     }
 
     private Map<String, String> getContentMap(String artifactId, Long version, EnumSet<ArtifactState> states) throws ArtifactNotFoundException {
@@ -116,14 +103,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         ArtifactState state = ArtifactStateExt.getState(content);
         ArtifactStateExt.validateState(states, state, artifactId, version);
 
-        return content;
+        return Collections.unmodifiableMap(content);
+    }
+
+    public static Predicate<Map.Entry<Long, Map<String, String>>> statesFilter(EnumSet<ArtifactState> states) {
+        return e -> states.contains(ArtifactStateExt.getState(e.getValue()));
     }
 
     private Map<String, String> getLatestContentMap(String artifactId, EnumSet<ArtifactState> states) throws ArtifactNotFoundException, RegistryStorageException {
         Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
         Stream<Map.Entry<Long, Map<String, String>>> stream = v2c.entrySet().stream();
         if (states != null) {
-            stream = stream.filter(e -> states.contains(ArtifactStateExt.getState(e.getValue())));
+            stream = stream.filter(statesFilter(states));
         }
         Map<String, String> latest = stream.max((e1, e2) -> (int) (e1.getKey() - e2.getKey()))
                                            .orElseThrow(() -> new ArtifactNotFoundException(artifactId))
@@ -131,7 +122,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(latest), latest.get(VERSION));
 
-        return latest;
+        return Collections.unmodifiableMap(latest);
     }
 
     private boolean filterSearchResult(String search, String artifactId, SearchOver searchOver) {
@@ -169,9 +160,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
         return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
     }
-    protected BiFunction<String, Map<String, String>, Map<String, String>> rulesLookupFn() {
-        return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
-    }
 
     protected ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content, boolean create, long globalId)
             throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
@@ -182,7 +170,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             artifactId = UUID.randomUUID().toString();
         }
 
-        Map<Long, Map<String, String>> v2c = storage.compute(artifactId, lookupFn());
+        Map<Long, Map<String, String>> v2c = storage.compute(artifactId);
 
         if (create && v2c.size() > 0) {
             throw new ArtifactAlreadyExistsException(artifactId);
@@ -239,29 +227,26 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             }
         }
 
-        // Store in v2c
-        Map<String, String> previous = v2c.putIfAbsent(version, contents);
-        // loop, due to possible race-condition
-        while (previous != null) {
-            version++;
-            contents.put(VERSION, Long.toString(version));
-            previous = v2c.putIfAbsent(version, contents);
-        }
-        storage.put(artifactId, v2c);
+        // Store in v2c -- make sure version is unique!!
+        storage.createVersion(artifactId, version, contents);
 
         // Also store in global
-        global.put(globalId, contents);
+        global.put(globalId, new TupleId(artifactId, version));
         
         return MetaDataKeys.toArtifactMetaData(contents);
     }
 
     protected Map<String, String> getContentMap(long id) {
-        Map<String, String> content = global.get(id);
+        TupleId mapping = global.get(id);
+        if (mapping == null) {
+            throw new ArtifactNotFoundException(String.valueOf(id));
+        }
+        Map<String, String> content = getContentMap(mapping.getId(), mapping.getVersion(), ArtifactStateExt.ACTIVE_STATES);
         if (content == null) {
             throw new ArtifactNotFoundException(String.valueOf(id));
         }
         ArtifactStateExt.logIfDeprecated(id, ArtifactStateExt.getState(content), content.get(VERSION));
-        return content;
+        return content; // already unmodifiable
     }
 
     @Override
@@ -276,13 +261,14 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             content = getLatestContentMap(artifactId, null);
             version = Integer.parseInt(content.get(VERSION));
         }
+        int fVersion = version;
         if (state == ArtifactState.DELETED) {
             deleteArtifactVersionInternal(artifactId, version);
         } else {
             if (content == null) {
                 content = getContentMap(artifactId, version.longValue(), null);
             }
-            ArtifactStateExt.applyState(content, state);
+            ArtifactStateExt.applyState(s -> storage.put(artifactId, fVersion, MetaDataKeys.STATE, s.name()), content, state);
         }
     }
 
@@ -310,7 +296,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             throw new ArtifactNotFoundException(artifactId);
         }
         v2c.values().forEach(m -> {
-            m.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
             long globalId = Long.parseLong(m.get(MetaDataKeys.GLOBAL_ID));
             global.remove(globalId);
         });
@@ -413,12 +398,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
         if (metaData.getName() != null) {
-            content.put(MetaDataKeys.NAME, metaData.getName());
+            storage.put(artifactId, MetaDataKeys.NAME, metaData.getName());
         }
         if (metaData.getDescription() != null) {
-            content.put(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+            storage.put(artifactId, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
     }
 
@@ -430,26 +414,25 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         // check if the artifact exists
         getVersion2ContentMap(artifactId);
         // get the rules
-        @SuppressWarnings("unchecked")
-        Map<String, String> arules = artifactRules.getOrDefault(artifactId, Collections.EMPTY_MAP);
-        return arules.keySet().stream().map(RuleType::fromValue).collect(Collectors.toList());
+        Set<String> arules = artifactRules.keys(artifactId);
+        return arules.stream().map(RuleType::fromValue).collect(Collectors.toList());
     }
     
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
     @Override
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // create a rule for the artifact
         String cdata = config.getConfiguration();
-        Map<String, String> rules = artifactRules.compute(artifactId, rulesLookupFn());
-        String prevValue = rules.putIfAbsent(rule.name(), cdata == null ? "" : cdata);
+        String prevValue = artifactRules.putIfAbsent(artifactId, rule.name(), cdata == null ? "" : cdata);
         if (prevValue != null) {
             throw new RuleAlreadyExistsException(rule);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -482,8 +465,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // get artifact rule
-        Map<String, String> rules = artifactRules.getOrDefault(artifactId, Collections.EMPTY_MAP);
-        String config = rules.get(rule.name());
+        String config = artifactRules.get(artifactId, rule.name());
         if (config == null) {
             throw new RuleNotFoundException(rule);
         }
@@ -500,13 +482,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         getVersion2ContentMap(artifactId);
         // update a rule for the artifact
         String cdata = config.getConfiguration();
-        Map<String, String> rules = artifactRules.get(artifactId);
-        if (rules == null) {
-            throw new RuleNotFoundException(rule);
-        }
-        String prevValue = rules.put(rule.name(), cdata == null ? "" : cdata);
+        String prevValue = artifactRules.putIfPresent(artifactId, rule.name(), cdata == null ? "" : cdata);
         if (prevValue == null) {
-            rules.remove(rule.name());
             throw new RuleNotFoundException(rule);
         }
     }
@@ -520,11 +497,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         // check if artifact exists
         getVersion2ContentMap(artifactId);
         // delete a rule for the artifact
-        Map<String, String> rules = artifactRules.get(artifactId);
-        if (rules == null) {
-            throw new RuleNotFoundException(rule);
-        }
-        String prevValue = rules.remove(rule.name());
+        String prevValue = artifactRules.remove(artifactId, rule.name());
         if (prevValue == null) {
             throw new RuleNotFoundException(rule);
         }
@@ -592,17 +565,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
     // internal - so we don't call sub-classes method
     private void deleteArtifactVersionInternal(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        Map<Long, Map<String, String>> v2c = getVersion2ContentMap(artifactId);
-        Map<String, String> removed = v2c.remove(version);
-        if (removed == null) {
+        Long globalId = storage.remove(artifactId, version);
+        if (globalId == null) {
             throw new VersionNotFoundException(artifactId, version);
         }
-        if (v2c.isEmpty()) {
-            storage.remove(artifactId); // remove empty map
-        }
-        removed.put(MetaDataKeys.DELETED, Boolean.TRUE.toString());
         // remove from global as well
-        long globalId = Long.parseLong(removed.get(MetaDataKeys.GLOBAL_ID));
         global.remove(globalId);
     }
 
@@ -622,12 +589,11 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        Map<String, String> content = getContentMap(artifactId, version, ArtifactStateExt.ACTIVE_STATES);
         if (metaData.getName() != null) {
-            content.put(MetaDataKeys.NAME, metaData.getName());
+            storage.put(artifactId, version, MetaDataKeys.NAME, metaData.getName());
         }
         if (metaData.getDescription() != null) {
-            content.put(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+            storage.put(artifactId, version, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
     }
 
@@ -636,9 +602,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        Map<String, String> content = getContentMap(artifactId, version, null);
-        content.remove(MetaDataKeys.NAME);
-        content.remove(MetaDataKeys.DESCRIPTION);
+        storage.remove(artifactId, version, MetaDataKeys.NAME);
+        storage.remove(artifactId, version, MetaDataKeys.DESCRIPTION);
     }
 
     /**

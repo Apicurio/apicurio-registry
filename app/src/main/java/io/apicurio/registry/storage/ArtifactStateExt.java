@@ -77,6 +77,12 @@ public class ArtifactStateExt {
         applyState(s -> context.put(STATE, s.name()), previousState, newState);
     }
 
+    public static void applyState(Consumer<ArtifactState> consumer, Map<String, String> context, ArtifactState newState) {
+        String previous = getStateRaw(context);
+        ArtifactState previousState = (previous != null ? ArtifactState.valueOf(previous) : null);
+        applyState(consumer, previousState, newState);
+    }
+
     public static void applyState(Consumer<ArtifactState> consumer, ArtifactState previousState, ArtifactState newState) {
         if (previousState != null) {
             if (canTransition(previousState, newState)) {

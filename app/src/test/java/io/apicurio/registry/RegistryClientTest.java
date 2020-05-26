@@ -16,27 +16,22 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
-import org.junit.jupiter.api.Assertions;
-
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.quarkus.test.junit.QuarkusTest;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 /**
  * @author Ales Justin
@@ -88,48 +83,61 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         client.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
-        String name = "myrecordx";
+        String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(
-                "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}"
+                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
-        client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData)
-                .whenComplete((artifactMetaData, throwable) -> {
+        CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+        long id = ConcurrentUtil.result(cs).getGlobalId();
 
-                    ArtifactSearchResults results = client
-                            .searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
-                    Assertions.assertNotNull(results);
-                    Assertions.assertEquals(1, results.getCount());
-                    Assertions.assertEquals(1, results.getArtifacts().size());
-                    Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
-                });
+        retry(() -> {
+            ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(id);
+            Assertions.assertNotNull(artifactMetaData);
+        });
 
+        ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
     }
 
     @RegistryServiceTest
     void testSearchVersion(Supplier<RegistryService> supplier) throws Exception {
-
         RegistryService client = supplier.get();
 
         // warm-up
         client.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
-        String name = "myrecordx";
+        String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(
-                "{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}"
+                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
-        client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData).
-                whenComplete((artifactMetaData, throwable) ->
-                        client.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData)
-                        .whenComplete((versionMetaData, throwable1) -> {
-                            VersionSearchResults results = client.searchVersions(artifactId, 0, 2);
-                            Assertions.assertNotNull(results);
-                            Assertions.assertEquals(1, results.getCount());
-                            Assertions.assertEquals(1, results.getVersions().size());
-                            Assertions.assertEquals(name, results.getVersions().get(0).getName());
-                        }));
+        CompletionStage<ArtifactMetaData> amd = client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+        long id1 = ConcurrentUtil.result(amd).getGlobalId();
 
+        retry(() -> {
+            ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(id1);
+            Assertions.assertNotNull(artifactMetaData);
+        });
+
+        artifactData.reset(); // a must between usage!!
+
+        CompletionStage<VersionMetaData> vmd = client.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        long id2 = ConcurrentUtil.result(vmd).getGlobalId();
+
+        retry(() -> {
+            ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(id2);
+            Assertions.assertNotNull(artifactMetaData);
+        });
+
+        VersionSearchResults results = client.searchVersions(artifactId, 0, 2);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount());
+        Assertions.assertEquals(2, results.getVersions().size());
+        Assertions.assertEquals(name, results.getVersions().get(0).getName());
     }
 }

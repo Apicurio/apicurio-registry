@@ -16,17 +16,19 @@
 
 package io.apicurio.registry.infinispan;
 
+import io.apicurio.registry.storage.impl.TupleId;
 import io.apicurio.registry.utils.RegistryProperties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.infinispan.commons.marshall.JavaSerializationMarshaller;
 import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.configuration.global.TransportConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 
-import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
+import java.util.Properties;
 
 /**
  * @author Ales Justin
@@ -43,11 +45,22 @@ public class InfinispanConfiguration {
             @RegistryProperties("registry.infinispan.transport.") Properties properties
     ) {
         GlobalConfigurationBuilder gConf = GlobalConfigurationBuilder.defaultClusteredBuilder();
+
+        gConf.serialization()
+                .marshaller(new JavaSerializationMarshaller())
+                .whiteList()
+                .addRegexps(
+                        "io.apicurio.registry.storage.",
+                        TupleId.class.getName(),
+                        MapValue.class.getName()
+                );
+
         TransportConfigurationBuilder tConf = gConf.transport();
         tConf.clusterName(clusterName);
         if (properties.size() > 0) {
             tConf.withProperties(properties);
         }
+
         return new DefaultCacheManager(gConf.build(), true);
     }
 

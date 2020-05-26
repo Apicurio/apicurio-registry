@@ -24,6 +24,7 @@ import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 
 import java.util.List;
 import java.util.Set;
@@ -181,10 +182,11 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
-    
+
     /**
      * Creates an artifact rule for a specific Artifact.  If the named rule already exists for the artifact, then
      * this should fail.
+     *
      * @param artifactId
      * @param rule
      * @param config
@@ -192,10 +194,15 @@ public interface RegistryStorage {
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
      */
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+    public default void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        ConcurrentUtil.result(createArtifactRuleAsync(artifactId, rule, config));
+    }
+
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes all rules stored/configured for the artifact.
+     *
      * @param artifactId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException

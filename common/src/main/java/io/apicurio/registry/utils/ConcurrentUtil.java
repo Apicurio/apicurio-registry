@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.utils;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 /**
  * @author Ales Justin
@@ -26,14 +24,18 @@ import java.util.concurrent.ExecutionException;
 public class ConcurrentUtil {
 
     public static <T> T get(CompletableFuture<T> cf) {
+        return get(cf, 0, null);
+    }
+
+    public static <T> T get(CompletableFuture<T> cf, long duration, TimeUnit unit) {
         boolean interrupted = false;
         try {
             while (true) {
                 try {
-                    return cf.get();
+                    return (duration <= 0) ? cf.get() : cf.get(duration, unit);
                 } catch (InterruptedException e) {
                     interrupted = true;
-                } catch (ExecutionException e) {
+                } catch (ExecutionException | TimeoutException e) {
                     Throwable t = e.getCause();
                     if (t instanceof RuntimeException)
                         throw (RuntimeException) t;

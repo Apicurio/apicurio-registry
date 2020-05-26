@@ -3,17 +3,8 @@ package io.apicurio.registry.cluster.support;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -135,6 +126,35 @@ public class ClusterUtils {
         }, "Node-thread-" + node);
         t.start();
         latch.await();
+
+        // still keep logging
+        Thread logThread = new Thread(() -> {
+            try {
+                String line;
+                String errLine;
+                while (process.isAlive()) {
+                    line = reader.readLine();
+                    if (line != null) {
+                        log.info("Registry > " + line);
+                    } else {
+                        errLine = errReader.readLine();
+                        if (errLine != null) {
+                            log.error("Registry err > " + errLine);
+                        }
+                    }
+                }
+                int exitValue = process.exitValue();
+                if (exitValue == 0) {
+                    log.info("Registry process exited OK");
+                } else {
+                    log.error("Registry process exited with error: " + exitValue + ", msgs: " + msgs);
+                }
+            } catch (IOException e) {
+                log.warn(e.getMessage());
+            }
+        });
+        logThread.start();
+
         return process;
     }
 

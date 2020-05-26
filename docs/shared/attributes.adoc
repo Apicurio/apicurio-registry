@@ -28,7 +28,7 @@
 include::attributes-links.adoc[]
 
 // Download URLs
-:download-url-registry-container-catalog: https://access.redhat.com/containers/#/registry.access.redhat.com/fuse7-tech-preview/fuse-service-registry-rhel7
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
 :download-url-registry-fuse-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.6.0&downloadType=distributions 
 :download-url-registry-fuse-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.6.0&downloadType=distributions
 :download-url-registry-fuse-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.6.0&downloadType=distributions 

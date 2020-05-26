@@ -20,8 +20,8 @@ ifdef::rh-service-registry[]
 
 This topic explains how to install and configure Red Hat AMQ Streams storage for {registry} on OpenShift. The following versions are supported:
 
-* AMQ Streams 1.4 or 1.3
-* OpenShift 4.3, 4.2, or 3.11   
+* AMQ Streams 1.4
+* OpenShift 4.4 or 4.3   
 endif::[]
 
 You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.

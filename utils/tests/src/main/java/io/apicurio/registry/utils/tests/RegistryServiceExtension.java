@@ -33,6 +33,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -41,6 +42,10 @@ import java.util.stream.Stream;
  * @author Ales Justin
  */
 public class RegistryServiceExtension implements TestTemplateInvocationContextProvider {
+
+    private static final String REGISTRY_CLIENT_CREATE = "create";
+    private static final String REGISTRY_CLIENT_CACHED = "cached";
+    private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {
         REGISTRY_SERVICE,
@@ -89,21 +94,34 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         String registryUrl = TestUtils.getRegistryUrl(rst);
 
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
-        RegistryServiceWrapper plain = store.getOrComputeIfAbsent(
-            "plain_client",
-            k -> new RegistryServiceWrapper(k, "create", registryUrl),
-            RegistryServiceWrapper.class
-        );
-        RegistryServiceWrapper cached = store.getOrComputeIfAbsent(
-            "cached_client",
-            k -> new RegistryServiceWrapper(k, "cached", registryUrl),
-            RegistryServiceWrapper.class
-        );
 
-        return Stream.of(
-            new RegistryServiceTestTemplateInvocationContext(plain),
-            new RegistryServiceTestTemplateInvocationContext(cached)
-        );
+        List<TestTemplateInvocationContext> invocationCtxts = new ArrayList<>();
+
+        if (testRegistryClient(REGISTRY_CLIENT_CREATE)) {
+            RegistryServiceWrapper plain = store.getOrComputeIfAbsent(
+                    "plain_client",
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CREATE, registryUrl),
+                    RegistryServiceWrapper.class
+                );
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain));
+        }
+
+        if (testRegistryClient(REGISTRY_CLIENT_CACHED)) {
+            RegistryServiceWrapper cached = store.getOrComputeIfAbsent(
+                    "cached_client",
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CACHED, registryUrl),
+                    RegistryServiceWrapper.class
+                );
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(cached));
+        }
+
+        return invocationCtxts.stream();
+    }
+
+    private boolean testRegistryClient(String clientType) {
+        String testRegistryClients = TestUtils.getTestRegistryClients();
+        return testRegistryClients == null || testRegistryClients.equalsIgnoreCase(REGISTRY_CLIENT_ALL)
+                || testRegistryClients.equalsIgnoreCase(clientType);
     }
 
     private static class RegistryServiceWrapper implements ExtensionContext.Store.CloseableResource {
@@ -181,9 +199,9 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
         private RegistryService createRegistryService() {
             switch (wrapper.method) {
-                case "create":
+                case REGISTRY_CLIENT_CREATE:
                     return RegistryClient.create(wrapper.registryUrl);
-                case "cached":
+                case REGISTRY_CLIENT_CACHED:
                     return RegistryClient.cached(wrapper.registryUrl);
                 default:
                     throw new IllegalArgumentException("Unsupported registry client method: " + wrapper.method);

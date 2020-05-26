@@ -22,15 +22,7 @@ import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
@@ -50,31 +42,19 @@ import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
-import static io.apicurio.registry.utils.ConcurrentUtil.get;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+
+import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.utils.ConcurrentUtil.get;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author Ales Justin
@@ -306,7 +286,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         RuleConfigurationDto rcd = new RuleConfigurationDto(rule.getConfiguration());
         if (type == Str.ActionType.CREATE) {
             if (artifactId != null) {
-                super.createArtifactRule(artifactId, ruleType, rcd);
+                super.createArtifactRuleAsync(artifactId, ruleType, rcd);
             } else {
                 super.createGlobalRule(ruleType, rcd);
             }
@@ -331,7 +311,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
                 }
             }
         }
-        cf.complete(Void.class);
+        cf.complete(null); // Void as null
     }
 
     private void consumeMetaData(CompletableFuture<Object> cf, Str.StorageValue rv, Str.ActionType type, String artifactId, long version) {
@@ -421,8 +401,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        get(submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration()));
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        return submitter.submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration());
     }
 
     @Override

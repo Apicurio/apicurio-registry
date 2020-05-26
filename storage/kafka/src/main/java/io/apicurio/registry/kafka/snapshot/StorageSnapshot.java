@@ -16,6 +16,10 @@
 
 package io.apicurio.registry.kafka.snapshot;
 
+import io.apicurio.registry.storage.impl.MultiMap;
+import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.TupleId;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,22 +31,22 @@ public class StorageSnapshot implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Map<String, Map<Long, Map<String, String>>> storage;
-    private Map<Long, Map<String, String>> global;
+    private Map<Long, TupleId> global;
     private Map<String, Map<String, String>> artifactRules;
     private Map<String, String> globalRules;
 
     private long offset;
 
     public StorageSnapshot(
-        Map<String, Map<Long, Map<String, String>>> storage,
-        Map<Long, Map<String, String>> global,
-        Map<String, Map<String, String>> artifactRules,
-        Map<String, String> globalRules, long offset
+            StorageMap storage,
+            Map<Long, TupleId> global,
+            MultiMap<String, String, String> artifactRules,
+            Map<String, String> globalRules, long offset
     ) {
         // deep copy
-        this.storage = new HashMap<>(storage);
+        this.storage = new HashMap<>(storage.asMap());
         this.global = new HashMap<>(global);
-        this.artifactRules = new HashMap<>(artifactRules);
+        this.artifactRules = artifactRules.asMap();
         this.globalRules = new HashMap<>(globalRules);
         this.offset = offset;
     }
@@ -51,7 +55,7 @@ public class StorageSnapshot implements Serializable {
         return storage;
     }
 
-    public Map<Long, Map<String, String>> getGlobal() {
+    public Map<Long, TupleId> getGlobal() {
         return global;
     }
 

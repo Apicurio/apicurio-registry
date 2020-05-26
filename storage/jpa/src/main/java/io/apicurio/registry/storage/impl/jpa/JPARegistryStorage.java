@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 import io.apicurio.registry.storage.impl.jpa.entity.Rule;
 import io.apicurio.registry.storage.impl.jpa.entity.RuleConfig;
+import io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -62,14 +63,13 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.LongAdder;
@@ -236,45 +236,65 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
-    private ArtifactSearchResults buildSearchResultFromIds(List<String> artifactIds, Integer itemCount) {
-
-        final List<ArtifactMetaDataDto> artifactsMetaData = new ArrayList<>();
-        for (String artifactId: artifactIds) {
-
-            artifactsMetaData.add(getArtifactMetaData(artifactId));
-        }
-
-        return buildSearchResultsFromMetaData(artifactsMetaData, itemCount);
-    }
-
-    private static ArtifactSearchResults buildSearchResultsFromMetaData(List<ArtifactMetaDataDto> artifactsMetaData, Integer itemCount) {
-
-        final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
-        final List<SearchedArtifact> searchedArtifacts = new ArrayList<>();
-        for (ArtifactMetaDataDto artifactMetaDataDto : artifactsMetaData) {
-
-            SearchedArtifact searchedArtifact = SearchUtil.buildSearchedArtifact(artifactMetaDataDto);
-            searchedArtifacts.add(searchedArtifact);
-        }
-        artifactSearchResults.setArtifacts(searchedArtifacts);
-        artifactSearchResults.setCount(itemCount);
-
-        return artifactSearchResults;
-    }
-
     private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver) {
 
         switch (searchOver) {
         case description:
-            return "AND (m.key= 'description' AND (0 < LOCATE(:search, m.value))) ";
+            return "AND (m2.key= 'description' AND (0 < LOCATE(:search, m2.value))) ";
         case name:
-            return "AND (m.key= 'name' AND (0 < LOCATE(:search, m.value))) ";
+            return "AND (m2.key= 'name' AND (0 < LOCATE(:search, m2.value))) ";
         case labels:
             //TODO not implemented yet
         default:
-            return "AND (0 < LOCATE(:search, m.value)) ";
+            return "AND (0 < LOCATE(:search, m2.value)) ";
+        }
+    }
+
+    private TypedQuery<ArtifactSearchResult> buildSearchArtifactQuery(String search, SearchOver over, SortOrder order, int offset, int limit) {
+
+        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = entityManager.createQuery("select new io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult(m.artifactId,"
+                + "MAX(case when m.key = '" + MetaDataKeys.NAME + "' then m.value end) as name,"
+                + "MAX(case when m.key = '" + MetaDataKeys.DESCRIPTION + "' then m.value end) as description, "
+                + "MAX(case when m.key = '" + MetaDataKeys.CREATED_ON + "' then m.value end) as createdOn, "
+                + "MAX(case when m.key = '" + MetaDataKeys.CREATED_BY + "' then m.value end) as createdBy, "
+                + "MAX(case when m.key = '" + MetaDataKeys.TYPE + "' then m.value end) as type,"
+                //+ "MAX(case when m.key = 'labels' then m.value end) as labels,"
+                + "MAX(case when m.key = '" + MetaDataKeys.STATE + "' then m.value end) as state, "
+                + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_ON + "' then m.value end) as modifiedOn,"
+                + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_BY + "' then m.value end) as modifiedBy)"
+                + "from MetaData m "
+                + "where m.artifactId || '===' || m.version  in "
+                + "(select m3.artifactId || '===' || m3.version  from MetaData m3 where m3.version = "
+                + "(SELECT max(m2.version) from MetaData m2 where m.artifactId = m2.artifactId "
+                + (search == null ? "" : buildSearchAndClauseFromSearchOver(over))
+                + ") "
+                + ") group by m.artifactId "
+                + " order by name, m.artifactId " + order.value() , ArtifactSearchResult.class);
+
+        if (null != search) {
+            matchedArtifactsQuery.setParameter("search", search);
         }
 
+        matchedArtifactsQuery.setFirstResult(offset);
+        matchedArtifactsQuery.setMaxResults(limit);
+
+        return matchedArtifactsQuery;
+    }
+
+    private SearchedArtifact buildSearchedArtifactFromResult(ArtifactSearchResult artifactSearchResult) {
+        final SearchedArtifact searchedArtifact = new SearchedArtifact();
+        searchedArtifact.setId(artifactSearchResult.getId());
+        searchedArtifact.setName(artifactSearchResult.getName());
+        searchedArtifact.setModifiedBy(artifactSearchResult.getModifiedBy());
+        searchedArtifact.setModifiedOn(artifactSearchResult.getModifiedOn() != null ? Long.parseLong(artifactSearchResult.getModifiedOn()) : 0L);
+        searchedArtifact.setCreatedBy(artifactSearchResult.getCreatedBy());
+        searchedArtifact.setCreatedOn(artifactSearchResult.getCreatedOn() != null ? Long.parseLong(artifactSearchResult.getModifiedOn()) : 0L);
+        searchedArtifact.setDescription(artifactSearchResult.getDescription());
+        searchedArtifact.setState(ArtifactState.fromValue(artifactSearchResult.getState()));
+        //TODO labels not implemented yet searchedArtifact.setLabels(artifactSearchResult.getLabels());
+        searchedArtifact.setType(ArtifactType.fromValue(artifactSearchResult.getArtifactType()));
+
+        return searchedArtifact;
     }
 
     // ========================================================================
@@ -459,34 +479,32 @@ public class JPARegistryStorage implements RegistryStorage {
                 "SELECT count ( distinct m.artifactId)  FROM MetaData m "
                         + "WHERE m.version = "
                         + "(SELECT max(m2.version) "
-                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
+                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId "
                         + (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver))
-                + " AND m.artifactId IN (select a.artifactId from Artifact a) ";
-
-        final String searchQuery =
-                "SELECT distinct m.artifactId FROM MetaData m "
-                        + "WHERE m.version = "
-                        + "(SELECT max(m2.version) "
-                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId) "
-                        +  (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver))
-                        + " AND m.artifactId IN (select a.artifactId from Artifact a) "
-                        + "ORDER BY m.artifactId " + sortOrder
-                        .value();
+                        + " )"
+                        + " AND m.artifactId IN (select a.artifactId from Artifact a) ";
 
         final TypedQuery<Long> count = entityManager.createQuery(countQuery, Long.class);
-        final TypedQuery<String> matchedArtifactsQuery = entityManager.createQuery(searchQuery, String.class);
+
+        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = buildSearchArtifactQuery(search, searchOver, sortOrder, offset, limit);
 
         if (null != search) {
             count.setParameter("search", search);
-            matchedArtifactsQuery.setParameter("search", search);
         }
 
-        final List<String> matchedArtifacts = matchedArtifactsQuery
-                .setFirstResult(offset)
-                .setMaxResults(limit)
-                .getResultList();
+        matchedArtifactsQuery.setFirstResult(offset);
+        matchedArtifactsQuery.setMaxResults(limit);
 
-        return buildSearchResultFromIds(matchedArtifacts, count.getSingleResult().intValue());
+        final List<SearchedArtifact> searchedArtifacts = matchedArtifactsQuery.getResultList()
+                .stream()
+                .map(this::buildSearchedArtifactFromResult)
+                .collect(Collectors.toList());
+
+        final ArtifactSearchResults searchResults = new ArtifactSearchResults();
+
+        searchResults.setCount(count.getSingleResult().intValue());
+        searchResults.setArtifacts(searchedArtifacts);
+        return searchResults;
     }
 
     // =======================================================

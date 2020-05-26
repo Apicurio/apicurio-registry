@@ -531,7 +531,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 .skip(offset)
                 .limit(limit)
                 .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
-                .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
                 .map(SearchUtil::buildSearchedVersion)
                 .collect(Collectors.toList());
 

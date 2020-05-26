@@ -403,7 +403,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             storage.put(artifactId, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
-            content.put(MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
+            storage.put(artifactId, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
         }
     }
 

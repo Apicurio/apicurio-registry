@@ -255,7 +255,7 @@ public class JPARegistryStorage implements RegistryStorage {
         case name:
             return "AND (m2.key= 'name' AND (0 < LOCATE(:search, m2.value))) ";
         case labels:
-            return "AND (m.key= 'labels' AND (0 < LOCATE(:search, m.value))) ";
+            return "AND (m2.key= 'labels' AND (0 < LOCATE(:search, m2.value))) ";
         default:
             return "AND (0 < LOCATE(:search, m2.value)) ";
         }

@@ -182,7 +182,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertEquals(1, results.getCount());
                 Assertions.assertEquals(1, results.getArtifacts().size());
                 Assertions.assertTrue(results.getArtifacts().get(0).getLabels().containsAll(artifactLabels));
-
             }));
         } finally {
             supplier.get().deleteArtifact(artifactId);

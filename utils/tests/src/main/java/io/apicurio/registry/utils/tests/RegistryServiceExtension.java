@@ -18,6 +18,7 @@ package io.apicurio.registry.utils.tests;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.IoUtil;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -138,7 +139,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
         @Override
         public void close() throws Throwable {
-            service.close();
+            IoUtil.close(service);
         }
     }
 

@@ -44,10 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -317,7 +314,8 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     private void consumeMetaData(CompletableFuture<Object> cf, Str.StorageValue rv, Str.ActionType type, String artifactId, long version) {
         Str.MetaDataValue metaData = rv.getMetadata();
         if (type == Str.ActionType.UPDATE) {
-            EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(metaData.getName(), metaData.getDescription());
+            EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(metaData.getName(), metaData.getDescription(),
+                    Arrays.asList(metaData.getLabels().split(",")));
             if (version >= 0) {
                 super.updateArtifactVersionMetaData(artifactId, version, emd);
             } else {
@@ -397,7 +395,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription()));
+        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels()));
     }
 
     @Override
@@ -422,12 +420,12 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription()));
+        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels()));
     }
 
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null));
+        get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null, Collections.emptyList()));
     }
 
     @Override

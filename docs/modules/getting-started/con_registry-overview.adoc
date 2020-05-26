@@ -90,13 +90,13 @@ Configure rules to govern the content evolution of a specific artifact to preven
 For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 .Compatibility with other schema registries
-The {registry} REST API is compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
+The Registry REST API is compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
 ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
 
 = Storage options
-{registry} supports the following underlying storage implementations for artifacts: 
+{registry} provides the following underlying storage implementations for registry artifacts: 
 
 ifdef::apicurio-registry[]
 
@@ -114,10 +114,28 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-* Red Hat AMQ Streams 1.4 (General Availability)
-* Red Hat Data Grid 8.0 (Technical Preview only)
-* Java Persistence API - PostgreSQL 12 database (Technical Preview only)
+.{registry} storage options
+[%header,cols=2*] 
+|===
+|Storage option
+|Release
+|Kafka Streams storage in Red Hat AMQ Streams 1.4 
+|General Availability
+|Infinispan storage in Red Hat Data Grid 8.0   
+|Technical Preview only 
+|Java Persistence API storage in a PostgreSQL 12 database
+|Technical Preview only 
+|===
 
+endif::[]
+
+ifdef::rh-service-registry[]
+[IMPORTANT]
+====
+Infinispan and JPA storage are Technology Preview features only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
 endif::[]
 
 For details on how to install into your preferred storage option, see xref:installing-the-registry[].
@@ -142,7 +160,8 @@ The {registry} Maven repository and source code distributions include the serial
 ifdef::rh-service-registry[]
 .Additional resources
 For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
-link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
+
 endif::[]
 
 [id="registry-demo"]
@@ -158,9 +177,11 @@ endif::[]
 
 = Available distributions
 
-ifdef::apicurio-registry[]
-{registry} provides the following container images for different storage options: 
+You can access the following available distributions for {registry}: 
 
+ifdef::apicurio-registry[]
+
+.{registry} distributions 
 [%header,cols=2*] 
 |===
 |Storage option
@@ -185,25 +206,33 @@ endif::[]
 ifdef::rh-service-registry[]
 
 .{registry} distributions
-[%header,cols=2*] 
+[%header,cols="3,3,2"]
 |===
 |Distribution
 |Location
-|OpenShift Operator for {registry}
-|OpenShift OperatorHub
-|Container image for Kakfa storage (General Availability)
+|Release
+|OpenShift Operator for Kafka storage in AMQ Streams 
+|OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for Kafka storage in AMQ Streams 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
-|Container image for Data Grid storage (General Availability)
+|General Availability
+|Container image for Infinispan storage in Data Grid 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
-|Container image for JPA storage (General Availability)
+|Technical Preview only
+|Container image for JPA storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|Technical Preview only
 |Maven repository
-|link:{download-url-registry-fuse-maven}[Software Downloads for Red Hat Fuse]
+|link:{download-url-registry-fuse-maven}[Software Downloads for Red Hat Integration]
+|General Availability
 |Full Maven repository (with all dependencies)
-|link:{download-url-registry-fuse-maven-full}[Software Downloads for Red Hat Fuse]
+|link:{download-url-registry-fuse-maven-full}[Software Downloads for Red Hat Integration]
+|General Availability
 |Source code
-|link:{download-url-registry-fuse-source-code}[Software Downloads for Red Hat Fuse]
+|link:{download-url-registry-fuse-source-code}[Software Downloads for Red Hat Integration]
+|General Availability
 |===
 
-NOTE: You must have a subscription for Red Hat Fuse and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
+NOTE: You must have a subscription for Red Hat Integration and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
 endif::[]

@@ -21,6 +21,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.List;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -32,6 +34,7 @@ public class EditableArtifactMetaDataDto {
 
     private String name;
     private String description;
+    private List<String> labels;
 
     /**
      * Constructor.
@@ -65,5 +68,19 @@ public class EditableArtifactMetaDataDto {
      */
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * @return the labels
+     */
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    /**
+     * @param labels the labels to set
+     */
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
     }
 }

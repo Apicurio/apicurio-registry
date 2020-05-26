@@ -48,6 +48,7 @@ public final class DtoUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
+        metaData.setLabels(dto.getLabels());
         return metaData;
     }
 
@@ -78,10 +79,32 @@ public final class DtoUtil {
      *
      * @param artifactId
      * @param artifactType
+     * @param amd
+     */
+    public static final VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
+                                                             ArtifactMetaData amd) {
+        VersionMetaData metaData = new VersionMetaData();
+        metaData.setId(artifactId);
+        metaData.setCreatedBy(amd.getCreatedBy());
+        metaData.setCreatedOn(amd.getCreatedOn());
+        metaData.setDescription(amd.getDescription());
+        metaData.setName(amd.getName());
+        metaData.setType(artifactType);
+        metaData.setVersion(amd.getVersion());
+        metaData.setGlobalId(amd.getGlobalId());
+        metaData.setState(amd.getState());
+        return metaData;
+    }
+
+    /**
+     * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.
+     *
+     * @param artifactId
+     * @param artifactType
      * @param dto
      */
     public static final VersionMetaData dtoToVersionMetaData(String artifactId, ArtifactType artifactType,
-                                                        ArtifactVersionMetaDataDto dto) {
+                                                             ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());

@@ -28,6 +28,7 @@ import {SearchedArtifact} from "@apicurio/registry-models";
 import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Services} from "@apicurio/registry-services";
+import {ArtifactName} from "./artifactName";
 
 /**
  * Properties
@@ -66,10 +67,9 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                         </DataListCell>,
                                         <DataListCell key="main content" className="content-cell">
                                             <div className="artifact-title">
-                                                <span className="name">{artifact.name}</span>
-                                                <span className="id">{artifact.id}</span>
+                                                <ArtifactName id={artifact.id} name={artifact.name} />
                                             </div>
-                                            <div className="artifact-description">{artifact.description}</div>
+                                            <div className="artifact-description">{this.description(artifact)}</div>
                                             <div className="artifact-tags">
                                                 {
                                                     this.labels(artifact).map( label =>
@@ -107,4 +107,10 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         return link;
     }
 
+    private description(artifact: SearchedArtifact): string {
+        if (artifact.description) {
+            return artifact.description;
+        }
+        return `An artifact of type ${artifact.type} with no description.`;
+    }
 }

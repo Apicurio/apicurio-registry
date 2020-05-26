@@ -40,6 +40,7 @@ message ArtifactValue {
 message MetaDataValue {
     string name = 1;
     string description = 2;
+    string labels = 3;
 }
 
 message RuleValue {

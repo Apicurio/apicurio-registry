@@ -24,6 +24,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
+import java.util.List;
+
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
@@ -62,4 +64,26 @@ public interface SchemasResource {
     @GET
     @Path("/ids/{id}")
     SchemaContent getSchema(@PathParam("id") int id);
+
+    // ----- Path: /schemas/types -----
+
+    /**
+     * Get the schema types that are registered with Schema Registry.
+     *
+     *
+     *
+     * Response JSON Object:
+     *
+     *      schema (string) – Schema types currently available on Schema Registry.
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40403 – Schema not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
+    @GET
+    @Path("types")
+    List<String> getRegisteredTypes();
 }

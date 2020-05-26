@@ -26,8 +26,9 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.anything;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that the REST API exposed at endpoint "/ccompat" follows the
@@ -208,5 +209,21 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
             .then()
             .statusCode(404); 
+    }
+
+    @Test
+    public void testSchechmaTypes() {
+        //verify
+        String[] types = given()
+                .when()
+                .get("/ccompat/schemas/types")
+                .then()
+                .statusCode(200)
+        .extract().as(String[].class);
+
+        assertEquals(3, types.length);
+        assertEquals("JSON", types[0]);
+        assertEquals("PROTOBUF", types[1]);
+        assertEquals("AVRO", types[2]);
     }
 }

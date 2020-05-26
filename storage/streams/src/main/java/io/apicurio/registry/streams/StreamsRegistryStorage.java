@@ -155,6 +155,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
                         String name = metadata.get(MetaDataKeys.NAME);
                         String desc = metadata.get(MetaDataKeys.DESCRIPTION);
+                        String labels = metadata.get(MetaDataKeys.LABELS);
                         SearchOver so = SearchOver.fromValue(over);
                         switch (so) {
                             case name:
@@ -166,7 +167,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                                     return metadata;
                                 }
                             case labels:
-                                return null; // TODO
+                                if (stringMetadataContainsFilter(filter, labels)) {
+                                    return metadata;
+                                }
                             default:
                                 if (metaDataContainsFilter(filter, metadata.values())) {
                                     return metadata;
@@ -186,8 +189,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {
 
-        return null == filter || metadataValues.stream().anyMatch(value ->
-                value != null && value.contains(filter));
+        return null == filter || metadataValues.stream().anyMatch(value -> stringMetadataContainsFilter(filter, value));
     }
 
     private <T> T handleVersion(String artifactId, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {

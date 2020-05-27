@@ -16,22 +16,6 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.support.HealthUtils;
-import io.confluent.connect.avro.AvroConverter;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.nio.ByteBuffer;
@@ -42,6 +26,28 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.support.HealthUtils;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.confluent.connect.avro.AvroConverter;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {
@@ -184,6 +190,43 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             return null;
         });
     }
+    
+    /**
+     * Test for issue: https://github.com/Apicurio/apicurio-registry/issues/536
+     * @param supplier
+     * @throws Exception
+     */
+    @RegistryServiceTest
+    public void testGlobalRule(Supplier<RegistryService> supplier) throws Exception {
+        SchemaRegistryClient client = buildClient();
+        RegistryService apicurioClient = supplier.get();
+        
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        apicurioClient.createGlobalRule(rule);
+
+        String subject = generateArtifactId();
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        int id = client.register(subject, schema);
+        client.reset();
+
+        // global id can be mapped async
+        retry(() -> {
+            Schema schema2 = client.getById(id);
+            Assertions.assertNotNull(schema2);
+            return schema2;
+        });
+        
+        // try to register an incompatible schema
+        Assertions.assertThrows(RestClientException.class, () -> {
+            Schema schema2 = new Schema.Parser().parse("{\"type\":\"string\"}");
+            client.register(subject, schema2);
+            client.reset();
+        });
+    }
+    
+    
 
     @Test
     public void testConverter_PreRegisterSchema() {

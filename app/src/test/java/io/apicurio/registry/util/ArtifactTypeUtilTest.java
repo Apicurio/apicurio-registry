@@ -19,6 +19,8 @@ package io.apicurio.registry.util;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -103,10 +105,11 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
      * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
      */
     @Test
-    void testDiscoverType_DefaultAvro() {
-        ContentHandle content = resourceToContentHandle("example.txt");
-        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
-        Assertions.assertEquals(ArtifactType.AVRO, type);
+    void testDiscoverType_DefaultNotFound() {
+        Assertions.assertThrows(InvalidArtifactTypeException.class, () -> {
+            ContentHandle content = resourceToContentHandle("example.txt");
+            ArtifactTypeUtil.discoverType(content, null);
+        });
     }
     
     /**

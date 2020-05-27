@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -91,6 +92,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
+        map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

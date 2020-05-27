@@ -45,6 +45,7 @@ endif::[]
 
 * Operator-based installation of {registry} on OpenShift
 
+[id="registry-artifacts"]
 = {registry} artifacts
 
 The items stored in {registry}, such as event schemas and API specifications, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
@@ -95,6 +96,7 @@ ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
 
+[id="registry-storage"]
 = Storage options
 {registry} provides the following underlying storage implementations for registry artifacts: 
 
@@ -164,6 +166,29 @@ link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/htm
 
 endif::[]
 
+
+[id="kafka-connect"]
+= Kafka Connect converters 
+{registry} supports Apache Kafka Connect for streaming data between Kafka and other systems. You can use Kafka Connect to define connectors for different systems to move large volumes of data into and out of Kafka. 
+
+{registry} provides the following features for Kafka Connect:
+
+* Storage for Kafka Connect schemas
+* Kafka Connect converters for Apache Avro and JSON schemas
+
+You can use these Avro and JSON schema converters to map Kafka Connect schemas into Avro or JSON schemas. Those schemas can then serialize message keys and values into the very compact Avro binary format or human-readable JSON format. The converted JSON is also less verbose than before because the messages do not contain the schema information, only the schema ID.
+
+{registry} can track and manage the schemas used in Kafka topics, and where the Avro or JSON converter sends the generated Avro or JSON schemas. Because the schemas are stored in the registry, each message needs to only include a tiny schema identifier. For an I/O bound system like Kafka, this means more total throughput for producers and consumers.
+
+The Avro and JSON schema serializers and deserializers (Serdes) provided by {registry} are also used by Kafka producers and consumers. For example, Kafka consumer applications that you write to consume change events can use the Avro or JSON Serdes to deserialize these change events. You can install them into any Kafka distribution and use them along with Kafka Connect and Debezium.
+
+.Additional resources
+
+* link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
+* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2020-04/html/debezium_user_guide/index[Debezium User Guide]  
+* link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kakfa Connect with Debezium and Apicurio Registry]
+
+
 [id="registry-demo"]
 = Registry demonstration examples
 {registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
@@ -175,6 +200,7 @@ ifdef::rh-service-registry[]
 For another demonstration example with detailed instructions on Avro serialization/deserialization with storage in Apache Kafka, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
 endif::[]
 
+[id="registry-distros"]
 = Available distributions
 
 You can access the following available distributions for {registry}: 
@@ -223,14 +249,17 @@ ifdef::rh-service-registry[]
 |Container image for JPA storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |Technical Preview only
-|Maven repository
-|link:{download-url-registry-fuse-maven}[Software Downloads for Red Hat Integration]
+|Maven repository .zip
+|link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
 |General Availability
-|Full Maven repository (with all dependencies)
-|link:{download-url-registry-fuse-maven-full}[Software Downloads for Red Hat Integration]
+|Full Maven repository .zip (with all dependencies) 
+|link:{download-url-registry-maven-full}[Software Downloads for Red Hat Integration]
 |General Availability
-|Source code
-|link:{download-url-registry-fuse-source-code}[Software Downloads for Red Hat Integration]
+|Source code .zip
+|link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]
+|General Availability
+|Kafka Connect converters .zip 
+|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
 |General Availability
 |===
 

@@ -29,9 +29,10 @@ include::attributes-links.adoc[]
 
 // Download URLs
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
-:download-url-registry-fuse-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.6.0&downloadType=distributions 
-:download-url-registry-fuse-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.6.0&downloadType=distributions
-:download-url-registry-fuse-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.6.0&downloadType=distributions 
+:download-url-registry-maven: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75261&product=jboss.fuse&version=7.6.0&downloadType=distributions 
+:download-url-registry-maven-full: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75271&product=jboss.fuse&version=7.6.0&downloadType=distributions
+:download-url-registry-source-code: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.6.0&downloadType=distributions 
+:download-url-registry-kafka-connect: https://access.redhat.com/jbossnetwork/restricted/softwareDetail.html?softwareId=75251&product=jboss.fuse&version=7.6.0&downloadType=distributions 
 
 // Toggle downstream content "on"
 // The following attributes are used to conditionalize content from the Apicurio upstream project:

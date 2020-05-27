@@ -132,7 +132,7 @@ public class KafkaConnectConverterIT extends BaseIT {
         final String apicurioUrl = TestUtils.isExternalRegistry() ?
                 TestUtils.getRegistryUrl()
                 :
-                "http://host.testcontainers.internal:8081/";
+                "http://host.testcontainers.internal:8081/api/";
 
         // host, database, user etc. are obtained from the container
         final ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(postgres)

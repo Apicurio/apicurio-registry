@@ -155,6 +155,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
                         String name = metadata.get(MetaDataKeys.NAME);
                         String desc = metadata.get(MetaDataKeys.DESCRIPTION);
+                        String labels = metadata.get(MetaDataKeys.LABELS);
                         SearchOver so = SearchOver.fromValue(over);
                         switch (so) {
                             case name:
@@ -166,7 +167,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                                     return metadata;
                                 }
                             case labels:
-                                return null; // TODO
+                                if (stringMetadataContainsFilter(filter, labels)) {
+                                    return metadata;
+                                }
                             default:
                                 if (metaDataContainsFilter(filter, metadata.values())) {
                                     return metadata;
@@ -186,8 +189,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {
 
-        return null == filter || metadataValues.stream().anyMatch(value ->
-                value != null && value.contains(filter));
+        return null == filter || metadataValues.stream().anyMatch(value -> stringMetadataContainsFilter(filter, value));
     }
 
     private <T> T handleVersion(String artifactId, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
@@ -443,7 +445,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
-            ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription()));
+            ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels()));
         } else {
             throw new ArtifactNotFoundException(artifactId);
         }
@@ -613,7 +615,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             artifactId,
             version,
             ArtifactStateExt.ACTIVE_STATES,
-            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription()))
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels()))
         );
     }
 
@@ -623,7 +625,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
             artifactId,
             version,
             null,
-            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null))
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null, Collections.emptyList()))
         );
     }
 

@@ -133,11 +133,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             switch (searchOver) {
                 case name:
                 case description:
+                case labels:
                     String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
                     return value != null && value.contains(search);
-                case labels:
-                    //TODO not implemented yet
-                    return false;
                 default:
                     return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
                         .values()
@@ -403,6 +401,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         }
         if (metaData.getDescription() != null) {
             storage.put(artifactId, MetaDataKeys.DESCRIPTION, metaData.getDescription());
+        }
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            storage.put(artifactId, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
         }
     }
 

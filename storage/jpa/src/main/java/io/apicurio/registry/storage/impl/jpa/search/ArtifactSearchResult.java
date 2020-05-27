@@ -33,7 +33,7 @@ public class ArtifactSearchResult {
     private String createdOn;
     private String createdBy;
     private String artifactType;
-    //TODO LABELS not yet implemented private String labels;
+    private String labels;
     private String state;
     private String modifiedOn;
     private String modifiedBy;

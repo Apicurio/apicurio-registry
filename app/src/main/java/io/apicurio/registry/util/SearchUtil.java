@@ -54,8 +54,8 @@ public class SearchUtil {
         searchedArtifact.setModifiedBy(artifactMetaData.getModifiedBy());
         searchedArtifact.setModifiedOn(artifactMetaData.getModifiedOn());
         searchedArtifact.setType(artifactMetaData.getType());
+        searchedArtifact.setLabels(artifactMetaData.getLabels());
 
-        //TODO add labels
         return searchedArtifact;
     }
 

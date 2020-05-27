@@ -344,9 +344,11 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     if (type == Str.ActionType.UPDATE) {
                         avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
                         avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
+                        avb.putMetadata(MetaDataKeys.LABELS, metaData.getLabels());
                     } else if (type == Str.ActionType.DELETE) {
                         avb.removeMetadata(MetaDataKeys.NAME);
                         avb.removeMetadata(MetaDataKeys.DESCRIPTION);
+                        avb.removeMetadata(MetaDataKeys.LABELS);
                     }
                     builder.setArtifacts(index, avb.build()); // override with new value
                 }

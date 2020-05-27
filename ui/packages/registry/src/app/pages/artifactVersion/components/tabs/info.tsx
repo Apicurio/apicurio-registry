@@ -131,8 +131,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
     }
 
     private labels(): string[] {
-        // TODO implement labels!
-        return [];
+        return this.props.artifact.labels ? this.props.artifact.labels : [];
     }
 
     private description(): string {

@@ -23,13 +23,6 @@ import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 
-import static io.apicurio.registry.storage.MetaDataKeys.ARTIFACT_ID;
-import static io.apicurio.registry.storage.MetaDataKeys.CONTENT;
-import static io.apicurio.registry.storage.MetaDataKeys.DESCRIPTION;
-import static io.apicurio.registry.storage.MetaDataKeys.GLOBAL_ID;
-import static io.apicurio.registry.storage.MetaDataKeys.NAME;
-import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.persistence.EntityManager;
+
+import static io.apicurio.registry.storage.MetaDataKeys.*;
 
 public class MetaDataMapperUpdater {
 
@@ -146,6 +141,9 @@ public class MetaDataMapperUpdater {
         Map<String, String> res = new HashMap<>();
         res.put(NAME, dto.getName());
         res.put(DESCRIPTION, dto.getDescription());
+        if (dto.getLabels() != null) {
+            res.put(LABELS, String.join(",", dto.getLabels()));
+        }
         return res;
     }
 }

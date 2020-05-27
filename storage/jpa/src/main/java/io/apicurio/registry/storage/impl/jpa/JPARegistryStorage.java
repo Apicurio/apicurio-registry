@@ -255,7 +255,7 @@ public class JPARegistryStorage implements RegistryStorage {
         case name:
             return "AND (m2.key= 'name' AND (0 < LOCATE(:search, m2.value))) ";
         case labels:
-            //TODO not implemented yet
+            return "AND (m2.key= 'labels' AND (0 < LOCATE(:search, m2.value))) ";
         default:
             return "AND (0 < LOCATE(:search, m2.value)) ";
         }
@@ -269,7 +269,7 @@ public class JPARegistryStorage implements RegistryStorage {
                 + "MAX(case when m.key = '" + MetaDataKeys.CREATED_ON + "' then m.value end) as createdOn, "
                 + "MAX(case when m.key = '" + MetaDataKeys.CREATED_BY + "' then m.value end) as createdBy, "
                 + "MAX(case when m.key = '" + MetaDataKeys.TYPE + "' then m.value end) as type,"
-                //+ "MAX(case when m.key = 'labels' then m.value end) as labels,"
+                + "MAX(case when m.key = '" + MetaDataKeys.LABELS + "' then m.value end) as labels,"
                 + "MAX(case when m.key = '" + MetaDataKeys.STATE + "' then m.value end) as state, "
                 + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_ON + "' then m.value end) as modifiedOn,"
                 + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_BY + "' then m.value end) as modifiedBy)"
@@ -302,7 +302,9 @@ public class JPARegistryStorage implements RegistryStorage {
         searchedArtifact.setCreatedOn(artifactSearchResult.getCreatedOn() != null ? Long.parseLong(artifactSearchResult.getModifiedOn()) : 0L);
         searchedArtifact.setDescription(artifactSearchResult.getDescription());
         searchedArtifact.setState(ArtifactState.fromValue(artifactSearchResult.getState()));
-        //TODO labels not implemented yet searchedArtifact.setLabels(artifactSearchResult.getLabels());
+        if (artifactSearchResult.getLabels() != null && !artifactSearchResult.getLabels().isEmpty()) {
+            searchedArtifact.setLabels(Arrays.asList(artifactSearchResult.getLabels().split(",")));
+        }
         searchedArtifact.setType(ArtifactType.fromValue(artifactSearchResult.getArtifactType()));
 
         return searchedArtifact;

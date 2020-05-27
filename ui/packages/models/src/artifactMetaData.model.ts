@@ -21,6 +21,7 @@ export class ArtifactMetaData {
     public id: string;
     public name: string|null;
     public description: string|null;
+    public labels: string[]|null;
     public type: string;
     public version: number;
     public createdBy: string;

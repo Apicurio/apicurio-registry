@@ -1,6 +1,8 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +39,8 @@ public class ArtifactMetaData {
     private String name;
     @JsonProperty("description")
     private String description;
+    @JsonProperty("labels")
+    private List<String> labels;
     /**
      * 
      * (Required)
@@ -323,12 +327,23 @@ public class ArtifactMetaData {
     public void setState(ArtifactState state) {
         this.state = state;
     }
-    
+
+    @JsonProperty("labels")
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    @JsonProperty("labels")
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
+    }
+
     @Override
     public String toString() {
         return "ArtifactMetaData{" +
                 "name='" + name + '\'' +
                 ", description='" + description + '\'' +
+                ", labels='" + (labels == null ? "[]" : labels.toArray().toString()) + '\'' +
                 ", createdBy='" + createdBy + '\'' +
                 ", createdOn=" + createdOn +
                 ", modifiedBy='" + modifiedBy + '\'' +

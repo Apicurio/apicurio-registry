@@ -26,12 +26,21 @@ import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 
 /**
  * @author Ales Justin
@@ -140,4 +149,45 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(2, results.getVersions().size());
         Assertions.assertEquals(name, results.getVersions().get(0).getName());
     }
+
+    @RegistryServiceTest
+    public void testLabels(Supplier<RegistryService> supplier) throws Exception {
+        String artifactId = generateArtifactId();
+        try {
+
+            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, stream);
+            ConcurrentUtil.result(csResult);
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName("myname");
+
+            final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON");
+            emd.setLabels(artifactLabels);
+            supplier.get().updateArtifactMetaData(artifactId, emd);
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = supplier.get().getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals(3, artifactMetaData.getLabels().size());
+                Assertions.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
+            });
+
+            retry((() -> {
+
+                ArtifactSearchResults results = supplier.get()
+                        .searchArtifacts("Open Api", 0, 2, SearchOver.labels, SortOrder.asc);
+                Assertions.assertNotNull(results);
+                Assertions.assertEquals(1, results.getCount());
+                Assertions.assertEquals(1, results.getArtifacts().size());
+                Assertions.assertTrue(results.getArtifacts().get(0).getLabels().containsAll(artifactLabels));
+            }));
+        } finally {
+            supplier.get().deleteArtifact(artifactId);
+        }
+    }
+
+
+
 }

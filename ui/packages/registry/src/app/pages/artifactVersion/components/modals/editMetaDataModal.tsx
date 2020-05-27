@@ -85,6 +85,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                     <FormGroup
                         label="Labels"
                         fieldId="form-labels"
+                        helperText="A comma-separated list of labels to apply to the artifact."
                     >
                         <TextInput
                             isRequired={false}

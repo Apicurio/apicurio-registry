@@ -242,6 +242,7 @@
                         </goals>
                         <configuration>
                             <systemProperties>
+                                <project.version>${project.version}</project.version>
                                 <native.image.path>${test.app.name}</native.image.path>
                                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                             </systemProperties>

@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.util;
 
 import io.apicurio.registry.test.utils.KafkaTestContainerManager;
+import io.apicurio.registry.util.ClusterInitializer;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.quarkus.test.common.QuarkusTestResource;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -14,6 +15,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -21,8 +23,10 @@ import java.util.Set;
  * @author Ales Justin
  */
 @QuarkusTestResource(KafkaTestContainerManager.class)
-public class StreamsServiceInitializer implements ServiceInitializer {
+public class StreamsServiceInitializer implements ServiceInitializer, ClusterInitializer {
     private static final Logger log = LoggerFactory.getLogger(StreamsServiceInitializer.class);
+
+    private KafkaTestContainerManager manager;
 
     @Override
     public void beforeAll(@Observes @Initialized(ApplicationScoped.class) Object event) throws Exception {
@@ -54,5 +58,18 @@ public class StreamsServiceInitializer implements ServiceInitializer {
             }
         }
         log.debug("Streams is RUNNING ...");
+    }
+
+    @Override
+    public Map<String, String> startCluster() {
+        manager = new KafkaTestContainerManager();
+        return manager.start();
+    }
+
+    @Override
+    public void stopCluster() {
+        if (manager != null) {
+            manager.stop();
+        }
     }
 }

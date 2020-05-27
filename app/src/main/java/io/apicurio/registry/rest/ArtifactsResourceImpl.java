@@ -467,6 +467,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
+        dto.setLabels(data.getLabels());
         storage.updateArtifactMetaData(artifactId, dto);
     }
 

@@ -1,6 +1,8 @@
 
 package io.apicurio.registry.rest.beans;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -20,6 +22,7 @@ import io.apicurio.registry.types.ArtifactType;
     "version",
     "name",
     "description",
+    "labels",
     "createdBy",
     "createdOn",
     "type",
@@ -40,6 +43,8 @@ public class VersionMetaData {
     private String name;
     @JsonProperty("description")
     private String description;
+    @JsonProperty("labels")
+    private List<String> labels;
     /**
      * 
      * (Required)
@@ -260,6 +265,16 @@ public class VersionMetaData {
     @JsonProperty("id")
     public void setId(String id) {
         this.id = id;
+    }
+
+    @JsonProperty("labels")
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    @JsonProperty("labels")
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
     }
 
 }

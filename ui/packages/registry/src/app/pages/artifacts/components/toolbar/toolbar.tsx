@@ -83,6 +83,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                         <DropdownItem key="everything" id="everything" data-testid="toolbar-filter-everything" component="button">Everything</DropdownItem>,
                                         <DropdownItem key="name" id="name" data-testid="toolbar-filter-name" component="button">Name</DropdownItem>,
                                         <DropdownItem key="description" id="description" data-testid="toolbar-filter-description" component="button">Description</DropdownItem>,
+                                        <DropdownItem key="labels" id="labels" data-testid="toolbar-filter-labels" component="button">Labels</DropdownItem>,
                                     ]}
                                 />
                                 <TextInput name="filterValue" id="filterValue" type="search"
@@ -191,6 +192,8 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                 return "Name";
             case "description":
                 return "Description";
+            case "labels":
+                return "Labels";
             default:
                 return "Everything";
         }

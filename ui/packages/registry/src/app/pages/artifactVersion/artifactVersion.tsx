@@ -158,6 +158,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 </Modal>
                 <EditMetaDataModal name={this.artifactName()}
                                    description={this.artifactDescription()}
+                                   labels={this.artifactLabels()}
                                    isOpen={this.state.isEditModalOpen}
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
@@ -319,6 +320,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         return this.state.artifact ? (
             this.state.artifact.description ? this.state.artifact.description : ""
         ) : "";
+    }
+
+    private artifactLabels(): string[] {
+        return this.state.artifact ? (
+            this.state.artifact.labels ? this.state.artifact.labels : []
+        ) : [];
     }
 
     private onUploadFormValid = (isValid: boolean): void => {

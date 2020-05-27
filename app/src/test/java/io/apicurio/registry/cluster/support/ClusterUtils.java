@@ -1,5 +1,6 @@
 package io.apicurio.registry.cluster.support;
 
+import io.apicurio.registry.util.ClusterInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,19 +12,29 @@ import java.util.concurrent.CountDownLatch;
  * @author Ales Justin
  */
 public class ClusterUtils {
-    private static Logger log = LoggerFactory.getLogger(ClusterUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(ClusterUtils.class);
 
     private static Process[] nodes;
+    private static ClusterInitializer initializer;
 
     public static void startCluster() throws Exception {
         Properties properties = getClusterProperties();
         if (properties == null) {
             return;
         }
+
+        Map<String, String> configMap = Collections.emptyMap();
+        String ci = properties.getProperty("initializer");
+        if (ci != null) {
+            ClassLoader classLoader = ClusterUtils.class.getClassLoader();
+            initializer = (ClusterInitializer) classLoader.loadClass(ci).newInstance();
+            configMap = initializer.startCluster();
+        }
+
         int N = Integer.parseInt(properties.getProperty("nodes", "2"));
         nodes = new Process[N];
         for (int i = 0; i < N; i++) {
-            nodes[i] = startNode(i + 1);
+            nodes[i] = startNode(configMap, i + 1);
         }
     }
 
@@ -35,6 +46,11 @@ public class ClusterUtils {
                 }
             } finally {
                 nodes = null;
+                ClusterInitializer ci = initializer;
+                initializer = null;
+                if (ci != null) {
+                    ci.stopCluster();
+                }
             }
         }
     }
@@ -61,13 +77,16 @@ public class ClusterUtils {
         return properties;
     }
 
-    private static Process startNode(int node) throws Exception {
+    private static Process startNode(Map<String, String> config, int node) throws Exception {
         Properties properties = getClusterProperties();
 
         String dir = System.getProperty("project.build.directory");
         String name = System.getProperty("project.build.finalName");
 
         String props = properties.getProperty(String.format("node%s.props", node));
+        for (Map.Entry<String, String> entry : config.entrySet()) {
+            props = props.replace(String.format("${%s}", entry.getKey()), entry.getValue());
+        }
         String cmd = String.format("java -jar %s %s/%s-runner.jar", props, dir, name);
 
         log.info("Node cmd > " + cmd);

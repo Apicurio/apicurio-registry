@@ -15,6 +15,9 @@
  */
 package io.apicurio.tests.converters;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -55,6 +58,7 @@ import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 
 import static io.apicurio.tests.Constants.CLUSTER;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(CLUSTER)
@@ -155,6 +159,26 @@ public class KafkaConnectConverterIT extends BaseIT {
 
     @BeforeEach
     public void startContainers() {
+        String apicurioVersion = System.getProperty("project.version");
+        assertNotNull(apicurioVersion);
+
+        Path converterDistro = Paths.get(System.getProperty("user.dir"), "..", "distro", "connect-converter",
+                "target", "apicurio-kafka-connect-converter-" + apicurioVersion + "-converter.tar.gz");
+
+        if (Files.notExists(converterDistro)) {
+            LOGGER.info("Connecter distribution {}", converterDistro.toString());
+            throw new IllegalStateException("Kafka connect converter distribution is not present");
+        }
+
+        ImageFromDockerfile apicurioDebeziumImage = new ImageFromDockerfile()
+                .withFileFromPath("converter-distro.tar.gz", converterDistro)
+                .withDockerfileFromBuilder(builder -> builder
+                        .from("debezium/connect:1.1.1.Final")
+                        .env("KAFKA_CONNECT_DEBEZIUM_DIR", "$KAFKA_CONNECT_PLUGINS_DIR/debezium-connector-postgres")
+                        .copy("converter-distro.tar.gz", "$KAFKA_CONNECT_DEBEZIUM_DIR/apicurio-kafka-connect-converter.tar.gz")
+                        .run("cd $KAFKA_CONNECT_DEBEZIUM_DIR && tar -xvf apicurio-kafka-connect-converter.tar.gz")
+                        .build());
+
         if (!TestUtils.isExternalRegistry()) {
             Testcontainers.exposeHostPorts(8081);
         }
@@ -177,14 +201,6 @@ public class KafkaConnectConverterIT extends BaseIT {
               .withNetwork(network)
               .withNetworkAliases("postgres");
         postgres.start();
-
-        ImageFromDockerfile apicurioDebeziumImage = new ImageFromDockerfile()
-              .withDockerfileFromBuilder(builder -> builder
-                  .from("debezium/connect:1.1.1.Final")
-                  .env("KAFKA_CONNECT_DEBEZIUM_DIR", "$KAFKA_CONNECT_PLUGINS_DIR/debezium-connector-postgres")
-                  .env("APICURIO_VERSION", "1.1.2.Final")
-                  .run("cd $KAFKA_CONNECT_DEBEZIUM_DIR && curl https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-distro-connect-converter/$APICURIO_VERSION/apicurio-registry-distro-connect-converter-$APICURIO_VERSION-converter.tar.gz | tar xzv")
-                  .build());
 
         debeziumContainer = new DebeziumContainer(apicurioDebeziumImage)
               .withNetwork(network)

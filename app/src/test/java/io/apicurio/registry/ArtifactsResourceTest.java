@@ -16,21 +16,7 @@
 
 package io.apicurio.registry;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import io.apicurio.registry.rest.beans.IfExistsType;
-import org.hamcrest.CustomMatcher;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -38,6 +24,19 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
+import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.*;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -171,7 +170,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testDeleteArtifact() {
+    public void testDeleteArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
@@ -194,7 +193,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .delete("/artifacts/{artifactId}")
             .then()
                 .statusCode(204);
-        
+
+        // TODO -- fix async!
+
         // Try to get artifact content for an artifact that doesn't exist.
         given()
             .when()
@@ -427,7 +428,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testArtifactRules() {
+    public void testArtifactRules() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testArtifactRules/EmptyAPI";
         
@@ -547,6 +548,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204)
                 .body(anything());
 
+        // TODO -- fix async!
+
         // Get a single (deleted) rule by name (should fail with a 404)
         given()
             .when()
@@ -604,7 +607,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testArtifactMetaData() {
+    public void testArtifactMetaData() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
@@ -644,6 +647,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .put("/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(204);
+
+        // TODO -- fix async!
 
         // Get the (updated) artifact meta-data
         given()

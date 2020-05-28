@@ -31,7 +31,6 @@ import javax.ws.rs.WebApplicationException;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -210,7 +209,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
                 return false;
             }
         });
-        
+
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
@@ -227,7 +226,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         List<RuleType> rules = service.listArtifactRules(subjectName);
         assertThat(1, is(rules.size()));
-        
+
         confluentService.deleteSubject(subjectName);
 
         TestUtils.waitFor("schema deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

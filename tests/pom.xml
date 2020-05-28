@@ -212,6 +212,17 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
+
+        <!-- UI tests  -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>3.141.59</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>selenium</artifactId>
+            <version>1.12.4</version>
         </dependency>
     </dependencies>
 
@@ -307,6 +318,14 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>cluster</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>ui</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>ui</groups>
             </properties>
         </profile>
     </profiles>

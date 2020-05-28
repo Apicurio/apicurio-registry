@@ -66,6 +66,21 @@ public class TestUtils {
         return Boolean.parseBoolean(EXTERNAL_REGISTRY);
     }
 
+    public static String getRegistryHost() {
+        return REGISTRY_HOST;
+    }
+
+    public static int getRegistryPort() {
+        return REGISTRY_PORT;
+    }
+
+    public static String getRegistryUIUrl() {
+        return getRegistryUrl(
+            String.format("http://%s:%s/", REGISTRY_HOST, REGISTRY_PORT),
+            false
+        );
+    }
+
     public static String getRegistryUrl() {
         return getRegistryUrl(
             String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT),

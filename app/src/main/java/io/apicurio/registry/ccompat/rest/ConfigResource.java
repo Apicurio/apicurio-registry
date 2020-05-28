@@ -31,7 +31,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#config">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#config">API specification</a> is owned by Confluent.
  *
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *

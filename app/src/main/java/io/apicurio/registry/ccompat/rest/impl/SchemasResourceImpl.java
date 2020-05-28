@@ -17,16 +17,21 @@
 package io.apicurio.registry.ccompat.rest.impl;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.types.ArtifactType;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.interceptor.Interceptors;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static io.apicurio.registry.metrics.MetricIDs.*;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
@@ -46,5 +51,15 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     public SchemaContent getSchema(int id) {
         return facade.getSchemaContent(id);
+    }
+
+    @Override
+    public List<SubjectVersion> getSubjectVersions(int id) {
+        return facade.getSubjectVersions(id);
+    }
+
+    @Override
+    public List<String> getRegisteredTypes() {
+        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
     }
 }

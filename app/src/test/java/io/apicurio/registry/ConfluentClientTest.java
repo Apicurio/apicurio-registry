@@ -16,38 +16,49 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.support.HealthUtils;
-import io.confluent.connect.avro.AvroConverter;
+import io.apicurio.registry.support.TestCmmn;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializerConfig;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.HashMap;
+
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 @QuarkusTest
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
-        return new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
+
+        final List<SchemaProvider> schemaProviders = Arrays
+                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
+
+        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/api/ccompat"), 3, schemaProviders, null, null);
     }
 
     @Test
@@ -113,7 +124,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     // TODO -- cover all endpoints!
 
     @Test
-    public void testSerde() throws Exception {
+    public void testSerdeAvro() throws Exception {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
@@ -139,6 +150,50 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
 
             Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testSerdeJsonSchema() throws Exception {
+
+        final SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        final SchemaContent schemaContent = new SchemaContent(
+                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}",
+                "JSON");
+
+        final Properties config = new Properties();
+        config.put(KafkaJsonSchemaSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
+        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
+
+        try (KafkaJsonSchemaSerializer serializer = new KafkaJsonSchemaSerializer(client, new HashMap(config));
+                KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config, SchemaContent.class )){
+
+            byte[] bytes = serializer.serialize(subject, schemaContent);
+            Object deserialized = deserializer.deserialize(subject, bytes);
+            Assertions.assertEquals(schemaContent, deserialized);
+        }
+    }
+
+    @Test
+    public void testSerdeProtobufSchema() throws Exception {
+
+        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+
+        final SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        final Properties config = new Properties();
+        config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
+        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
+
+        try (KafkaProtobufSerializer serializer = new KafkaProtobufSerializer(client, new HashMap(config));
+                KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)){
+
+            byte[] bytes = serializer.serialize(subject, record);
+            Object deserialized = deserializer.deserialize(subject, bytes);
+            Assertions.assertEquals(record, deserialized);
         }
     }
 
@@ -183,82 +238,5 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             Assertions.assertFalse(all.contains(subject));
             return null;
         });
-    }
-
-    @Test
-    public void testConverter_PreRegisterSchema() {
-        String subject = generateArtifactId();
-        String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
-        testConverter(
-            subject,
-            name,
-            false,
-            (client) -> {
-                try {
-                    Schema schema = new Schema.Parser().parse(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
-                    int id = client.register(subject + "-value", schema);
-                    client.reset();
-                    // can be async ...
-                    Schema retry = retry(() -> client.getById(id));
-                    Assertions.assertNotNull(retry);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            },
-            (c, b) -> {
-            }
-        );
-    }
-
-    @Test
-    public void testConverter_AutoRegisterSchema() {
-        String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
-        testConverter(
-            generateArtifactId(),
-            name,
-            true,
-            (c) -> {
-            },
-            (client, bytes) -> {
-                try {
-                    client.reset();
-                    Schema retry = retry(() -> {
-                        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                        buffer.get(); // magic-byte
-                        int id = buffer.getInt();
-                        return client.getById(id);
-                    });
-                    Assertions.assertNotNull(retry);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        );
-    }
-
-    private void testConverter(String subject, String name, boolean autoRegister, Consumer<SchemaRegistryClient> pre, BiConsumer<SchemaRegistryClient, byte[]> post) {
-        SchemaRegistryClient client = buildClient();
-
-        pre.accept(client);
-
-        org.apache.kafka.connect.data.Schema cs =
-            org.apache.kafka.connect.data.SchemaBuilder.struct()
-                                                       .name(name).field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
-        Struct struct = new Struct(cs);
-        struct.put("bar", "somebar");
-
-        AvroConverter converter = new AvroConverter(client);
-        Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "dummy");
-        config.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegister);
-        converter.configure(config, false);
-
-        byte[] bytes = converter.fromConnectData(subject, cs, struct);
-
-        post.accept(client, bytes);
-
-        SchemaAndValue sav = converter.toConnectData(subject, bytes);
-        Struct ir = (Struct) sav.value();
-        Assertions.assertEquals("somebar", ir.get("bar").toString());
     }
 }

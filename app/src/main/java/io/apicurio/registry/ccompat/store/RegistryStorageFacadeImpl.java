@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
@@ -25,7 +26,15 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -59,6 +68,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
+    public List<SubjectVersion> getSubjectVersions(int globalId) {
+
+        final String artifactId = storage.getArtifactMetaData(globalId).getId();
+
+        return storage.getArtifactVersions(artifactId)
+                .stream()
+                .map(version -> FacadeConverter.convert(artifactId, version))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(subject)
                 .stream()
@@ -68,7 +88,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
+        return FacadeConverter.convert(storage.getArtifactVersion(globalId), storage.getArtifactMetaData(globalId).getType());
         // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
     }
 
@@ -95,11 +115,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
 
         // TODO Should this creation and updating of an artifact be a different operation?
         // TODO method that returns a completion stage should not throw an exception
-        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema);
+        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
 
         return artifactMeta.thenApply(ArtifactMetaDataDto::getGlobalId);
     }
@@ -130,20 +150,20 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
-    private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema) {
+    private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {
         CompletionStage<ArtifactMetaDataDto> res;
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema))
+                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                res = storage.createArtifact(subject, artifactType, ContentHandle.create(schema))
                         .thenCompose(
                                 amd ->
                                         storage.createArtifactRuleAsync(subject, RuleType.VALIDITY, RuleConfigurationDto.builder().configuration(ValidityLevel.FULL.name()).build())
                                                 .thenApply(v -> amd)
                         );
             } else {
-                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.UPDATE);
-                res = storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
+                res = storage.updateArtifact(subject, artifactType, ContentHandle.create(schema));
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

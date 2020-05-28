@@ -1,6 +1,6 @@
 # Compatibility Notes
 
-1. The API should follow [Confluent spec](https://docs.confluent.io/5.4.1/schema-registry/develop/api.html)
+1. The API should follow [Confluent spec](https://docs.confluent.io/5.5.0/schema-registry/develop/api.html)
 
 1. We expect only Avro schemas are supported
 

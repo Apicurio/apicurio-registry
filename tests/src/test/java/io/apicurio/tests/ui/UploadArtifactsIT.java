@@ -50,9 +50,6 @@ public class UploadArtifactsIT extends BaseIT {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }
-        service.listArtifacts().forEach(artifactId -> {
-            service.deleteArtifact(artifactId);
-        });
     }
 
     public void doTest(RegistryService service, String resource, ArtifactType type, String artifactId, boolean autodetect) throws Exception {

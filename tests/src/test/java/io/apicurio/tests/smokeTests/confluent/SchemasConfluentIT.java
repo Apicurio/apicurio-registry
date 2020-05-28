@@ -247,8 +247,4 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(1, is(confluentService.getAllSubjects().size()));
     }
 
-    @AfterEach
-    void tearDown() throws IOException, RestClientException {
-        clearAllConfluentSubjects();
-    }
 }

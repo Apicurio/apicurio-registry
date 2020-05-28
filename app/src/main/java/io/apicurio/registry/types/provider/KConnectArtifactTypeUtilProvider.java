@@ -20,6 +20,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -32,6 +33,7 @@ import javax.enterprise.context.ApplicationScoped;
  * @author Ales Justin
  */
 @ApplicationScoped
+@Logged
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public ArtifactType getArtifactType() {

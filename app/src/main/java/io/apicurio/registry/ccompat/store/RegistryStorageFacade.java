@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -30,7 +31,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 /**
- * Note: This facade is only expected to be used for AVRO artifact type.
+ *
  *
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
@@ -38,6 +39,8 @@ import java.util.function.Function;
 public interface RegistryStorageFacade {
 
     List<String> getSubjects();
+
+    List<SubjectVersion> getSubjectVersions(int globalId);
 
     /**
      * @return List of <b>schema versions</b> in the deleted subject
@@ -50,7 +53,7 @@ public interface RegistryStorageFacade {
      *
      * @return globalId as a future
      */
-    CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
     SchemaContent getSchemaContent(int globalId) throws RegistryStorageException;

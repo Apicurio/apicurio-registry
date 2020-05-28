@@ -35,7 +35,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
  *
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
@@ -81,7 +81,7 @@ public interface SubjectsResource {
      *     subject (string) – Name of the subject that this schema is registered under
      *     globalId (int) – Globally unique identifier of the schema
      *     version (int) – Version of the returned schema
-     *     schema (string) – The Avro schema string
+     *     schema (string) – The schema string
      *
      * Status Codes:
      *

@@ -29,6 +29,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.ProtobufFile;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -55,7 +56,7 @@ public final class ArtifactTypeUtil {
      * @param content
      * @param contentType
      */
-    public static ArtifactType discoverType(ContentHandle content, String contentType) {
+    public static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
@@ -86,7 +87,11 @@ public final class ArtifactTypeUtil {
             // Kafka Connect??
             // TODO detect Kafka Connect schemas
             // Avro
-            return ArtifactType.AVRO;
+            if (tree.has("type")) {
+                return ArtifactType.AVRO;
+            }
+            
+            throw new InvalidArtifactTypeException("Failed to discover artifact type from JSON content.");
         } catch (Exception e) {
             // Apparently it's not JSON.
         }
@@ -125,8 +130,7 @@ public final class ArtifactTypeUtil {
             // It's not XML.
         }
 
-        // Default to Avro
-        return ArtifactType.AVRO;
+        throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
     }
 
     private static ArtifactType tryProto(ContentHandle content) {

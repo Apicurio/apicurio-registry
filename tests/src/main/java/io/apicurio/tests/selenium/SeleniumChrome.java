@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.tests.selenium;
 
-package io.apicurio.registry.ccompat.rest.error;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-import io.apicurio.registry.types.RegistryException;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-/**
- * This exception covers the following errors in the compat API:
- * - 409 Conflict – Incompatible schema
- */
-public class ConflictException extends RegistryException {
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-    private static final long serialVersionUID = 5511072429790259605L;
 
-    public ConflictException(String message) {
-        super(message);
-    }
-
-    public ConflictException(String message, Throwable cause) {
-        super(message, cause);
-    }
+@Target({ElementType.METHOD, ElementType.TYPE, ElementType.ANNOTATION_TYPE})
+@Retention(RUNTIME)
+@ExtendWith(SeleniumChromeExtension.class)
+public @interface SeleniumChrome {
 }

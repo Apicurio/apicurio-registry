@@ -55,6 +55,10 @@ public class ArtifactUtils {
         return getArtifact(artifactId, "versions/" + version, returnCode);
     }
 
+    public static Response listArtifacts() {
+        return BaseHttpUtils.getRequest(RestConstants.JSON, "/artifacts/", 200);
+    }
+
     public static Response listArtifactVersions(String artifactId) {
         return listArtifactVersions(artifactId, 200);
     }

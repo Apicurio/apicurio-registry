@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.tests.ui.pages;
 
-package io.apicurio.registry.ccompat.rest.error;
+import org.openqa.selenium.By;
 
-import io.apicurio.registry.types.RegistryException;
+import io.apicurio.tests.selenium.SeleniumProvider;
 
-/**
- * This exception covers the following errors in the compat API:
- * - 409 Conflict – Incompatible schema
- */
-public class ConflictException extends RegistryException {
+public abstract class BasePage {
 
-    private static final long serialVersionUID = 5511072429790259605L;
+    protected SeleniumProvider selenium;
 
-    public ConflictException(String message) {
-        super(message);
+    public BasePage(SeleniumProvider selenium) {
+        super();
+        this.selenium = selenium;
     }
 
-    public ConflictException(String message, Throwable cause) {
-        super(message, cause);
+    public static By byDataTestId(String dataTestId) {
+        return By.xpath("//*[@data-testid='" + dataTestId + "']");
     }
+
+    public static By byDataTestIdLike(String dataTestId) {
+        return By.xpath("//*[contains(@data-testid, '" + dataTestId + "')]");
+    }
+
 }

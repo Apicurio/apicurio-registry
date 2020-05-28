@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.tests.ui.pages;
 
-package io.apicurio.registry.ccompat.rest.error;
+import org.openqa.selenium.WebElement;
 
-import io.apicurio.registry.types.RegistryException;
+import io.apicurio.tests.selenium.SeleniumProvider;
 
-/**
- * This exception covers the following errors in the compat API:
- * - 409 Conflict – Incompatible schema
- */
-public class ConflictException extends RegistryException {
+public class ArtifactDetailsPage extends BasePage {
 
-    private static final long serialVersionUID = 5511072429790259605L;
-
-    public ConflictException(String message) {
-        super(message);
+    public ArtifactDetailsPage(SeleniumProvider selenium) {
+        super(selenium);
     }
 
-    public ConflictException(String message, Throwable cause) {
-        super(message, cause);
+    public WebElement getDeleteButton() {
+        return selenium.getDriver().findElement(byDataTestId("header-btn-delete"));
     }
+
+    public WebElement getDeleteButtonDeleteDialog() {
+        return selenium.getDriver().findElement(byDataTestId("modal-btn-delete"));
+    }
+
 }

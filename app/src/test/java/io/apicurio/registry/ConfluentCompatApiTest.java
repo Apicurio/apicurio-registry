@@ -23,15 +23,19 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.anything;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that the REST API exposed at endpoint "/ccompat" follows the
- * <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html">Confluent API specification</a>,
+ * <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html">Confluent API specification</a>,
  * unless otherwise stated.
  *
  * @author Jakub Senko <jsenko@redhat.com>
@@ -200,5 +204,89 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
             .then()
             .statusCode(404); 
+    }
+
+    @Test
+    public void testSchemaTypes() {
+        //verify
+        String[] types = given()
+                .when()
+                .get("/ccompat/schemas/types")
+                .then()
+                .statusCode(200)
+        .extract().as(String[].class);
+
+        assertEquals(3, types.length);
+        assertEquals("JSON", types[0]);
+        assertEquals("PROTOBUF", types[1]);
+        assertEquals("AVRO", types[2]);
+    }
+
+    /**
+     * Endpoint: /schemas/ids/{int: id}/versions
+     */
+    @Test
+    public void testGetSchemaVersions() {
+        final String SUBJECT = "subjectTestSchemaVersions";
+
+        //Create two versions of the same artifact
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+
+
+        final Integer globalId = given().when().get("/ccompat/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
+
+        //Verify
+        Assertions.assertEquals(Arrays.asList(1, 2), given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/schemas/ids/{id}/versions", globalId)
+                .then()
+                .extract().body().jsonPath().get("version"));
+    }
+
+    /**
+     * Endpoint: /ccompat/subjects/{subject}/versions/{version}/referencedby
+     */
+    @Test
+    public void testGetSchemaReferencedVersions() {
+        final String SUBJECT = "testGetSchemaReferencedVersions";
+
+        //Create two versions of the same artifact
+        // POST
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        // POST
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+
+        //Verify
+        Integer[] versions = given().when()
+                .get("/ccompat/subjects/{subject}/versions/{version}/referencedby", SUBJECT, 1L).then().statusCode(200)
+                .extract().as(Integer[].class);
+
+        assertEquals(2, versions.length);
     }
 }

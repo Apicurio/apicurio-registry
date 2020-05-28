@@ -28,6 +28,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
@@ -67,6 +68,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
+    public List<SubjectVersion> getSubjectVersions(int globalId) {
+
+        final String artifactId = storage.getArtifactMetaData(globalId).getId();
+
+        return storage.getArtifactVersions(artifactId)
+                .stream()
+                .map(version -> FacadeConverter.convert(artifactId, version))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(subject)
                 .stream()
@@ -76,7 +88,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
+        return FacadeConverter.convert(storage.getArtifactVersion(globalId), storage.getArtifactMetaData(globalId).getType());
         // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
     }
 
@@ -103,11 +115,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public CompletionStage<Long> createSchema(String subject, String schema) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
 
         // TODO Should this creation and updating of an artifact be a different operation?
         // TODO method that returns a completion stage should not throw an exception
-        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema);
+        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
 
         return artifactMeta.thenApply(ArtifactMetaDataDto::getGlobalId);
     }
@@ -138,15 +150,15 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         }
     }
 
-    private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema) {
+    private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {
         CompletionStage<ArtifactMetaDataDto> res;
         try {
             if (!doesArtifactExist(subject)) {
                 rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.CREATE);
                 res = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
             } else {
-                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.UPDATE);
-                res = storage.updateArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
+                res = storage.updateArtifact(subject, artifactType, ContentHandle.create(schema));
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

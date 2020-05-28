@@ -61,7 +61,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             String subject,
             SchemaContent request) throws Exception {
 
-        facade.createSchema(subject, request.getSchema())
+        facade.createSchema(subject, request.getSchema(), request.getSchemaType())
                 .thenApply(FacadeConverter::convertUnsigned)
                 .whenComplete((id, t) -> {
                     if (t != null) {
@@ -98,5 +98,10 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             String version) throws Exception {
 
         return facade.getSchema(subject, version).getSchema();
+    }
+
+    @Override
+    public List<Integer> getSchemasReferencedBy(String subject, Integer version) throws Exception {
+        return facade.getVersions(subject);
     }
 }

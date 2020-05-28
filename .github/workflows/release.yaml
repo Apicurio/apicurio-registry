@@ -52,10 +52,6 @@ jobs:
         run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
       - name: Build All Variants
         run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -DskipTests
-      - name: Verify (Standard)
-        run: mvn test package -Pprod -Pjpa
-      - name: Run QE Tests
-        run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
       - name: Commit Release Version Change
         run: |
           git add .

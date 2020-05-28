@@ -22,6 +22,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiOrAsyncApiContentExtractor;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -32,6 +33,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Ales Justin
  */
 @ApplicationScoped
+@Logged
 public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public ArtifactType getArtifactType() {

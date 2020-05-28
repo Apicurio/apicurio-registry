@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -30,6 +31,7 @@ import javax.inject.Inject;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
+@Logged
 public class ValidityRuleExecutor implements RuleExecutor {
 
     @Inject

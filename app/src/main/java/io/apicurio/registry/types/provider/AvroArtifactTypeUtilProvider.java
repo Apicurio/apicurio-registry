@@ -22,6 +22,7 @@ import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
@@ -32,6 +33,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Ales Justin
  */
 @ApplicationScoped
+@Logged
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public ArtifactType getArtifactType() {

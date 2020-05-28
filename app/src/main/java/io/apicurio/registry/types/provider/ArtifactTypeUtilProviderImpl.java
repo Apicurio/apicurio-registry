@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.types.provider;
 
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.util.Map;
@@ -28,6 +29,7 @@ import javax.inject.Inject;
  * @author Ales Justin
  */
 @ApplicationScoped
+@Logged
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
     private Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 

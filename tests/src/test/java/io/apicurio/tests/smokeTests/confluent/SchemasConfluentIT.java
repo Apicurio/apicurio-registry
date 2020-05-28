@@ -16,23 +16,6 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.Constants;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.restassured.response.Response;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
@@ -45,6 +28,25 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.WebApplicationException;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaParseException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.Constants;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.restassured.response.Response;
 
 @Tag(SMOKE)
 public class SchemasConfluentIT extends ConfluentBaseIT {
@@ -208,10 +210,24 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
                 return false;
             }
         });
+        
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        service.createArtifactRule(subjectName, rule);
+
+        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                Rule r = service.getArtifactRuleConfig(RuleType.VALIDITY, subjectName);
+                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
 
         List<RuleType> rules = service.listArtifactRules(subjectName);
         assertThat(1, is(rules.size()));
-
+        
         confluentService.deleteSubject(subjectName);
 
         TestUtils.waitFor("schema deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

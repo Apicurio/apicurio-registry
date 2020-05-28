@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -39,6 +40,7 @@ import static java.util.Collections.singletonList;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
+@Logged
 public class CompatibilityRuleExecutor implements RuleExecutor {
 
     @Inject

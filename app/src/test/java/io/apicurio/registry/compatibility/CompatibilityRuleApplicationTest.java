@@ -16,19 +16,24 @@
 
 package io.apicurio.registry.compatibility;
 
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RuleContext;
+import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
-
-import javax.inject.Inject;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -45,11 +50,25 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Inject
     RulesService rules;
 
+    @Inject
+    CompatibilityRuleExecutor compatibility;
+
     @Test
     public void testGlobalCompatibilityRuleNoArtifact() {
         // this should NOT throw an exception
         storage.createGlobalRule(RuleType.COMPATIBILITY, RuleConfigurationDto.builder().configuration("FULL").build());
         rules.applyRules("not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
             RuleApplicationType.CREATE);
+    }
+    
+    @Test
+    public void testAvroCompatibility() {
+        String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
+        String v2Schema = "{\"type\": \"string\"}";
+        
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            RuleContext context = new RuleContext("Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            compatibility.execute(context);
+        });
     }
 }

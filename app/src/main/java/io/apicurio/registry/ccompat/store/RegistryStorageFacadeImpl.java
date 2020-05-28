@@ -16,6 +16,16 @@
 
 package io.apicurio.registry.ccompat.store;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
@@ -25,7 +35,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -38,15 +47,6 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
@@ -154,13 +154,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         CompletionStage<ArtifactMetaDataDto> res;
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(subject, artifactType, ContentHandle.create(schema))
-                        .thenCompose(
-                                amd ->
-                                        storage.createArtifactRuleAsync(subject, RuleType.VALIDITY, RuleConfigurationDto.builder().configuration(ValidityLevel.FULL.name()).build())
-                                                .thenApply(v -> amd)
-                        );
+                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                res = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
             } else {
                 rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
                 res = storage.updateArtifact(subject, artifactType, ContentHandle.create(schema));

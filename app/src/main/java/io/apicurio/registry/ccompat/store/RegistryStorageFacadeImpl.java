@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
@@ -64,6 +65,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public List<String> getSubjects() {
         // TODO maybe not necessary...
         return new ArrayList<>(storage.getArtifactIds());
+    }
+
+    @Override
+    public List<SubjectVersion> getSubjectVersions(int globalId) {
+
+        final String artifactId = storage.getArtifactMetaData(globalId).getId();
+
+        return storage.getArtifactVersions(artifactId)
+                .stream()
+                .map(version -> FacadeConverter.convert(artifactId, version))
+                .collect(Collectors.toList());
     }
 
     @Override

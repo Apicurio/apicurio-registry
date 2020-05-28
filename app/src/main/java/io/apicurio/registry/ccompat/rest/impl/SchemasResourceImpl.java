@@ -17,6 +17,7 @@
 package io.apicurio.registry.ccompat.rest.impl;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -50,6 +51,11 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     public SchemaContent getSchema(int id) {
         return facade.getSchemaContent(id);
+    }
+
+    @Override
+    public List<SubjectVersion> getSubjectVersions(int id) {
+        return facade.getSubjectVersions(id);
     }
 
     @Override

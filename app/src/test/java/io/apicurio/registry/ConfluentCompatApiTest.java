@@ -23,7 +23,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -212,7 +215,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSchechmaTypes() {
+    public void testSchemaTypes() {
         //verify
         String[] types = given()
                 .when()
@@ -226,4 +229,45 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals("PROTOBUF", types[1]);
         assertEquals("AVRO", types[2]);
     }
+
+    /**
+     * Endpoint: /schemas/ids/{int: id}/versions
+     */
+    @Test
+    public void testGetSchemaVersions() {
+        final String SUBJECT = "subjectTestSchemaVersions";
+
+        //Create two versions of the same artifact
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+
+
+        final Integer globalId = given().when().get("/ccompat/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
+
+        //Verify
+        Assertions.assertEquals(Arrays.asList(1, 2), given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/schemas/ids/{id}/versions", globalId)
+                .then()
+                .extract().body().jsonPath().get("version"));
+    }
+
 }

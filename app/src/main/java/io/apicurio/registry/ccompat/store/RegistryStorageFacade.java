@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -38,6 +39,8 @@ import java.util.function.Function;
 public interface RegistryStorageFacade {
 
     List<String> getSubjects();
+
+    List<SubjectVersion> getSubjectVersions(int globalId);
 
     /**
      * @return List of <b>schema versions</b> in the deleted subject

@@ -17,6 +17,7 @@
 package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SubjectVersion;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -64,6 +65,31 @@ public interface SchemasResource {
     @GET
     @Path("/ids/{id}")
     SchemaContent getSchema(@PathParam("id") int id);
+
+    // ----- PATH: /schemas/ids/{int: id}/versions -----
+
+    /**
+     * Get the subject-version pairs identified by the input ID.
+     *
+     * Parameters:
+     *
+     * @param id (int) – the globally unique identifier of the schema
+     *
+     * Response JSON Array of Objects:
+     *
+     *      subject (string) – Name of the subject
+     *      version (int) – Version of the returned schema
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40403 – Schema not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
+    @GET
+    @Path("/ids/{id}/versions")
+    List<SubjectVersion> getSubjectVersions(@PathParam("id") int id);
 
     // ----- Path: /schemas/types -----
 

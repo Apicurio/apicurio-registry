@@ -19,7 +19,8 @@
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
-        <debezium.version>1.1.1.Final</debezium.version>
+        <debezium.version>1.2.0-SNAPSHOT</debezium.version>
+        <version.okhttp>4.2.2</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
         <vertx.version>3.9.0</vertx.version>
         <scala.version>2.12.10</scala.version>
@@ -30,6 +31,14 @@
         <commons-logging.version>1.2</commons-logging.version>
         <javax-annotation-api.version>1.3.2</javax-annotation-api.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>OSSRH</id>
+            <name>OSS Sonatype</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
 
@@ -169,6 +178,40 @@
             <artifactId>apicurio-registry-utils-converter</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-testing-testcontainers</artifactId>
+            <version>${debezium.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+             <groupId>com.squareup.okhttp3</groupId>
+             <artifactId>okhttp</artifactId>
+             <version>${version.okhttp}</version>
+             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${test-containers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${test-containers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${test-containers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
 
         <!-- UI tests  -->
         <dependency>
@@ -210,6 +253,7 @@
                         </goals>
                         <configuration>
                             <systemProperties>
+                                <project.version>${project.version}</project.version>
                                 <native.image.path>${test.app.name}</native.image.path>
                                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                             </systemProperties>

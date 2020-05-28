@@ -182,7 +182,7 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.12.4</test-containers.version>
+        <test-containers.version>1.14.2</test-containers.version>
     </properties>
 
     <dependencyManagement>

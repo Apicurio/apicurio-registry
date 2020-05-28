@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that the REST API exposed at endpoint "/ccompat" follows the
- * <a href="https://docs.confluent.io/5.4.1/schema-registry/develop/api.html">Confluent API specification</a>,
+ * <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html">Confluent API specification</a>,
  * unless otherwise stated.
  *
  * @author Jakub Senko <jsenko@redhat.com>
@@ -270,4 +270,31 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("version"));
     }
 
+    /**
+     * Endpoint: /ccompat/subjects/{subject}/versions/{version}/referencedby
+     */
+    @Test
+    public void testGetSchemaReferencedVersions() {
+        final String SUBJECT = "testGetSchemaReferencedVersions";
+
+        //Create two versions of the same artifact
+        // POST
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        // POST
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+
+        //Verify
+        Integer[] versions = given().when()
+                .get("/ccompat/subjects/{subject}/versions/{version}/referencedby", SUBJECT, 1L).then().statusCode(200)
+                .extract().as(Integer[].class);
+
+        assertEquals(2, versions.length);
+    }
 }

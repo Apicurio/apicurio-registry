@@ -99,4 +99,9 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
         return facade.getSchema(subject, version).getSchema();
     }
+
+    @Override
+    public List<Integer> getSchemasReferencedBy(String subject, Integer version) throws Exception {
+        return facade.getVersions(subject);
+    }
 }

@@ -100,7 +100,14 @@ public abstract class BaseIT implements TestSeparator, Constants {
         LOGGER.info("Removing all artifacts");
         String[] artifacts = ArtifactUtils.listArtifacts().getBody().as(String[].class);
         for (String artifactId : artifacts) {
-            ArtifactUtils.deleteArtifact(artifactId);
+            try {
+                ArtifactUtils.deleteArtifact(artifactId);
+            } catch (AssertionError e) {
+                //because of async storage artifact may be already deleted but because listed anyway
+                LOGGER.info(e.getMessage());
+            } catch (Exception e) {
+                LOGGER.error("", e);
+            }
         }
     }
 

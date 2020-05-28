@@ -46,14 +46,6 @@ public class DeleteArtifactIT extends BaseIT {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }
-        try {
-            assertTrue(service.listArtifacts().isEmpty());
-        } finally {
-            service.listArtifacts().forEach(artifactId -> {
-                service.deleteArtifact(artifactId);
-            });
-        }
-
     }
 
     @RegistryServiceTest(localOnly = false)

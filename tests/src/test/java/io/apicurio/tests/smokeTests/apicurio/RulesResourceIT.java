@@ -198,8 +198,5 @@ class RulesResourceIT extends BaseIT {
     @AfterEach
     void clearRules(RegistryService service) {
         service.deleteAllGlobalRules();
-        service.listArtifacts().forEach(artifactId -> {
-            service.deleteArtifact(artifactId);
-        });
     }
 }

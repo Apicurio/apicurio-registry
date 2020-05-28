@@ -134,7 +134,7 @@
         <grpc.version>1.29.0</grpc.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>5.4.1</confluent.version>
+        <confluent.version>5.5.0</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>

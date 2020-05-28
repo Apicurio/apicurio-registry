@@ -210,9 +210,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
                 return false;
             }
         });
-
-        List<RuleType> rules = service.listArtifactRules(subjectName);
-        assertThat(0, is(rules.size()));
         
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -227,6 +224,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
                 return false;
             }
         });
+
+        List<RuleType> rules = service.listArtifactRules(subjectName);
+        assertThat(1, is(rules.size()));
         
         confluentService.deleteSubject(subjectName);
 

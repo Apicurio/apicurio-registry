@@ -10,7 +10,8 @@
 :rh-service-registry:
 //:registry: Apicurio Registry
 :registry: Service Registry
-:version: 1.2
+:registry-version: 1.2
+:version: 2020-Q2
 
 //integration products
 :fuse-version: 7.6

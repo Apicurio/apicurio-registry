@@ -27,6 +27,7 @@ import {ArtifactsPageToolbar} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
 import {SearchedArtifact} from "@apicurio/registry-models";
+import {InvalidContentModal} from "../../components/modals";
 
 
 /**
@@ -44,9 +45,11 @@ export interface ArtifactsPageState extends PageState {
     criteria: GetArtifactsCriteria;
     isUploadModalOpen: boolean;
     isUploadFormValid: boolean;
+    isInvalidContentModalOpen: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
+    invalidContentError: any | null;
 }
 
 /**
@@ -99,6 +102,9 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 >
                     <UploadArtifactForm onChange={this.onUploadFormChange} onValid={this.onUploadFormValid} />
                 </Modal>
+                <InvalidContentModal error={this.state.invalidContentError}
+                                     isOpen={this.state.isInvalidContentModalOpen}
+                                     onClose={this.closeInvalidContentModal} />
             </React.Fragment>
         );
     }
@@ -110,6 +116,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 type: "everything",
                 value: "",
             },
+            invalidContentError: null,
+            isInvalidContentModalOpen: false,
             isLoading: true,
             isUploadFormValid: false,
             isUploadModalOpen: false,
@@ -149,7 +157,11 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
-                this.handleServerError(error, "Error uploading artifact.");
+                if (error && error.error_code === 400) {
+                    this.handleInvalidContentError(error);
+                } else {
+                    this.handleServerError(error, "Error uploading artifact.");
+                }
             });
         }
     };
@@ -225,5 +237,17 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private onUploadFormChange = (data: CreateArtifactData): void => {
         this.setSingleState("uploadFormData", data);
     };
+
+    private closeInvalidContentModal = (): void => {
+        this.setSingleState("isInvalidContentModalOpen", false);
+    };
+
+    private handleInvalidContentError(error: any): void {
+        Services.getLoggerService().info("INVALID CONTENT ERROR", error);
+        this.setMultiState({
+            invalidContentError: error,
+            isInvalidContentModalOpen: true
+        });
+    }
 
 }

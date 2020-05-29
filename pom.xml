@@ -403,16 +403,16 @@
             </dependency>
 
             <!-- Specifications -->
-	        <dependency>
-	        	<groupId>javax.annotation</groupId>
-	        	<artifactId>javax.annotation-api</artifactId>
-	        	<version>${annotation-api.version}</version>
-	       	</dependency>
-	       	<dependency>
-	       		<groupId>javax.enterprise</groupId>
-	       		<artifactId>cdi-api</artifactId>
-	       		<version>${cdi-api.version}</version>
-       		</dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${annotation-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.enterprise</groupId>
+                <artifactId>cdi-api</artifactId>
+                <version>${cdi-api.version}</version>
+            </dependency>
 
             <!-- Tests -->
             <dependency>

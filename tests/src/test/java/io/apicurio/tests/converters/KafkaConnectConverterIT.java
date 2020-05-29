@@ -50,6 +50,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
@@ -87,6 +88,7 @@ public class KafkaConnectConverterIT extends BaseIT {
                     "value.converter.apicurio.registry.converter.serializer", "io.apicurio.registry.utils.serde.AvroKafkaSerializer",
                     "value.converter.apicurio.registry.converter.deserializer", "io.apicurio.registry.utils.serde.AvroKafkaDeserializer"));
 
+            LOGGER.info("Subscribing consumer");
             consumer.subscribe(Arrays.asList("dbserver2.todo.todo"));
 
             List<ConsumerRecord<byte[], byte[]>> changeEvents = drain(consumer, 1);
@@ -115,9 +117,10 @@ public class KafkaConnectConverterIT extends BaseIT {
     }
 
     private <T> List<ConsumerRecord<T, T>> drain(KafkaConsumer<T, T> consumer, int expectedRecordCount) {
+        LOGGER.info("Waiting for consumer to receive {} records", expectedRecordCount);
         List<ConsumerRecord<T, T>> allRecords = new ArrayList<>();
 
-        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
             consumer.poll(Duration.ofMillis(50))
                 .iterator()
                 .forEachRemaining(allRecords::add);
@@ -125,6 +128,7 @@ public class KafkaConnectConverterIT extends BaseIT {
             return allRecords.size() == expectedRecordCount;
         });
 
+        LOGGER.info("All {} records received", expectedRecordCount);
         return allRecords;
     }
 
@@ -206,6 +210,12 @@ public class KafkaConnectConverterIT extends BaseIT {
               .withNetwork(network)
               .withEnv("BOOTSTRAP_SERVERS", "host.testcontainers.internal:9092")
               .withLogConsumer(new Slf4jLogConsumer(LOGGER));
+        debeziumContainer.setWaitStrategy(
+                Wait.forHttp("/connectors")
+                .forPort(8083)
+                .forStatusCode(200)
+                .withReadTimeout(Duration.ofSeconds(3))
+                .withStartupTimeout(Duration.ofSeconds(120)));
         debeziumContainer.start();
 
     }
@@ -216,6 +226,7 @@ public class KafkaConnectConverterIT extends BaseIT {
                 kafka, postgres, debeziumContainer)
             .forEach(c -> {
                 if (c != null) {
+                    LOGGER.info("Stopping container {}", c.getClass().getSimpleName());
                     c.stop();
                 }
             });

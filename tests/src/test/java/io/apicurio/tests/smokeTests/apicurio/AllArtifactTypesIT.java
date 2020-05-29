@@ -87,6 +87,7 @@ class AllArtifactTypesIT extends BaseIT {
             // Make sure artifact is fully registered
             TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
         } catch (Exception e) {
+            LOGGER.error("Error on AllArtifactTypesIT", e);
             throw new IllegalStateException(e);
         } finally {
             service.deleteAllGlobalRules();

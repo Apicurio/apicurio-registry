@@ -21,6 +21,8 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BrowserWebDriverContainer;
 
@@ -28,12 +30,14 @@ import io.apicurio.registry.utils.tests.TestUtils;
 
 public class SeleniumChromeExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback, BeforeAllCallback, AfterAllCallback {
 
+    protected static final Logger LOGGER = LoggerFactory.getLogger(SeleniumChromeExtension.class);
+
     private boolean isFullClass = false;
     private BrowserWebDriverContainer chrome;
+    private boolean deployed = false;
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
-        SeleniumProvider.getInstance().tearDownDrivers();
         deleteChrome();
         isFullClass = false;
     }
@@ -49,36 +53,37 @@ public class SeleniumChromeExtension implements BeforeTestExecutionCallback, Aft
         if (extensionContext.getExecutionException().isPresent()) {
             SeleniumProvider.getInstance().onFailed(extensionContext);
         }
-        SeleniumProvider.getInstance().tearDownDrivers();
-        if (!isFullClass) {
+        if (extensionContext.getExecutionException().isPresent() || !isFullClass) {
             deleteChrome();
-        } else {
-            deleteChrome();
-            deployChrome();
         }
     }
 
     @Override
     public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-        if (!isFullClass) {
+        if (!deployed) {
             deployChrome();
-        }
-        if (SeleniumProvider.getInstance().getDriver() == null) {
-            SeleniumProvider.getInstance().setupDriver(chrome.getWebDriver());
-            SeleniumProvider.getInstance().setUiUrl(TestUtils.getRegistryUIUrl().replace("localhost", "host.testcontainers.internal"));
         } else {
             SeleniumProvider.getInstance().clearScreenShots();
         }
     }
 
     private void deployChrome() {
-        Testcontainers.exposeHostPorts(TestUtils.getRegistryPort());
+        LOGGER.info("Deploying chrome browser");
+        if (!TestUtils.isExternalRegistry()) {
+            Testcontainers.exposeHostPorts(TestUtils.getRegistryPort());
+        }
         chrome = new BrowserWebDriverContainer()
                 .withCapabilities(new ChromeOptions());
         chrome.start();
+        SeleniumProvider.getInstance().setupDriver(chrome.getWebDriver());
+        SeleniumProvider.getInstance().setUiUrl(TestUtils.getRegistryUIUrl().replace("localhost", "host.testcontainers.internal"));
+        deployed = true;
     }
 
     private void deleteChrome() {
+        SeleniumProvider.getInstance().tearDownDrivers();
+        LOGGER.info("Stopping chrome browser");
         chrome.stop();
+        deployed = false;
     }
 }

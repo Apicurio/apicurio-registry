@@ -1,0 +1,9 @@
+.error-detail {
+    margin-top: 15px;
+    font-size: 13px;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    padding: 8px;
+    height: 300px;
+    overflow: auto;
+}

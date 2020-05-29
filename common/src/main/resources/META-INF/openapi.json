@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API",
-        "version": "1.2.0",
+        "version": "1.2.2",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n",
         "contact": {
             "name": "Apicurio",
@@ -191,399 +191,6 @@
                 "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             }
         },
-        "/artifacts": {
-            "summary": "Manage the collection of artifacts in the registry.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "On a successful response, returns an array of artifact IDs - one for each artifact\nin the registry."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifacts",
-                "summary": "List all artifact IDs",
-                "description": "Returns a list of IDs of all artifacts in the registry as a flat list.  Typically the\nserver is configured to limit the number of artifact IDs returned in the case where\na large number of artifacts exist.  In this case the result of this call may be \nnon deterministic.  The default limit is typically 1000 artifacts."
-            },
-            "post": {
-                "requestBody": {
-                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "application/json": {
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/x-protobuf": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        },
-                        "application/x-protobuffer": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-ArtifactType",
-                        "description": "Specifies the type of the artifact being added. Possible values include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
-                        "schema": {
-                            "enum": [
-                                "AVRO",
-                                "PROTOBUF",
-                                "PROTOBUF_FD",
-                                "JSON",
-                                "OPENAPI",
-                                "ASYNCAPI",
-                                "GRAPHQL",
-                                "KCONNECT",
-                                "WSDL",
-                                "XSD",
-                                "XML"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "X-Registry-ArtifactId",
-                        "description": "A client-provided, globally unique identifier for the new artifact.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "header"
-                    },
-                    {
-                        "name": "ifExists",
-                        "description": "Set this option to instruct the server on what to do if the artifact already exists.",
-                        "schema": {
-                            "enum": [
-                                "FAIL",
-                                "UPDATE",
-                                "RETURN"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        },
-                        "description": "Artifact was successfully created."
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "createArtifact",
-                "summary": "Create artifact",
-                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most* of the \nsupported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nAn artifact is created using the content provided in the body of the request.  This\ncontent is created under a unique artifact ID that can be provided in the request\nvia the `X-Registry-ArtifactId` request header.  If not provided in the request,\nthe server generates a unique ID for the artifact.  It is typically recommended\nthat callers provide the ID, because this is typically a meaningful identifier, \nand for most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
-                "x-codegen-async": true
-            }
-        },
-        "/artifacts/{artifactId}": {
-            "summary": "Manage a single artifact.",
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "examples": {
-                                    "OpenAPI": {
-                                        "value": {
-                                            "openapi": "3.0.2",
-                                            "info": {
-                                                "title": "Empty API",
-                                                "version": "1.0.0",
-                                                "description": "An example API design using OpenAPI."
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            "application/x-protobuf": {
-                                "examples": {
-                                    "Protobuf Example": {
-                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                    }
-                                }
-                            },
-                            "application/x-protobuffer": {
-                                "examples": {
-                                    "Protobuffer Example": {
-                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The most recent version of the artifact."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getLatestArtifact",
-                "summary": "Get latest artifact",
-                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the\nresponse depends on the artifact type.  In most cases, this is `application/json`, but \nfor some types it may be different (for example, `PROTOBUF`).\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "put": {
-                "requestBody": {
-                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "application/json": {
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/x-protobuf": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        },
-                        "application/x-protobuffer": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-ArtifactType",
-                        "description": "Specifies the type of the artifact being added.  Possible values include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
-                        "schema": {
-                            "enum": [
-                                "AVRO",
-                                "PROTOBUF",
-                                "PROTOBUF_FD",
-                                "JSON",
-                                "OPENAPI",
-                                "ASYNCAPI",
-                                "GRAPHQL",
-                                "KCONNECT",
-                                "WSDL",
-                                "XSD",
-                                "XML"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "header",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        },
-                        "description": "When successful, returns the updated artifact metadata."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "updateArtifact",
-                "summary": "Update artifact",
-                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
-                "x-codegen-async": true
-            },
-            "delete": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Returned when the artifact was successfully deleted."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteArtifact",
-                "summary": "Delete artifact",
-                "description": "Deletes an artifact completely, resulting in all versions of the artifact also being\ndeleted.  This may fail for one of the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "parameters": [
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/ids/{globalId}": {
             "summary": "Access artifact content utilizing an artifact version's globally unique identifier.",
             "get": {
@@ -729,363 +336,6 @@
                 }
             ]
         },
-        "/artifacts/{artifactId}/meta": {
-            "summary": "Manage the metadata of a single artifact.",
-            "get": {
-                "tags": [
-                    "Metadata"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        },
-                        "description": "The artifact's metadata."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getArtifactMetaData",
-                "summary": "Get artifact metadata",
-                "description": "Gets the metadata for an artifact in the registry.  The returned metadata includes\nboth generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "put": {
-                "requestBody": {
-                    "description": "Updated artifact metadata.",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/EditableMetaData"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Metadata"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "The artifact's metadata was updated."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "updateArtifactMetaData",
-                "summary": "Update artifact metadata",
-                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
-            },
-            "post": {
-                "requestBody": {
-                    "description": "The content of an artifact version.",
-                    "content": {
-                        "application/json": {
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/x-protobuf": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        },
-                        "application/x-protobuffer": {
-                            "examples": {
-                                "Protobuffer Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Metadata"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactMetaData"
-                                }
-                            }
-                        },
-                        "description": "The metadata of the artifact version matching the provided content."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getArtifactMetaDataByContent",
-                "summary": "Get artifact metadata by content",
-                "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/artifacts/{artifactId}/versions": {
-            "summary": "Manage all the versions of an artifact in the registry.",
-            "get": {
-                "tags": [
-                    "Versions"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "format": "int64",
-                                        "type": "integer"
-                                    }
-                                },
-                                "examples": {
-                                    "All Versions": {
-                                        "value": [
-                                            5,
-                                            6,
-                                            10,
-                                            103
-                                        ]
-                                    }
-                                }
-                            }
-                        },
-                        "description": "List of all artifact versions (just the version IDs)."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listArtifactVersions",
-                "summary": "List artifact versions",
-                "description": "Returns a list of all version numbers for the artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "post": {
-                "requestBody": {
-                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "application/json": {
-                            "examples": {
-                                "OpenAPI Example": {
-                                    "value": {
-                                        "openapi": "3.0.2",
-                                        "info": {
-                                            "title": "Empty API",
-                                            "version": "1.0.7",
-                                            "description": "An example API design using OpenAPI."
-                                        },
-                                        "paths": {
-                                            "/widgets": {
-                                                "get": {
-                                                    "responses": {
-                                                        "200": {
-                                                            "content": {
-                                                                "application/json": {
-                                                                    "schema": {
-                                                                        "type": "array",
-                                                                        "items": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "description": "All widgets"
-                                                        }
-                                                    },
-                                                    "summary": "Get widgets"
-                                                }
-                                            }
-                                        },
-                                        "components": {
-                                            "schemas": {
-                                                "Widget": {
-                                                    "title": "Root Type for Widget",
-                                                    "description": "A sample data type.",
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "property-1": {
-                                                            "type": "string"
-                                                        },
-                                                        "property-2": {
-                                                            "type": "boolean"
-                                                        }
-                                                    },
-                                                    "example": {
-                                                        "property-1": "value1",
-                                                        "property-2": true
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "application/x-protobuf": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        },
-                        "application/x-protobuffer": {
-                            "examples": {
-                                "Protobuf Example": {
-                                    "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
-                                }
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Versions"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
-                        "schema": {
-                            "enum": [
-                                "AVRO",
-                                "PROTOBUF",
-                                "PROTOBUF_FD",
-                                "JSON",
-                                "OPENAPI",
-                                "ASYNCAPI",
-                                "GRAPHQL",
-                                "KCONNECT",
-                                "WSDL",
-                                "XSD",
-                                "XML"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/VersionMetaData"
-                                }
-                            }
-                        },
-                        "description": "The artifact version was successfully created."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "createArtifactVersion",
-                "summary": "Create artifact version",
-                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nis typically in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or by including a hint in the request's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
-                "x-codegen-async": true
-            },
-            "parameters": [
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/artifacts/{artifactId}/versions/{version}": {
             "summary": "Manage a single version of a single artifact in the registry.",
             "get": {
@@ -1122,7 +372,8 @@
                                         "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
                                     }
                                 }
-                            }
+                            },
+                            "application/graphql": {}
                         },
                         "description": "The content of the artifact version."
                     },
@@ -1512,74 +763,6 @@
                 }
             ]
         },
-        "/artifacts/{artifactId}/test": {
-            "summary": "Test whether content would pass update rules.",
-            "put": {
-                "requestBody": {
-                    "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
-                    "content": {
-                        "application/json": {},
-                        "application/x-protobuf": {},
-                        "application/x-protobuffer": {}
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Artifact rules"
-                ],
-                "parameters": [
-                    {
-                        "name": "X-Registry-ArtifactType",
-                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
-                        "schema": {
-                            "enum": [
-                                "AVRO",
-                                "PROTOBUF",
-                                "PROTOBUF_FD",
-                                "JSON",
-                                "OPENAPI",
-                                "ASYNCAPI",
-                                "GRAPHQL",
-                                "KCONNECT",
-                                "WSDL",
-                                "XSD",
-                                "XML"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "When successful, returns \"No Content\" to indicate that the rules passed, and the\ncontent was not updated."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "testUpdateArtifact",
-                "summary": "Test update artifact",
-                "description": "Tests whether an update to the artifact's content *would* succeed for the provided content.\nUltimately, this applies any rules configured for the artifact against the given content\nto determine whether the rules would pass or fail, but without actually updating the artifact\ncontent.\n\nThe body of the request should be the raw content of the artifact.  This is typically in \nJSON format for *most* of the supported types, but may be in another format for a few \n(for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the following \nsupported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or by including a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this operation simply returns a *No Content* response."
-            },
-            "parameters": [
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/search/artifacts": {
             "summary": "Search for content in the registry; artifacts in particular.",
             "get": {
@@ -1713,6 +896,767 @@
                 "operationId": "searchVersions",
                 "summary": "Search artifact versions",
                 "description": "Searches for versions of a specific artifact.  This is typically used to get a listing\nof all versions of an artifact (for example, in a user interface)."
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts": {
+            "summary": "Manage the collection of artifacts in the registry.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns an array of artifact IDs - one for each artifact\nin the registry."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifacts",
+                "summary": "List all artifact IDs",
+                "description": "Returns a list of IDs of all artifacts in the registry as a flat list.  Typically the\nserver is configured to limit the number of artifact IDs returned in the case where\na large number of artifacts exist.  In this case the result of this call may be \nnon deterministic.  The default limit is typically 1000 artifacts."
+            },
+            "post": {
+                "requestBody": {
+                    "description": "The content of the artifact being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-ArtifactType",
+                        "description": "Specifies the type of the artifact being added. Possible values include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "schema": {
+                            "enum": [
+                                "AVRO",
+                                "PROTOBUF",
+                                "PROTOBUF_FD",
+                                "JSON",
+                                "OPENAPI",
+                                "ASYNCAPI",
+                                "GRAPHQL",
+                                "KCONNECT",
+                                "WSDL",
+                                "XSD",
+                                "XML"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-ArtifactId",
+                        "description": "A client-provided, globally unique identifier for the new artifact.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "ifExists",
+                        "description": "Set this option to instruct the server on what to do if the artifact already exists.",
+                        "schema": {
+                            "enum": [
+                                "FAIL",
+                                "UPDATE",
+                                "RETURN"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "Artifact was successfully created."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifact",
+                "summary": "Create artifact",
+                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most* of the \nsupported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nAn artifact is created using the content provided in the body of the request.  This\ncontent is created under a unique artifact ID that can be provided in the request\nvia the `X-Registry-ArtifactId` request header.  If not provided in the request,\nthe server generates a unique ID for the artifact.  It is typically recommended\nthat callers provide the ID, because this is typically a meaningful identifier, \nand for most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+                "x-codegen-async": true
+            }
+        },
+        "/artifacts/{artifactId}/versions": {
+            "summary": "Manage all the versions of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "format": "int64",
+                                        "type": "integer"
+                                    }
+                                },
+                                "examples": {
+                                    "All Versions": {
+                                        "value": [
+                                            5,
+                                            6,
+                                            10,
+                                            103
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all artifact versions (just the version IDs)."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactVersions",
+                "summary": "List artifact versions",
+                "description": "Returns a list of all version numbers for the artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-ArtifactType",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "schema": {
+                            "enum": [
+                                "AVRO",
+                                "PROTOBUF",
+                                "PROTOBUF_FD",
+                                "JSON",
+                                "OPENAPI",
+                                "ASYNCAPI",
+                                "GRAPHQL",
+                                "KCONNECT",
+                                "WSDL",
+                                "XSD",
+                                "XML"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        },
+                        "description": "The artifact version was successfully created."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifactVersion",
+                "summary": "Create artifact version",
+                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request should be the raw content of the new artifact version.  This \nis typically in JSON format for *most* of the supported types, but may be in another \nformat for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or by including a hint in the request's `Content-Type`.\n\nFor example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+                "x-codegen-async": true
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts/{artifactId}/test": {
+            "summary": "Test whether content would pass update rules.",
+            "put": {
+                "requestBody": {
+                    "description": "The content of the artifact being tested. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {}
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifact rules"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-ArtifactType",
+                        "description": "This header parameter can be used to indicate the type of the artifact being added.  Possible\nvalues include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "schema": {
+                            "enum": [
+                                "AVRO",
+                                "PROTOBUF",
+                                "PROTOBUF_FD",
+                                "JSON",
+                                "OPENAPI",
+                                "ASYNCAPI",
+                                "GRAPHQL",
+                                "KCONNECT",
+                                "WSDL",
+                                "XSD",
+                                "XML"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "When successful, returns \"No Content\" to indicate that the rules passed, and the\ncontent was not updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "testUpdateArtifact",
+                "summary": "Test update artifact",
+                "description": "Tests whether an update to the artifact's content *would* succeed for the provided content.\nUltimately, this applies any rules configured for the artifact against the given content\nto determine whether the rules would pass or fail, but without actually updating the artifact\ncontent.\n\nThe body of the request should be the raw content of the artifact.  This is typically in \nJSON format for *most* of the supported types, but may be in another format for a few \n(for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the following \nsupported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n\nAlternatively, you can explicitly specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or by including a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this operation simply returns a *No Content* response."
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts/{artifactId}": {
+            "summary": "Manage a single artifact.",
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "OpenAPI": {
+                                        "value": {
+                                            "openapi": "3.0.2",
+                                            "info": {
+                                                "title": "Empty API",
+                                                "version": "1.0.0",
+                                                "description": "An example API design using OpenAPI."
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "application/x-protobuf": {
+                                "examples": {
+                                    "Protobuf Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
+                            },
+                            "application/x-protobuffer": {
+                                "examples": {
+                                    "Protobuffer Example": {
+                                        "value": "message SearchResponse {\n  repeated Result result = 1;\n}\n\nmessage Result {\n  required string url = 1;\n  optional string title = 2;\n  repeated string snippets = 3;\n}"
+                                    }
+                                }
+                            },
+                            "application/graphql": {}
+                        },
+                        "description": "The most recent version of the artifact."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getLatestArtifact",
+                "summary": "Get latest artifact",
+                "description": "Returns the latest version of the artifact in its raw form.  The `Content-Type` of the\nresponse depends on the artifact type.  In most cases, this is `application/json`, but \nfor some types it may be different (for example, `PROTOBUF`).\n\nThis operation may fail for one of the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "*/*": {
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-ArtifactType",
+                        "description": "Specifies the type of the artifact being added.  Possible values include:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)",
+                        "schema": {
+                            "enum": [
+                                "AVRO",
+                                "PROTOBUF",
+                                "PROTOBUF_FD",
+                                "JSON",
+                                "OPENAPI",
+                                "ASYNCAPI",
+                                "GRAPHQL",
+                                "KCONNECT",
+                                "WSDL",
+                                "XSD",
+                                "XML"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "When successful, returns the updated artifact metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifact",
+                "summary": "Update artifact",
+                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* Protobuf File Descriptor (`PROTOBUF_FD`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nThe update could fail for a number of reasons including:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* The provided artifact type is not recognized (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact.",
+                "x-codegen-async": true
+            },
+            "delete": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Returned when the artifact was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifact",
+                "summary": "Delete artifact",
+                "description": "Deletes an artifact completely, resulting in all versions of the artifact also being\ndeleted.  This may fail for one of the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "parameters": [
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or integer (server-generated) representing the unique artifact identifier.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/artifacts/{artifactId}/meta": {
+            "summary": "Manage the metadata of a single artifact.",
+            "get": {
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "The artifact's metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactMetaData",
+                "summary": "Get artifact metadata",
+                "description": "Gets the metadata for an artifact in the registry.  The returned metadata includes\nboth generated (read-only) and editable metadata (such as name and description).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "put": {
+                "requestBody": {
+                    "description": "Updated artifact metadata.",
+                    "content": {
+                        "*/*": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditableMetaData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The artifact's metadata was updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifactMetaData",
+                "summary": "Update artifact metadata",
+                "description": "Updates the editable parts of the artifact's metadata.  Not all metadata fields can\nbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "post": {
+                "requestBody": {
+                    "description": "The content of an artifact version.",
+                    "content": {
+                        "application/json": {
+                            "examples": {
+                                "OpenAPI Example": {
+                                    "value": {
+                                        "openapi": "3.0.2",
+                                        "info": {
+                                            "title": "Empty API",
+                                            "version": "1.0.7",
+                                            "description": "An example API design using OpenAPI."
+                                        },
+                                        "paths": {
+                                            "/widgets": {
+                                                "get": {
+                                                    "responses": {
+                                                        "200": {
+                                                            "content": {
+                                                                "application/json": {
+                                                                    "schema": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "description": "All widgets"
+                                                        }
+                                                    },
+                                                    "summary": "Get widgets"
+                                                }
+                                            }
+                                        },
+                                        "components": {
+                                            "schemas": {
+                                                "Widget": {
+                                                    "title": "Root Type for Widget",
+                                                    "description": "A sample data type.",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "property-1": {
+                                                            "type": "string"
+                                                        },
+                                                        "property-2": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "example": {
+                                                        "property-1": "value1",
+                                                        "property-2": true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "The metadata of the artifact version matching the provided content."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactMetaDataByContent",
+                "summary": "Get artifact metadata by content",
+                "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {

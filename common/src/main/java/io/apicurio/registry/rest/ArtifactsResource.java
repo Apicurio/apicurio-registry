@@ -76,7 +76,7 @@ public interface ArtifactsResource {
    */
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
+  @Consumes({"*/*"})
   CompletionStage<ArtifactMetaData> createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
@@ -95,7 +95,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml", "application/graphql"})
   Response getLatestArtifact(@PathParam("artifactId") String artifactId);
 
   /**
@@ -137,7 +137,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}")
   @PUT
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
+  @Consumes({"*/*"})
   CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -222,7 +222,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/meta")
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
+  @Consumes({"*/*"})
   ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
       InputStream data);
 
@@ -282,7 +282,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions")
   @POST
   @Produces("application/json")
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
+  @Consumes({"*/*"})
   CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
@@ -301,7 +301,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml"})
+  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml", "application/graphql"})
   Response getArtifactVersion(@PathParam("version") Integer version,
       @PathParam("artifactId") String artifactId);
 
@@ -524,7 +524,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/test")
   @PUT
-  @Consumes({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/x-yaml", "application/xml"})
+  @Consumes({"*/*"})
   void testUpdateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 }

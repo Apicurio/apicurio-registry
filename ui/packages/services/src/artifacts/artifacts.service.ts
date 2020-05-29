@@ -24,6 +24,7 @@ import {
     ContentTypes
 } from "@apicurio/registry-models";
 import {BaseService} from "../baseService";
+import YAML from "yaml";
 
 export interface CreateArtifactData {
     id: string|null;
@@ -214,15 +215,16 @@ export class ArtifactsService extends BaseService {
             case "XML":
                 return ContentTypes.APPLICATION_XML;
             case "GRAPHQL":
-                // TODO need a better content-type for GraphQL!
-                return ContentTypes.APPLICATION_JSON;
+                return ContentTypes.APPLICATION_GRAPHQL;
         }
         if (this.isJson(content)) {
             return ContentTypes.APPLICATION_JSON;
         } else if (this.isXml(content)) {
             return ContentTypes.APPLICATION_XML;
-        } else {
+        } else if (this.isYaml(content)) {
             return ContentTypes.APPLICATION_YAML;
+        } else {
+            return "application/octet-stream";
         }
     }
 
@@ -241,6 +243,15 @@ export class ArtifactsService extends BaseService {
             const dom: Document = xmlParser.parseFromString(content, "application/xml");
             const isParseError: boolean = dom.documentElement.nodeName === "parsererror";
             return !isParseError;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    private isYaml(content: string): boolean {
+        try {
+            const parsedContent: any = YAML.parse(content);
+            return typeof parsedContent === "object";
         } catch (e) {
             return false;
         }

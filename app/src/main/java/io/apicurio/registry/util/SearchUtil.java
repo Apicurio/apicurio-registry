@@ -29,16 +29,30 @@ import java.util.Comparator;
  */
 public class SearchUtil {
 
-    public static Comparator<String> comparator(SortOrder sortOrder) {
-        return (id1, id2) -> compare(sortOrder, id1, id2);
+    public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
+
+        final Comparator<ArtifactMetaDataDto> metaDataComparator = ((id1, id2) -> compare(sortOrder, id1, id2));
+
+        return metaDataComparator.thenComparing(idComparator(sortOrder));
     }
 
-    public static int compare(SortOrder sortOrder, String id1, String id2) {
+    private static Comparator<ArtifactMetaDataDto> idComparator(SortOrder sortOrder) {
+        return (artifactMetaDataDto1, artifactMetaDataDto2) -> {
+            switch (sortOrder) {
+                case desc:
+                    return artifactMetaDataDto1.getId().compareTo(artifactMetaDataDto2.getId());
+                default:
+                    return artifactMetaDataDto2.getId().compareToIgnoreCase(artifactMetaDataDto1.getId());
+            }
+        };
+    }
+
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto id1, ArtifactMetaDataDto id2) {
         switch (sortOrder) {
             case desc:
-                return id2.compareToIgnoreCase(id1);
+                return id2.getName().compareToIgnoreCase(id1.getName());
             default:
-                return id1.compareToIgnoreCase(id2);
+                return id1.getName().compareToIgnoreCase(id2.getName());
         }
     }
 

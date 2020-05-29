@@ -188,6 +188,61 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         }
     }
 
+    @RegistryServiceTest
+    void nameOrderingTest(Supplier<RegistryService> supplier) throws Exception {
 
+        final String firstArtifactId = generateArtifactId();
+        final String secondArtifactId = generateArtifactId();
+        RegistryService client = supplier.get();
 
+        try {
+
+            // warm-up
+            client.listArtifacts();
+
+            String name = "aaaTestorder" + ThreadLocalRandom.current().nextInt(1000000);
+            ByteArrayInputStream artifactData = new ByteArrayInputStream(
+                    ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                            .getBytes(StandardCharsets.UTF_8));
+
+            CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.JSON, firstArtifactId, null, artifactData);
+            long id = ConcurrentUtil.result(cs).getGlobalId();
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(id);
+                Assertions.assertNotNull(artifactMetaData);
+            });
+
+            String secondName = "bbbTestorder" + ThreadLocalRandom.current().nextInt(1000000);
+            ByteArrayInputStream secondData = new ByteArrayInputStream(
+                    ("{\"type\":\"record\",\"title\":\"" + secondName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                            .getBytes(StandardCharsets.UTF_8));
+
+            CompletionStage<ArtifactMetaData> secondCs = client.createArtifact(ArtifactType.JSON, secondArtifactId, null, secondData);
+            long secondId = ConcurrentUtil.result(secondCs).getGlobalId();
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(secondId);
+                Assertions.assertNotNull(artifactMetaData);
+            });
+
+            ArtifactSearchResults ascResults = client.searchArtifacts("Testorder", 0, 2, SearchOver.name, SortOrder.asc);
+            Assertions.assertNotNull(ascResults);
+            Assertions.assertEquals(2, ascResults.getCount());
+            Assertions.assertEquals(2, ascResults.getArtifacts().size());
+            Assertions.assertEquals(name, ascResults.getArtifacts().get(0).getName());
+            Assertions.assertEquals(secondName, ascResults.getArtifacts().get(1).getName());
+
+            ArtifactSearchResults descResults = client.searchArtifacts("testOrder", 0, 2, SearchOver.name, SortOrder.desc);
+            Assertions.assertNotNull(descResults);
+            Assertions.assertEquals(2, descResults.getCount());
+            Assertions.assertEquals(2, descResults.getArtifacts().size());
+            Assertions.assertEquals(secondName, descResults.getArtifacts().get(0).getName());
+            Assertions.assertEquals(name, descResults.getArtifacts().get(1).getName());
+
+        } finally {
+            client.deleteArtifact(firstArtifactId);
+            client.deleteArtifact(secondArtifactId);
+        }
+    }
 }

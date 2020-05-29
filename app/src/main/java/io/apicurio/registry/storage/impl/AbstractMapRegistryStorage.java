@@ -340,14 +340,15 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
-            .stream()
-            .filter(artifactId -> filterSearchResult(search, artifactId, over))
-            .peek(artifactId -> itemsCount.increment())
-            .sorted(SearchUtil.comparator(order))
-            .skip(offset)
-            .limit(limit)
-            .map(artifactId -> SearchUtil.buildSearchedArtifact(getArtifactMetaData(artifactId)))
-            .collect(Collectors.toList());
+                .stream()
+                .filter(artifactId -> filterSearchResult(search, artifactId, over))
+                .peek(artifactId -> itemsCount.increment())
+                .map(this::getArtifactMetaData)
+                .sorted(SearchUtil.comparator(order))
+                .skip(offset)
+                .limit(limit)
+                .map(SearchUtil::buildSearchedArtifact)
+                .collect(Collectors.toList());
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
         artifactSearchResults.setArtifacts(matchedArtifacts);

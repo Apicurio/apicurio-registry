@@ -46,6 +46,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.TypedQuery;
+import javax.persistence.LockModeType;
 import javax.transaction.Transactional;
 
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -109,14 +110,24 @@ public class JPARegistryStorage implements RegistryStorage {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    // TODO Could there be a race condition here? The new max+1 version is saved with a new artifact
     private long _getNextArtifactVersion(String artifactId) {
+
         requireNonNull(artifactId);
-        Long latest = entityManager.createQuery(
-            "SELECT MAX(a.version) FROM Artifact a " +
-            "WHERE a.artifactId = :artifact_id", Long.class)
-                                   .setParameter("artifact_id", artifactId)
-                                   .getSingleResult();
+        Long latest = null;
+
+        try {
+
+            latest = entityManager.createQuery("SELECT a.version from Artifact a where a.artifactId || '===' || a.version ="
+                    + " (SELECT a2.artifactId || '===' || MAX(a2.version) FROM Artifact a2 "
+                    +  "WHERE a2.artifactId = :artifact_id "
+                    + "GROUP BY a2.artifactId)", Long.class)
+                    .setParameter("artifact_id", artifactId)
+                    .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                    .getSingleResult();
+
+        } catch (NoResultException ex) {
+        }
+
         return latest != null ? latest + 1 : 1;
     }
 

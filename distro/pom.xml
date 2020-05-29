@@ -11,22 +11,9 @@
     <packaging>pom</packaging>
     <name>apicurio-registry-distro</name>
     <modules>
+        <module>connect-converter</module>
         <module>docker</module>
         <module>docker-compose</module>
-        <module>kubernetes-helm</module>
-        <module>openshift-operator</module>
         <module>openshift-template</module>
-        <module>connect-converter</module>
     </modules>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

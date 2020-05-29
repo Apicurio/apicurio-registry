@@ -37,6 +37,7 @@ import {ArtifactVersionPageHeader} from "./components/pageheader";
 import {UploadVersionForm} from "./components/uploadForm";
 import {Link} from "react-router-dom";
 import {EditMetaDataModal} from "./components/modals";
+import {InvalidContentModal} from "../../components/modals";
 
 
 /**
@@ -54,6 +55,7 @@ export interface ArtifactVersionPageState extends PageState {
     artifact: ArtifactMetaData | null;
     artifactContent: string;
     artifactIsText: boolean;
+    isInvalidContentModalOpen: boolean;
     isUploadFormValid: boolean;
     isUploadModalOpen: boolean;
     isDeleteModalOpen: boolean;
@@ -61,6 +63,7 @@ export interface ArtifactVersionPageState extends PageState {
     rules: Rule[] | null;
     uploadFormData: string | null;
     versions: VersionMetaData[] | null;
+    invalidContentError: any | null;
 }
 
 /**
@@ -163,6 +166,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
                 />
+                <InvalidContentModal error={this.state.invalidContentError}
+                                     isOpen={this.state.isInvalidContentModalOpen}
+                                     onClose={this.closeInvalidContentModal} />
             </React.Fragment>
         );
     }
@@ -173,8 +179,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             artifact: null,
             artifactContent: "",
             artifactIsText: true,
+            invalidContentError: null,
             isDeleteModalOpen: false,
             isEditModalOpen: false,
+            isInvalidContentModalOpen: false,
             isLoading: true,
             isUploadFormValid: false,
             isUploadModalOpen: false,
@@ -357,7 +365,11 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(artifactVersionLocation)();
             }).catch( error => {
-                this.handleServerError(error, "Error uploading artifact version.");
+                if (error && error.error_code === 400) {
+                    this.handleInvalidContentError(error);
+                } else {
+                    this.handleServerError(error, "Error uploading artifact version.");
+                }
             });
         }
     };
@@ -387,5 +399,17 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         }
         this.onEditModalClose();
     };
+
+    private closeInvalidContentModal = (): void => {
+        this.setSingleState("isInvalidContentModalOpen", false);
+    };
+
+    private handleInvalidContentError(error: any): void {
+        Services.getLoggerService().info("INVALID CONTENT ERROR", error);
+        this.setMultiState({
+            invalidContentError: error,
+            isInvalidContentModalOpen: true
+        });
+    }
 
 }

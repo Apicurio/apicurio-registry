@@ -64,6 +64,7 @@
     "@types/react-router": "^5.0.3",
     "@types/react-router-dom": "^4.3.4",
     "apicurio-data-models": "1.1.2",
+    "yaml": "^1.10.0",
     "mobx": "^4.3.1",
     "ace-builds": "1.4.8",
     "styled-components": "^4.2.0",

@@ -143,6 +143,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         if (contentType != null && contentType.contains("x-proto")) {
             return ArtifactType.PROTOBUF;
         }
+        if (contentType != null && contentType.contains("graphql")) {
+            return ArtifactType.GRAPHQL;
+        }
         return null;
     }
 
@@ -284,10 +287,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifact(artifactId);
 
-        // The content-type will be different for protobuf artifacts and XML artifacts
+        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
+        }
+        if (metaData.getType() == ArtifactType.GRAPHQL) {
+            contentType = ArtifactMediaTypes.GRAPHQL;
         }
         if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
             contentType = ArtifactMediaTypes.XML;
@@ -362,10 +368,13 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 
-        // The content-type will be different for protobuf artifacts and XML artifacts
+        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
         if (metaData.getType() == ArtifactType.PROTOBUF) {
             contentType = ArtifactMediaTypes.PROTO;
+        }
+        if (metaData.getType() == ArtifactType.GRAPHQL) {
+            contentType = ArtifactMediaTypes.GRAPHQL;
         }
         if (metaData.getType() == ArtifactType.WSDL || metaData.getType() == ArtifactType.XSD || metaData.getType() == ArtifactType.XML) {
             contentType = ArtifactMediaTypes.XML;

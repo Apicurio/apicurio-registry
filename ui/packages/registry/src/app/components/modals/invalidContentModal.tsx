@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import React from 'react';
-import "./InvalidContentModal.css";
+import "./invalidContentModal.css";
 import {Button, Form, FormGroup, Modal, TextArea, TextInput} from "@patternfly/react-core";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 

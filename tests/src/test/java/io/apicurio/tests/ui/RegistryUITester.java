@@ -47,7 +47,6 @@ public class RegistryUITester {
     public void openWebPage() throws Exception {
         log.info("Opening global console on url {}", url);
         selenium.getDriver().get(url);
-        selenium.getDriverWait().withTimeout(Duration.ofSeconds(30)).until(ExpectedConditions.urlContains(url));
         verifyArtifactsListOpen();
     }
 

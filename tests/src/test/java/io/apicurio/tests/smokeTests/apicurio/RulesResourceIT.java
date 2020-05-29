@@ -188,6 +188,7 @@ class RulesResourceIT extends BaseIT {
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
         service.deleteArtifact(artifactId1);
+        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId1), true);
 
         assertThat(0, is(service.listArtifacts().size()));
 

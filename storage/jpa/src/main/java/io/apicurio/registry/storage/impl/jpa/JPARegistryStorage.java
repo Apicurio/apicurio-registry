@@ -249,15 +249,17 @@ public class JPARegistryStorage implements RegistryStorage {
 
     private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver) {
 
+        final String locateStringValueQuery = "AND (0 < LOCATE(LOWER(:search), LOWER(m2.value))) ";
+
         switch (searchOver) {
-        case description:
-            return "AND (m2.key= 'description' AND (0 < LOCATE(:search, m2.value))) ";
-        case name:
-            return "AND (m2.key= 'name' AND (0 < LOCATE(:search, m2.value))) ";
-        case labels:
-            return "AND (m2.key= 'labels' AND (0 < LOCATE(:search, m2.value))) ";
-        default:
-            return "AND (0 < LOCATE(:search, m2.value)) ";
+            case description:
+                return "AND (m2.key= 'description' " + locateStringValueQuery + ") ";
+            case name:
+                return "AND (m2.key= 'name' " + locateStringValueQuery + ") ";
+            case labels:
+                return "AND (m2.key= 'labels' " + locateStringValueQuery + ") ";
+            default:
+                return locateStringValueQuery;
         }
     }
 

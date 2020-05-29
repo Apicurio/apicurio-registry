@@ -105,7 +105,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertNotNull(artifactMetaData);
         });
 
-        ArtifactSearchResults results = client.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
+        ArtifactSearchResults results = client.searchArtifacts(name.toUpperCase(), 0, 2, SearchOver.name, SortOrder.asc);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
@@ -177,7 +177,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             retry((() -> {
 
                 ArtifactSearchResults results = supplier.get()
-                        .searchArtifacts("Open Api", 0, 2, SearchOver.labels, SortOrder.asc);
+                        .searchArtifacts("open api", 0, 2, SearchOver.labels, SortOrder.asc);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());
                 Assertions.assertEquals(1, results.getArtifacts().size());

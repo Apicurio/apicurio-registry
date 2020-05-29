@@ -24,6 +24,7 @@ import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.KafkaStreams;
@@ -184,7 +185,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     private static boolean stringMetadataContainsFilter(String filter, String name) {
-        return null == filter || (name != null && name.contains(filter));
+        return null == filter || (name != null && StringUtils.containsIgnoreCase(name, filter));
     }
 
     private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {

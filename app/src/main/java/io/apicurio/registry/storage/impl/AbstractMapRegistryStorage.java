@@ -27,6 +27,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.SearchUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -135,7 +136,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 case description:
                 case labels:
                     String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
-                    return value != null && value.contains(search);
+                    return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
                 default:
                     return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
                         .values()

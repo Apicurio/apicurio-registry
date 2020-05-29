@@ -16,7 +16,6 @@
     <name>apicurio-registry-maven-plugin</name>
 
     <dependencies>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
@@ -31,6 +30,14 @@
             <artifactId>maven-plugin-annotations</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

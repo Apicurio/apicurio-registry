@@ -43,7 +43,7 @@ public class SearchUtil {
         if (name2 == null) {
             name2 = metaDataDto2.getId();
         }
-        return sortOrder == SortOrder.desc ? name1.compareToIgnoreCase(name2) : name2.compareToIgnoreCase(name1);
+        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
     }
 
     public static SearchedArtifact buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {

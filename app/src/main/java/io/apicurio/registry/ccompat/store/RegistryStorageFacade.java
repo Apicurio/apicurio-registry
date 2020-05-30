@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.ccompat.store;
 
+import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
@@ -79,6 +80,9 @@ public interface RegistryStorageFacade {
     void createOrUpdateArtifactRule(String subject, RuleType type, RuleConfigurationDto dto);
 
     void createOrUpdateGlobalRule(RuleType type, RuleConfigurationDto dto);
+
+    CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String version,
+            SchemaContent request);
 
     <T> T parseVersionString(String subject, String versionString, Function<Long, T> then);
 

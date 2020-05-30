@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 
 import java.util.List;
 import javax.validation.constraints.NotNull;
@@ -116,7 +116,7 @@ public interface SubjectVersionsResource {
     void register(
             @Suspended AsyncResponse response,
             @PathParam("subject") String subject,
-            @NotNull SchemaContent request) throws Exception;
+            @NotNull SchemaInfo request) throws Exception;
 
 
     // ----- Path: /subjects/{subject}/versions/{version} -----

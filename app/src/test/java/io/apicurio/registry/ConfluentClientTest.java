@@ -175,8 +175,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         final String subject = generateArtifactId();
 
         final SchemaContent schemaContent = new SchemaContent(
-                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}",
-                "JSON");
+                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
 
         final Properties config = new Properties();
         config.put(KafkaJsonSchemaSerializerConfig.AUTO_REGISTER_SCHEMAS, true);

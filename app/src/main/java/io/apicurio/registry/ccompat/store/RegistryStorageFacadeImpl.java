@@ -26,24 +26,14 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.dto.SubjectVersion;
+import io.apicurio.registry.ccompat.dto.*;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -88,7 +78,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactVersion(globalId), storage.getArtifactMetaData(globalId).getType());
+        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
         // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
     }
 
@@ -148,6 +138,24 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         } else {
             storage.updateGlobalRule(RuleType.COMPATIBILITY, dto);
         }
+    }
+
+    @Override
+    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String version,
+            SchemaContent request) {
+
+        return parseVersionString(subject, version, parsedVersion -> {
+
+            try {
+                final ArtifactVersionMetaDataDto artifact = storage
+                        .getArtifactVersionMetaData(subject, parsedVersion);
+                rulesService.applyRule(subject, parsedVersion, artifact.getType(),
+                        ContentHandle.create(request.getSchema()));
+                return CompatibilityCheckResponse.IS_COMPATIBLE;
+            } catch (RuleViolationException ex) {
+                return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+            }
+        });
     }
 
     private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {

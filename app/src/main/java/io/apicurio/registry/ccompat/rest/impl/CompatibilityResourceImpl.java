@@ -19,20 +19,15 @@ package io.apicurio.registry.ccompat.rest.impl;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.CompatibilityResource;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.types.ArtifactType;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
 import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
@@ -58,23 +53,12 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
-    @Inject
-    RulesService rules;
-
     @Override
     public CompatibilityCheckResponse testCompatibilityBySubjectName(
             String subject,
             String versionString,
             SchemaContent request) throws Exception {
 
-        CompatibilityCheckResponse result = facade.parseVersionString(subject, versionString, version -> {
-            try {
-                rules.applyRule(subject, version, ArtifactType.fromValue(request.getSchemaType()), ContentHandle.create(request.getSchema()));
-                return CompatibilityCheckResponse.IS_COMPATIBLE;
-            } catch (RuleViolationException ex) {
-                return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
-            }
-        });
-        return result;
+        return facade.testCompatibilityBySubjectName(subject, versionString, request);
     }
 }

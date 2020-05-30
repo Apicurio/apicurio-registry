@@ -35,30 +35,15 @@ public class SearchUtil {
     }
 
     public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
-
-        if ((metaDataDto1.getName() != null) && (metaDataDto2.getName() != null)) {
-            return compareName(sortOrder, metaDataDto1, metaDataDto2);
-        } else {
-            return compareId(sortOrder, metaDataDto1, metaDataDto2);
+        String name1 = metaDataDto1.getName();
+        if (name1 == null) {
+            name1 = metaDataDto1.getId();
         }
-    }
-
-    private static int  compareId(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
-            switch (sortOrder) {
-                case desc:
-                    return metaDataDto1.getId().compareTo(metaDataDto2.getId());
-                default:
-                    return metaDataDto2.getId().compareToIgnoreCase(metaDataDto1.getId());
-            }
-    }
-
-    private static int compareName(SortOrder sortOrder, ArtifactMetaDataDto id1, ArtifactMetaDataDto id2) {
-        switch (sortOrder) {
-            case desc:
-                return id2.getName().compareToIgnoreCase(id1.getName());
-            default:
-                return id1.getName().compareToIgnoreCase(id2.getName());
+        String name2 = metaDataDto2.getName();
+        if (name2 == null) {
+            name2 = metaDataDto2.getId();
         }
+        return sortOrder == SortOrder.desc ? name1.compareToIgnoreCase(name2) : name2.compareToIgnoreCase(name1);
     }
 
     public static SearchedArtifact buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {

@@ -31,23 +31,28 @@ public class SearchUtil {
 
     public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
 
-        final Comparator<ArtifactMetaDataDto> metaDataComparator = ((id1, id2) -> compare(sortOrder, id1, id2));
-
-        return metaDataComparator.thenComparing(idComparator(sortOrder));
+        return (id1, id2) -> compare(sortOrder, id1, id2);
     }
 
-    private static Comparator<ArtifactMetaDataDto> idComparator(SortOrder sortOrder) {
-        return (artifactMetaDataDto1, artifactMetaDataDto2) -> {
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+
+        if ((metaDataDto1.getName() != null) && (metaDataDto2.getName() != null)) {
+            return compareName(sortOrder, metaDataDto1, metaDataDto2);
+        } else {
+            return compareId(sortOrder, metaDataDto1, metaDataDto2);
+        }
+    }
+
+    private static int  compareId(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
             switch (sortOrder) {
                 case desc:
-                    return artifactMetaDataDto1.getId().compareTo(artifactMetaDataDto2.getId());
+                    return metaDataDto1.getId().compareTo(metaDataDto2.getId());
                 default:
-                    return artifactMetaDataDto2.getId().compareToIgnoreCase(artifactMetaDataDto1.getId());
+                    return metaDataDto2.getId().compareToIgnoreCase(metaDataDto1.getId());
             }
-        };
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto id1, ArtifactMetaDataDto id2) {
+    private static int compareName(SortOrder sortOrder, ArtifactMetaDataDto id1, ArtifactMetaDataDto id2) {
         switch (sortOrder) {
             case desc:
                 return id2.getName().compareToIgnoreCase(id1.getName());

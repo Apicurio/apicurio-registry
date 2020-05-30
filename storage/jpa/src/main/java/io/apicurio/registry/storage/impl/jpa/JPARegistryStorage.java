@@ -293,7 +293,7 @@ public class JPARegistryStorage implements RegistryStorage {
                 + (search == null ? "" : buildSearchAndClauseFromSearchOver(over))
                 + ") "
                 + ") group by m.artifactId "
-                + " order by name, m.artifactId " + order.value() , ArtifactSearchResult.class);
+                + " order by name " + order.value() + ", m.artifactId " + order.value() , ArtifactSearchResult.class);
 
         if (null != search) {
             matchedArtifactsQuery.setParameter("search", search);

@@ -383,7 +383,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
         LongAdder itemsCount = new LongAdder();
         List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
             .peek(artifactId -> itemsCount.increment())
-            .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, kv1.key, kv2.key))
+            .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, getArtifactMetaData(kv1.key), getArtifactMetaData(kv2.key)))
             .skip(offset)
             .limit(limit)
             .map(kv -> SearchUtil.buildSearchedArtifact(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import lombok.*;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Carles Arnal <carles.arnal@redhat.com>
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @AllArgsConstructor
@@ -32,8 +32,12 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 @EqualsAndHashCode
 @ToString
 @Builder
-public class SchemaContent {
+public class SchemaInfo {
 
     @JsonProperty("schema")
     private String schema;
+
+    @JsonProperty("schemaType")
+    @Builder.Default
+    private String schemaType = "AVRO";
 }

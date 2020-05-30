@@ -187,7 +187,4 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             supplier.get().deleteArtifact(artifactId);
         }
     }
-
-
-
 }

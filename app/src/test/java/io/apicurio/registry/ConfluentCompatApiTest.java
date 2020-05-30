@@ -48,6 +48,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\"}";
 
+    private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
+            + "\"schemaType\": \"AVRO\"}";
+
     private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
     private static final String SCHEMA_1_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
@@ -220,6 +223,53 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals("JSON", types[0]);
         assertEquals("PROTOBUF", types[1]);
         assertEquals("AVRO", types[2]);
+    }
+
+    /**
+     * Endpoint: /subjects/{subject}/versions
+     */
+    @Test
+    public void testRegisterWithType() {
+        final String SUBJECT = "subjectRegisterWithType";
+
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED_WITH_TYPE)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+    }
+
+
+    /**
+     * Endpoint: /schemas/ids/{int: id}
+     */
+    @Test
+    public void testGetSchemaById() {
+        final String SUBJECT = "subjectTestSchema";
+
+        // POST
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        final Integer globalId = given().when().get("/ccompat/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
+
+        //Verify
+        Assertions.assertNull(given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/schemas/ids/{id}", globalId)
+                .then()
+                .extract().body().jsonPath().get("schemaType"));
     }
 
     /**

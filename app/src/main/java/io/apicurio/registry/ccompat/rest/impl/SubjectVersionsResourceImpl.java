@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
@@ -59,7 +59,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public void register(
             AsyncResponse response,
             String subject,
-            SchemaContent request) throws Exception {
+            SchemaInfo request) throws Exception {
 
         facade.createSchema(subject, request.getSchema(), request.getSchemaType())
                 .thenApply(FacadeConverter::convertUnsigned)

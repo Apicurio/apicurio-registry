@@ -276,7 +276,8 @@ public class JPARegistryStorage implements RegistryStorage {
 
     private TypedQuery<ArtifactSearchResult> buildSearchArtifactQuery(String search, SearchOver over, SortOrder order, int offset, int limit) {
 
-        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = entityManager.createQuery("select new io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult(m.artifactId,"
+        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = entityManager.createQuery(
+                "select new io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult(m.artifactId,"
                 + "MAX(case when m.key = '" + MetaDataKeys.NAME + "' then m.value end) as name,"
                 + "MAX(case when m.key = '" + MetaDataKeys.DESCRIPTION + "' then m.value end) as description, "
                 + "MAX(case when m.key = '" + MetaDataKeys.CREATED_ON + "' then m.value end) as createdOn, "
@@ -294,6 +295,12 @@ public class JPARegistryStorage implements RegistryStorage {
                 + ") "
                 + ") group by m.artifactId "
                 + " order by name " + order.value() + ", m.artifactId " + order.value() , ArtifactSearchResult.class);
+        // TODO The sort is wrong here - we want to sort by name OR id (if name is null) rather than name THEN id.  There
+        //      are a couple ways to do that in SQL.  Either using "CASE" or "COALESCE" but neither works here due to
+        //      apparent JPA/hibernate query writing problems.
+        //      + " order by (case when name is not null then name else m.artifactId end) " + order.value(), ArtifactSearchResult.class);
+        //      + " order by coalesce(name, m.artifactId) " + order.value(), ArtifactSearchResult.class);
+        //      For now I will disable the test. :(
 
         if (null != search) {
             matchedArtifactsQuery.setParameter("search", search);

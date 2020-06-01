@@ -104,7 +104,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                     k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CREATE, registryUrl),
                     RegistryServiceWrapper.class
                 );
-            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain));
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain, context.getRequiredTestMethod()));
         }
 
         if (testRegistryClient(REGISTRY_CLIENT_CACHED)) {
@@ -113,7 +113,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                     k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CACHED, registryUrl),
                     RegistryServiceWrapper.class
                 );
-            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(cached));
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(cached, context.getRequiredTestMethod()));
         }
 
         return invocationCtxts.stream();
@@ -123,6 +123,11 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         String testRegistryClients = TestUtils.getTestRegistryClients();
         return testRegistryClients == null || testRegistryClients.equalsIgnoreCase(REGISTRY_CLIENT_ALL)
                 || testRegistryClients.equalsIgnoreCase(clientType);
+    }
+
+    private static boolean isTestAllClientTypes() {
+        String testRegistryClients = TestUtils.getTestRegistryClients();
+        return testRegistryClients == null || testRegistryClients.equalsIgnoreCase(REGISTRY_CLIENT_ALL);
     }
 
     private static class RegistryServiceWrapper implements ExtensionContext.Store.CloseableResource {
@@ -145,14 +150,20 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static class RegistryServiceTestTemplateInvocationContext implements TestTemplateInvocationContext, ParameterResolver {
         private RegistryServiceWrapper wrapper;
+        private Method testMethod;
 
-        public RegistryServiceTestTemplateInvocationContext(RegistryServiceWrapper wrapper) {
+        public RegistryServiceTestTemplateInvocationContext(RegistryServiceWrapper wrapper, Method testMethod) {
             this.wrapper = wrapper;
+            this.testMethod = testMethod;
         }
 
         @Override
         public String getDisplayName(int invocationIndex) {
-            return String.format("%s [%s]", wrapper.key, invocationIndex);
+            if (isTestAllClientTypes()) {
+                return String.format("%s (%s) [%s]", testMethod.getName(), wrapper.key, invocationIndex);
+            } else {
+                return testMethod.getName();
+            }
         }
 
         @Override

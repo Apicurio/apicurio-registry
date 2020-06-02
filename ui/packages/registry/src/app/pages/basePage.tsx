@@ -19,6 +19,9 @@ import React from "react";
 import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
 import {Services} from "@apicurio/registry-services";
 
+// TODO this should be configurable via standard UI config settings
+const MAX_RETRIES: number = 5;
+
 export enum PageErrorType {
     React, Server
 }
@@ -35,6 +38,7 @@ export interface PageProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface PageState extends PureComponentState {
+    pageLoadRetries?: number;
     isLoading?: boolean;
     isError?: boolean;
     error?: PageError;
@@ -77,9 +81,9 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         super.postConstruct();
     }
 
-    protected loadPageData(): void {
-        // Default implementation assumes the page does not need to load any data.
-        this.setSingleState("isLoading", false);
+    // @ts-ignore
+    protected createLoaders(): Promise | Promise[] | null {
+        return null;
     }
 
     protected handleServerError(error: any, errorMessage: string): void {
@@ -93,6 +97,42 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected isLoading(): boolean {
         return this.state.isLoading ? true : false;
+    }
+
+    private loadPageData(): void {
+        // @ts-ignore
+        let loaders: Promise | Promise[] | null = this.createLoaders();
+        if (loaders == null) {
+            this.setSingleState("isLoading", false);
+        } else {
+            if (!Array.isArray(loaders)) {
+                loaders = [ loaders ];
+            }
+            this.setSingleState("isLoading", true);
+            Promise.all(loaders).then( () => {
+                this.setSingleState("isLoading", false);
+            }).catch( error => {
+                Services.getLoggerService().debug("[PageComponent] Page data load failed, retrying.");
+                const retries: number = this.getRetries();
+                if (retries < MAX_RETRIES) {
+                    this.incrementRetries();
+                    setTimeout(() => {
+                        this.loadPageData();
+                    }, Math.pow(2, retries) * 100);
+                } else {
+                    this.handleServerError(error, "Error loading page data.");
+                }
+            });
+        }
+    }
+
+    private getRetries(): number {
+        return this.state.pageLoadRetries !== undefined ? this.state.pageLoadRetries as number : 0;
+    }
+
+    private incrementRetries(): void {
+        const retries: number = this.getRetries() + 1;
+        this.setSingleState("pageLoadRetries", retries);
     }
 
     private isError(): boolean {

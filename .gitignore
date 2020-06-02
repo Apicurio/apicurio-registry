@@ -4,6 +4,10 @@ target/
 .classpath
 .DS_Store
 
+# VS Code
+.vscode/
+.factorypath
+
 # IntelliJ / IDEA
 .idea/
 *.iml

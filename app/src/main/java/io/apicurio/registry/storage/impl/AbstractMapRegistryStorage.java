@@ -330,11 +330,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds()
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds(Integer limit)
      */
     @Override
-    public Set<String> getArtifactIds() {
-        return storage.keySet();
+    public Set<String> getArtifactIds(Integer limit) {
+        if (limit != null) {
+            return storage.keySet()
+                    .stream()
+                    .limit(limit)
+                    .collect(Collectors.toSet());
+        } else {
+            return storage.keySet();
+        }
     }
 
     /**
@@ -343,7 +350,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver over, SortOrder order) {
         final LongAdder itemsCount = new LongAdder();
-        final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
+        final List<SearchedArtifact> matchedArtifacts = getArtifactIds(null)
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
                 .peek(artifactId -> itemsCount.increment())

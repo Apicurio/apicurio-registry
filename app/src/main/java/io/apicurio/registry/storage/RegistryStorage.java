@@ -123,8 +123,9 @@ public interface RegistryStorage {
     /**
      * Get all artifact ids.
      * @return all artifact ids
+     * @param limit the limit of artifacts
      */
-    public Set<String> getArtifactIds(/* TODO -- filter? */);
+    public Set<String> getArtifactIds(Integer limit);
 
     /**
      * Search artifacts by given criteria

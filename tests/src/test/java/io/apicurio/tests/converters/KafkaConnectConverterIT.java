@@ -206,8 +206,9 @@ public class KafkaConnectConverterIT extends BaseIT {
               .withNetworkAliases("postgres");
         postgres.start();
 
-        debeziumContainer = new DebeziumContainer(apicurioDebeziumImage)
-              .withNetwork(network)
+        debeziumContainer = new DebeziumContainer("dummy-version");
+        debeziumContainer.setImage(apicurioDebeziumImage);
+        debeziumContainer.withNetwork(network)
               .withEnv("BOOTSTRAP_SERVERS", "host.testcontainers.internal:9092")
               .withLogConsumer(new Slf4jLogConsumer(LOGGER));
         debeziumContainer.setWaitStrategy(
@@ -215,15 +216,14 @@ public class KafkaConnectConverterIT extends BaseIT {
                 .forPort(8083)
                 .forStatusCode(200)
                 .withReadTimeout(Duration.ofSeconds(3))
-                .withStartupTimeout(Duration.ofSeconds(120)));
+                .withStartupTimeout(Duration.ofSeconds(300)));
         debeziumContainer.start();
 
     }
 
     @AfterEach
     public void stopContainers() {
-        Stream.of(
-                kafka, postgres, debeziumContainer)
+        Stream.of(debeziumContainer, kafka, postgres)
             .forEach(c -> {
                 if (c != null) {
                     LOGGER.info("Stopping container {}", c.getClass().getSimpleName());

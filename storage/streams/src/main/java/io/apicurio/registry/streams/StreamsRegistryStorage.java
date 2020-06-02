@@ -154,13 +154,14 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     Map<String, String> metadata = value.getMetadataMap();
                     ArtifactState state = ArtifactStateExt.getState(metadata);
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
+                        String artifactId = metadata.get(MetaDataKeys.ARTIFACT_ID);
                         String name = metadata.get(MetaDataKeys.NAME);
                         String desc = metadata.get(MetaDataKeys.DESCRIPTION);
                         String labels = metadata.get(MetaDataKeys.LABELS);
                         SearchOver so = SearchOver.fromValue(over);
                         switch (so) {
                             case name:
-                                if (stringMetadataContainsFilter(filter, name)) {
+                                if (stringMetadataContainsFilter(filter, name) || stringMetadataContainsFilter(filter, artifactId)) {
                                     return metadata;
                                 }
                             case description:
@@ -368,11 +369,17 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public Set<String> getArtifactIds() {
+    public Set<String> getArtifactIds(Integer limit) {
         Set<String> ids = new TreeSet<>();
         try (Stream<String> stream = storageStore.allKeys()) {
             // exists can be costly ...
-            stream.filter(this::exists).forEach(ids::add);
+            if (limit != null) {
+                stream.filter(this::exists)
+                        .limit(limit)
+                        .forEach(ids::add);
+            } else {
+                stream.filter(this::exists).forEach(ids::add);
+            }
         }
         ids.remove(GLOBAL_RULES_ID);
         return ids;

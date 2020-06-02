@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.jpa.entity;
 
+import io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -31,6 +32,9 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.SqlResultSetMapping;
+import javax.persistence.ConstructorResult;
+import javax.persistence.ColumnResult;
 
 @Entity
 @Table(
@@ -44,6 +48,11 @@ import javax.persistence.UniqueConstraint;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
+@SqlResultSetMapping(name = "ArtifactSearchResultMapping", classes = @ConstructorResult(targetClass = ArtifactSearchResult.class, columns = {
+        @ColumnResult(name = "id"), @ColumnResult(name = "name"), @ColumnResult(name = "description"),
+        @ColumnResult(name = "createdOn"), @ColumnResult(name = "createdBy"), @ColumnResult(name = "type"),
+        @ColumnResult(name = "labels"), @ColumnResult(name = "state"), @ColumnResult(name = "modifiedOn"),
+        @ColumnResult(name = "modifiedBy") }))
 public class MetaData {
 
     @Id

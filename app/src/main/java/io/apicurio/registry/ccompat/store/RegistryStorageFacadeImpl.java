@@ -54,7 +54,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     public List<String> getSubjects() {
         // TODO maybe not necessary...
-        return new ArrayList<>(storage.getArtifactIds());
+        return new ArrayList<>(storage.getArtifactIds(null));
     }
 
     @Override

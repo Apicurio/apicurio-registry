@@ -133,19 +133,24 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         try {
             switch (searchOver) {
                 case name:
+                    return valueContainsSearch(search, artifactId, searchOver.name()) || valueContainsSearch(search, artifactId, MetaDataKeys.ARTIFACT_ID);
                 case description:
                 case labels:
-                    String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
-                    return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
+                    return valueContainsSearch(search, artifactId, searchOver.name());
                 default:
                     return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
                         .values()
                         .stream()
-                        .anyMatch(v -> v != null && v.contains(search));
+                        .anyMatch(v -> v != null && StringUtils.containsIgnoreCase(v, search));
             }
         } catch (ArtifactNotFoundException notFound) {
             return false;
         }
+    }
+
+    private boolean valueContainsSearch(String search, String artifactId, String metaDataKey) {
+        String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(metaDataKey);
+        return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
     }
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {
@@ -325,11 +330,18 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds()
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds(Integer limit)
      */
     @Override
-    public Set<String> getArtifactIds() {
-        return storage.keySet();
+    public Set<String> getArtifactIds(Integer limit) {
+        if (limit != null) {
+            return storage.keySet()
+                    .stream()
+                    .limit(limit)
+                    .collect(Collectors.toSet());
+        } else {
+            return storage.keySet();
+        }
     }
 
     /**
@@ -338,7 +350,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver over, SortOrder order) {
         final LongAdder itemsCount = new LongAdder();
-        final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
+        final List<SearchedArtifact> matchedArtifacts = getArtifactIds(null)
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
                 .peek(artifactId -> itemsCount.increment())

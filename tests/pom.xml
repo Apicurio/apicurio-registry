@@ -19,7 +19,7 @@
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
-        <debezium.version>1.2.0-SNAPSHOT</debezium.version>
+        <debezium.version>1.2.0.Beta2</debezium.version>
         <version.okhttp>4.2.2</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
         <vertx.version>3.9.0</vertx.version>

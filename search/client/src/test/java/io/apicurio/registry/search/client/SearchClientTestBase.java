@@ -48,7 +48,6 @@ public abstract class SearchClientTestBase {
         Assertions.assertTrue(response.ok());
         List<Search.Artifact> artifacts = response.getArtifacts();
         Assertions.assertEquals(expectedHits, artifacts.size());
-        System.out.println(query + " ==> " + artifacts.size() + "\n" + artifacts);
     }
 
     @Test

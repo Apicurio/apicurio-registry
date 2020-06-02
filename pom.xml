@@ -661,6 +661,12 @@
             </modules>
         </profile>
         <profile>
+            <id>asyncmem</id>
+            <modules>
+                <module>storage/asyncmem</module>
+            </modules>
+        </profile>
+        <profile>
             <id>jpa</id>
             <modules>
                 <module>storage/jpa</module>

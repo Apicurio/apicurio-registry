@@ -241,12 +241,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             CompletionStage<ArtifactMetaData> thirdCs = client.createArtifact(ArtifactType.OPENAPI, thirdArtifactId, null, thirdData);
             long thirdId = ConcurrentUtil.result(thirdCs).getGlobalId();
 
+            this.waitForGlobalId(thirdId);
+
             retry(() -> {
                 ArtifactMetaData artifactMetaData = client.getArtifactMetaDataByGlobalId(thirdId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("testorder", artifactMetaData.getDescription());
-        });
-
+            });
 
             ArtifactSearchResults ascResults = client.searchArtifacts("Testorder", 0, 5, SearchOver.everything, SortOrder.asc);
             Assertions.assertNotNull(ascResults);

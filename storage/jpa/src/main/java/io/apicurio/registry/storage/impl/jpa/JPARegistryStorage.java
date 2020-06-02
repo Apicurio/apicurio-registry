@@ -47,6 +47,8 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.TypedQuery;
 import javax.persistence.LockModeType;
+import javax.persistence.Query;
+
 import javax.transaction.Transactional;
 
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -258,53 +260,44 @@ public class JPARegistryStorage implements RegistryStorage {
         }
     }
 
-    private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver) {
+    private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver, String search) {
 
-        final String locateStringValueQuery = "AND (0 < LOCATE(LOWER(:search), LOWER(m2.value))) ";
+        final String locateStringValueQuery = " UPPER(m2.value) like UPPER('%" + search + "%')";
+        final String locateArtifactIdQuery = " UPPER(m2.artifact_id) like UPPER('%" + search + "%') ";
 
         switch (searchOver) {
             case description:
-                return "AND (m2.key= 'description' " + locateStringValueQuery + ") ";
+                return "AND (m2.key= 'description' AND " + locateStringValueQuery + ") ";
             case name:
-                return "AND (m2.key= 'name' " + locateStringValueQuery + ") ";
+                return "AND ((m2.key= 'name' AND " + locateStringValueQuery + ") " + " OR " + locateArtifactIdQuery + ") ";
             case labels:
-                return "AND (m2.key= 'labels' " + locateStringValueQuery + ") ";
+                return "AND (m2.key= 'labels' AND " + locateStringValueQuery + ") ";
             default:
-                return locateStringValueQuery;
+                return "AND (" + locateStringValueQuery + " OR " + locateArtifactIdQuery + ") ";
         }
     }
 
-    private TypedQuery<ArtifactSearchResult> buildSearchArtifactQuery(String search, SearchOver over, SortOrder order, int offset, int limit) {
+    private Query buildSearchArtifactQuery(String search, SearchOver over, SortOrder order, int offset, int limit) {
 
-        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = entityManager.createQuery(
-                "select new io.apicurio.registry.storage.impl.jpa.search.ArtifactSearchResult(m.artifactId,"
-                + "MAX(case when m.key = '" + MetaDataKeys.NAME + "' then m.value end) as name,"
-                + "MAX(case when m.key = '" + MetaDataKeys.DESCRIPTION + "' then m.value end) as description, "
-                + "MAX(case when m.key = '" + MetaDataKeys.CREATED_ON + "' then m.value end) as createdOn, "
-                + "MAX(case when m.key = '" + MetaDataKeys.CREATED_BY + "' then m.value end) as createdBy, "
-                + "MAX(case when m.key = '" + MetaDataKeys.TYPE + "' then m.value end) as type,"
-                + "MAX(case when m.key = '" + MetaDataKeys.LABELS + "' then m.value end) as labels,"
-                + "MAX(case when m.key = '" + MetaDataKeys.STATE + "' then m.value end) as state, "
-                + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_ON + "' then m.value end) as modifiedOn,"
-                + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_BY + "' then m.value end) as modifiedBy)"
-                + "from MetaData m "
-                + "where m.artifactId || '===' || m.version  in "
-                + "(select m3.artifactId || '===' || m3.version  from MetaData m3 where m3.version = "
-                + "(SELECT max(m2.version) from MetaData m2 where m.artifactId = m2.artifactId "
-                + (search == null ? "" : buildSearchAndClauseFromSearchOver(over))
-                + ") "
-                + ") group by m.artifactId "
-                + " order by name " + order.value() + ", m.artifactId " + order.value() , ArtifactSearchResult.class);
-        // TODO The sort is wrong here - we want to sort by name OR id (if name is null) rather than name THEN id.  There
-        //      are a couple ways to do that in SQL.  Either using "CASE" or "COALESCE" but neither works here due to
-        //      apparent JPA/hibernate query writing problems.
-        //      + " order by (case when name is not null then name else m.artifactId end) " + order.value(), ArtifactSearchResult.class);
-        //      + " order by coalesce(name, m.artifactId) " + order.value(), ArtifactSearchResult.class);
-        //      For now I will disable the test. :(
-
-        if (null != search) {
-            matchedArtifactsQuery.setParameter("search", search);
-        }
+        final Query matchedArtifactsQuery = entityManager.createNativeQuery(
+                "select * from (select m.artifact_id as id, "
+                        + "MAX(case when m.key = '" + MetaDataKeys.NAME + "' then m.value end) as name,"
+                        + "MAX(case when m.key = '" + MetaDataKeys.DESCRIPTION + "' then m.value end) as description, "
+                        + "MAX(case when m.key = '" + MetaDataKeys.CREATED_ON + "' then m.value end) as createdOn, "
+                        + "MAX(case when m.key = '" + MetaDataKeys.CREATED_BY + "' then m.value end) as createdBy, "
+                        + "MAX(case when m.key = '" + MetaDataKeys.TYPE + "' then m.value end) as type,"
+                        + "MAX(case when m.key = '" + MetaDataKeys.LABELS + "' then m.value end) as labels,"
+                        + "MAX(case when m.key = '" + MetaDataKeys.STATE + "' then m.value end) as state, "
+                        + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_ON + "' then m.value end) as modifiedOn,"
+                        + "MAX(case when m.key = '" + MetaDataKeys.MODIFIED_BY + "' then m.value end) as modifiedBy "
+                        + "from meta m "
+                        + "where m.artifact_id || '===' || m.version  in "
+                        + "(select m3.artifact_id || '===' || m3.version  from meta m3 where m3.version = "
+                        + "(SELECT max(m2.version) from meta m2 where m.artifact_id = m2.artifact_id "
+                        + (search == null ? "" : buildSearchAndClauseFromSearchOver(over, search))
+                        + ") "
+                        + ") group by m.artifact_id) searchResult"
+                        + " order by coalesce(name, id) " + order.value(), "ArtifactSearchResultMapping");
 
         matchedArtifactsQuery.setFirstResult(offset);
         matchedArtifactsQuery.setMaxResults(limit);
@@ -509,33 +502,31 @@ public class JPARegistryStorage implements RegistryStorage {
             int limit, SearchOver searchOver, SortOrder sortOrder) {
 
         final String countQuery =
-                "SELECT count ( distinct m.artifactId)  FROM MetaData m "
+                "SELECT count ( distinct m.artifact_id)  FROM meta m "
                         + "WHERE m.version = "
                         + "(SELECT max(m2.version) "
-                        + "FROM MetaData m2 WHERE m.artifactId = m2.artifactId "
-                        + (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver))
+                        + "FROM meta m2 WHERE m.artifact_id = m2.artifact_id "
+                        + (search == null ? "" : buildSearchAndClauseFromSearchOver(searchOver, search))
                         + " )"
-                        + " AND m.artifactId IN (select a.artifactId from Artifact a) ";
+                        + " AND m.artifact_id IN (select a.artifact_id from artifacts a) ";
 
-        final TypedQuery<Long> count = entityManager.createQuery(countQuery, Long.class);
+        final Query count = entityManager.createNativeQuery(countQuery);
 
-        final TypedQuery<ArtifactSearchResult> matchedArtifactsQuery = buildSearchArtifactQuery(search, searchOver, sortOrder, offset, limit);
-
-        if (null != search) {
-            count.setParameter("search", search);
-        }
+        final Query matchedArtifactsQuery = buildSearchArtifactQuery(search, searchOver, sortOrder, offset, limit);
 
         matchedArtifactsQuery.setFirstResult(offset);
         matchedArtifactsQuery.setMaxResults(limit);
 
-        final List<SearchedArtifact> searchedArtifacts = matchedArtifactsQuery.getResultList()
+        final List<ArtifactSearchResult> matchedResults = matchedArtifactsQuery.getResultList();
+
+        final List<SearchedArtifact> searchedArtifacts = matchedResults
                 .stream()
                 .map(this::buildSearchedArtifactFromResult)
                 .collect(Collectors.toList());
 
         final ArtifactSearchResults searchResults = new ArtifactSearchResults();
 
-        searchResults.setCount(count.getSingleResult().intValue());
+        searchResults.setCount(((Number) count.getSingleResult()).intValue());
         searchResults.setArtifacts(searchedArtifacts);
         return searchResults;
     }

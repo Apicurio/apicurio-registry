@@ -133,19 +133,24 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         try {
             switch (searchOver) {
                 case name:
+                    return valueContainsSearch(search, artifactId, searchOver.name()) || valueContainsSearch(search, artifactId, MetaDataKeys.ARTIFACT_ID);
                 case description:
                 case labels:
-                    String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(searchOver.name());
-                    return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
+                    return valueContainsSearch(search, artifactId, searchOver.name());
                 default:
                     return getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES)
                         .values()
                         .stream()
-                        .anyMatch(v -> v != null && v.contains(search));
+                        .anyMatch(v -> v != null && StringUtils.containsIgnoreCase(v, search));
             }
         } catch (ArtifactNotFoundException notFound) {
             return false;
         }
+    }
+
+    private boolean valueContainsSearch(String search, String artifactId, String metaDataKey) {
+        String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(metaDataKey);
+        return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
     }
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {

@@ -44,7 +44,9 @@ import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -90,9 +92,16 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         Schema schema1 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = client.register(subject, schema1);
+        
+        // Reset the client cache so that the next line actually does what we want.
+        client.reset();
+
+        ParsedSchema ps1 = TestUtils.retry(() -> client.getSchemaById(id1));
 
         Schema schema2 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"f2\",\"type\":\"string\"}]}");
         int id2 = client.register(subject, schema2);
+
+        ParsedSchema ps2 = TestUtils.retry(() -> client.getSchemaById(id2));
 
         Schema schema = client.getById(id1);
         Assertions.assertNotNull(schema);

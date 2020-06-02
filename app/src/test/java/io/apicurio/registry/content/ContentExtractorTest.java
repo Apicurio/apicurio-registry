@@ -25,7 +25,7 @@ import javax.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -41,7 +41,7 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author Ales Justin
  */
 @QuarkusTest
-public class ContentExtractorTest extends AbstractRegistryTestBase {
+public class ContentExtractorTest extends AbstractResourceTestBase {
 
     private static final String avroFormat = "{\r\n" +
                                              "     \"type\": \"record\",\r\n" +
@@ -174,7 +174,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     }
 
     @RegistryServiceTest
-    public void testAvro(Supplier<RegistryService> supplier) {
+    public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         // Avro schema names can only have letters, digits, and _
@@ -184,6 +184,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
+        
+        this.waitForArtifact(amd.getId());
 
         // test update
 
@@ -212,7 +214,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     }
 
     @RegistryServiceTest
-    public void testJsonSchema(Supplier<RegistryService> supplier) {
+    public void testJsonSchema(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "schema-" + generateArtifactId();
@@ -222,6 +224,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
+
+        this.waitForArtifact(amd.getId());
 
         // test update
 
@@ -249,7 +253,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     }
 
     @RegistryServiceTest
-    public void testOpenApi(Supplier<RegistryService> supplier) {
+    public void testOpenApi(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "api-" + generateArtifactId();
@@ -259,6 +263,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.OPENAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
+
+        this.waitForArtifact(amd.getId());
 
         // test update
 
@@ -286,7 +292,7 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
     }
 
     @RegistryServiceTest
-    public void testAsyncApi(Supplier<RegistryService> supplier) {
+    public void testAsyncApi(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "api-" + generateArtifactId();
@@ -296,6 +302,8 @@ public class ContentExtractorTest extends AbstractRegistryTestBase {
         CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.ASYNCAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
         ArtifactMetaData amd = ConcurrentUtil.result(cs);
         Assertions.assertEquals(name, amd.getName());
+
+        this.waitForArtifact(amd.getId());
 
         // test update
 

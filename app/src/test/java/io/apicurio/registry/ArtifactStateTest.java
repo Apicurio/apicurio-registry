@@ -16,6 +16,19 @@
 
 package io.apicurio.registry;
 
+import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import javax.ws.rs.core.Response;
+
+import org.junit.jupiter.api.Assertions;
+
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
@@ -26,17 +39,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
-
-import javax.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
-
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Ales Justin
@@ -54,6 +56,8 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
     public void testSmoke(Supplier<RegistryService> supplier) throws Exception {
         RegistryService service = supplier.get();
         String artifactId = generateArtifactId();
+        
+        int msgCount = 1;
 
         CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
                 ArtifactType.JSON,
@@ -61,21 +65,25 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
                 null,
                 new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
-        ConcurrentUtil.result(a1);
+        ArtifactMetaData amd1 = ConcurrentUtil.result(a1);
+
+        this.waitForGlobalId(amd1.getGlobalId());
 
         CompletionStage<ArtifactMetaData> a2 = service.updateArtifact(
                 artifactId,
                 ArtifactType.JSON,
                 new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
         );
-        ConcurrentUtil.result(a2);
+        ArtifactMetaData amd2 = ConcurrentUtil.result(a2);
+        this.waitForGlobalId(amd2.getGlobalId());
 
         CompletionStage<ArtifactMetaData> a3 = service.updateArtifact(
                 artifactId,
                 ArtifactType.JSON,
                 new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
         );
-        ConcurrentUtil.result(a3);
+        ArtifactMetaData amd3 = ConcurrentUtil.result(a3);
+        this.waitForGlobalId(amd3.getGlobalId());
 
         ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
         Assertions.assertEquals(3, amd.getVersion());

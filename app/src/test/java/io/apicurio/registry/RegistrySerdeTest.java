@@ -68,37 +68,41 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
     public void testFindBySchema(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> csa = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
-        retry(() -> supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        this.waitForGlobalId(amd.getGlobalId());
 
-        Assertions.assertNotNull(supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(supplier.get(), artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
     }
 
     @RegistryServiceTest
     public void testGetOrCreate(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
-        CompletionStage<ArtifactMetaData> csa = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> csa = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
-        retry(() -> supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        this.waitForGlobalId(amd.getGlobalId());
 
-        Assertions.assertNotNull(supplier.get().getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(supplier.get(), artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
 
         artifactId = generateArtifactId(); // new
-        long id = idStrategy.findId(supplier.get(), artifactId, ArtifactType.AVRO, schema);
+        long id = idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema);
 
-        retry(() -> supplier.get().getArtifactMetaDataByGlobalId(id));
+        this.waitForGlobalId(id);
 
-        Assertions.assertEquals(id, idStrategy.findId(supplier.get(), artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(id, idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
     }
 
     @RegistryServiceTest

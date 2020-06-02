@@ -50,6 +50,8 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
 
     @RegistryServiceTest
     public void testCompatibility(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
         String artifactId = generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
@@ -60,13 +62,15 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         cs.toCompletableFuture().get();
+        
+        this.waitForArtifact(artifactId);
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        supplier.get().createArtifactRule(artifactId, rule);
+        client.createArtifactRule(artifactId, rule);
 
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +

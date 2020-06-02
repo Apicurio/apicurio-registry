@@ -16,17 +16,18 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ServiceInitializer;
-import io.restassured.RestAssured;
-
-import org.junit.jupiter.api.BeforeEach;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+
+import org.junit.jupiter.api.BeforeEach;
+
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.util.ServiceInitializer;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.restassured.RestAssured;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -60,17 +61,53 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @param artifactContent
      * @throws Exception
      */
-    protected void createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) {
+    protected void createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
         given()
             .when()
-            .contentType(CT_JSON)
-            .header("X-Registry-ArtifactId", artifactId)
-            .header("X-Registry-ArtifactType", artifactType.name())
-            .body(artifactContent)
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
             .post("/artifacts")
             .then()
-            .statusCode(200)
-            .body("id", equalTo(artifactId))
-            .body("type", equalTo(artifactType.name()));
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+        
+        waitForArtifact(artifactId);
+    }
+    
+    /**
+     * Wait for an artifact to be created.
+     * @param artifactId
+     * @throws Exception
+     */
+    protected void waitForArtifact(String artifactId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+    
+    /**
+     * Wait for an artifact version to be created.
+     * @param globalId
+     * @throws Exception
+     */
+    protected void waitForGlobalId(long globalId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("globalId", globalId)
+                .get("/ids/{globalId}/meta")
+                .then()
+                    .statusCode(200);
+        });
     }
 }

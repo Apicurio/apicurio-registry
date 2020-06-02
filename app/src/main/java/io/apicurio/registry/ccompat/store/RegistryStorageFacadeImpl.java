@@ -106,7 +106,6 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
-
         // TODO Should this creation and updating of an artifact be a different operation?
         // TODO method that returns a completion stage should not throw an exception
         CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
@@ -162,8 +161,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         CompletionStage<ArtifactMetaDataDto> res;
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(subject, ArtifactType.AVRO, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(subject, ArtifactType.AVRO, ContentHandle.create(schema));
+                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                res = storage.createArtifact(subject, artifactType, ContentHandle.create(schema));
             } else {
                 rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
                 res = storage.updateArtifact(subject, artifactType, ContentHandle.create(schema));

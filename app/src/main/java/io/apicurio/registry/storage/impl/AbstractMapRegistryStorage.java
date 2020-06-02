@@ -337,7 +337,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver over, SortOrder order) {
-
         final LongAdder itemsCount = new LongAdder();
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds()
                 .stream()

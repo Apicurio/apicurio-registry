@@ -21,6 +21,7 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.interfaces.TestSeparator;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +56,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+@DisplayNameGeneration(SimpleDisplayName.class)
 public abstract class BaseIT implements TestSeparator, Constants {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);

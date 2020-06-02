@@ -262,17 +262,18 @@ public class JPARegistryStorage implements RegistryStorage {
 
     private static String buildSearchAndClauseFromSearchOver(SearchOver searchOver, String search) {
 
-        final String locateStringValueQuery = "AND UPPER(m2.value) like UPPER('%" + search + "%')";
+        final String locateStringValueQuery = " UPPER(m2.value) like UPPER('%" + search + "%')";
+        final String locateArtifactIdQuery = " UPPER(m2.artifact_id) like UPPER('%" + search + "%') ";
 
         switch (searchOver) {
             case description:
-                return "AND (m2.key= 'description' " + locateStringValueQuery + ") ";
+                return "AND (m2.key= 'description' AND " + locateStringValueQuery + ") ";
             case name:
-                return "AND (m2.key= 'name' " + locateStringValueQuery + ") ";
+                return "AND ((m2.key= 'name' AND " + locateStringValueQuery + ") " + " OR " + locateArtifactIdQuery + ") ";
             case labels:
-                return "AND (m2.key= 'labels' " + locateStringValueQuery + ") ";
+                return "AND (m2.key= 'labels' AND " + locateStringValueQuery + ") ";
             default:
-                return locateStringValueQuery;
+                return "AND (" + locateStringValueQuery + " OR " + locateArtifactIdQuery + ") ";
         }
     }
 

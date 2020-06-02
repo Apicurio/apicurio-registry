@@ -192,20 +192,16 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         };
     }
 
-    protected loadPageData(): void {
+    // @ts-ignore
+    protected createLoaders(): Promise[] | null {
         const artifactId: string = this.getPathParam("artifactId");
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
-
-        Promise.all([
+        return [
             Services.getArtifactsService().getArtifactMetaData(artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
             Services.getArtifactsService().getArtifactContent(artifactId, this.version()).then(content => this.setSingleState("artifactContent", content)),
             Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules)),
             Services.getArtifactsService().getArtifactVersions(artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
-        ]).then( () => {
-            this.setSingleState("isLoading", false);
-        }).catch( error => {
-            this.handleServerError(error, "Error loading artifact information.");
-        });
+        ];
     }
 
     private version(): string {

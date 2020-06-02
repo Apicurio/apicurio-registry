@@ -89,13 +89,14 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         };
     }
 
-    protected loadPageData(): void {
-        Services.getGlobalsService().getRules().then( rules => {
-            this.setMultiState({
-                isLoading: false,
-                rules
+    // @ts-ignore
+    protected createLoaders(): Promise {
+        return Services.getGlobalsService().getRules().then( rules => {
+                this.setMultiState({
+                    isLoading: false,
+                    rules
+                });
             });
-        });
     }
 
     private rules(): Rule[] {

@@ -130,8 +130,9 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         };
     }
 
-    protected loadPageData(): void {
-        this.search();
+    // @ts-ignore
+    protected createLoaders(): Promise {
+        return this.search();
     }
 
     private onUploadArtifact = (): void => {
@@ -196,12 +197,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return !!this.state.criteria.value;
     }
 
-    private search(): void {
-        Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
-            this.onArtifactsLoaded(results);
-        }).catch(error => {
-            this.handleServerError(error, "Error searching for artifacts.");
-        });
+    // @ts-ignore
+    private search(): Promise {
+        return Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
+                this.onArtifactsLoaded(results);
+            }).catch(error => {
+                this.handleServerError(error, "Error searching for artifacts.");
+            });
     }
 
     private onSetPage = (event: any, newPage: number, perPage?: number): void => {

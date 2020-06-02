@@ -491,13 +491,14 @@ public class JPARegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
-    public Set<String> getArtifactIds() {
+    public Set<String> getArtifactIds(Integer limit) {
         try {
-            List<String> ids = entityManager.createQuery(
-                "SELECT a.artifactId FROM Artifact a", String.class)
-                                            .getResultList();
+            TypedQuery<String> idsQuery = entityManager.createQuery("SELECT a.artifactId FROM Artifact a", String.class);
 
-            return new HashSet<>(ids);
+            if (limit != null) {
+                idsQuery.setMaxResults(limit);
+            }
+            return new HashSet<>(idsQuery.getResultList());
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }

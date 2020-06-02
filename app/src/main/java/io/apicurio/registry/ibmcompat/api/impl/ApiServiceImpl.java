@@ -63,7 +63,7 @@ public class ApiServiceImpl implements ApiService {
     public List<SchemaListItem> apiSchemasGet(int page, int perPage)
     throws ArtifactNotFoundException {
         // best guess ... order set, and then limit things via stream
-        Set<String> ids = new TreeSet<>(storage.getArtifactIds());
+        Set<String> ids = new TreeSet<>(storage.getArtifactIds(null));
         return ids.stream()
                   .skip(page * perPage)
                   .limit(perPage)

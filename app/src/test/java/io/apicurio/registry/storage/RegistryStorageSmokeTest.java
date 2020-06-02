@@ -22,6 +22,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,15 +81,15 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testArtifactsAndMeta() throws Exception {
-        int size = getStorage().getArtifactIds().size();
+        int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
         ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content1")));
         ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content2")));
         ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_2, ArtifactType.AVRO, ContentHandle.create("content3")));
 
-        assertEquals(size + 2, getStorage().getArtifactIds().size());
-        assertTrue(getStorage().getArtifactIds().contains(ARTIFACT_ID_1));
+        assertEquals(size + 2, getStorage().getArtifactIds(null).size());
+        assertTrue(getStorage().getArtifactIds(null).contains(ARTIFACT_ID_1));
 
         StoredArtifact a1 = getStorage().getArtifact(ARTIFACT_ID_1);
         assertNotNull(a1);
@@ -187,5 +188,36 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         assertTrue(tries > 0, "Failed to create rules!");
 
         getStorage().deleteArtifact(ARTIFACT_ID_3);
+    }
+
+    @Test public void testLimitGetArtifactIds() throws Exception {
+
+        final String testId1 = TestUtils.generateArtifactId();
+        final String testId2 = TestUtils.generateArtifactId();
+
+        try {
+            int size = getStorage().getArtifactIds(null).size();
+
+            // Create 2 artifacts
+            ConcurrentUtil.result(getStorage()
+                    .createArtifact(testId1, ArtifactType.JSON, ContentHandle.create("content1")));
+            ConcurrentUtil.result(getStorage()
+                    .createArtifact(testId2, ArtifactType.JSON, ContentHandle.create("content1")));
+
+            retry(() -> {
+                getStorage().getArtifactMetaData(testId1);
+                getStorage().getArtifactMetaData(testId2);
+            });
+
+            int newSize = getStorage().getArtifactIds(null).size();
+            int limitedSize = getStorage().getArtifactIds(1).size();
+
+            assertEquals(size + 2, newSize);
+            assertEquals(1, limitedSize);
+
+        } finally {
+            getStorage().deleteArtifact(testId1);
+            getStorage().deleteArtifact(testId2);
+        }
     }
 }

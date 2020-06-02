@@ -95,6 +95,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Current
     SearchClient searchClient;
 
+    private static final int GET_ARTIFACT_IDS_LIMIT = 10000;
+
     /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
@@ -207,7 +209,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public List<String> listArtifacts() {
-    	return new ArrayList<>(storage.getArtifactIds());
+    	return new ArrayList<>(storage.getArtifactIds(GET_ARTIFACT_IDS_LIMIT));
     }    
 
     /**

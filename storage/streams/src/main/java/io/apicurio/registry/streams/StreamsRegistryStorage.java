@@ -368,11 +368,17 @@ public class StreamsRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public Set<String> getArtifactIds() {
+    public Set<String> getArtifactIds(Integer limit) {
         Set<String> ids = new TreeSet<>();
         try (Stream<String> stream = storageStore.allKeys()) {
             // exists can be costly ...
-            stream.filter(this::exists).forEach(ids::add);
+            if (limit != null) {
+                stream.filter(this::exists)
+                        .limit(limit)
+                        .forEach(ids::add);
+            } else {
+                stream.filter(this::exists).forEach(ids::add);
+            }
         }
         ids.remove(GLOBAL_RULES_ID);
         return ids;

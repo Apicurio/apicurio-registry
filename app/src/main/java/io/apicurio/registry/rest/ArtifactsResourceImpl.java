@@ -180,7 +180,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
     private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType xRegistryArtifactType,
                                                              String xRegistryArtifactId, IfExistsType ifExists, ContentHandle content) {
-
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
 
         switch (ifExists) {
@@ -244,7 +243,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
             String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
-
         ContentHandle content = ContentHandle.create(data);
         final ContentHandle finalContent = content;
         try {

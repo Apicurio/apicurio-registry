@@ -17,18 +17,6 @@
 package io.apicurio.registry.utils.tests;
 
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.utils.IoUtil;
-
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.jupiter.api.Assertions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -41,7 +29,20 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+
 import javax.ws.rs.WebApplicationException;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -298,5 +299,5 @@ public class TestUtils {
         ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
         Assertions.assertNotNull(amd); // wait for global id to populate
     }
-
+    
 }

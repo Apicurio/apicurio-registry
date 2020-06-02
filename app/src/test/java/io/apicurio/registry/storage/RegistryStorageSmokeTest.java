@@ -84,8 +84,11 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
         // Create 2 version of an artifact and one other artifact
         ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content1")));
+        this.waitForArtifact(ARTIFACT_ID_1);
         ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content2")));
+        this.waitForGlobalId(meta2.getGlobalId());
         ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_2, ArtifactType.AVRO, ContentHandle.create("content3")));
+        this.waitForArtifact(ARTIFACT_ID_2);
 
         assertEquals(size + 2, getStorage().getArtifactIds().size());
         assertTrue(getStorage().getArtifactIds().contains(ARTIFACT_ID_1));
@@ -156,6 +159,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
     @Test
     public void testRules() throws Exception {
         ConcurrentUtil.result(getStorage().createArtifact(ARTIFACT_ID_3, ArtifactType.JSON, ContentHandle.create("content1")));
+        
+        this.waitForArtifact(ARTIFACT_ID_3);
 
         assertEquals(0, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
         assertEquals(0, getStorage().getGlobalRules().size());

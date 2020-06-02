@@ -51,7 +51,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
             + "\"schemaType\": \"AVRO\"}";
 
-    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
+//    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
 
     private static final String SCHEMA_1_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
             "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"} ] }\"}\"";
@@ -66,7 +66,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /subjects/(string: subject)/versions
      */
     @Test
-    public void testCreateSubject() {
+    public void testCreateSubject() throws Exception {
         final String SUBJECT = "subject1";
         // POST
         ValidatableResponse res = given()
@@ -78,6 +78,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         /*int id = */res.extract().jsonPath().getInt("id");
+        
+        this.waitForArtifact(SUBJECT);
+        
         // Verify
         given()
             .when()
@@ -91,7 +94,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /compatibility/subjects/{subject}/versions/{version}
      */
     @Test
-    public void testCompatibilityCheck() {
+    public void testCompatibilityCheck() throws Exception {
         final String SUBJECT = "subject2";
         // Prepare
         given()
@@ -102,6 +105,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body(anything());
+        this.waitForArtifact(SUBJECT);
         given()
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -110,6 +114,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(anything());
+        
         // POST
         given()
             .when()
@@ -130,7 +135,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testDisabledStateCheck() {
+    public void testDisabledStateCheck() throws Exception {
         final String SUBJECT = "subject3";
         // Prepare
         given()
@@ -141,6 +146,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        this.waitForArtifact(SUBJECT);
+
         //verify
         given()
             .when()
@@ -170,7 +178,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testDeletedStateCheck() {
+    public void testDeletedStateCheck() throws Exception {
         final String SUBJECT = "subject4";
         // Prepare
         given()
@@ -181,6 +189,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then().log().all()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        this.waitForArtifact(SUBJECT);
+
         //verify
         given()
             .when()
@@ -210,7 +221,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSchemaTypes() {
+    public void testSchemaTypes() throws Exception {
         //verify
         String[] types = given()
                 .when()
@@ -229,18 +240,18 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /subjects/{subject}/versions
      */
     @Test
-    public void testRegisterWithType() {
+    public void testRegisterWithType() throws Exception {
         final String SUBJECT = "subjectRegisterWithType";
 
         // POST
         given()
                 .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED_WITH_TYPE)
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_SIMPLE_WRAPPED_WITH_TYPE)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
-                .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+                    .statusCode(200)
+                    .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
     }
 
 
@@ -248,7 +259,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /schemas/ids/{int: id}
      */
     @Test
-    public void testGetSchemaById() {
+    public void testGetSchemaById() throws Exception {
         final String SUBJECT = "subjectTestSchema";
 
         // POST
@@ -260,6 +271,8 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+
+        this.waitForArtifact(SUBJECT);
 
         final Integer globalId = given().when().get("/ccompat/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
 
@@ -276,38 +289,44 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /schemas/ids/{int: id}/versions
      */
     @Test
-    public void testGetSchemaVersions() {
+    public void testGetSchemaVersions() throws Exception {
         final String SUBJECT = "subjectTestSchemaVersions";
 
         //Create two versions of the same artifact
         // POST
-        given()
+        final Integer globalId1 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(globalId1);
+
+        this.waitForArtifact(SUBJECT);
 
         // POST
-        given()
+        final Integer globalId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(globalId2);
 
 
-        final Integer globalId = given().when().get("/ccompat/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
+        this.waitForGlobalId(globalId2);
 
         //Verify
         Assertions.assertEquals(Arrays.asList(1, 2), given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/schemas/ids/{id}/versions", globalId)
+                .get("/ccompat/schemas/ids/{id}/versions", globalId2)
                 .then()
                 .extract().body().jsonPath().get("version"));
     }
@@ -316,21 +335,29 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      * Endpoint: /ccompat/subjects/{subject}/versions/{version}/referencedby
      */
     @Test
-    public void testGetSchemaReferencedVersions() {
+    public void testGetSchemaReferencedVersions() throws Exception {
         final String SUBJECT = "testGetSchemaReferencedVersions";
 
         //Create two versions of the same artifact
         // POST
-        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+        final Integer globalId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(globalId1);
+
+        this.waitForArtifact(SUBJECT);
 
         // POST
-        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+        final Integer globalId2 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)));
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(globalId2);
+
+        this.waitForGlobalId(globalId2);
 
         //Verify
         Integer[] versions = given().when()

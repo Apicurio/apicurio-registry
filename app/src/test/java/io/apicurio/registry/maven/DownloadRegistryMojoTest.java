@@ -49,11 +49,15 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
 
     @RegistryServiceTest
     public void testDownloadIds(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
         String artifactId = generateArtifactId();
 
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        CompletionStage<ArtifactMetaData> cs = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         cs.toCompletableFuture().get();
+        
+        this.waitForArtifact(artifactId);
 
         mojo.ids = Collections.singleton(artifactId);
         mojo.artifactExtension = ".avsc";

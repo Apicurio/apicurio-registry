@@ -16,6 +16,22 @@
 
 package io.apicurio.registry;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
@@ -24,19 +40,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
-import org.hamcrest.CustomMatcher;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.*;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -45,7 +48,7 @@ import static org.hamcrest.Matchers.*;
 public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
     @Test
-    public void testCreateArtifact() {
+    public void testCreateArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact - indicate the type via a header param
@@ -62,18 +65,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/2"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
-
-        // Try to create the same artifact ID (should fail)
+        
+        // Try to create a duplicate artifact ID (should fail)
         given()
             .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/2' already exists."));
+                .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/1' already exists."));
 
         // Try to create an artifact with an invalid artifact type
         given()
@@ -99,7 +102,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testGetArtifact() {
+    public void testGetArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create OpenAPI artifact
@@ -127,7 +130,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testUpdateArtifact() {
+    public void testUpdateArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         
@@ -217,7 +220,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
     @SuppressWarnings("rawtypes")
     @Test
-    public void testListArtifactVersions() {
+    public void testListArtifactVersions() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
@@ -272,7 +275,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testCreateArtifactVersion() {
+    public void testCreateArtifactVersion() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         
@@ -315,7 +318,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testGetArtifactVersion() {
+    public void testGetArtifactVersion() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
@@ -373,7 +376,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testGetArtifactMetaDataByContent() {
+    public void testGetArtifactMetaDataByContent() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         
         // Create an artifact
@@ -691,7 +694,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
     
     @Test
-    public void testArtifactVersionMetaData() {
+    public void testArtifactVersionMetaData() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String updatedArtifactContent_v2 = artifactContent.replace("Empty API", "Empty API (v2)");
         String updatedArtifactContent_v3 = artifactContent.replace("Empty API", "Empty API (v3)");
@@ -793,7 +796,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testYamlContentType() {
+    public void testYamlContentType() throws Exception {
         String artifactId = "testYamlContentType";
         ArtifactType artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-empty.yaml");
@@ -813,6 +816,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("Empty API"))
                 .body("description", equalTo("An example API design using OpenAPI."))
                 .body("type", equalTo(artifactType.name()));
+        
+        this.waitForArtifact(artifactId);
 
         // Get the artifact content (should be JSON)
         given()
@@ -828,7 +833,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
 
     @Test
-    public void testWsdlArtifact() {
+    public void testWsdlArtifact() throws Exception {
         String artifactId = "testWsdlArtifact";
         ArtifactType artifactType = ArtifactType.WSDL;
         String artifactContent = resourceToString("sample.wsdl");
@@ -846,6 +851,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
+        
+        this.waitForArtifact(artifactId);
 
         // Get the artifact content (should be XML)
         given()
@@ -858,7 +865,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testCreateAlreadyExistingArtifact() {
+    public void testCreateAlreadyExistingArtifact() throws Exception {
 
         final String artifactId = UUID.randomUUID().toString();
         final String artifactContent = resourceToString("openapi-empty.json");
@@ -913,7 +920,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testDeleteArtifactWithRule() {
+    public void testDeleteArtifactWithRule() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testDeleteArtifactWithRule/EmptyAPI";
         

@@ -41,7 +41,7 @@ import io.restassured.http.ContentType;
 public class FullApiTest extends AbstractResourceTestBase {
     
     @Test
-    public void testGlobalRuleApplicationOpenAPI() {
+    public void testGlobalRuleApplicationOpenAPI() throws Exception {
         ArtifactType artifactType = ArtifactType.OPENAPI;
         String artifactContent = resourceToString("openapi-invalid-syntax.json");
 
@@ -75,7 +75,7 @@ public class FullApiTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testGlobalRuleApplicationProtobuf() {
+    public void testGlobalRuleApplicationProtobuf() throws Exception {
         ArtifactType artifactType = ArtifactType.PROTOBUF;
         String artifactContent = resourceToString("protobuf-invalid-syntax.proto");
 

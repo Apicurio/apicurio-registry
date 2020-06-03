@@ -189,7 +189,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         long prevVersion = version - 1;
 
         Map<String, String> contents = new ConcurrentHashMap<>();
-        // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         MetaDataKeys.putContent(contents, content.bytes());
         contents.put(VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
@@ -199,17 +198,13 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
         contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
 
-//        contents.put(MetaDataKeys.NAME, null);
-//        contents.put(MetaDataKeys.DESCRIPTION, null);
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);
-        // TODO -- createdBy, modifiedBy
 
         // Carry over some meta-data from the previous version on an update.
         if (!create) {
             Map<String, String> prevContents = v2c.get(prevVersion);
             if (prevContents != null) {
-                contents.put(MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
                 if (prevContents.containsKey(MetaDataKeys.NAME)) {
                     contents.put(MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
                 }

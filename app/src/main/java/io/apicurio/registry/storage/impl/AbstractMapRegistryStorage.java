@@ -28,6 +28,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.SearchUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -153,6 +154,15 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     private boolean valueContainsSearch(String search, String artifactId, String metaDataKey) {
         String value = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES).get(metaDataKey);
         return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
+    }
+
+    @Nullable
+    private ArtifactMetaDataDto getArtifactMetadataOrNull(String artifactId) {
+        try {
+            return getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException ex) {
+            return null;
+        }
     }
 
     public static StoredArtifact toStoredArtifact(Map<String, String> content) {
@@ -352,7 +362,8 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
                 .peek(artifactId -> itemsCount.increment())
-                .map(this::getArtifactMetaData)
+                .map(this::getArtifactMetadataOrNull)
+                .filter(Objects::nonNull)
                 .sorted(SearchUtil.comparator(order))
                 .skip(offset)
                 .limit(limit)

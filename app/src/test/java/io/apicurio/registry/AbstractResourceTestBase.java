@@ -28,6 +28,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
+import io.restassured.response.ValidatableResponse;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -61,8 +62,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @param artifactContent
      * @throws Exception
      */
-    protected void createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
-        given()
+    protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
@@ -75,6 +76,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .body("type", equalTo(artifactType.name()));
         
         waitForArtifact(artifactId);
+        
+        return response.extract().body().path("globalId");
     }
     
     /**

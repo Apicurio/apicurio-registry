@@ -61,6 +61,8 @@ public class StreamsRegistryStorage implements RegistryStorage {
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
+    private static final int ARTIFACT_FIRST_VERSION = 1;
+
     @Inject
     KafkaStreams streams;
 
@@ -407,8 +409,17 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLastArtifact(artifactId).getMetadataMap();
-        return MetaDataKeys.toArtifactMetaData(content);
+
+        final Map<String, String> content = getLastArtifact(artifactId).getMetadataMap();
+        final HashMap<String, String> artifactContent = new HashMap<>(content);
+
+        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
+        if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+            ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+            artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+        }
+
+        return MetaDataKeys.toArtifactMetaData(artifactContent);
     }
 
     @Override
@@ -432,7 +443,9 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
                     byte[] candidateBytes = canonicalCandidateContent.bytes();
                     if (Arrays.equals(canonicalBytes, candidateBytes)) {
-                        return MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
+                        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
+                        artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+                        return artifactMetaDataDto;
                     }
                 }
             }

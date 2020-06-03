@@ -52,6 +52,8 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
  */
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
+    private static final int ARTIFACT_FIRST_VERSION = 1;
+
     @Inject
     protected ArtifactTypeUtilProviderFactory factory;
 
@@ -189,7 +191,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         long prevVersion = version - 1;
 
         Map<String, String> contents = new ConcurrentHashMap<>();
-        // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
         MetaDataKeys.putContent(contents, content.bytes());
         contents.put(VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
@@ -199,8 +200,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
         contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
 
-//        contents.put(MetaDataKeys.NAME, null);
-//        contents.put(MetaDataKeys.DESCRIPTION, null);
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);
         // TODO -- createdBy, modifiedBy
@@ -209,7 +208,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
         if (!create) {
             Map<String, String> prevContents = v2c.get(prevVersion);
             if (prevContents != null) {
-                contents.put(MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
                 if (prevContents.containsKey(MetaDataKeys.NAME)) {
                     contents.put(MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
                 }
@@ -373,8 +371,16 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
-        return MetaDataKeys.toArtifactMetaData(content);
+
+        final Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
+        final HashMap<String, String> artifactContent = new HashMap<>(content);
+
+        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
+        if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+            ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+            artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+        }
+        return MetaDataKeys.toArtifactMetaData(artifactContent);
     }
 
     @Override
@@ -391,7 +397,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             byte[] candidateBytes = canonicalCandidateContent.bytes();
             if (Arrays.equals(canonicalBytes, candidateBytes)) {
                 ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(cMap), cMap.get(VERSION));
-                return MetaDataKeys.toArtifactMetaData(cMap);
+                final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(cMap);
+                artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+                return artifactMetaDataDto;
             }
         }
         throw new ArtifactNotFoundException(artifactId);

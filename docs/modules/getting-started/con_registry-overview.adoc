@@ -9,7 +9,7 @@ For example, client applications can dynamically push or pull the latest schema 
 
 You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client code. For example, the registry can store schemas used to serialize and deserialize messages, which can then be referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
 
-Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and also creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} also provides a graphical user interface to make it easy for developers and administrators to manage registry content.
+Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} provides a graphical user interface to make it easy for developers and administrators to manage registry content.
 
 
 ifdef::rh-service-registry[]
@@ -25,10 +25,10 @@ endif::[]
 * Support for multiple payload formats for standard event schemas and API specifications 
 
 ifdef::rh-service-registry[]
-* Pluggable storage options including Red Hat AMQ Streams, Data Grid, or Java Persistence API 
+* Pluggable storage options including AMQ Streams, embedded Infinispan, or PostgreSQL database 
 endif::[]
 ifdef::apicurio-registry[]
-* Pluggable storage options including Apache Kafka, Infinispan, or Java Persistence API 
+* Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database 
 endif::[]
 
 * Registry content management by user interface, REST API command, Maven plug-in, or Java client
@@ -106,7 +106,7 @@ ifdef::apicurio-registry[]
 * Java Persistence API 
 * Apache Kafka 
 * Apache Kafka Streams
-* Infinispan
+* Embedded Infinispan cache
 
 NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting this storage implementation. All other storage options are suitable for development and production environments.
 
@@ -121,9 +121,9 @@ ifdef::rh-service-registry[]
 |===
 |Storage option
 |Release
-|Kafka Streams storage in Red Hat AMQ Streams 1.4 
+|Kafka Streams storage in AMQ Streams 1.4 
 |General Availability
-|Infinispan storage in Red Hat Data Grid 8.0   
+|Embedded Infinispan storage in a cache
 |Technical Preview only 
 |Java Persistence API storage in a PostgreSQL 12 database
 |Technical Preview only 
@@ -149,7 +149,7 @@ For details on how to install into your preferred storage option, see xref:insta
 Event-based producer applications can use serializers to encode messages that conform to a specific event schema. Consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. 
 
 .{registry} client serializer/deserializer architecture
-image::../images/getting-started/registry-serdes-architecture.png[Registry Serdes architecture]
+image::images/getting-started/registry-serdes-architecture.png[Registry Serdes architecture]
 
 {registry} provides client serializers/deserializers (Serdes) to validate the following message types at runtime:
 
@@ -244,7 +244,7 @@ ifdef::rh-service-registry[]
 |Container image for Kafka storage in AMQ Streams 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |General Availability
-|Container image for Infinispan storage in Data Grid 
+|Container image for embedded Infinispan storage 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |Technical Preview only
 |Container image for JPA storage in PostgreSQL 

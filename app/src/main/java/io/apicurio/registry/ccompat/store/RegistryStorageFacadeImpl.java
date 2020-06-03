@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.store;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -106,6 +107,16 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+        // Check to see if this content is already registered - return the global ID of that content
+        // if it exists.  If not, then register the new content.
+        try {
+            ContentHandle content = ContentHandle.create(schema);
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(subject, content);
+            return CompletableFuture.completedFuture(dto.getGlobalId());
+        } catch (ArtifactNotFoundException nfe) {
+            // This is OK - when it happens just move on and create
+        }
+        
         // TODO Should this creation and updating of an artifact be a different operation?
         // TODO method that returns a completion stage should not throw an exception
         CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));

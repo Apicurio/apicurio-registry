@@ -178,20 +178,33 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType xRegistryArtifactType,
-                                                             String xRegistryArtifactId, IfExistsType ifExists, ContentHandle content) {
-        final ArtifactMetaData artifactMetaData = getArtifactMetaData(xRegistryArtifactId);
+    private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType artifactType,
+                                                             String artifactId, IfExistsType ifExists, ContentHandle content) {
+        final ArtifactMetaData artifactMetaData = getArtifactMetaData(artifactId);
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(xRegistryArtifactId, xRegistryArtifactType, content);
+                return updateArtifactInternal(artifactId, artifactType, content);
             case RETURN:
                 return CompletableFuture.completedFuture(artifactMetaData);
+            case RETURN_OR_UPDATE:
+                return handleIfExistsReturnOrUpdate(artifactId, artifactType, content);
             default:
-                throw new ArtifactAlreadyExistsException(xRegistryArtifactId);
+                throw new ArtifactAlreadyExistsException(artifactId);
         }
     }
 
+    private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(String artifactId,
+            ArtifactType artifactType, ContentHandle content) {
+        try {
+            ArtifactMetaDataDto mdDto = this.storage.getArtifactMetaData(artifactId, content);
+            ArtifactMetaData md = DtoUtil.dtoToMetaData(artifactId, artifactType, mdDto);
+            return CompletableFuture.completedFuture(md);
+        } catch (ArtifactNotFoundException nfe) {
+            // This is OK - we'll update the artifact if there is no matching content already there.
+        }
+        return updateArtifactInternal(artifactId, artifactType, content);
+    }
 
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.beans.UpdateState)

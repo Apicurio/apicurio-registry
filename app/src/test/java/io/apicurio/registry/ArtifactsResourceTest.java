@@ -40,6 +40,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -870,10 +871,10 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         final String artifactId = UUID.randomUUID().toString();
         final String artifactContent = resourceToString("openapi-empty.json");
         final String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
-
+        final String v3ArtifactContent = artifactContent.replace("Empty API", "Empty API (Version 3)");
 
         // Create OpenAPI artifact - indicate the type via a header param
-        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
+        Integer globalId1 = createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Try to create the same artifact ID (should fail)
         given()
@@ -901,10 +902,12 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", equalTo(1))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
-                .body("description", equalTo("An example API design using OpenAPI."));;
+                .body("description", equalTo("An example API design using OpenAPI."));
+        
+        System.out.println("UPDATE");
 
         // Try to create the same artifact ID with Update for if exists (should update the artifact)
-        given()
+        ValidatableResponse resp = given()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -916,7 +919,41 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("version", equalTo(2))
-                .body("description", equalTo("An example API design using OpenAPI."));;
+                .body("description", equalTo("An example API design using OpenAPI."));
+        Integer globalId2 = resp.extract().body().path("globalId");
+        
+        this.waitForGlobalId(globalId2);
+
+        System.out.println("RETURN_OR_UPDATE");
+
+        // Try to create the same artifact ID with ReturnOrUpdate - should return v1 (matching content)
+        resp = given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", artifactId)
+                .queryParam("ifExists", IfExistsType.RETURN_OR_UPDATE)
+                .body(artifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        Integer globalId3 = resp.extract().body().path("globalId");
+        
+        Assertions.assertEquals(globalId1, globalId3);
+
+        // Try to create the same artifact ID with ReturnOrUpdate and updated content - should create a new version
+        resp = given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", artifactId)
+                .queryParam("ifExists", IfExistsType.RETURN_OR_UPDATE)
+                .body(v3ArtifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(200)
+                .body("version", equalTo(3))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
     }
 
     @Test

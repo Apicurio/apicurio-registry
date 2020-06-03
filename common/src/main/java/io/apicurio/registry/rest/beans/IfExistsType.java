@@ -10,7 +10,8 @@ public enum IfExistsType {
 
     FAIL("FAIL"),
     UPDATE("UPDATE"),
-    RETURN("RETURN");
+    RETURN("RETURN"),
+    RETURN_OR_UPDATE("RETURN_OR_UPDATE");
     private final String value;
     private final static Map<String, IfExistsType> CONSTANTS = new HashMap<String, IfExistsType>();
 

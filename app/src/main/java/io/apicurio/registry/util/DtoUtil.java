@@ -40,11 +40,19 @@ public final class DtoUtil {
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
-        metaData.setId(artifactId);
+        if (artifactId != null) {
+            metaData.setId(artifactId);
+        } else {
+            metaData.setId(dto.getId());
+        }
         metaData.setModifiedBy(dto.getModifiedBy());
         metaData.setModifiedOn(dto.getModifiedOn());
         metaData.setName(dto.getName());
-        metaData.setType(artifactType);
+        if (artifactType != null) {
+            metaData.setType(artifactType);
+        } else {
+            metaData.setType(dto.getType());
+        }
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());

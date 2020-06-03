@@ -91,6 +91,53 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Endpoint: /subjects/(string: subject)/versions
+     */
+    @Test
+    public void testCreateDuplicateContent() throws Exception {
+        final String SUBJECT = "testCreateDuplicateContent";
+        // POST content1
+        ValidatableResponse res = given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        int id1 = res.extract().jsonPath().getInt("id");
+        
+        this.waitForGlobalId(id1);
+
+        // POST content2
+        res = given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_2_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        int id2 = res.extract().jsonPath().getInt("id");
+
+        this.waitForGlobalId(id2);
+
+        // POST content3 (duplicate of content1)
+        res = given()
+            .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+            .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        int id3 = res.extract().jsonPath().getInt("id");
+        
+        // ID1 and ID3 should be the same because they are the same content within the same subject.
+        Assertions.assertEquals(id1, id3);
+    }
+
+    /**
      * Endpoint: /compatibility/subjects/{subject}/versions/{version}
      */
     @Test
@@ -297,7 +344,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final Integer globalId1 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
+                .body(SCHEMA_1_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
@@ -311,14 +358,13 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final Integer globalId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
+                .body(SCHEMA_2_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(globalId2);
-
 
         this.waitForGlobalId(globalId2);
 
@@ -341,7 +387,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         //Create two versions of the same artifact
         // POST
         final Integer globalId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .body(SCHEMA_1_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
@@ -351,7 +397,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         // POST
         final Integer globalId2 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
+                .body(SCHEMA_2_WRAPPED).post("/ccompat/subjects/{subject}/versions", SUBJECT).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
                 .extract().body().jsonPath().get("id");

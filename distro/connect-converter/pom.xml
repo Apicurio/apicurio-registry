@@ -14,7 +14,7 @@
 
     <properties>
         <assembly.descriptor>converter-distribution</assembly.descriptor>
-        <version.jersey>2.30.1</version.jersey>
+        <version.jersey>2.31</version.jersey>
         <version.geronimo.config>1.2.2</version.geronimo.config>
         <distro.version.kafka>2.4.0</distro.version.kafka>
     </properties>

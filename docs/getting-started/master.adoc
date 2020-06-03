@@ -1,7 +1,7 @@
 :experimental:
 include::attributes.adoc[]
 
-:imagesdir: images
+//:imagesdir: images
 
 [id="getting-started-with-registry"]
 = Getting Started with {registry}

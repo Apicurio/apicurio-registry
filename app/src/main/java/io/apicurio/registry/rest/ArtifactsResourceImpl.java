@@ -78,8 +78,6 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     private static final Logger log = LoggerFactory.getLogger(ArtifactsResourceImpl.class);
 
-    private static final int ARTIFACT_FIRST_VERSION = 1;
-
     @Inject
     @Current
     RegistryStorage storage;
@@ -453,12 +451,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
-
-        if (dto.getVersion() != ARTIFACT_FIRST_VERSION) {
-            //Fetch the createdOn value from the first version of the artifact
-            ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
-            dto.setCreatedOn(artifactVersionMetaData.getCreatedOn());
-        }
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
 
@@ -473,11 +465,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
-        if (dto.getVersion() != ARTIFACT_FIRST_VERSION) {
-            //Fetch the createdOn value from the first version of the artifact
-            ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
-            dto.setCreatedOn(artifactVersionMetaData.getCreatedOn());
-        }
         return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
 

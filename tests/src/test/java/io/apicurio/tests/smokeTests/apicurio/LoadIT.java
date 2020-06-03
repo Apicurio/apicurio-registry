@@ -135,6 +135,7 @@ public class LoadIT extends BaseIT {
                 Thread.sleep(1);
                 return amd;
             } catch (Exception e) {
+                LOGGER.error("Error creating artifact " + artifactId, e);
                 throw new CompletionException("Error creating artifact", e);
             }
         }, runnable -> new Thread(runnable).start());

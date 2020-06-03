@@ -29,7 +29,6 @@ import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.List;
 import javax.interceptor.Interceptors;
-import javax.ws.rs.core.HttpHeaders;
 
 import static io.apicurio.registry.metrics.MetricIDs.*;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
@@ -62,7 +61,6 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     public List<Integer> deleteSubject(
-            HttpHeaders headers,
             String subject) throws Exception {
 
         return facade.deleteSubject(subject);

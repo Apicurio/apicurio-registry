@@ -28,7 +28,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.HttpHeaders;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
@@ -121,6 +120,5 @@ public interface SubjectsResource {
     @DELETE
     @Path("/{subject}")
     List<Integer> deleteSubject(
-            HttpHeaders headers,
             @PathParam("subject") String subject) throws Exception;
 }

@@ -403,21 +403,17 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             contents.put(MetaDataKeys.VERSION, String.valueOf(version));
             contents.put(MetaDataKeys.TYPE, type.value());
 
-            // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
             String currentTimeMillis = String.valueOf(System.currentTimeMillis());
             contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
             contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
-
-            //        contents.put(MetaDataKeys.NAME, null);
-            //        contents.put(MetaDataKeys.DESCRIPTION, null);
             // TODO -- createdBy, modifiedBy
+
             contents.put(MetaDataKeys.STATE, ArtifactState.ENABLED.name());
 
             if (!create) {
                 Str.ArtifactValue previous = builder.getArtifacts(count - 1); // last one
                 Map<String, String> prevContents = previous.getMetadataMap();
                 if (prevContents != null) {
-                    checkNull(artifactId, version, contents, MetaDataKeys.CREATED_ON, prevContents.get(MetaDataKeys.CREATED_ON));
                     if (prevContents.containsKey(MetaDataKeys.NAME)) {
                         checkNull(artifactId, version, contents, MetaDataKeys.NAME, prevContents.get(MetaDataKeys.NAME));
                     }

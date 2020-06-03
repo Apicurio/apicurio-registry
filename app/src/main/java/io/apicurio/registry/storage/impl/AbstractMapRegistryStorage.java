@@ -52,6 +52,8 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
  */
 public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
+    private static final int ARTIFACT_FIRST_VERSION = 1;
+
     @Inject
     protected ArtifactTypeUtilProviderFactory factory;
 
@@ -200,6 +202,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);
+        // TODO -- createdBy, modifiedBy
 
         // Carry over some meta-data from the previous version on an update.
         if (!create) {
@@ -368,8 +371,16 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
-        return MetaDataKeys.toArtifactMetaData(content);
+
+        final Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
+        final HashMap<String, String> artifactContent = new HashMap<>(content);
+
+        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
+        if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+            ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+            artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+        }
+        return MetaDataKeys.toArtifactMetaData(artifactContent);
     }
 
     @Override
@@ -386,7 +397,9 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
             byte[] candidateBytes = canonicalCandidateContent.bytes();
             if (Arrays.equals(canonicalBytes, candidateBytes)) {
                 ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(cMap), cMap.get(VERSION));
-                return MetaDataKeys.toArtifactMetaData(cMap);
+                final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(cMap);
+                artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+                return artifactMetaDataDto;
             }
         }
         throw new ArtifactNotFoundException(artifactId);

@@ -103,6 +103,8 @@ import io.apicurio.registry.util.SearchUtil;
 @Logged
 public class JPARegistryStorage implements RegistryStorage {
 
+    private static final int ARTIFACT_FIRST_VERSION = 1;
+
     @Inject
     EntityManager entityManager;
 
@@ -312,7 +314,7 @@ public class JPARegistryStorage implements RegistryStorage {
         searchedArtifact.setModifiedBy(artifactSearchResult.getModifiedBy());
         searchedArtifact.setModifiedOn(artifactSearchResult.getModifiedOn() != null ? Long.parseLong(artifactSearchResult.getModifiedOn()) : 0L);
         searchedArtifact.setCreatedBy(artifactSearchResult.getCreatedBy());
-        searchedArtifact.setCreatedOn(artifactSearchResult.getCreatedOn() != null ? Long.parseLong(artifactSearchResult.getModifiedOn()) : 0L);
+        searchedArtifact.setCreatedOn(artifactSearchResult.getCreatedOn() != null ? Long.parseLong(artifactSearchResult.getCreatedOn()) : 0L);
         searchedArtifact.setDescription(artifactSearchResult.getDescription());
         searchedArtifact.setState(ArtifactState.fromValue(artifactSearchResult.getState()));
         if (artifactSearchResult.getLabels() != null && !artifactSearchResult.getLabels().isEmpty()) {
@@ -370,7 +372,6 @@ public class JPARegistryStorage implements RegistryStorage {
             MetaDataMapperUpdater mdmu = new MetaDataMapperUpdater()
                 .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                 .update(MetaDataKeys.TYPE, artifactType.value());
-            // TODO not yet properly handling createdOn vs. modifiedOn for multiple versions
             String currentTimeMillis = String.valueOf(System.currentTimeMillis());
             mdmu.update(MetaDataKeys.CREATED_ON, currentTimeMillis);
             mdmu.update(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
@@ -465,17 +466,25 @@ public class JPARegistryStorage implements RegistryStorage {
 
             entityManager.persist(artifact);
 
+            String currentTimeMillis = String.valueOf(System.currentTimeMillis());
+
             MetaDataMapperUpdater mdmu = new MetaDataMapperUpdater()
-                .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
-                .update(MetaDataKeys.TYPE, artifactType.value())
-                // copy name and description .. if previous version (still) exists
-                .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME, MetaDataKeys.DESCRIPTION);
+                    .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
+                    .update(MetaDataKeys.TYPE, artifactType.value())
+                    .update(MetaDataKeys.CREATED_ON, currentTimeMillis)
+                    // copy name and description .. if previous version (still) exists
+                    .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME,
+                            MetaDataKeys.DESCRIPTION);
 
             extractMetaData(artifactType, content, mdmu);
 
             ArtifactMetaDataDto amdd = mdmu.persistUpdate(entityManager, artifactId, nextVersion)
                                            .update(artifact)
                                            .toArtifactMetaDataDto();
+
+            final ArtifactVersionMetaDataDto firstVersionMetadata = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+            amdd.setCreatedOn(firstVersionMetadata.getCreatedOn());
+
             return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
@@ -542,9 +551,17 @@ public class JPARegistryStorage implements RegistryStorage {
 
             Artifact artifact = _getArtifact(artifactId, ArtifactStateExt.ACTIVE_STATES);
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
+            final ArtifactMetaDataDto artifactMetaDataDto = new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
                 .update(artifact)
                 .toArtifactMetaDataDto();
+
+            if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+                final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+                artifactMetaDataDto.setCreatedOn(artifactVersionMetaDataDto.getCreatedOn());
+                artifactMetaDataDto.setModifiedOn(artifactMetaDataDto.getModifiedOn());
+            }
+
+            return artifactMetaDataDto;
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
@@ -590,9 +607,14 @@ public class JPARegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(artifactId);
             }
 
-            return new MetaDataMapperUpdater(_getMetaData(artifactId, artifact.getVersion()))
-                .update(artifact)
-                .toArtifactMetaDataDto();
+            ArtifactMetaDataDto artifactMetaDataDto = new MetaDataMapperUpdater(
+                    _getMetaData(artifactId, artifact.getVersion()))
+                    .update(artifact)
+                    .toArtifactMetaDataDto();
+
+            artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+
+            return artifactMetaDataDto;
         } catch (PersistenceException e) {
             throw new RegistryStorageException(e);
         }

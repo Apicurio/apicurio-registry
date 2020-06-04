@@ -1,0 +1,46 @@
+// Metadata created by nebel
+//
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-operatorhub"]
+= Installing {registry} from the OpenShift OperatorHub
+// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
+
+You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details on the OperatorHub, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+
+.Prerequisites
+
+* You must have cluster administrator access to an OpenShift 4.4 or 4.3 cluster
+* You must have set up your registry storage. For more details, see
+** xref:setting-up-kafka-kubernetes-storage[]
+
+NOTE: You do not need to create a pull secret when installing {registry} from the OpenShift OperatorHub. The {registry} Operator automatically reuses the OpenShift cluster-level authentication to pull the {registry} image from `registry.redhat.io`. 
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Create a new OpenShift project:
+
+.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. Enter a project name, for example, `my-service-registry-project`, and click *Create*.
+
+. In the left navigation menu, click *Catalog* > *OperatorHub*.
+
+. In the *Filter by keyword* text box, enter `{registry}` to find the *Red Hat Integration - {registry} Operator*.
+
+. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+
+. Select the following subscription settings:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-service-registry-project*
+** *Update Channel* > *alpha*
+** *Approval Strategy* > *Automatic*
++
+NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.
+
+. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
+
+. Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
+
+.Additional resources
+* https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

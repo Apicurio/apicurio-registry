@@ -21,7 +21,7 @@ ifdef::rh-service-registry[]
 This chapter explains how to set up storage in AMQ Streams and how to install and run {registry}:
 
 * xref:setting-up-kafka-kubernetes-storage[]
-* xref:installing-registry-kafka-kubernetes-storage[]
+* xref:installing-registry-operatorhub[]
 endif::[]
  
 .Prerequisites
@@ -46,5 +46,5 @@ endif::[]
 
 ifdef::rh-service-registry[]
 include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
 endif::[]

@@ -11,6 +11,7 @@
 //:registry: Apicurio Registry
 :registry: Service Registry
 :registry-version: 1.2
+:registry-ocp-version: 4.3
 :version: 2020-Q2
 
 //integration products

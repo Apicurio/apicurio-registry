@@ -420,24 +420,48 @@
                 <artifactId>kafka-avro-serializer</artifactId>
                 <version>${confluent.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.glassfish.jersey.ext</groupId>
+                        <artifactId>jersey-bean-validation</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-serializer</artifactId>
                 <version>${confluent.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.glassfish.jersey.ext</groupId>
+                        <artifactId>jersey-bean-validation</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-serializer</artifactId>
                 <version>${confluent.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.glassfish.jersey.ext</groupId>
+                        <artifactId>jersey-bean-validation</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
                 <version>${confluent.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.glassfish.jersey.ext</groupId>
+                        <artifactId>jersey-bean-validation</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

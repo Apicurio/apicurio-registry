@@ -140,7 +140,7 @@ ifdef::rh-service-registry[]
 +
 [source,bash]
 ----
-oc apply -f install/cluster-operator/
+$ oc apply -f install/cluster-operator/
 ----
 
 . If you do not already have a Kafka cluster set up, create a new Kafka cluster with AMQ Streams. For example: 

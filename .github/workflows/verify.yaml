@@ -82,4 +82,13 @@ jobs:
         run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
       - name: Run Integration Tests
         run: mvn verify -Pall -pl tests -Dmaven.javadoc.skip=true
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
           

@@ -25,7 +25,7 @@
         <vertx.version>3.9.0</vertx.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
-        <slf4j-api.version>1.8.0-alpha2</slf4j-api.version>
+        <slf4j-api.version>2.0.0-alpha1</slf4j-api.version>
         <slf4j-log4j.version>2.13.3</slf4j-log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>

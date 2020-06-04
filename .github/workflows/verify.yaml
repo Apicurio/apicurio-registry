@@ -65,6 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && github.actor != 'depbot'
     steps:
+      - name: Show Actor
+        run: echo "Current actor: ${{github.actor}} ${github.actor}"
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Set up JDK 1.8

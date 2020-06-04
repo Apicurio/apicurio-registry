@@ -63,7 +63,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && github.actor != 'depbot'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2

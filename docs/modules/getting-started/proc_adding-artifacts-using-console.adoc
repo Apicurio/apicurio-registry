@@ -1,0 +1,29 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="adding-artifacts-using-console"]
+= Uploading artifacts using the {registry} web console
+
+You can use the {registry} web console to upload event schema and API design artifacts to the registry. For details on the types of artifacts that you can upload, see xref:registry-artifact-types[]. This chapter shows a simple example of uploading {registry} artifacts and artifact versions, and applying artifact rules.  
+
+.Prerequisites
+
+* {registry} must be installed and running in your environment. For details, see xref:installing-the-registry[].
+
+.Procedure
+
+. Connect to the {registry} web console on: 
++
+`*\http://MY_REGISTRY_URL/ui/artifacts*`
+
+. Click *Upload Artifact*, and enter the following in the dialog:
+** *ID*: Specify an artifact ID or leave this field empty to let the {registry} server auto-generate an ID.
+** *Type*: Use the default *Auto-Detect* setting or select the artifact type from the drop-down, for example *Avro Schema* or *OpenAPI*. 
+** *Artifact*: Drag a file here or click *Browse* to upload a file.
+
+. Click *Upload* and view the *Artifact Details*. Depending on the artifact type, you will
+
+. 
+
+.Additional resources
+* dsfdf

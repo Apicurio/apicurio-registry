@@ -63,7 +63,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio' && github.actor != 'depbot'
+    if: github.repository_owner == 'Apicurio' && github.actor != 'dependabot-preview[bot]'
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}

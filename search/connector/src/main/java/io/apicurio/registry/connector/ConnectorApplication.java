@@ -87,8 +87,9 @@ public class ConnectorApplication {
 
         KafkaOffsetBackingStore offsetBackingStore = new KafkaOffsetBackingStore();
         offsetBackingStore.configure(config);
+        Object connectorClientConfigOverridePolicy = Compatibility.createConnectorClientConfigOverridePolicy(plugins, config);
 
-        Worker worker = new Worker(workerId, time, plugins, config, offsetBackingStore);
+        Worker worker = Compatibility.createWorker(workerId, time, plugins, config, offsetBackingStore, connectorClientConfigOverridePolicy);
         WorkerConfigTransformer configTransformer = worker.configTransformer();
 
         Converter internalValueConverter = worker.getInternalValueConverter();
@@ -100,9 +101,9 @@ public class ConnectorApplication {
             config,
             configTransformer);
 
-        DistributedHerder herder = new DistributedHerder(config, time, worker,
+        DistributedHerder herder = Compatibility.createDistributedHerder(config, time, worker,
                                                          kafkaClusterId, statusBackingStore, configBackingStore,
-                                                         advertisedUrl.toString());
+                                                         advertisedUrl.toString(), connectorClientConfigOverridePolicy);
 
         final Connect connect = new Connect(herder, rest);
         log.info("Kafka Connect distributed worker initialization took {}ms", time.hiResClockMs() - initStart);

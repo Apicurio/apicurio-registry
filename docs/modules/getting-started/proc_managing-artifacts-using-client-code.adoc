@@ -14,7 +14,7 @@ You can also manage artifacts in the registry using a Java client application. T
 
 .Procedure
 
-* Update your client application to create a new artifact in the registry. The following example shows creating an Apache Avro schema artifact from a Kafka producer client application:
+* Update your client application to add a new artifact in the registry. The following example shows adding an Apache Avro schema artifact from a Kafka producer client application:
 +
 [source,java,subs="+quotes,attributes"]
 ----
@@ -38,7 +38,7 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
 ----
 <1> Configure the client application with the Service Registry URL in the client properties. You can create properties for more than one registry node.
 <2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
-<3> Create the new schema artifact in the registry.
+<3> Add the new schema artifact in the registry.
 
 .Additional resources
 * For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.

@@ -9,7 +9,7 @@ For example, client applications can dynamically push or pull the latest schema 
 
 You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client code. For example, the registry can store schemas used to serialize and deserialize messages, which can then be referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
 
-Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} provides a graphical user interface to make it easy for developers and administrators to manage registry content.
+Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} provides a web console to make it easy for developers and administrators to manage registry content.
 
 
 ifdef::rh-service-registry[]
@@ -31,7 +31,7 @@ ifdef::apicurio-registry[]
 * Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database 
 endif::[]
 
-* Registry content management by user interface, REST API command, Maven plug-in, or Java client
+* Registry content management by web console, REST API command, Maven plug-in, or Java client
 
 * Rules for content validation and version compatibility to govern how registry content evolves over time
 
@@ -121,11 +121,11 @@ ifdef::rh-service-registry[]
 |===
 |Storage option
 |Release
-|Kafka Streams storage in AMQ Streams 1.4 
+|Kafka Streams-based storage in AMQ Streams 1.4 
 |General Availability
-|Embedded Infinispan storage in a cache
+|Cache-based storage in embedded Infinispan 10
 |Technical Preview only 
-|Java Persistence API storage in a PostgreSQL 12 database
+|Java Persistence API-based storage in PostgreSQL 12 database
 |Technical Preview only 
 |===
 
@@ -204,11 +204,11 @@ endif::[]
 [id="registry-distros"]
 = Available distributions
 
-You can access the following available distributions for {registry}: 
+You can access the following distributions for {registry}: 
 
 ifdef::apicurio-registry[]
 
-.{registry} distributions 
+.{registry} images 
 [%header,cols=2*] 
 |===
 |Storage option
@@ -232,14 +232,17 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-.{registry} distributions
+.{registry} Operator and images
 [%header,cols="3,3,2"]
 |===
 |Distribution
 |Location
 |Release
-|OpenShift Operator for Kafka storage in AMQ Streams 
+|{registry} Operator 
 |OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for {registry} Operator 
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |General Availability
 |Container image for Kafka storage in AMQ Streams 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
@@ -250,6 +253,15 @@ ifdef::rh-service-registry[]
 |Container image for JPA storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
 |Technical Preview only
+|===
+
+
+.{registry} downloads
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release
 |Maven repository .zip
 |link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
 |General Availability
@@ -263,6 +275,7 @@ ifdef::rh-service-registry[]
 |link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
 |General Availability
 |===
+
 
 NOTE: You must have a subscription for Red Hat Integration and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
 endif::[]

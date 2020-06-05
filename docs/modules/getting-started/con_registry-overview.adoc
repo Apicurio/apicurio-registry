@@ -9,7 +9,7 @@ For example, client applications can dynamically push or pull the latest schema 
 
 You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client code. For example, the registry can store schemas used to serialize and deserialize messages, which can then be referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
 
-Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} provides a graphical user interface to make it easy for developers and administrators to manage registry content.
+Using {registry} to decouple your data structure from your applications reduces costs by decreasing overall message size, and creates efficiencies by increasing consistent reuse of schemas and API designs across your organization. {registry} provides a web console to make it easy for developers and administrators to manage registry content.
 
 
 ifdef::rh-service-registry[]
@@ -31,7 +31,7 @@ ifdef::apicurio-registry[]
 * Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database 
 endif::[]
 
-* Registry content management by user interface, REST API command, Maven plug-in, or Java client
+* Registry content management by web console, REST API command, Maven plug-in, or Java client
 
 * Rules for content validation and version compatibility to govern how registry content evolves over time
 

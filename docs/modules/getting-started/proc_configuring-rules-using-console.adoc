@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="configuring-rules-using-console"]
-= Configuring content rules in the {registry} web console
+= Configuring content rules using the {registry} web console
 
 You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules. For more details, see xref:registry-rules[].
 
@@ -23,7 +23,7 @@ This section shows a simple example of configuring global and artifact rules. Fo
 
 . Click *View artifact* to view the *Artifact Details*.
 
-. In  *Content Rules*, click *Enable* to configure an artifact *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see xref:registry-rule-types[].
+. In *Content Rules*, click *Enable* to configure an artifact *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see xref:registry-rule-types[].
 
 . For global rules, click the *Settings* icon at the top right of the toolbar, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see xref:registry-rule-types[].
 

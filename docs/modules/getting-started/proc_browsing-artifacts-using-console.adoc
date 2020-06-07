@@ -2,9 +2,9 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="browsing-artifacts-using-console"]
-= Viewing artifacts in the {registry} web console
+= Viewing artifacts using the {registry} web console
 
-You can use the {registry} web console to browse the event schema and API design artifacts stored in the registry. This section shows simple examples of viewing {registry} artifacts, versions, and artifact rules. For more details on the artifacts types stored in the registry, see xref:registry-artifact-types[]. 
+You can use the {registry} web console to browse the event schema and API design artifacts stored in the registry. This section shows simple examples of viewing {registry} artifacts, versions, and artifact rules. For more details on the artifact types stored in the registry, see xref:registry-artifact-types[]. 
 
 .Prerequisites
 
@@ -21,12 +21,12 @@ You can use the {registry} web console to browse the event schema and API design
 
 . Click *View artifact* to view the *Artifact Details*:
 
-** *Info*: Displays artifact metadata including name, description, status, created, and modified. Available artifact actions include *Edit Artifact Metadata* and *Download*. Also displays *Content Rules* that you can enable for the artifact and specific configuration that you can select for each rule.
+** *Info*: Displays artifact metadata including name, description, status, created, and modified. Artifact actions include *Edit Artifact Metadata* and *Download*. Also displays artifact *Content Rules* that you can enable and configure.
 
 ** *Documentation* (OpenAPI and WSDL only): Displays automatically-generated REST or Web Service API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 
-. Select a different artifact *Version* from the drop-down to view, if additional versions have been added.
+. Select to view a different artifact *Version* from the drop-down, if additional versions have been added.
 
 .Additional resources
 

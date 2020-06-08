@@ -411,7 +411,6 @@ public class StreamsRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
 
         final Map<String, String> content = getLastArtifact(artifactId).getMetadataMap();
-        final HashMap<String, String> artifactContent = new HashMap<>(content);
 
         final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
         if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
@@ -419,7 +418,13 @@ public class StreamsRegistryStorage implements RegistryStorage {
             artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
         }
 
-        return MetaDataKeys.toArtifactMetaData(artifactContent);
+        final SortedSet<Long> versions = getArtifactVersions(artifactId);
+        if (artifactMetaDataDto.getVersion() != versions.last()) {
+            final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(artifactId, versions.last());
+            artifactMetaDataDto.setModifiedOn(artifactVersionMetaDataDto.getCreatedOn());
+        }
+
+        return artifactMetaDataDto;
     }
 
     @Override
@@ -445,6 +450,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
                     if (Arrays.equals(canonicalBytes, candidateBytes)) {
                         final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
                         artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+                        artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
                         return artifactMetaDataDto;
                     }
                 }

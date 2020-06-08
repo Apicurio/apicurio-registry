@@ -212,7 +212,6 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);
-        // TODO -- createdBy, modifiedBy
 
         // Carry over some meta-data from the previous version on an update.
         if (!create) {
@@ -384,14 +383,20 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
 
         final Map<String, String> content = getLatestContentMap(artifactId, ArtifactStateExt.ACTIVE_STATES);
-        final HashMap<String, String> artifactContent = new HashMap<>(content);
 
         final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
         if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
             ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
             artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
         }
-        return MetaDataKeys.toArtifactMetaData(artifactContent);
+
+        final SortedSet<Long> versions = getArtifactVersions(artifactId);
+        if (artifactMetaDataDto.getVersion() != versions.last()) {
+            final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(artifactId, versions.last());
+            artifactMetaDataDto.setModifiedOn(artifactVersionMetaDataDto.getCreatedOn());
+        }
+
+        return artifactMetaDataDto;
     }
 
     @Override
@@ -410,6 +415,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
                 ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(cMap), cMap.get(VERSION));
                 final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(cMap);
                 artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+                artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
                 return artifactMetaDataDto;
             }
         }

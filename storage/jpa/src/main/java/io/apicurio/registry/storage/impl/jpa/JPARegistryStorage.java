@@ -472,6 +472,7 @@ public class JPARegistryStorage implements RegistryStorage {
                     .update(MetaDataKeys.STATE, ArtifactState.ENABLED.name())
                     .update(MetaDataKeys.TYPE, artifactType.value())
                     .update(MetaDataKeys.CREATED_ON, currentTimeMillis)
+                    .update(MetaDataKeys.MODIFIED_ON, currentTimeMillis)
                     // copy name and description .. if previous version (still) exists
                     .update(_getMetaData(artifactId, nextVersion - 1), MetaDataKeys.NAME,
                             MetaDataKeys.DESCRIPTION);
@@ -484,6 +485,7 @@ public class JPARegistryStorage implements RegistryStorage {
 
             final ArtifactVersionMetaDataDto firstVersionMetadata = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
             amdd.setCreatedOn(firstVersionMetadata.getCreatedOn());
+            amdd.setModifiedOn(Long.parseLong(currentTimeMillis));
 
             return CompletableFuture.completedFuture(amdd);
         } catch (PersistenceException ex) {
@@ -558,7 +560,13 @@ public class JPARegistryStorage implements RegistryStorage {
             if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
                 artifactMetaDataDto.setCreatedOn(artifactVersionMetaDataDto.getCreatedOn());
-                artifactMetaDataDto.setModifiedOn(artifactMetaDataDto.getModifiedOn());
+            }
+
+            final SortedSet<Long> versions = getArtifactVersions(artifactId);
+
+            if (artifactMetaDataDto.getVersion() != versions.last()) {
+                final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(artifactId, versions.last());
+                artifactMetaDataDto.setModifiedOn(artifactVersionMetaDataDto.getCreatedOn());
             }
 
             return artifactMetaDataDto;
@@ -613,6 +621,7 @@ public class JPARegistryStorage implements RegistryStorage {
                     .toArtifactMetaDataDto();
 
             artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
+            artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
 
             return artifactMetaDataDto;
         } catch (PersistenceException e) {

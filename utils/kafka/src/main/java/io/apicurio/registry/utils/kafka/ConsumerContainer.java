@@ -26,14 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedTransferQueue;
@@ -153,13 +146,18 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
                     }
                 } else {
                     assert !waitingForSubscriptionOrAssignment;
-                    ConsumerRecords<K, V> records = null;
-                    try {
-                        records = consumer.poll(consumerPollTimeout);
-                    } catch (IllegalStateException e) { // thrown when there's no subscription or assignment
-                        log.info("{} - will wait", e.getMessage());
-                        waitingForSubscriptionOrAssignment = true;
-                    }
+
+                    boolean[] flag = new boolean[1];
+                    ConsumerRecords<K, V> records = consumeRetryable(null, r -> {
+                        try {
+                            return consumer.poll(consumerPollTimeout);
+                        } catch (IllegalStateException e) { // thrown when there's no subscription or assignment
+                            log.info("{} - will wait", e.getMessage());
+                            flag[0] = true;
+                            return null;
+                        }
+                    }, consumer);
+                    waitingForSubscriptionOrAssignment = flag[0];
 
                     Long time = System.currentTimeMillis();
 
@@ -214,14 +212,26 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
      * @param record the record to consume
      */
     private <T> void consumeRetryable(T record, java.util.function.Consumer<? super T> recordConsumer, Consumer<K, V> consumer) {
+        consumeRetryable(record, r -> {
+            recordConsumer.accept(r);
+            return null;
+        }, consumer);
+    }
+
+    /**
+     * Handle record(s) by passing it/them to {@code function} and retrying that until successful (possibly ad infinity)
+     *
+     * @param record the record/records to handle
+     * @return function's result or null if stopped before
+     */
+    private <T, R> R consumeRetryable(T record, java.util.function.Function<? super T, R> recordFunction, Consumer<K, V> consumer) {
         long delay = MIN_RETRY_DELAY;
         boolean interrupted = false;
         // retry loop
         while (!stopping) {
             try {
-                recordConsumer.accept(record);
+                return recordFunction.apply(record);
                 // everything alright
-                break;
             } catch (Exception e) {
                 log.warn("Exception caught while processing {} - retrying in {} ms", formatRecord(record), delay, e);
                 CompletableFuture<Consumer<K, V>> task;
@@ -250,6 +260,7 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
                 }
             }
         }
+        return null;
     }
 
     private static String formatRecord(Object record) {

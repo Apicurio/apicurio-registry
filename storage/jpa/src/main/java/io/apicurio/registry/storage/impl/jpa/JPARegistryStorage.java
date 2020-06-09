@@ -483,8 +483,11 @@ public class JPARegistryStorage implements RegistryStorage {
                                            .update(artifact)
                                            .toArtifactMetaDataDto();
 
-            final ArtifactVersionMetaDataDto firstVersionMetadata = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
-            amdd.setCreatedOn(firstVersionMetadata.getCreatedOn());
+            if (amdd.getVersion() != ARTIFACT_FIRST_VERSION) {
+                ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+                amdd.setCreatedOn(firstVersionContent.getCreatedOn());
+            }
+
             amdd.setModifiedOn(Long.parseLong(currentTimeMillis));
 
             return CompletableFuture.completedFuture(amdd);

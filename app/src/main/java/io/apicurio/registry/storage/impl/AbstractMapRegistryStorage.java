@@ -243,8 +243,16 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
 
         // Also store in global
         global.put(globalId, new TupleId(artifactId, version));
-        
-        return MetaDataKeys.toArtifactMetaData(contents);
+
+        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(contents);
+
+        //Set the createdOn based on the first version metadata.
+        if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+            ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+            artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+        }
+
+        return artifactMetaDataDto;
     }
 
     protected Map<String, String> getContentMap(long id) {

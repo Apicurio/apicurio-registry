@@ -363,7 +363,13 @@ public class StreamsRegistryStorage implements RegistryStorage {
                            for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
                                Str.ArtifactValue value = d.getArtifacts(i);
                                if (value.getId() == globalId) {
-                                   return MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+                                   ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+
+                                   if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+                                       ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(artifactId, ARTIFACT_FIRST_VERSION);
+                                       artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+                                   }
+                                   return artifactMetaDataDto;
                                }
                            }
                            throw new ArtifactNotFoundException(artifactId);

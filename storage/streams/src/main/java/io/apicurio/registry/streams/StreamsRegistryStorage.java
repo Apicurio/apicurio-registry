@@ -8,6 +8,7 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
+import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
@@ -56,7 +57,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT, description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT})
 @Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
 @Logged
-public class StreamsRegistryStorage implements RegistryStorage {
+public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";

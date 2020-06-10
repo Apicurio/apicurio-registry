@@ -25,7 +25,9 @@ import static org.hamcrest.Matchers.nullValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 
@@ -38,79 +40,96 @@ public class RulesResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGlobalRulesEndpoint() {
         given()
-            .when().contentType(CT_JSON).get("/rules")
+            .when()
+                .contentType(CT_JSON)
+                .get("/rules")
             .then()
-            .statusCode(200)
-            .body(anything());
+                .statusCode(200)
+                .body(anything());
     }
     
     @Test
-    public void testGlobalRules() {
+    public void testGlobalRules() throws Exception {
+        this.createArtifact(this.generateArtifactId(), ArtifactType.JSON, "{}");
+        
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
         
         // Try to add the rule again - should get a 409
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
             .then()
-            .statusCode(409)
-            .body("error_code", equalTo(409))
-            .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         
         // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("compatibility-config");
+        rule.setConfig("BACKWARD");
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .post("/rules")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
 
         // Get the list of rules (should be 2 of them)
         given()
-            .when().get("/rules")
+            .when()
+                .get("/rules")
             .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
-            .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
-            .body("[2]", nullValue());
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
+                .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
+                .body("[2]", nullValue());
         
         // Get a single rule by name
         given()
-            .when().get("/rules/COMPATIBILITY")
+            .when()
+                .get("/rules/COMPATIBILITY")
             .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("type", equalTo("COMPATIBILITY"))
-            .body("config", equalTo("compatibility-config"));
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("COMPATIBILITY"))
+                .body("config", equalTo("BACKWARD"));
 
         // Update a rule's config
         rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("updated-configuration");
+        rule.setConfig("FULL");
         given()
-            .when().contentType(CT_JSON).body(rule).put("/rules/COMPATIBILITY")
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .put("/rules/COMPATIBILITY")
             .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("type", equalTo("COMPATIBILITY"))
-            .body("config", equalTo("updated-configuration"));
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("COMPATIBILITY"))
+                .body("config", equalTo("FULL"));
 
         // Get a single (updated) rule by name
         given()
-            .when().get("/rules/COMPATIBILITY")
+            .when()
+                .get("/rules/COMPATIBILITY")
             .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("type", equalTo("COMPATIBILITY"))
-            .body("config", equalTo("updated-configuration"));
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("COMPATIBILITY"))
+                .body("config", equalTo("FULL"));
 
         // Try to update a rule's config for a rule that doesn't exist.
 //        rule.setType("RuleDoesNotExist");
@@ -125,90 +144,110 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Delete a rule
         given()
-            .when().delete("/rules/COMPATIBILITY")
+            .when()
+                .delete("/rules/COMPATIBILITY")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
 
         // Get a single (deleted) rule by name (should fail with a 404)
-        given()
-            .when().get("/rules/COMPATIBILITY")
-            .then()
-            .statusCode(404)
-            .contentType(ContentType.JSON)
-            .body("error_code", equalTo(404))
-            .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+        });
 
         // Get the list of rules (should be 1 of them)
-        given()
-            .when().get("/rules")
-            .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
-            .body("[1]", nullValue());
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules")
+                .then()
+                .log().all()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0]", equalTo("VALIDITY"))
+                    .body("[1]", nullValue());
+        });
 
         // Delete all rules
         given()
-            .when().delete("/rules")
+            .when()
+                .delete("/rules")
             .then()
-            .statusCode(204);
+                .statusCode(204);
 
         // Get the list of rules (no rules now)
-        given()
-            .when().get("/rules")
-            .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("[0]", nullValue());
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0]", nullValue());
+        });
 
         // Get the other (deleted) rule by name (should fail with a 404)
         given()
-            .when().get("/rules/VALIDITY")
+            .when()
+                .get("/rules/VALIDITY")
             .then()
-            .statusCode(404)
-            .contentType(ContentType.JSON)
-            .body("error_code", equalTo(404))
-            .body("message", equalTo("No rule named 'VALIDITY' was found."));
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'VALIDITY' was found."));
 
     }
 
     @Test
-    public void testDeleteAllGlobalRules() {
+    public void testDeleteAllGlobalRules() throws Exception {
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .post("/rules")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
         
         // Get a single rule by name
         given()
-            .when().get("/rules/VALIDITY")
+            .when()
+                .get("/rules/VALIDITY")
             .then()
-            .statusCode(200)
-            .contentType(ContentType.JSON)
-            .body("type", equalTo("VALIDITY"))
-            .body("config", equalTo("FULL"));
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("type", equalTo("VALIDITY"))
+                .body("config", equalTo("FULL"));
 
         // Delete all rules
         given()
-            .when().delete("/rules")
+            .when()
+                .delete("/rules")
             .then()
-            .statusCode(204);
+                .statusCode(204);
 
         // Get the (deleted) rule by name (should fail with a 404)
-        given()
-            .when().get("/rules/VALIDITY")
-            .then()
-            .statusCode(404)
-            .contentType(ContentType.JSON)
-            .body("error_code", equalTo(404))
-            .body("message", equalTo("No rule named 'VALIDITY' was found."));
-
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules/VALIDITY")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No rule named 'VALIDITY' was found."));
+        });
     }
 
 }

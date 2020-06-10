@@ -36,6 +36,7 @@ import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -198,17 +199,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204);
 
-        // TODO -- fix async!
-
         // Try to get artifact content for an artifact that doesn't exist.
-        given()
-            .when()
-                .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
-                .get("/artifacts/{artifactId}")
-            .then()
-                .statusCode(404)
-                .body("error_code", equalTo(404))
-                .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
+                    .get("/artifacts/{artifactId}")
+                .then()
+                    .statusCode(404)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
+        });
     
         // Try to delete an artifact that doesn't exist.
         given()
@@ -467,7 +468,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         
         // Add another rule
         rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("compatibility-config");
+        rule.setConfig("BACKWARD");
         given()
             .when()
                 .contentType(CT_JSON)
@@ -499,11 +500,11 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("type", equalTo("COMPATIBILITY"))
-                .body("config", equalTo("compatibility-config"));
+                .body("config", equalTo("BACKWARD"));
 
         // Update a rule's config
         rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("updated-configuration");
+        rule.setConfig("FULL");
         given()
             .when()
                 .contentType(CT_JSON)
@@ -514,7 +515,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("type", equalTo("COMPATIBILITY"))
-                .body("config", equalTo("updated-configuration"));
+                .body("config", equalTo("FULL"));
 
         // Get a single (updated) rule by name
         given()
@@ -525,7 +526,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("type", equalTo("COMPATIBILITY"))
-                .body("config", equalTo("updated-configuration"));
+                .body("config", equalTo("FULL"));
 
         // Try to update a rule's config for a rule that doesn't exist.
         // TODO test for a rule that doesn't exist
@@ -552,18 +553,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204)
                 .body(anything());
 
-        // TODO -- fix async!
-
         // Get a single (deleted) rule by name (should fail with a 404)
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
-            .then()
-                .statusCode(404)
-                .contentType(ContentType.JSON)
-                .body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+        });
 
         // Get the list of rules (should be 1 of them)
         given()
@@ -586,14 +587,16 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
 
         // Get the list of rules (no rules now)
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules")
-            .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("[0]", nullValue());
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0]", nullValue());
+        });
 
         // Add a rule to an artifact that doesn't exist.
         rule = new Rule();
@@ -904,8 +907,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("Empty API"))
                 .body("description", equalTo("An example API design using OpenAPI."));
         
-        System.out.println("UPDATE");
-
         // Try to create the same artifact ID with Update for if exists (should update the artifact)
         ValidatableResponse resp = given()
                 .when()
@@ -923,8 +924,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Integer globalId2 = resp.extract().body().path("globalId");
         
         this.waitForGlobalId(globalId2);
-
-        System.out.println("RETURN_OR_UPDATE");
 
         // Try to create the same artifact ID with ReturnOrUpdate - should return v1 (matching content)
         resp = given()
@@ -998,12 +997,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
         
         // Get a single rule by name (should be 404 because the artifact is gone)
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/VALIDITY")
-            .then()
-                .statusCode(404);
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                    .statusCode(404);
+        });
 
         // Re-create the artifact
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);

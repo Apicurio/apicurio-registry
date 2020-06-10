@@ -53,10 +53,12 @@ public class FullApiTest extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
@@ -87,10 +89,12 @@ public class FullApiTest extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
-            .when().contentType(CT_JSON).body(rule).post("/rules")
+            .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
             .then()
-            .statusCode(204)
-            .body(anything());
+                .statusCode(204)
+                .body(anything());
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationProtobuf/InvalidAPI";

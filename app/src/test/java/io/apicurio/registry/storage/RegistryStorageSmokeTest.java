@@ -65,7 +65,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws Exception {
         super.beforeEach();
 
         getStorage().deleteGlobalRules();
@@ -81,6 +81,9 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testArtifactsAndMeta() throws Exception {
+        String artifactId1 = TestUtils.generateArtifactId();
+        createArtifact(artifactId1, ArtifactType.JSON, "{}");
+        
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
@@ -195,31 +198,33 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         getStorage().deleteArtifact(ARTIFACT_ID_3);
     }
 
-    @Test public void testLimitGetArtifactIds() throws Exception {
-
+    @Test
+    public void testLimitGetArtifactIds() throws Exception {
+        final String testId0 = TestUtils.generateArtifactId();
         final String testId1 = TestUtils.generateArtifactId();
         final String testId2 = TestUtils.generateArtifactId();
 
         try {
+            ConcurrentUtil.result(getStorage()
+                    .createArtifact(testId0, ArtifactType.JSON, ContentHandle.create("{}")));
+            this.waitForArtifact(testId0);
+
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
             ConcurrentUtil.result(getStorage()
-                    .createArtifact(testId1, ArtifactType.JSON, ContentHandle.create("content1")));
+                    .createArtifact(testId1, ArtifactType.JSON, ContentHandle.create("{}")));
             ConcurrentUtil.result(getStorage()
-                    .createArtifact(testId2, ArtifactType.JSON, ContentHandle.create("content1")));
+                    .createArtifact(testId2, ArtifactType.JSON, ContentHandle.create("{}")));
 
-            retry(() -> {
-                getStorage().getArtifactMetaData(testId1);
-                getStorage().getArtifactMetaData(testId2);
-            });
+            this.waitForArtifact(testId1);
+            this.waitForArtifact(testId2);
 
             int newSize = getStorage().getArtifactIds(null).size();
             int limitedSize = getStorage().getArtifactIds(1).size();
 
             assertEquals(size + 2, newSize);
             assertEquals(1, limitedSize);
-
         } finally {
             getStorage().deleteArtifact(testId1);
             getStorage().deleteArtifact(testId2);

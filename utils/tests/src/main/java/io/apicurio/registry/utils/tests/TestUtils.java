@@ -231,11 +231,18 @@ public class TestUtils {
     }
 
     public static <T> T retry(Callable<T> callable) throws Exception {
+        return retry(callable, "Action #" + System.currentTimeMillis());
+    }
+
+    public static <T> T retry(Callable<T> callable, String name) throws Exception {
         Throwable error = null;
         int tries = 5;
         int attempt = 1;
         while (tries > 0) {
             try {
+                if (attempt > 1) {
+                    log.debug("Retrying action [{}].  Attempt #{}", name, attempt);
+                }
                 return callable.call();
             } catch (Throwable t) {
                 if (error == null) {
@@ -248,6 +255,7 @@ public class TestUtils {
                 attempt++;
             }
         }
+        log.debug("Action [{}] failed after {} attempts.", name, attempt);
         Assertions.assertTrue(tries > 0, String.format("Failed handle callable: %s [%s]", callable, error));
         throw new IllegalStateException("Should not be here!");
     }

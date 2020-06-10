@@ -16,9 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -36,6 +33,7 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -51,67 +49,63 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
     public void testVersions(Supplier<RegistryService> supplier) throws Exception {
-        SchemaRegistryClient client = buildClient();
+        SchemaRegistryClient confClient = buildClient();
+        RegistryService apicurioClient = supplier.get();
 
         String subject = generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        int id = client.register(subject, schema);
-        client.reset();
+        int id = confClient.register(subject, schema);
+        confClient.reset();
+        
+        this.waitForArtifact(subject);
 
-        // global id can be mapped async
-        retry(() -> {
-            Schema schema2 = client.getById(id);
-            Assertions.assertNotNull(schema2);
-            return schema2;
-        });
+        Schema schema2 = confClient.getById(id);
+        Assertions.assertNotNull(schema2);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        CompletionStage<ArtifactMetaData> cs = apicurioClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         ArtifactMetaData amd1 = ConcurrentUtil.result(cs);
+        this.waitForGlobalId(amd1.getGlobalId());
 
-        retry(() -> {
-            supplier.get().getArtifactMetaDataByGlobalId(amd1.getGlobalId());
-            return null;
-        });
+        apicurioClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
 
-        cs = supplier.get().updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        cs = apicurioClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         ArtifactMetaData amd2 = ConcurrentUtil.result(cs);
+        this.waitForGlobalId(amd2.getGlobalId());
 
-        retry(() -> {
-            supplier.get().getArtifactMetaDataByGlobalId(amd2.getGlobalId());
-            return null;
-        });
+        apicurioClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
 
-        List<Integer> versions1 = client.getAllVersions(subject);
+        List<Integer> versions1 = confClient.getAllVersions(subject);
         Assertions.assertEquals(3, versions1.size());
         Assertions.assertTrue(versions1.contains(1));
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        List<Long> versions2 = supplier.get().listArtifactVersions(subject);
+        List<Long> versions2 = apicurioClient.listArtifactVersions(subject);
         Assertions.assertEquals(3, versions2.size());
         Assertions.assertTrue(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
         Assertions.assertTrue(versions2.contains(3L));
 
-        client.deleteSchemaVersion(subject, "1");
+        confClient.deleteSchemaVersion(subject, "1");
 
-        retry(() -> {
+        TestUtils.retry(() -> {
             try {
-                supplier.get().getArtifactVersionMetaData(1, subject);
-                Assertions.fail();
+                apicurioClient.reset();
+                apicurioClient.getArtifactVersionMetaData(1, subject);
+                Assertions.fail("Expected apicurioClient.getArtifactVersionMetaData() to fail");
             } catch (Exception ignored) {
             }
             return null;
         });
 
-        versions1 = client.getAllVersions(subject);
+        versions1 = confClient.getAllVersions(subject);
         Assertions.assertEquals(2, versions1.size());
         Assertions.assertFalse(versions1.contains(1));
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        versions2 = supplier.get().listArtifactVersions(subject);
+        versions2 = apicurioClient.listArtifactVersions(subject);
         Assertions.assertEquals(2, versions2.size());
         Assertions.assertFalse(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
@@ -136,7 +130,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            waitForSchema(supplier.get(), bytes, bb -> (long) bb.getInt());
+            TestUtils.waitForSchema(supplier.get(), bytes, bb -> (long) bb.getInt());
 
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());

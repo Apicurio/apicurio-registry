@@ -94,11 +94,11 @@
         <module>search/connector</module>
         <module>distro</module>
         <module>docs</module>
+        <module>storage/asyncmem</module>
         <module>storage/infinispan</module>
         <module>storage/jpa</module>
         <module>storage/kafka</module>
         <module>storage/streams</module>
-        <module>tests</module>
     </modules>
 
     <properties>
@@ -190,7 +190,7 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.14.3</test-containers.version>
+        <test-containers.version>1.12.4</test-containers.version>
     </properties>
 
     <dependencyManagement>

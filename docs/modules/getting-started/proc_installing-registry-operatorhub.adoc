@@ -10,11 +10,9 @@ You can install the {registry} Operator on your OpenShift cluster from the Opera
 
 .Prerequisites
 
-* You must have cluster administrator access to an OpenShift 4.4 or 4.3 cluster
+* You must have cluster administrator access to an OpenShift cluster
 * You must have set up your registry storage. For more details, see
 ** xref:setting-up-kafka-kubernetes-storage[]
-
-NOTE: You do not need to create a pull secret when installing {registry} from the OpenShift OperatorHub. The {registry} Operator automatically reuses the OpenShift cluster-level authentication to pull the {registry} image from `registry.redhat.io`. 
 
 .Procedure
 
@@ -23,12 +21,15 @@ NOTE: You do not need to create a pull secret when installing {registry} from th
 . Create a new OpenShift project:
 
 .. In the left navigation menu, click *Home* > *Project* > *Create Project*.
-.. Enter a project name, for example, `my-service-registry-project`, and click *Create*.
+.. Enter a project name, for example, `my-registry-project`, and click *Create*.
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
-
+ifdef::apicurio-registry[]
+. In the *Filter by keyword* text box, enter `{registry}` to find the *{registry} Operator*.
+endif::[]
+ifdef::rh-service-registry[]
 . In the *Filter by keyword* text box, enter `{registry}` to find the *Red Hat Integration - {registry} Operator*.
-
+endif::[]
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
 . Select the following subscription settings:
@@ -41,6 +42,18 @@ NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval St
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
 
 . Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
+
+. Create a new {registry} instance, for example, in the OpenShift OperatorHub:
++
+ifdef::apicurio-registry[]
+.. Click *Installed Operators* > *{registry}*
+endif::[]
+ifdef::rh-service-registry[]
+.. Click *Installed Operators* > *Red Hat Integration - {registry} Operator*.
+endif::[]
+.. Under *Provided APIs*, click *Create Instance*.
+.. Edit the defintion as appropriate for your selected {registry} storage. For more details, see the link:https://github.com/Apicurio/apicurio-registry-operator/tree/master/docs/resources/example-cr[custom resource definition examples]. 
+.. Click *Create ApicurioRegistry*. 
 
 .Additional resources
 * https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

@@ -15,6 +15,9 @@
 
     <properties>
         <skipTests>true</skipTests>
+        
+        <exclude.integration.tests>**/KafkaConnectConverterIT.java</exclude.integration.tests>
+        
         <!--native-image has to be build before running system tests-->
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
@@ -288,7 +291,7 @@
                                 <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
                             </statelessTestsetReporter>
                             <excludes>
-                                <exclude>**/KafkaConnectConverterIT.java</exclude>
+                                <exclude>${exclude.integration.tests}</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -356,6 +359,13 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>ui</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>enableConverterTest</id>
+            <properties>
+                <exclude.integration.tests>**/NothingToExclude.java</exclude.integration.tests>
             </properties>
         </profile>
     </profiles>

@@ -6,22 +6,21 @@
 = Installing {registry} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details on the OperatorHub, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
 .Prerequisites
 
-* You must have cluster administrator access to an OpenShift cluster
-* You must have set up your registry storage. For more details, see
+* You must have cluster administrator access to an OpenShift cluster.
+* You must have installed and set up your registry storage environment. For more details, see
+** xref:installing-kafka-streams-operatorhub[]
 ** xref:setting-up-kafka-kubernetes-storage[]
+//** xref:setting-up-postgresql-storage[] 
 
 .Procedure
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Create a new OpenShift project:
-
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
-.. Enter a project name, for example, `my-registry-project`, and click *Create*.
+. Change to the OpenShift project in which your registry storage is installed and configured. For example, from the *Project* drop-down, select `my-registry-project`. 
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 ifdef::apicurio-registry[]
@@ -33,7 +32,7 @@ endif::[]
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
 . Select the following subscription settings:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-service-registry-project*
+** *Installation Mode* > *A specific namespace on the cluster* > *my-registry-project*
 ** *Update Channel* > *alpha*
 ** *Approval Strategy* > *Automatic*
 +
@@ -43,17 +42,28 @@ NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval St
 
 . Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
 
-. Create a new {registry} instance, for example, in the OpenShift OperatorHub:
+. Create a new {registry} instance, for example:
 +
 ifdef::apicurio-registry[]
-.. Click *Installed Operators* > *{registry}*
+.. Under *{registry}* > *Provided APIs*, click *Create Instance*.
 endif::[]
 ifdef::rh-service-registry[]
-.. Click *Installed Operators* > *Red Hat Integration - {registry} Operator*.
+.. Under *Red Hat Integration - {registry} Operator* > *Provided APIs*, click *Create Instance*.
 endif::[]
-.. Under *Provided APIs*, click *Create Instance*.
-.. Edit the defintion as appropriate for your selected {registry} storage. For more details, see the link:https://github.com/Apicurio/apicurio-registry-operator/tree/master/docs/resources/example-cr[custom resource definition examples]. 
-.. Click *Create ApicurioRegistry*. 
+.. Edit the defintion as appropriate for your chosen {registry} storage type. For example, see the sample custom resource definitions:
+*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/streams.yaml[Kafka Streams] 
+*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/infinispan.yaml[Embedded Infinispan (Technical Preview)] 
+*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/postgresql.yaml[PostgreSQL database (Technical Preview)] 
+.. Click *Create {registry}*. 
+
+. Verify that {registry} is installed correctly and running by connecting to the following URLs:
+** {registry} web console: 
++
+`*\http://MY_REGISTRY_URL/ui*`
+** {registry} REST API documentation: 
++
+`*\http://MY_REGISTRY_URL/api*`
 
 .Additional resources
-* https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]

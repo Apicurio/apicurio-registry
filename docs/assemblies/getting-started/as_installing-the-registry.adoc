@@ -15,15 +15,24 @@ This chapter explains how to install and run {registry} with the following stora
 .Kubernetes/OpenShift
 * xref:installing-kafka-streams-operatorhub[]
 * xref:setting-up-kafka-kubernetes-storage[]
-* xref:installing-registry-kafka-kubernetes-storage[]
+//* xref:installing-registry-kafka-kubernetes-storage[]
 * xref:installing-registry-operatorhub[]
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to set up storage in AMQ Streams and how to install and run {registry}:
+This chapter explains how to first install and set up storage in {kafka-streams} and then how to install and run {registry}:
 
+.{kafka-streams}
 * xref:installing-kafka-streams-operatorhub[] 
 * xref:setting-up-kafka-kubernetes-storage[]
+
+//.Embedded Infinispan (Technology Preview)
+//* TBD
+
+//.PostgreSQL database (Technology Preview)
+//* TBD 
+
+.{registry}
 * xref:installing-registry-operatorhub[]
 endif::[]
  
@@ -45,12 +54,13 @@ include::../../modules/getting-started/proc_installing-registry-kafka-storage.ad
 include::../../modules/getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
+//include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
 endif::[]
 
 ifdef::rh-service-registry[]
 include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
+//include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
 endif::[]

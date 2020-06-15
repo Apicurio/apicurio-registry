@@ -17,6 +17,7 @@ package io.apicurio.tests;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -71,6 +72,21 @@ public abstract class ConfluentBaseIT extends BaseIT {
             LOGGER.info("Deleting confluent schema {}", confluentSubject);
             confluentService.deleteSubject(confluentSubject);
         }
+    }
+
+    protected void waitForSubjectDeleted(String subjectName) throws Exception {
+        TestUtils.retry(() -> {
+            try {
+                confluentService.getAllVersions(subjectName);
+            } catch (IOException e) {
+                LOGGER.warn("", e);
+                throw e;
+            } catch (RestClientException e) {
+                assertEquals(404, e.getStatus());
+                return;
+            }
+            throw new IllegalStateException("Subject " + subjectName + "has not been deleted yet");
+        });
     }
 
 }

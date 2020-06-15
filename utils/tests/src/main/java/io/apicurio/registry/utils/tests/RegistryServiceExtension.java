@@ -19,25 +19,18 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import org.junit.jupiter.api.extension.Extension;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
-import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
-import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
+import io.quarkus.test.junit.QuarkusTestExtension;
+import io.quarkus.test.junit.internal.DeepClone;
+import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
-import static java.util.Collections.singletonList;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import static java.util.Collections.singletonList;
 
 /**
  * @author Ales Justin
@@ -47,6 +40,20 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
     private static final String REGISTRY_CLIENT_ALL = "all";
+
+    static {
+        // hack QuarkusTestExtension
+        // https://github.com/quarkusio/quarkus/issues/9886
+        try {
+            Class<QuarkusTestExtension> clazz = QuarkusTestExtension.class;
+            Field field = clazz.getDeclaredField("deepClone");
+            DeepClone deepClone = objectToClone -> objectToClone;
+            field.setAccessible(true);
+            field.set(null, deepClone);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     private enum ParameterType {
         REGISTRY_SERVICE,

@@ -14,7 +14,7 @@ You can use the {registry} web console to upload event schema and API design art
 
 . Connect to the {registry} web console on: 
 +
-`*\http://MY_REGISTRY_URL/ui/artifacts*`
+`*\http://MY_REGISTRY_URL/ui*`
 
 . Click *Upload Artifact*, and specify the following:
 ** *ID*: Use the default empty setting to automatically generate an ID, or enter a specific artifact ID.

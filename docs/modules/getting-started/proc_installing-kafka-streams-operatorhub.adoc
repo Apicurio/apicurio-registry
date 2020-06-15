@@ -7,7 +7,7 @@
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-For Kafka-Streams-based registry storage, if you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details on the OperatorHub, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have {kafka-streams} or a compatible Kafka Streams-based system installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
 The following versions are supported:
 
@@ -25,7 +25,7 @@ endif::[]
 
 * You must have cluster administrator access to an OpenShift cluster 
 ifdef::rh-service-registry[]
-* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows am example of installing using the OpenShift OperatorHub only.
+* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
 
 .Procedure
@@ -58,4 +58,5 @@ NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval St
 . Wait a few moments until the *Status* for the {kafka-streams} Operator displays *Succeeded* and the subscription is *Up to Date*. 
 
 .Additional resources
-* https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] 

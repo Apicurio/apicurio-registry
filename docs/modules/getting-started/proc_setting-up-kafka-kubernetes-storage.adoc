@@ -7,13 +7,13 @@
 //Use OpenShift for now until Helm chart available for Kubernetes
 = Setting up {kafka-streams} storage on OpenShift 
 
-This topic explains how to install and configure Kafka Streams-based storage for {registry} on OpenShift using {kafka-streams}. This storage option is suitable for production environments. 
+This topic explains how to install and configure Kafka Streams-based storage for {registry} on OpenShift using {kafka-streams}. This storage option is suitable for production environments when `perisistent` storage is configured in the OpenShift custom resource definition. 
 
 You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have installed {kafka-streams}. For more details, see the instructions in xref:installing-kafka-streams-operatorhub[]
+* You must have installed {kafka-streams}, or a compatible Kafka Streams-based system. For more details, see the instructions in xref:installing-kafka-streams-operatorhub[]
 
 .Procedure
 
@@ -27,18 +27,18 @@ ifdef::rh-service-registry[]
 .. Click *Installed Operators* > *Red Hat Integration - {kafka-streams}*.
 endif::[]
 .. Under *Provided APIs* > *Kafka*, click *Create Instance* to create a new Kafka cluster.
-.. Edit the definition as appropriate and click *Create*. 
+.. Edit the custom resource definition as appropriate, and click *Create*. 
 +
-The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes using _ephemeral_ storage, which means that all data is lost when the Pods are no longer running on OpenShift. 
+IMPORTANT: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage, where the data is lost when Pods are no longer running. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
 
 . Create a topic to store the to store the {registry} artifacts:
 +
 .. Under *Provided APIs* > *Kafka Topic*, click *Create topic* 
-.. Edit the topic `name` from `my-topic` to the required `storage-topic`.
+.. Change the default topic name from `my-topic` to the required `storage-topic`.
 
 . Create a topic to store the to store the {registry} global IDs:
 .. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
-.. Edit the topic `name` from `my-topic` to the required `global-id-topic`.
+.. Change the default topic name from `my-topic` to the required `global-id-topic`.
 
 .Additional resources
 ifdef::apicurio-registry[]
@@ -47,7 +47,7 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-For more details on installing AMQ Streams and on creating Kafka clusters and topics:
+For more details on creating Kafka clusters and topics using {kafka-streams}:
 
 * link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
 endif::[]

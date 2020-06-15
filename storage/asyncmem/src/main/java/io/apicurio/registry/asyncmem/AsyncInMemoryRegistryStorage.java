@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -67,16 +69,20 @@ import io.apicurio.registry.types.RuleType;
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT + "_AsyncInMemoryRegistry", description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT}, reusable = true)
 @Timed(name = STORAGE_OPERATION_TIME + "_AsyncInMemoryRegistry", description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS, reusable = true)
 @Logged
-public class AsyncInMemoryRegistry extends SimpleMapRegistryStorage {
+public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
     @ConfigProperty(name = "registry.asyncmem.delays.create", defaultValue = "1000")
     long createDelay;
     @ConfigProperty(name = "registry.asyncmem.delays.update", defaultValue = "1000")
     long updateDelay;
+    @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "1000")
+    long deleteDelay;
     
     private AtomicLong counter = new AtomicLong(1);
     private Map<String, Long> artifactCreation = new HashMap<>();
     private Map<Long, Long> globalCreation = new HashMap<>();
+    
+    private ExecutorService executor = Executors.newCachedThreadPool();
     
     @Override
     protected long nextGlobalId() {
@@ -237,6 +243,107 @@ public class AsyncInMemoryRegistry extends SimpleMapRegistryStorage {
         long globalTime = this.globalCreation.get(globalId);
         if (now < globalTime) {
             throw new ArtifactNotFoundException(String.valueOf(globalId));
+        }
+    }
+    
+    @Override
+    public SortedSet<Long> deleteArtifact(String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        SortedSet<Long> rval = this.getArtifactVersions(artifactId);
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifact(artifactId);
+            });
+        });
+        return rval;
+    }
+    
+    @Override
+    public void deleteArtifactVersion(String artifactId, long version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifactVersion(artifactId, version);
+            });
+        });
+    }
+    
+    @Override
+    public void deleteArtifactVersionMetaData(String artifactId, long version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifactVersionMetaData(artifactId, version);
+            });
+        });
+    }
+    
+    @Override
+    public void deleteArtifactRule(String artifactId, RuleType rule)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifactRule(artifactId, rule);
+            });
+        });
+    }
+    
+    @Override
+    public void deleteArtifactRules(String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifactRules(artifactId);
+            });
+        });
+    }
+    
+    @Override
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteGlobalRule(rule);
+            });
+        });
+    }
+    
+    @Override
+    public void deleteGlobalRules() throws RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteGlobalRules();
+            });
+        });
+    }
+
+    private void preDeleteSleep() {
+        try {
+            Thread.sleep(this.deleteDelay);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+//
+//    private void preUpdateSleep() {
+//        try {
+//            Thread.sleep(this.updateDelay);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
+    
+    private void runWithErrorSuppression(Runnable command) {
+        try {
+            command.run();
+        } catch (Throwable t) {
+            // TODO log the error with e.g. TRACE or DEBUG level
         }
     }
     

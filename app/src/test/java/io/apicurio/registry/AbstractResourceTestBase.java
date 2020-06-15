@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 
 import io.apicurio.registry.types.ArtifactType;
@@ -45,7 +46,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     Instance<ServiceInitializer> initializers;
 
     @BeforeEach
-    protected void beforeEach() {
+    protected void beforeEach() throws Exception {
         RestAssured.baseURI = "http://localhost:8081/api";
         
         // run all initializers::beforeEach
@@ -53,6 +54,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
         // Delete all global rules
         given().when().delete("/rules").then().statusCode(204);
+        TestUtils.retry(() -> {
+            given().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
+        });
     }
 
     /**

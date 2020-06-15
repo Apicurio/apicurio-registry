@@ -17,6 +17,7 @@ package io.apicurio.tests;
 
 public enum RegistryStorageType {
     inmemory,
+    asyncmem,
     kafka,
     streams,
     jpa,

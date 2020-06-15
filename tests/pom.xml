@@ -299,7 +299,6 @@
             <id>default</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke</groups>
             </properties>
             <activation>
                 <activeByDefault>true</activeByDefault>
@@ -309,6 +308,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${version.failsafe.plugin}</version>
                         <configuration>
                             <groups>${groups}</groups>
                             <skipTests>${skipTests}</skipTests>
@@ -333,6 +333,38 @@
                                     </environmentVariables>
                                     <reportsDirectory>${project.build.directory}/failsafe-reports/inmemory</reportsDirectory>
                                     <summaryFile>${project.build.directory}/failsafe-reports/inmemory-failsafe-summary.xml</summaryFile>
+                                    <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                                        <disable>false</disable>
+                                        <version>3.0</version>
+                                        <usePhrasedFileName>false</usePhrasedFileName>
+                                        <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>
+                                        <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
+                                        <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                                    </statelessTestsetReporter>
+                                    <excludes>
+                                        <exclude>${exclude.integration.tests}</exclude>
+                                    </excludes>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>in memory (async) test run</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <skipITs>${skip-asyncmem}</skipITs>
+                                    <systemProperties>
+                                        <native.image.path>${test.app.name}</native.image.path>
+                                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                                        <project.version>${project.version}</project.version>
+                                        <quarkus.profile>${quarkus.profile}</quarkus.profile>
+                                    </systemProperties>
+                                    <environmentVariables>
+                                        <REGISTRY_STORAGE>asyncmem</REGISTRY_STORAGE>
+                                    </environmentVariables>
+                                    <reportsDirectory>${project.build.directory}/failsafe-reports/asyncmem</reportsDirectory>
+                                    <summaryFile>${project.build.directory}/failsafe-reports/asyncmem-failsafe-summary.xml</summaryFile>
                                     <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
                                         <disable>false</disable>
                                         <version>3.0</version>
@@ -490,6 +522,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${version.failsafe.plugin}</version>
                         <configuration>
                             <groups>${groups}</groups>
                             <skipTests>${skipTests}</skipTests>

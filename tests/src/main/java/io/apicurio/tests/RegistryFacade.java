@@ -136,7 +136,6 @@ public class RegistryFacade {
                 }
             });
         } else {
-            //TODO fix error `Unable to access lob stream`
             PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
             database.start();
             TestUtils.waitFor("Database is running",

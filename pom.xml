@@ -99,6 +99,7 @@
         <module>storage/jpa</module>
         <module>storage/kafka</module>
         <module>storage/streams</module>
+        <module>tests</module>
     </modules>
 
     <properties>

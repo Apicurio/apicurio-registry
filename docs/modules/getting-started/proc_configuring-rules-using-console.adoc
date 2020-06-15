@@ -17,7 +17,7 @@ This section shows a simple example of configuring global and artifact rules. Fo
 
 . Connect to the {registry} web console on: 
 +
-`*\http://MY_REGISTRY_URL/ui/artifacts*`
+`*\http://MY_REGISTRY_URL/ui*`
 
 . For artifact rules, browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific artifact *Name*, *Description*, *Label*, or *Everything*.  
 

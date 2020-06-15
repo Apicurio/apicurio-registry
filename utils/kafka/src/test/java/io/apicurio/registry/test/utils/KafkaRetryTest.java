@@ -19,22 +19,33 @@ package io.apicurio.registry.test.utils;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ConsumerContainer;
 import io.apicurio.registry.utils.kafka.Oneof2;
-import io.apicurio.registry.utils.kafka.ProducerActions;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -54,125 +65,200 @@ public class KafkaRetryTest {
         );
     }
 
-    protected boolean isKafkaAvailable() {
-        Set<String> topics = getKafkaTopics();
-        return topics != null && topics.size() > 0;
-    }
-
-    protected Set<String> getKafkaTopics() {
+    /**
+     * This methos is two-fold:
+     * <ul>
+     *     <li>It checks that Kafka broker(s) are reachable and throws {@link TestAbortedException}
+     *     if not so a test that invokes this method is skipped</li>
+     *     <li>In case Kafka is reachable, it ensures that given topics are present and
+     *     creates them if necessary</li>
+     * </ul>
+     *
+     * @param topicNames
+     */
+    protected final void ensureTopics(String... topicNames) {
         try (Admin admin = Admin.create(kafkaProperties)) {
-            return admin.listTopics().names().get(5, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.info("Kafka not available - skipping Kafka related test: {}", e.toString());
-            return null;
+            // creating admin client succeeds even if Kafka is not reachable
+            // but listing the topics reveals the org.apache.kafka.common.errors.TimeoutException
+            // wrapped into ExecutionException then...
+            Set<String> existingTopicNames;
+            try {
+                existingTopicNames = admin.listTopics().names().get(5, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                throw e.getCause();
+            }
+            try {
+                for (String topicName : topicNames) {
+                    if (existingTopicNames.contains(topicName)) {
+                        log.info("Topic already exists: {}", topicName);
+                    } else {
+                        log.info("Creating topic: {}", topicName);
+                        CreateTopicsResult ctr = admin.createTopics(
+                                Collections.singleton(new NewTopic(topicName, 1, (short) 1))
+                        );
+                        ctr.all().get();
+                    }
+                }
+            } catch (Exception e) {
+                throw new AssertionError("Can't create topics", e);
+            }
+        } catch (KafkaException | TimeoutException e) {
+            // abort test (not failing it) when Kafka is not available
+            log.info("Kafka not available - aborting test", e);
+            throw new TestAbortedException("Kafka not available - aborting test", e);
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
-    interface ConsumedMsgsChecker {
-        void check(Map<String, String> producedMsgs, Map<String, String> liveConsumedMsgs) throws Exception;
-    }
-
     @Test
-    public void testPoll() throws Exception {
-        Assumptions.assumeTrue(isKafkaAvailable());
+    public void testIntermittentDeserializerFailures() {
+        ensureTopics(BTOPIC);
 
-        int producerThreads = 4;
-        ExecutorService exe = Executors.newFixedThreadPool(producerThreads);
-
-        Map<String, String> msgs = IntStream.range(0, producerThreads * 8)
+        // 10 messages with unique keys
+        Map<String, String> msgs = IntStream.range(0, 10)
                 .boxed()
                 .collect(Collectors.toMap(i -> UUID.randomUUID().toString(),
                         i -> "msg#" + i));
 
-        CyclicBarrier cycle = new CyclicBarrier(producerThreads + 1);
-
-        ProducerActions<String, String> producer = new AsyncProducer<>(
+        try (AsyncProducer<String, String> producer = new AsyncProducer<>(
                 kafkaProperties,
                 new StringSerializer(),
                 new StringSerializer()
-        );
-
-        CompletableFuture<?>[] tasks = IntStream
-                .range(0, producerThreads)
-                .mapToObj(i -> CompletableFuture.runAsync(() -> {
-                    try {
-                        cycle.await(); // all tasks should start work at the same time...
-                        msgs.entrySet()
-                                .stream()
-                                // take only the task's share of messages
-                                .filter(e -> Math.abs(e.getKey().hashCode()) % producerThreads == i)
-                                .forEach(e -> producer.apply(new ProducerRecord<>(BTOPIC, e.getKey(), e.getValue())));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }, exe))
-                .toArray(CompletableFuture<?>[]::new);
-
-        cycle.await();
-
-        for (CompletableFuture<?> task : tasks) {
-            task.join();
+        )) {
+            msgs.forEach((k, v) -> producer.apply(new ProducerRecord<>(BTOPIC, k, v)).join());
         }
 
-        Map<String, String> liveConsumedMsgs = new ConcurrentHashMap<>();
+        ExpectedMessageCollector<String, String> expected = new ExpectedMessageCollector<>(msgs);
 
-        ConsumedMsgsChecker checker = (producedMsgs, lcm) -> {
-            Map<String, String> missing = new HashMap<>(producedMsgs);
-            int tries = 10;
-            while (tries > 0) {
-                missing.keySet().removeAll(lcm.keySet());
-                if (missing.isEmpty()) {
-                    break;
-                }
-                Thread.sleep(250);
-                tries--;
-            }
-            Assertions.assertTrue(missing.isEmpty(), "Failed to consume all messages: " + missing);
-        };
-
-        kafkaProperties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "test2");
-        kafkaProperties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        ConsumerContainer.DynamicPool<String, String> container = new ConsumerContainer.DynamicPool<>(
-                kafkaProperties,
+        Properties kprops = new Properties();
+        kprops.putAll(kafkaProperties);
+        kprops.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "test2");
+        kprops.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        try (ConsumerContainer.DynamicPool<String, String> container = new ConsumerContainer.DynamicPool<>(
+                kprops,
                 new StringDeserializer(),
-                new BrokenDeserializer(),
+                new BrokenDeserializer(0, 5),
                 BTOPIC,
                 1,
-                Oneof2.first(record -> liveConsumedMsgs.put(record.key(), record.value()))
-        );
-        container.start();
-        try {
-            checker.check(msgs, liveConsumedMsgs);
-        } finally {
-            container.stop();
+                Oneof2.first(expected),
+                (consumer, ex) -> {
+                    if (ex instanceof SerializationException) {
+                        log.info("Got serialization exception - will retry", ex);
+                    } else {
+                        throw ex;
+                    }
+                }
+        )) {
+            Map<String, String> missing = expected.wait(5, TimeUnit.SECONDS);
+            if (!missing.isEmpty()) {
+                throw new AssertionError("Missing consumed messages: " + missing.values());
+            }
         }
     }
 
     /**
-     * This deserializer fails on the first attempt,
-     * then after 5 reads, and then it finally works. :-)
+     * This deserializer fails on the specified calls but succeeds on all others
      */
-    private static class BrokenDeserializer implements Deserializer<String> {
-        private int N = 5;
-        private int counter;
-        private boolean failedOnFirst;
-        private boolean failed;
+    private static class BrokenDeserializer extends StringDeserializer {
+        private final int[] failCallIndices;
+        private final AtomicInteger counter = new AtomicInteger();
+
+        BrokenDeserializer(int... failCallIndices) {
+            this.failCallIndices = failCallIndices;
+        }
 
         @Override
         public String deserialize(String topic, byte[] data) {
-            if (!failedOnFirst) {
-                failedOnFirst = true;
-                throw new RuntimeException("Broken");
-            }
-            if (!failed) {
-                counter++;
-                if (counter > N) {
-                    failed = true;
-                    counter = 0;
-                    throw new RuntimeException("Broken");
+            int c = counter.getAndIncrement();
+            for (int i : failCallIndices) {
+                if (c == i) {
+                    throw new RuntimeException("Failure at call#" + i);
                 }
             }
-            return new String(data);
+            return super.deserialize(topic, data);
+        }
+    }
+
+    public abstract static class WaitableMessageCollector<K, V> implements Consumer<ConsumerRecord<K, V>> {
+
+        /**
+         * Waits for at most given timeout or until {@link #terminatingCondition()} evaluates
+         * to {@code true} and then returns the {@link #resultMessages()}.
+         */
+        public final synchronized Map<K, V> wait(long timeout, TimeUnit unit) {
+            boolean interrupted = false;
+            long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+            long waitNanos;
+            while (!terminatingCondition() && (waitNanos = deadlineNanos - System.nanoTime()) > 0L) {
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(this, waitNanos);
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+            return resultMessages();
+        }
+
+        protected abstract boolean terminatingCondition();
+
+        protected abstract Map<K, V> resultMessages();
+    }
+
+    public static class ExpectedMessageCollector<K, V> extends WaitableMessageCollector<K, V> {
+        private final Map<K, V> expected;
+
+        public ExpectedMessageCollector(Map<K, V> expected) {
+            this.expected = new LinkedHashMap<>(expected);
+        }
+
+        @Override
+        public synchronized void accept(ConsumerRecord<K, V> cr) {
+            expected.remove(cr.key(), cr.value());
+            notifyAll();
+        }
+
+        @Override
+        protected boolean terminatingCondition() {
+            return expected.isEmpty();
+        }
+
+        @Override
+        protected Map<K, V> resultMessages() {
+            return new LinkedHashMap<>(expected);
+        }
+    }
+
+    public static class UnexpectedMessageCollector<K, V> extends WaitableMessageCollector<K, V> {
+        private final Map<K, V> unexpected;
+        private final Map<K, V> consumed;
+
+        public UnexpectedMessageCollector(Map<K, V> unexpected) {
+            this.unexpected = new LinkedHashMap<>(unexpected);
+            this.consumed = new LinkedHashMap<>();
+        }
+
+        @Override
+        public synchronized void accept(ConsumerRecord<K, V> cr) {
+            if (cr.value().equals(unexpected.get(cr.key()))) {
+                consumed.put(cr.key(), cr.value());
+                notifyAll();
+            }
+        }
+
+        @Override
+        protected boolean terminatingCondition() {
+            return !consumed.isEmpty();
+        }
+
+        @Override
+        protected Map<K, V> resultMessages() {
+            return new LinkedHashMap<>(consumed);
         }
     }
 }

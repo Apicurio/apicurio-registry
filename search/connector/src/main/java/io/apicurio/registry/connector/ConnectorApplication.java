@@ -36,10 +36,10 @@ import org.apache.kafka.connect.util.ConnectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.context.ApplicationScoped;
 import java.net.URI;
 import java.util.Map;
 import java.util.Properties;
-import javax.enterprise.context.ApplicationScoped;
 
 /**
  * @author Ales Justin
@@ -55,7 +55,7 @@ public class ConnectorApplication {
 
     private Connect connect;
 
-    public ConnectorApplication(@RegistryProperties Properties properties) {
+    public ConnectorApplication(@RegistryProperties("") Properties properties) {
         workerProperties = Utils.propsToStringMap(properties);
     }
 

@@ -42,7 +42,7 @@ public class InfinispanConfiguration {
     @ApplicationScoped
     @Produces
     public EmbeddedCacheManager cacheManager(
-            @RegistryProperties("registry.infinispan.transport.") Properties properties
+            @RegistryProperties("registry.infinispan.transport") Properties properties
     ) {
         GlobalConfigurationBuilder gConf = GlobalConfigurationBuilder.defaultClusteredBuilder();
 

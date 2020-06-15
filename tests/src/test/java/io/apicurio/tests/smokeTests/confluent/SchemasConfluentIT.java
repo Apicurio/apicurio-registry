@@ -53,7 +53,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);
 
     @Test
-    void createAndUpdateSchema() throws IOException, RestClientException, TimeoutException {
+    void createAndUpdateSchema() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
@@ -66,6 +66,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(confluentService.getAllVersions(artifactId), hasItems(1, 2));
 
         confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
     }
 
     @Test
@@ -96,7 +97,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void deleteSchemasSpecificVersion() throws IOException, RestClientException, TimeoutException {
+    void deleteSchemasSpecificVersion() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
@@ -133,6 +134,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(schemeVersions, hasItems(1, 3));
 
         confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
     }
 
     @Test
@@ -145,7 +147,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void createSchemaSpecifyVersion() throws IOException, RestClientException, TimeoutException {
+    void createSchemaSpecifyVersion() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
@@ -160,6 +162,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(schemaVersions, hasItems(1, 2));
 
         confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
     }
 
     @Test

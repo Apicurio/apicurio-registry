@@ -15,6 +15,9 @@
 
     <properties>
         <skipTests>true</skipTests>
+        
+        <exclude.integration.tests>**/KafkaConnectConverterIT.java</exclude.integration.tests>
+        
         <!--native-image has to be build before running system tests-->
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
@@ -29,7 +32,7 @@
         <slf4j-log4j.version>2.13.3</slf4j-log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <version.surefire.plugin>3.0.0-M4</version.surefire.plugin>
+        <version.failsafe.plugin>3.0.0-M4</version.failsafe.plugin>
     </properties>
 
     <repositories>
@@ -284,7 +287,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${version.surefire.plugin}</version>
+                <version>${version.failsafe.plugin}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -308,6 +311,9 @@
                                 <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
                                 <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
                             </statelessTestsetReporter>
+                            <excludes>
+                                <exclude>${exclude.integration.tests}</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
@@ -374,6 +380,13 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>ui</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>enableConverterTest</id>
+            <properties>
+                <exclude.integration.tests>**/NothingToExclude.java</exclude.integration.tests>
             </properties>
         </profile>
     </profiles>

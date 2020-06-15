@@ -46,12 +46,12 @@ import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
 import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
- * Base class for all map-based registry storage implementation.  Examples of 
+ * Base class for all map-based registry storage implementation.  Examples of
  * subclasses of this might be an in-memory impl as well as an Infinispan impl.
  *
  * @author Ales Justin
  */
-public abstract class AbstractMapRegistryStorage implements RegistryStorage {
+public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage {
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
 

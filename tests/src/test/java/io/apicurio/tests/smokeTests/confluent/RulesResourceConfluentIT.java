@@ -58,6 +58,7 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
         GlobalRuleUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
 
         confluentService.deleteSubject(schemeSubject);
+        waitForSubjectDeleted(schemeSubject);
     }
 
     @AfterAll

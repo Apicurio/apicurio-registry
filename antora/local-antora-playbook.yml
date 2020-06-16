@@ -2,7 +2,7 @@ site:
   title: Docs
   # the 404 page and sitemap files only get generated when the url property is set
   url: https://pwright.github.io/apicurio-registry/html
-  start_page: docs::index.adoc
+  start_page: apicurio-studio::index.adoc
 content:
   sources:
   - url: ..
@@ -25,3 +25,4 @@ asciidoc:
     plantuml-fetch-diagram: true
     mod-loc: partial$
     registry: Apicurio Registry
+    apicurio-registry: true

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Introduction to Apicurio Registry :: Docs</title>
-    <link rel="canonical" href="https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_intro-to-the-registry.html">
+    <link rel="canonical" href="https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_intro-to-the-registry.html">
     <meta name="generator" content="Antora 2.3.1">
     <link rel="stylesheet" href="../../_/css/site.css">
   </head>
@@ -35,12 +35,12 @@
   </nav>
 </header>
 <div class="body">
-<div class="nav-container" data-component="docs" data-version="master">
+<div class="nav-container" data-component="apicurio-studio" data-version="master">
   <aside class="nav">
     <div class="panels">
 <div class="nav-panel-menu is-active" data-panel="menu">
   <nav class="nav-menu">
-    <h3 class="title"><a href="../index.html">Docs</a></h3>
+    <h3 class="title"><a href="../index.html">Apicurio Studio</a></h3>
 <ul class="nav-list">
   <li class="nav-item" data-depth="0">
 <ul class="nav-list">
@@ -69,12 +69,12 @@
 </div>
 <div class="nav-panel-explore" data-panel="explore">
   <div class="context">
-    <span class="title">Docs</span>
+    <span class="title">Apicurio Studio</span>
     <span class="version">master</span>
   </div>
   <ul class="components">
     <li class="component is-current">
-      <span class="title">Docs</span>
+      <span class="title">Apicurio Studio</span>
       <ul class="versions">
         <li class="version is-current is-latest">
           <a href="../index.html">master</a>
@@ -92,7 +92,7 @@
   <a href="../index.html" class="home-link"></a>
 <nav class="breadcrumbs" aria-label="breadcrumbs">
   <ul>
-    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../index.html">Apicurio Studio</a></li>
     <li><a href="../index.html"> Home</a></li>
     <li><a href="as_intro-to-the-registry.html">Introduction to Apicurio Registry</a></li>
   </ul>
@@ -163,6 +163,9 @@
 <ul>
 <li>
 <p>Support for multiple payload formats for standard event schemas and API specifications</p>
+</li>
+<li>
+<p>Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database</p>
 </li>
 <li>
 <p>Registry content management by user interface, REST API command, Maven plug-in, or Java client</p>
@@ -267,6 +270,40 @@
 <div class="paragraph">
 <p>Apicurio Registry provides the following underlying storage implementations for registry artifacts:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>In-memory</p>
+</li>
+<li>
+<p>Java Persistence API</p>
+</li>
+<li>
+<p>Apache Kafka</p>
+</li>
+<li>
+<p>Apache Kafka Streams</p>
+</li>
+<li>
+<p>Embedded Infinispan cache</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The in-memory storage option is suitable for a development environment only. All data is lost when restarting this storage implementation. All other storage options are suitable for development and production environments.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>For more details, see <a href="https://github.com/Apicurio/apicurio-registry" class="bare">https://github.com/Apicurio/apicurio-registry</a>.</p>
+</div>
 <div class="paragraph">
 <p>For details on how to install into your preferred storage option, see <a href="#installing-the-registry">[installing-the-registry]</a>.</p>
 </div>
@@ -367,6 +404,49 @@
 <div class="paragraph">
 <p>You can access the following available distributions for Apicurio Registry:</p>
 </div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Apicurio Registry distributions</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Storage option</th>
+<th class="tableblock halign-left valign-top">Container Image</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In-memory</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://hub.docker.com/r/apicurio/apicurio-registry-mem" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-mem</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Java Persistence API</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://hub.docker.com/r/apicurio/apicurio-registry-jpa" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-jpa</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Apache Kafka</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://hub.docker.com/r/apicurio/apicurio-registry-kafka" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-kafka</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Apache Kafka Streams</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://hub.docker.com/r/apicurio/apicurio-registry-streams" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-streams</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Infinispan</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://hub.docker.com/r/apicurio/apicurio-registry-infinispan" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-infinispan</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For details on building from source code, see <a href="https://github.com/Apicurio/apicurio-registry" class="bare">https://github.com/Apicurio/apicurio-registry</a>.</p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -376,7 +456,7 @@
 <p>You can store and manage the following artifact types in Apicurio Registry:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. Apicurio Registry artifact types</caption>
+<caption class="title">Table 2. Apicurio Registry artifact types</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">

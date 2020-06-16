@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
-<loc>https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_installing-the-registry.html</loc>
-<lastmod>2020-06-16T15:18:21.383Z</lastmod>
+<loc>https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_installing-the-registry.html</loc>
+<lastmod>2020-06-16T15:29:25.357Z</lastmod>
 </url>
 <url>
-<loc>https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_intro-to-registry-rules.html</loc>
-<lastmod>2020-06-16T15:18:21.383Z</lastmod>
+<loc>https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_intro-to-registry-rules.html</loc>
+<lastmod>2020-06-16T15:29:25.357Z</lastmod>
 </url>
 <url>
-<loc>https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_intro-to-the-registry.html</loc>
-<lastmod>2020-06-16T15:18:21.383Z</lastmod>
+<loc>https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_intro-to-the-registry.html</loc>
+<lastmod>2020-06-16T15:29:25.357Z</lastmod>
 </url>
 <url>
-<loc>https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_managing-registry-artifacts.html</loc>
-<lastmod>2020-06-16T15:18:21.383Z</lastmod>
+<loc>https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_managing-registry-artifacts.html</loc>
+<lastmod>2020-06-16T15:29:25.357Z</lastmod>
 </url>
 <url>
-<loc>https://pwright.github.io/apicurio-registry/html/docs/index.html</loc>
-<lastmod>2020-06-16T15:18:21.383Z</lastmod>
+<loc>https://pwright.github.io/apicurio-registry/html/apicurio-studio/index.html</loc>
+<lastmod>2020-06-16T15:29:25.357Z</lastmod>
 </url>
 </urlset>

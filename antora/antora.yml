@@ -1,5 +1,5 @@
-name: docs
-title: Docs
+name: apicurio-studio
+title: Apicurio Studio
 version: 'master'
 start_ROOT: ROOT:index.adoc
 nav:

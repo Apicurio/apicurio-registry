@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Installing Apicurio Registry :: Docs</title>
+    <link rel="canonical" href="https://pwright.github.io/apicurio-registry/html/apicurio-studio/getting-started/as_installing-the-registry.html">
+    <meta name="generator" content="Antora 2.3.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://pwright.github.io/apicurio-registry/html">Docs</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+         
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="is-primary" href="#"></a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="apicurio-studio" data-version="master">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Apicurio Studio</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../index.html"> Home</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_intro-to-the-registry.html">Introduction to Apicurio Registry</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_intro-to-registry-rules.html">Introduction to Apicurio Registry rules</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="as_installing-the-registry.html">Installing Apicurio Registry</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_managing-registry-artifacts.html">Managing artifacts in Apicurio Registry</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Apicurio Studio</span>
+    <span class="version">master</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">Apicurio Studio</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">master</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Apicurio Studio</a></li>
+    <li><a href="../index.html"> Home</a></li>
+    <li><a href="as_installing-the-registry.html">Installing Apicurio Registry</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="file:///home/pwright/repos/a/apicurio-registry/antora/modules/ROOT/pages/getting-started/as_installing-the-registry.adoc"></a></div>
+</div>
+  <div class="content">
+<article class="doc">
+<h1 class="page">Installing Apicurio Registry</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter explains how to install and run Apicurio Registry with the following storage options:</p>
+</div>
+<div class="ulist">
+<div class="title">Docker</div>
+<ul>
+<li>
+<p><a href="#installing-registry-in-memory-storage">Installing Apicurio Registry with in-memory storage</a></p>
+</li>
+<li>
+<p><a href="#installing-registry-jpa-storage">Installing Apicurio Registry with JPA storage</a></p>
+</li>
+<li>
+<p><a href="#installing-registry-kafka-storage">Installing Apicurio Registry with Apache Kafka storage</a></p>
+</li>
+<li>
+<p><a href="#installing-registry-kafka-streams-storage">Installing Apicurio Registry with Apache Kafka Streams storage</a></p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Kubernetes</div>
+<ul>
+<li>
+<p><a href="#setting-up-kafka-kubernetes-storage">Setting up Apache Kafka Streams storage on OpenShift</a></p>
+</li>
+<li>
+<p><a href="#installing-registry-kafka-kubernetes-storage">Installing Apicurio Registry with Apache Kafka Streams storage on Kubernetes</a></p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#registry-overview">[registry-overview]</a></p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For details on building from source, see <a href="https://github.com/Apicurio/apicurio-registry" class="bare">https://github.com/Apicurio/apicurio-registry</a>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You can install more than one instance of Apicurio Registry depending on your environment. The number of instances depends on your storage, for example, Kafka cluster configuration, and on the number and type of artifacts stored in the registry.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installing-registry-in-memory-storage"><a class="anchor" href="#installing-registry-in-memory-storage"></a>Installing Apicurio Registry with in-memory storage</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section explains how to install and run Apicurio Registry with simple in-memory storage from a container image.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have Docker installed and the Docker daemon running.</p>
+</li>
+<li>
+<p>Ensure that you can connect to the container repository: <a href="https://hub.docker.com/r/apicurio/apicurio-registry-mem" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-mem</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get the Apicurio Registry container image:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker pull apicurio/apicurio-registry-mem</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the container image:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Send a test request using the Apicurio Registry REST API. For example, enter the following <code>curl</code> command to create a simple Avro schema artifact for a share price application in the registry:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/artifacts</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more REST API sample requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+<li>
+<p>For a demo based on Kafka Streams storage, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installing-registry-jpa-storage"><a class="anchor" href="#installing-registry-jpa-storage"></a>Installing Apicurio Registry with JPA storage</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section explains how to install and run Apicurio Registry with Java Persistence API storage from a container image. This storage option is suitable for production environments.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have Docker installed and the Docker daemon running.</p>
+</li>
+<li>
+<p>Ensure that you can connect to the container repository: <a href="https://hub.docker.com/r/apicurio/apicurio-registry-jpa" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-jpa</a>.</p>
+</li>
+<li>
+<p>You must already have a PostgreSQL database server installed and running. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ postgres -D /usr/local/pgsql/data</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more details, see <a href="https://www.postgresql.org/docs/12/server-start.html" class="bare">https://www.postgresql.org/docs/12/server-start.html</a></p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get the Apicurio Registry container image:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker pull apicurio/apicurio-registry-jpa</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker run -it -p 8080:8080 \
+-e "QUARKUS_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "QUARKUS_DATASOURCE_USERNAME=apicurio-registry" \
+-e "QUARKUS_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry-jpa:latest</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Send a test request using the Apicurio Registry REST API. For example, enter the following <code>curl</code> command to create a simple Avro schema artifact for a share price application in the registry:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/artifacts</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more REST API sample requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+<li>
+<p>For more details on PostgreSQL, see the <a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL documentation</a>.</p>
+</li>
+<li>
+<p>For a demo based on Kafka Streams storage, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installing-registry-kafka-storage"><a class="anchor" href="#installing-registry-kafka-storage"></a>Installing Apicurio Registry with Apache Kafka storage</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This topic explains how to install and run Apicurio Registry with Kafka storage from a container image. This storage option is suitable for production environments.</p>
+</div>
+<div class="paragraph">
+<p>The following Kafka-based systems are supported:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Apache Kafka 2.2.x</p>
+</li>
+<li>
+<p>Apache Kafka 2.3</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have Docker installed and the Docker daemon running.</p>
+</li>
+<li>
+<p>Ensure that you can connect to the container repository: <a href="https://hub.docker.com/r/apicurio/apicurio-registry-kafka" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-kafka</a>.</p>
+</li>
+<li>
+<p>Ensure that <code>KAFKA_HOME</code> is set to the location of your Kafka-based system.</p>
+</li>
+<li>
+<p>You must already have your Kafka broker running. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &amp;
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &amp;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more details, see <a href="https://kafka.apache.org/quickstart" class="bare">https://kafka.apache.org/quickstart</a>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get the Apicurio Registry container image:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker pull apicurio/apicurio-registry-kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the container image and specify the following environment variable for your Kafka system:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KAFKA_BOOTSTRAP_SERVERS</code> - The address(es) of your Kafka broker(s).</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafka:latest</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Send a test request using the Apicurio Registry REST API. For example, enter the following <code>curl</code> command to create a simple Avro schema artifact for a share price application in the registry:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/artifacts</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more REST API sample requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+<li>
+<p>For a demo based on Kafka Streams storage, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+<li>
+<p>For more details on Apache Kafka, see <a href="https://kafka.apache.org/documentation/" class="bare">https://kafka.apache.org/documentation/</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installing-registry-kafka-streams-storage"><a class="anchor" href="#installing-registry-kafka-streams-storage"></a>Installing Apicurio Registry with Apache Kafka Streams storage</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This topic explains how to install and run Apicurio Registry with Kafka Streams storage from a container image. This storage option is suitable for production environments.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have Docker installed and the Docker daemon running.</p>
+</li>
+<li>
+<p>Ensure that you can connect to the container repository: <a href="https://hub.docker.com/r/apicurio/apicurio-registry-streams" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-streams</a>.</p>
+</li>
+<li>
+<p>Ensure that <code>KAFKA_HOME</code> is set to the location of your Kafka-based system.</p>
+</li>
+<li>
+<p>You must already have a Kafka broker running. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &amp;
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &amp;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>You must have created the following topics for Kafka Streams storage:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$KAFKA_HOME/bin/kafka-topics.sh --zookeeper localhost --create --topic storage-topic --partitions 1 --replication-factor 1  --config cleanup.policy=compact
+$KAFKA_HOME/bin/kafka-topics.sh --zookeeper localhost --create --topic global-id-topic --partitions 1 --replication-factor 1 --config cleanup.policy=compact</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more details, see <a href="https://kafka.apache.org/quickstart" class="bare">https://kafka.apache.org/quickstart</a>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get the Apicurio Registry container image:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker pull apicurio/apicurio-registry-kafka-streams</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the container image and specify the following environment variables for your Kafka system:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KAFKA_BOOTSTRAP_SERVERS</code> - The address(es) of your Kafka broker(s).</p>
+</li>
+<li>
+<p><code>APPLICATION_ID</code> - The name of your Kafka Streams application.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" -e "APPLICATION_ID=my-kafka-streams-app" apicurio/apicurio-registry-kafka-streams:latest</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Send a test request using the Apicurio Registry REST API. For example, enter the following <code>curl</code> command to create a simple Avro schema artifact for a share price application in the registry:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/artifacts</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"prices-value","version":1,"type":"AVRO","globalId":8}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more REST API sample requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+<li>
+<p>For a demo based on Kafka Streams storage, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+<li>
+<p>For more details on Kafka Streams, see the <a href="https://kafka.apache.org/documentation/streams//">Apache Kafka Streams documentation</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="setting-up-kafka-kubernetes-storage"><a class="anchor" href="#setting-up-kafka-kubernetes-storage"></a>Setting up Apache Kafka Streams storage on OpenShift</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This topic explains how to install and configure Apache Kafka Streams storage for Apicurio Registry on OpenShift using Strimzi. This storage option is suitable for production environments.</p>
+</div>
+<div class="paragraph">
+<p>The following versions are supported:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Apache Kafka Streams 2.3.x</p>
+</li>
+<li>
+<p>Apache Kafka Streams 2.2.x</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can install Apicurio Registry in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have an OpenShift cluster with cluster administrator access.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Install Strimzi on your OpenShift cluster using the Strimzi Cluster Operator. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">kubectl create namespace kafka
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.14.0/strimzi-cluster-operator-0.14.0.yaml \
+  | sed 's/namespace: .*/namespace: kafka/' \
+  | kubectl apply -f - -n kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create a new Kafka cluster with Strimzi. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ cat &lt;&lt; EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+ name: my-cluster
+spec:
+ kafka:
+   replicas: 3
+   listeners:
+     external:
+       type: route
+   storage:
+     type: ephemeral
+ zookeeper:
+   replicas: 3
+   storage:
+     type: ephemeral
+ entityOperator:
+   topicOperator: {}
+EOF</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This simple example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes using ephemeral storage.</p>
+</div>
+</li>
+<li>
+<p>Enter the following command to wait until your cluster is ready:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s
+kafka.kafka.strimzi.io/my-cluster condition met</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the required <code>storage-topic</code> to store Apicurio Registry artifacts in Kafka Streams. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ cat &lt;&lt; EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  namespace: kafka
+  name: storage-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the required <code>global-id-topic</code> to store Apicurio Registry global IDs in Kafka Streams. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ cat &lt;&lt; EOF | kubectl create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  namespace: kafka
+  name: global-id-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: compact
+EOF</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>For more details on installing Strimzi and on creating Kafka clusters and topics, see <a href="https://strimzi.io/docs/overview/latest/" class="bare">https://strimzi.io/docs/overview/latest/</a></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installing-registry-kafka-kubernetes-storage"><a class="anchor" href="#installing-registry-kafka-kubernetes-storage"></a>Installing Apicurio Registry with Apache Kafka Streams storage on Kubernetes</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This topic explains how to install and run Apicurio Registry with storage in Apache Kafka Streams with Strimzi using an OpenShift template. This storage option is suitable for production environments.</p>
+</div>
+<div class="paragraph">
+<p>The following versions are supported:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Apache Kafka 2.3.x</p>
+</li>
+<li>
+<p>Apache Kafka 2.2.x</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You must have an OpenShift cluster with cluster administrator access.</p>
+</li>
+<li>
+<p>You must have already installed Strimzi and configured your Kafka cluster on OpenShift. See <a href="#setting-up-kafka-kubernetes-storage">Setting up Apache Kafka Streams storage on OpenShift</a>.</p>
+</li>
+<li>
+<p>Ensure that you can connect to the Apicurio Registry container image in GitHub: <a href="https://hub.docker.com/r/apicurio/apicurio-registry-kafka" class="bare">https://hub.docker.com/r/apicurio/apicurio-registry-kafka</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get the <a href="https://github.com/Apicurio/apicurio-registry/blob/1.1.x/distro/openshift-template/apicurio-registry-template-streams.yml">Apicurio Registry OpenShift template</a>.</p>
+</li>
+<li>
+<p>Enter the following command to get the name of the Kafka bootstrap service running in Strimzi on your OpenShift cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ oc get services | grep .*kafka-bootstrap</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create a new OpenShift application using the <code>oc new-app</code> command. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ oc new-app apicurio-registry-template-streams.yml \
+   -p KAFKA_BOOTSTRAP_SERVERS=my-cluster-kafka-bootstrap:9092 \
+   -p REGISTRY_ROUTE=my-cluster-service-registry-myproject.example.com \
+   -p APPLICATION_ID=my-kafka-streams-app</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You must specify the following arguments:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>apicurio-registry-template-streams</code>: The OpenShift template file for Apicurio Registry.</p>
+</li>
+<li>
+<p><code>KAFKA_BOOTSTRAP_SERVERS</code>: The name of the Kafka bootstrap service on your OpenShift cluster, followed by the Kafka broker port. For example: <code>my-cluster-kafka-bootstrap:9092</code>.</p>
+</li>
+<li>
+<p><code>REGISTRY_ROUTE</code>: The name of the OpenShift route to expose Apicurio Registry, which is based on your OpenShift cluster environment, For example: <code>my-cluster-service-registry-myproject.example.com</code>.</p>
+</li>
+<li>
+<p><code>APPLICATION_ID</code>: The name of your Kafka Streams application. For example: <code>my-kafka-streams-app</code>.</p>
+<div class="paragraph">
+<p>You can also specify the following environment variables using the <code>-e</code> option:</p>
+</div>
+</li>
+<li>
+<p><code>APPLICATION_SERVER_HOST</code>: The IP address of your Kafka Streams application server host, which is required in a multi-node Kafka configuration. Defaults to <code>$(POD_IP)</code>.</p>
+</li>
+<li>
+<p><code>APPLICATION_SERVER_PORT</code>: The port number of your Kafka Streams application server, which is required in a multi-node Kafka configuration. Defaults to <code>9000</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Enter <code>oc status</code> to view your Apicurio Registry installation on OpenShift.</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For sample REST API requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+<li>
+<p>For details on example client applications:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script src="../../_/js/site.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

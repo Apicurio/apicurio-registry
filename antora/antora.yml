@@ -1,5 +1,5 @@
-name: apicurio-studio
-title: Apicurio Studio
+name: apicurio-registry
+title: Apicurio Registry
 version: 'master'
 start_ROOT: ROOT:index.adoc
 nav:

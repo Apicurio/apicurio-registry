@@ -18,5 +18,5 @@ This chapter introduces {registry} concepts and features and provides details on
 * xref:registry-artifact-types[]
 
 //INCLUDES
-include::../../modules/getting-started/con_registry-overview.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con_registry-overview.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]

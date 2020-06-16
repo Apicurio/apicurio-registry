@@ -12,6 +12,6 @@ This chapter provides details on different approaches to managing artifacts in {
 * xref:managing-artifacts-using-client-code[]
 
 //INCLUDES
-include::../../modules/getting-started/proc_managing-artifacts-using-rest-api.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_managing-artifacts-using-client-code.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_managing-artifacts-using-rest-api.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_managing-artifacts-using-client-code.adoc[leveloffset=+1]

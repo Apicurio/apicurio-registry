@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Introduction to Apicurio Registry rules :: Docs</title>
+    <link rel="canonical" href="https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_intro-to-registry-rules.html">
+    <meta name="generator" content="Antora 2.3.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://pwright.github.io/apicurio-registry/html">Docs</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+         
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="is-primary" href="#"></a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="docs" data-version="master">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Docs</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../index.html"> Home</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_intro-to-the-registry.html">Introduction to Apicurio Registry</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="as_intro-to-registry-rules.html">Introduction to Apicurio Registry rules</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_installing-the-registry.html">Installing Apicurio Registry</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_managing-registry-artifacts.html">Managing artifacts in Apicurio Registry</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Docs</span>
+    <span class="version">master</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">Docs</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">master</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../index.html"> Home</a></li>
+    <li><a href="as_intro-to-registry-rules.html">Introduction to Apicurio Registry rules</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="file:///home/pwright/repos/a/apicurio-registry/antora/modules/ROOT/pages/getting-started/as_intro-to-registry-rules.adoc"></a></div>
+</div>
+  <div class="content">
+<article class="doc">
+<h1 class="page">Introduction to Apicurio Registry rules</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter introduces the optional rules used to govern registry content and provides details on the available rule types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#registry-rules">Rules for registry content</a></p>
+</li>
+<li>
+<p><a href="#registry-rule-types">Supported rule types</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="registry-rules"><a class="anchor" href="#registry-rules"></a>Rules for registry content</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To govern the evolution of registry content, you can configure optional rules for artifacts added to the registry. Any rules configured for an artifact must pass before a new artifact version can be uploaded to the registry. The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Invalid syntax for a given artifact type (for example, <code>AVRO</code> or <code>PROTOBUF</code>)</p>
+</li>
+<li>
+<p>Valid syntax, but semantics violate company standards</p>
+</li>
+<li>
+<p>New content includes breaking changes to the current artifact version</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_when_rules_are_applied"><a class="anchor" href="#_when_rules_are_applied"></a>When rules are applied</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Rules are applied only when content is added to the registry. This includes the following REST operations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Creating an artifact</p>
+</li>
+<li>
+<p>Updating an artifact</p>
+</li>
+<li>
+<p>Creating an artifact version</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If a rule is violated, Apicurio Registry returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If no rules are configured for an artifact, the set of currently configured global rules are applied, if any.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_rules_work"><a class="anchor" href="#_how_rules_work"></a>How rules work</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each rule has a name and optional configuration information. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. For example, a validation rule implementation might use  a <code>Map&lt;String,String&gt;</code>, or a compatibility rule might use a single property of <code>BACKWARD</code> for compatibility with existing versions.</p>
+</div>
+<div class="paragraph">
+<p>A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="registry-rule-types"><a class="anchor" href="#registry-rule-types"></a>Supported rule types</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You can specify the following rule types to govern content evolution in the registry:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Apicurio Registry rule types</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VALIDITY</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Validates data before adding it to the registry. The possible configuration values for this rule are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>FULL</code>: The validation is both syntax and semantic.</p>
+</li>
+<li>
+<p><code>SYNTAX_ONLY</code>: The validation is syntax only.</p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>COMPATIBILITY</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Ensures that newly added artifacts are compatible with previously added versions. The possible configuration values for this rule are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>FULL</code>: The new artifact is forward and backward compatible with the most recently added artifact.</p>
+</li>
+<li>
+<p><code>FULL_TRANSITIVE</code>: The new artifact is forward and backward compatible with all previously added artifacts.</p>
+</li>
+<li>
+<p><code>BACKWARD</code>: Clients using the new artifact can read data written using the most recently added artifact.</p>
+</li>
+<li>
+<p><code>BACKWARD_TRANSITIVE</code>: Clients using the new artifact can read data written using all previously added artifacts.</p>
+</li>
+<li>
+<p><code>FORWARD</code>: Clients using the most recently added artifact can read data written using the new artifact.</p>
+</li>
+<li>
+<p><code>FORWARD_TRANSITIVE</code>: Clients using all previously added artifacts can read data written using the new artifact.</p>
+</li>
+<li>
+<p><code>NONE</code>: All backward and forward compatibility checks are disabled.</p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</article>
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script src="../../_/js/site.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

@@ -11,5 +11,5 @@ This chapter introduces the optional rules used to govern registry content and p
 * xref:registry-rule-types[]
 
 //INCLUDES
-include::../../modules/getting-started/con_registry-rules.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con_registry-rules.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref_registry-rule-types.adoc[leveloffset=+1]

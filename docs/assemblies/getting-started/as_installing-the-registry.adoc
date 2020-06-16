@@ -36,15 +36,15 @@ NOTE: You can install more than one instance of {registry} depending on your env
 
 //INCLUDES
 ifdef::apicurio-registry[]
-include::../../modules/getting-started/proc_installing-registry-in-memory-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-jpa-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-in-memory-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-jpa-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-kafka-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 endif::[]
 
 ifdef::rh-service-registry[]
-include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 endif::[]

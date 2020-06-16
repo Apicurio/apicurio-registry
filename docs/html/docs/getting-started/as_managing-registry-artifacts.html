@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Managing artifacts in Apicurio Registry :: Docs</title>
+    <link rel="canonical" href="https://pwright.github.io/apicurio-registry/html/docs/getting-started/as_managing-registry-artifacts.html">
+    <meta name="generator" content="Antora 2.3.1">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://pwright.github.io/apicurio-registry/html">Docs</a>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+         
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="is-primary" href="#"></a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="docs" data-version="master">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Docs</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="../index.html"> Home</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_intro-to-the-registry.html">Introduction to Apicurio Registry</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_intro-to-registry-rules.html">Introduction to Apicurio Registry rules</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="as_installing-the-registry.html">Installing Apicurio Registry</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="as_managing-registry-artifacts.html">Managing artifacts in Apicurio Registry</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Docs</span>
+    <span class="version">master</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">Docs</span>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">master</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../index.html"> Home</a></li>
+    <li><a href="as_managing-registry-artifacts.html">Managing artifacts in Apicurio Registry</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="file:///home/pwright/repos/a/apicurio-registry/antora/modules/ROOT/pages/getting-started/as_managing-registry-artifacts.adoc"></a></div>
+</div>
+  <div class="content">
+<article class="doc">
+<h1 class="page">Managing artifacts in Apicurio Registry</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This chapter provides details on different approaches to managing artifacts in Apicurio Registry:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#managing-artifacts-using-rest-api">Managing artifacts using the Registry REST API</a></p>
+</li>
+<li>
+<p><a href="#managing-artifacts-using-maven-plugin">Managing artifacts using the Apicurio Registry Maven plug-in</a></p>
+</li>
+<li>
+<p><a href="#managing-artifacts-using-client-code">Managing artifacts in a Java client application</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="managing-artifacts-using-rest-api"><a class="anchor" href="#managing-artifacts-using-rest-api"></a>Managing artifacts using the Registry REST API</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Registry REST API enables client applications to manage artifacts in the registry, for example, in a CI/CD pipeline deployed in production. This REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry.</p>
+</div>
+<div class="paragraph">
+<p>When creating artifacts in Apicurio Registry using the REST API, if you do not specify a unique artifact ID, Apicurio Registry generates one automatically as a UUID.</p>
+</div>
+<div class="paragraph">
+<p>This chapter shows a simple curl-based example of using the Registry REST API to create and retrieve a Apache Avro schema artifact in the registry.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>See <a href="#registry-rest-api">[registry-rest-api]</a>.</p>
+</li>
+<li>
+<p>Apicurio Registry must be installed and running in your environment. For details, see <a href="#installing-the-registry">[installing-the-registry]</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create an artifact in the registry using the <code>/artifacts</code> operation. The following example <code>curl</code> command creates a simple artifact for a share price application:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/artifacts</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This example shows creating an Avro schema artifact with an artifact ID of <code>share-price</code>.</p>
+</div>
+</li>
+<li>
+<p>Verify that the response includes the expected JSON body to confirm that the artifact was created. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Retrieve the artifact from the registry using its artifact ID. For example, in this case the specified ID is <code>share-price</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ curl https://MY-REGISTRY-URL/artifacts/share-price
+'{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more REST API sample requests, see the <a href="files/registry-rest-api.htm">Registry REST API documentation</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="managing-artifacts-using-maven-plugin"><a class="anchor" href="#managing-artifacts-using-maven-plugin"></a>Managing artifacts using the Apicurio Registry Maven plug-in</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Apicurio Registry provides a Maven plug-in to enable you to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Apicurio Registry must be installed and running in your environment</p>
+</li>
+<li>
+<p>Maven must be installed and configured in your environment</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update your Maven <code>pom.xml</code> file to use the <code>apicurio-registry-maven-plugin</code> to upload an artifact. The following example shows registering an Apache Avro schema artifact:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;plugin&gt;
+&lt;groupId&gt;io.apicurio&lt;/groupId&gt;
+&lt;artifactId&gt;apicurio-registry-maven-plugin&lt;/artifactId&gt;
+&lt;version&gt;${registry.version}&lt;/version&gt;
+&lt;executions&gt;
+  &lt;execution&gt;
+    &lt;phase&gt;generate-sources&lt;/phase&gt;
+    &lt;goals&gt;
+      &lt;goal&gt;register&lt;/goal&gt; <i class="conum" data-value="1"></i><b>(1)</b>
+    &lt;/goals&gt;
+    &lt;configuration&gt;
+      &lt;registryUrl&gt;https://my-cluster-service-registry-myproject.example.com&lt;/registryUrl&gt; <i class="conum" data-value="2"></i><b>(2)</b>
+      &lt;artifactType&gt;AVRO&lt;/artifactType&gt;
+      &lt;artifacts&gt;
+        &lt;schema1&gt;${project.basedir}/schemas/schema1.avsc&lt;/schema1&gt; <i class="conum" data-value="3"></i><b>(3)</b>
+      &lt;/artifacts&gt;
+    &lt;/configuration&gt;
+  &lt;/execution&gt;
+&lt;/executions&gt;
+&lt;/plugin&gt;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Specify <code>register</code> as the execution goal to upload an artifact to the registry.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>You must specify the Apicurio Registry URL.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>You can upload multiple artifacts using the artifact ID and location.</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>You can also update your Maven <code>pom.xml</code> file to download a previously registered artifact:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;plugin&gt;
+&lt;groupId&gt;io.apicurio&lt;/groupId&gt;
+&lt;artifactId&gt;apicurio-registry-maven-plugin&lt;/artifactId&gt;
+&lt;version&gt;${registry.version}&lt;/version&gt;
+&lt;executions&gt;
+  &lt;execution&gt;
+    &lt;phase&gt;generate-sources&lt;/phase&gt;
+    &lt;goals&gt;
+      &lt;goal&gt;download&lt;/goal&gt; <i class="conum" data-value="1"></i><b>(1)</b>
+    &lt;/goals&gt;
+    &lt;configuration&gt;
+      &lt;registryUrl&gt;https://my-cluster-service-registry-myproject.example.com&lt;/registryUrl&gt; <i class="conum" data-value="2"></i><b>(2)</b>
+          &lt;ids&gt;
+            &lt;param1&gt;schema1&lt;/param1&gt; <i class="conum" data-value="3"></i><b>(3)</b>
+          &lt;/ids&gt;
+      &lt;outputDirectory&gt;${project.build.directory}&lt;/outputDirectory&gt;
+   &lt;/configuration&gt;
+ &lt;/execution&gt;
+&lt;/executions&gt;
+&lt;/plugin&gt;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Specify <code>download</code> as the execution goal.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>You must specify the Apicurio Registry URL.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>You can download multiple artifacts to a specified directory using the artifact ID.</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more details on the Maven plug-in, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="managing-artifacts-using-client-code"><a class="anchor" href="#managing-artifacts-using-client-code"></a>Managing artifacts in a Java client application</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You can also manage artifacts in the registry using a Java client application. The Apicurio Registry Java client classes  enable you to create, read, update, or delete artifacts in the registry.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>See <a href="#client-serde">[client-serde]</a></p>
+</li>
+<li>
+<p>You must have implemented a client application in Java that imports the Apicurio Registry client classes: <code>io.apicurio.registry.client.RegistryClient</code></p>
+</li>
+<li>
+<p>Apicurio Registry must be installed and running in your environment.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Update your client application to create a new artifact in the registry. The following example shows creating an Apache Avro schema artifact from a Kafka producer client application:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+  "https://my-cluster-service-registry-myproject.example.com"); <i class="conum" data-value="1"></i><b>(1)</b>
+   try (RegistryService service = RegistryClient.create(registryUrl_node1))
+   {
+    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
+    try {
+     service.getArtifactMetaData(artifactId); <i class="conum" data-value="2"></i><b>(2)</b>
+    }
+    catch (WebApplicationException e) {
+     CompletionStage &lt; ArtifactMetaData &gt; csa = service.createArtifact( <i class="conum" data-value="3"></i><b>(3)</b>
+        ArtifactType.AVRO,
+        artifactId,
+         new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
+        );
+    csa.toCompletableFuture().get();
+    }
+ }</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Configure the client application with the Service Registry URL in the client properties. You can create properties for more than one registry node.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Check to see if the schema artifact already exists in the registry based on the artifact ID.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Create the new schema artifact in the registry.</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For an example Java client application, see <a href="https://github.com/Apicurio/apicurio-registry-demo" class="bare">https://github.com/Apicurio/apicurio-registry-demo</a>.</p>
+</li>
+<li>
+<p>For more details on Kafka client applications, see: <a href="https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index">Using AMQ Streams on Openshift</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script src="../../_/js/site.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

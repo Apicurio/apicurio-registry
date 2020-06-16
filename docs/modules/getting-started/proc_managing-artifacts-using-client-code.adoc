@@ -19,7 +19,7 @@ You can also manage artifacts in the registry using a Java client application. T
 [source,java,subs="+quotes,attributes"]
 ----
 String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
-  "https://my-cluster-service-registry-myproject.example.com"); <1>
+  "https://my-cluster-service-registry-myproject.example.com/api"); <1>
    try (RegistryService service = RegistryClient.create(registryUrl_node1)) 
    {
     String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
@@ -36,7 +36,7 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
     }
  }
 ----
-<1> Configure the client application with the Service Registry URL in the client properties. You can create properties for more than one registry node.
+<1> Configure the client application with the {registry} URL in the client properties. You can create properties for more than one registry node.
 <2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
 <3> Add the new schema artifact in the registry.
 

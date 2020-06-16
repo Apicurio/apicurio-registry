@@ -73,6 +73,18 @@ When a schema or API contract is added as an artifact in the registry, client ap
 
 {registry} supports a wide range of message payload formats for standard event schemas and API specifications. For example, supported formats include Apache Avro, Google protocol buffers, GraphQL, AsyncAPI, OpenAPI, and others. For more details, see xref:registry-artifact-types[].
 
+[id="registry-web-console"]
+= {registry} web console
+
+You can use the {registry} web console to browse and search the artifacts stored in the registry, and to upload new artifacts and artifact versions. You can search for artifacts by label, name, and description. You can also view an artifact’s content, view all of its available artifact versions, or download an artifact file locally.
+
+You can also use the {registry} web console to configure optional rules for registry content, both globally and for each artifact. These optional rules for content validation and compatibility are applied when new artifacts or artifact versions are uploaded to the registry. For more details, see xref:registry-rules[].
+
+.{registry} web console
+image::images/getting-started/registry-web-console.png[{registry} web console]
+
+The {registry} web console is available from the main endpoint of your {registry} deployment, for example, on  `\http://MY-REGISTRY-URL/ui`. For more details, see xref:managing-registry-artifacts[].
+
 [id="registry-rest-api"]
 = Registry REST API
 Using the Registry REST API, client applications can manage the artifacts in {registry}. This API provides create, read, update, and delete operations for:
@@ -88,13 +100,15 @@ Configure rules to govern the content evolution of all artifacts to prevent inva
 Artifact rules::
 Configure rules to govern the content evolution of a specific artifact to prevent invalid or incompatible content from being added to the registry. Artifact rules override any global rules configured. 
 
-For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
-
 .Compatibility with other schema registries
 The Registry REST API is compatible with the Confluent schema registry REST API. This means that applications using Confluent client libraries can use {registry} instead as a drop-in replacement. 
 ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
+
+.Additional resources
+* For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* The Registry REST API documentation is also available from the main endpoint of your {registry} deployment, for example, on `\http://MY-REGISTRY-URL/api`.  
 
 [id="registry-storage"]
 = Storage options
@@ -109,8 +123,6 @@ ifdef::apicurio-registry[]
 * Embedded Infinispan cache
 
 NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting this storage implementation. All other storage options are suitable for development and production environments.
-
-For more details, see https://github.com/Apicurio/apicurio-registry. 
 
 endif::[]
 
@@ -140,7 +152,8 @@ These features provide early access to upcoming product features, enabling custo
 ====
 endif::[]
 
-For details on how to install into your preferred storage option, see xref:installing-the-registry[].
+.Additional resources
+* For details on how to install into your preferred storage option, see xref:installing-the-registry[].
 
 //The {registry} Operator enables you to install and configure {registry} with your selected storage implementation on OpenShift.
 
@@ -161,7 +174,7 @@ The {registry} Maven repository and source code distributions include the serial
 
 ifdef::rh-service-registry[]
 .Additional resources
-For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+* For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
 link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
 
 endif::[]

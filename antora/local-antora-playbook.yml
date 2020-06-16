@@ -1,5 +1,5 @@
 site:
-  title: Docs
+  title: Apicurio Studio
   # the 404 page and sitemap files only get generated when the url property is set
   url: https://pwright.github.io/apicurio-registry/html
   start_page: apicurio-studio::index.adoc

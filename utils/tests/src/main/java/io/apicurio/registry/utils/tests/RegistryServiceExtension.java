@@ -19,8 +19,6 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.quarkus.test.junit.QuarkusTestExtension;
-import io.quarkus.test.junit.internal.DeepClone;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
@@ -40,20 +38,6 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
     private static final String REGISTRY_CLIENT_ALL = "all";
-
-    static {
-        // hack QuarkusTestExtension
-        // https://github.com/quarkusio/quarkus/issues/9886
-        try {
-            Class<QuarkusTestExtension> clazz = QuarkusTestExtension.class;
-            Field field = clazz.getDeclaredField("deepClone");
-            DeepClone deepClone = objectToClone -> objectToClone;
-            field.setAccessible(true);
-            field.set(null, deepClone);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
 
     private enum ParameterType {
         REGISTRY_SERVICE,

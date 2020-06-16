@@ -18,12 +18,16 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTestExtension;
+import io.quarkus.test.junit.internal.DeepClone;
+
 import org.junit.jupiter.api.Assertions;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,20 @@ import java.util.stream.Collectors;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractRegistryTestBase {
+
+    static {
+        // hack QuarkusTestExtension
+        // https://github.com/quarkusio/quarkus/issues/9886
+        try {
+            Class<QuarkusTestExtension> clazz = QuarkusTestExtension.class;
+            Field field = clazz.getDeclaredField("deepClone");
+            DeepClone deepClone = objectToClone -> objectToClone;
+            field.setAccessible(true);
+            field.set(null, deepClone);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();

@@ -1,11 +1,20 @@
 package io.apicurio.registry.streams.distore;
 
 import com.google.protobuf.ByteString;
-import io.apicurio.registry.streams.distore.proto.*;
+import io.apicurio.registry.streams.distore.proto.FilterReq;
+import io.apicurio.registry.streams.distore.proto.Key;
+import io.apicurio.registry.streams.distore.proto.KeyFromKeyToReq;
+import io.apicurio.registry.streams.distore.proto.KeyReq;
+import io.apicurio.registry.streams.distore.proto.KeyValueStoreGrpc;
+import io.apicurio.registry.streams.distore.proto.Size;
+import io.apicurio.registry.streams.distore.proto.Value;
+import io.apicurio.registry.streams.distore.proto.VoidReq;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
@@ -35,15 +44,19 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
         this.filterPredicate = filterPredicate;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private <K, V> ExtReadOnlyKeyValueStore<K, V> keyValueStore(String storeName) {
         return (ExtReadOnlyKeyValueStore<K, V>)
             keyValueStores.computeIfAbsent(
-                storeName,
-                sn -> new ExtReadOnlyKeyValueStoreImpl<>(
-                    streams.store(storeName, QueryableStoreTypes.keyValueStore()),
-                    filterPredicate
-                )
+                    storeName,
+                    sn -> {
+                        QueryableStoreType<ReadOnlyKeyValueStore<K, V>> queryableStoreType = QueryableStoreTypes.keyValueStore();
+                        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType).enableStaleStores();
+                        return new ExtReadOnlyKeyValueStoreImpl(
+                                streams.store(sqp),
+                                filterPredicate
+                        );
+                    }
             );
     }
 

@@ -4,6 +4,7 @@ import io.grpc.Channel;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyQueryMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -27,7 +28,7 @@ import java.util.stream.Stream;
  * nodes comprising the distributed streams application. It dispatches requests to services on local and remote
  * KafkaStreams processing nodes that contain parts of the data/functionality which is served up. The distribution
  * is performed given the key and storeName which is registered in the kafka streams application and the following
- * streams method: {@link KafkaStreams#metadataForKey(String, Object, Serializer)}.
+ * streams method: {@link KafkaStreams#queryMetadataForKey(String, Object, Serializer)}.
  */
 public abstract class DistributedService<K, S> implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(DistributedService.class);
@@ -103,23 +104,23 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
     }
 
     protected final S serviceForKey(K key) {
-        StreamsMetadata smeta = streams.metadataForKey(storeName, key, keySerde.serializer());
+        KeyQueryMetadata smeta = streams.queryMetadataForKey(storeName, key, keySerde.serializer());
         if (smeta == null) {
             throw new InvalidStateStoreException(
-                "StreamsMetadata is null?! " +
-                "Store-name: " + storeName + " " +
-                "Key: " + key
+                    "StreamsMetadata is null?! " +
+                            "Store-name: " + storeName + " " +
+                            "Key: " + key
             );
         }
-        if (smeta == StreamsMetadata.NOT_AVAILABLE) {
+        if (smeta == KeyQueryMetadata.NOT_AVAILABLE) {
             throw new InvalidStateStoreException(
-                "StreamsMetadata is currently unavailable. " +
-                "This can occur during rebalance operations. " +
-                "Store-name: " + storeName + " " +
-                "Key: " + key
+                    "StreamsMetadata is currently unavailable. " +
+                            "This can occur during rebalance operations. " +
+                            "Store-name: " + storeName + " " +
+                            "Key: " + key
             );
         }
-        return serviceForHostInfo(smeta.hostInfo());
+        return serviceForHostInfo(smeta.getActiveHost());
     }
 
     protected final Collection<S> allServicesForStore() {

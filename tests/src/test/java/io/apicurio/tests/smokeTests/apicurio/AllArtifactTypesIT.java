@@ -32,6 +32,8 @@ import static io.apicurio.tests.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
+
 @Tag(SMOKE)
 class AllArtifactTypesIT extends BaseIT {
 
@@ -89,8 +91,6 @@ class AllArtifactTypesIT extends BaseIT {
         } catch (Exception e) {
             LOGGER.error("Error on AllArtifactTypesIT", e);
             throw new IllegalStateException(e);
-        } finally {
-            service.deleteAllGlobalRules();
         }
     }
 
@@ -130,7 +130,11 @@ class AllArtifactTypesIT extends BaseIT {
     }
 
     @AfterEach
-    void deleteRules(RegistryService service) {
+    void deleteRules(RegistryService service) throws Exception {
         service.deleteAllGlobalRules();
+        TestUtils.retry(() -> {
+            List<RuleType> rules = service.listGlobalRules();
+            assertEquals(0, rules.size(), "All global rules not deleted");
+        });
     }
 }

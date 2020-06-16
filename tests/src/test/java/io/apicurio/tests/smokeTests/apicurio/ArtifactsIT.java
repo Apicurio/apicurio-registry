@@ -194,14 +194,14 @@ class ArtifactsIT extends BaseIT {
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
         service.updateArtifactState(artifactId, data);
-        
+
         // Verify (expect 404)
         TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId), true);
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
         service.updateArtifactState(artifactId, data);
-        
+
         // Verify
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
@@ -250,7 +250,7 @@ class ArtifactsIT extends BaseIT {
             actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
-        
+
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
         service.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
@@ -350,8 +350,12 @@ class ArtifactsIT extends BaseIT {
     }
 
     @AfterEach
-    void deleteRules(RegistryService service) {
+    void deleteRules(RegistryService service) throws Exception {
         service.deleteAllGlobalRules();
+        TestUtils.retry(() -> {
+            List<RuleType> rules = service.listGlobalRules();
+            assertEquals(0, rules.size(), "All global rules not deleted");
+        });
     }
 }
 

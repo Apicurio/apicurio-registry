@@ -23,7 +23,7 @@ You can use the {registry} web console to upload event schema and API design art
 
 . Click *Upload* and view the *Artifact Details*:
 
-** *Info*: Displays artifact metadata including name, description, status, created, and modified. Artifact actions include *Edit Artifact Metadata* and *Download*. Also displays artifact *Content Rules* that you can enable and configure.
+** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click *Edit Artifact Metadata* to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
 
 ** *Documentation* (OpenAPI and WSDL only): Displays automatically-generated REST or Web Service API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
@@ -34,7 +34,7 @@ You can use the {registry} web console to upload event schema and API design art
 
 . To delete an artifact, click the trash icon next to *Upload new version*. 
 +
-WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone.  
+WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone. Artifact versions are immutable and cannot be deleted individually.   
 
 .Additional resources
 * xref:browsing-artifacts-using-console[]

@@ -33,6 +33,7 @@ import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.KafkaFacade;
 import io.apicurio.tests.serdes.json.Msg;
 import io.apicurio.tests.serdes.json.ValidMessage;
 import io.apicurio.tests.serdes.proto.MsgTypes;
@@ -72,13 +73,21 @@ public class KafkaClients {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaClients.class);
     private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
-    public static Producer<Object, ?> createProducer(String keySerializer, 
+    private static String bootstrapServers() {
+        String bootsrapServers = KafkaFacade.bootstrapServers();
+        if (bootsrapServers == null) {
+            return BOOTSTRAP_SERVERS;
+        }
+        return bootsrapServers;
+    }
+
+    public static Producer<Object, ?> createProducer(String keySerializer,
             String valueSerializer, String topicName, String artifactIdStrategy) {
         return createProducer(new Properties(), keySerializer, valueSerializer, topicName, artifactIdStrategy);
     }
-    public static Producer<Object, ?> createProducer(Properties props, String keySerializer, 
+    public static Producer<Object, ?> createProducer(Properties props, String keySerializer,
             String valueSerializer, String topicName, String artifactIdStrategy) {
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializer);
@@ -96,13 +105,13 @@ public class KafkaClients {
         return new KafkaProducer<>(props);
     }
 
-    public static Consumer<Long, ?> createConsumer(String keyDeserializer, 
+    public static Consumer<Long, ?> createConsumer(String keyDeserializer,
             String valueDeserializer, String topicName) {
         return createConsumer(new Properties(), keyDeserializer, valueDeserializer, topicName);
     }
-    public static Consumer<Long, ?> createConsumer(Properties props, String keyDeserializer, 
+    public static Consumer<Long, ?> createConsumer(Properties props, String keyDeserializer,
             String valueDeserializer, String topicName) {
-        props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+        props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + topicName);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
@@ -233,7 +242,7 @@ public class KafkaClients {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             Properties props = new Properties();
             props.put(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, Boolean.TRUE);
-            Producer<Object, Msg> producer = (Producer<Object, Msg>) KafkaClients.createProducer(props, StringSerializer.class.getName(), 
+            Producer<Object, Msg> producer = (Producer<Object, Msg>) KafkaClients.createProducer(props, StringSerializer.class.getName(),
                     JsonSchemaKafkaSerializer.class.getName(), topicName, SimpleTopicIdStrategy.class.getName());
             LOGGER.debug("++++++++++++++++++ Producer created.");
 
@@ -355,7 +364,7 @@ public class KafkaClients {
         return resultPromise;
 
     }
-    
+
     public static CompletableFuture<Integer> consumeProtobufMessages(String topicName,  int messageCount) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             final Consumer<Long, DynamicMessage> consumer = (Consumer<Long, DynamicMessage>) KafkaClients.createConsumer(
@@ -376,7 +385,7 @@ public class KafkaClients {
                             DynamicMessage dm = record.value();
                             Descriptors.Descriptor descriptor = dm.getDescriptorForType();
                             String message = (String) dm.getField(descriptor.findFieldByName("what"));
-                            
+
                             LOGGER.info("{} {} {} {}", record.topic(),
                                     record.partition(), record.offset(), message);
                         });
@@ -398,6 +407,6 @@ public class KafkaClients {
         }
 
         return resultPromise;
-    }    
+    }
 
 }

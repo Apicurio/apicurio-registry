@@ -57,9 +57,10 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         int id = confClient.register(subject, schema);
         confClient.reset();
-        
+
         this.waitForArtifact(subject);
 
+        this.waitForGlobalId(id);
         Schema schema2 = confClient.getById(id);
         Assertions.assertNotNull(schema2);
 

@@ -1,0 +1,80 @@
+// Metadata created by nebel
+
+[id="registry-distros"]
+= Available distributions
+
+You can access the following distributions for {registry}: 
+
+ifdef::apicurio-registry[]
+
+.{registry} images 
+[%header,cols=2*] 
+|===
+|Storage option
+|Container Image
+|In-memory
+|https://hub.docker.com/r/apicurio/apicurio-registry-mem
+|Java Persistence API  
+|https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+|Apache Kafka
+|https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
+|Apache Kafka Streams
+|https://hub.docker.com/r/apicurio/apicurio-registry-streams
+|Infinispan
+|https://hub.docker.com/r/apicurio/apicurio-registry-infinispan
+|===
+
+.Additional resources
+* For details on building from source code, see https://github.com/Apicurio/apicurio-registry.
+
+endif::[]
+
+ifdef::rh-service-registry[]
+
+.{registry} Operator and images
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release
+|{registry} Operator 
+|OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for {registry} Operator 
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|General Availability
+|Container image for Kafka storage in AMQ Streams 
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|General Availability
+|Container image for embedded Infinispan storage 
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|Technical Preview only
+|Container image for JPA storage in PostgreSQL 
+|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|Technical Preview only
+|===
+
+
+.{registry} downloads
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release
+|Maven repository .zip
+|link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
+|General Availability
+|Full Maven repository .zip (with all dependencies) 
+|link:{download-url-registry-maven-full}[Software Downloads for Red Hat Integration]
+|General Availability
+|Source code .zip
+|link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]
+|General Availability
+|Kafka Connect converters .zip 
+|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
+|General Availability
+|===
+
+
+NOTE: You must have a subscription for Red Hat Integration and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
+endif::[]

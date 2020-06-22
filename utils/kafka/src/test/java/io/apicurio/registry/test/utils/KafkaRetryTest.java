@@ -66,7 +66,7 @@ public class KafkaRetryTest {
     }
 
     /**
-     * This methos is two-fold:
+     * This method is two-fold:
      * <ul>
      *     <li>It checks that Kafka broker(s) are reachable and throws {@link TestAbortedException}
      *     if not so a test that invokes this method is skipped</li>
@@ -74,7 +74,7 @@ public class KafkaRetryTest {
      *     creates them if necessary</li>
      * </ul>
      *
-     * @param topicNames
+     * @param topicNames the required topic names
      */
     protected final void ensureTopics(String... topicNames) {
         try (Admin admin = Admin.create(kafkaProperties)) {

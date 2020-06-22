@@ -49,3 +49,4 @@ include::attributes-links.adoc[]
 :download-url-registry-maven-full: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
 :download-url-registry-source-code: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2 
 :download-url-registry-kafka-connect: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
+:download-url-registry-custom-resources: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2

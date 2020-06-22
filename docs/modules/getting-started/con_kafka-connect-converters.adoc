@@ -1,0 +1,26 @@
+// Metadata created by nebel
+
+
+[id="kafka-connect"]
+= Kafka Connect converters 
+{registry} supports Apache Kafka Connect for streaming data between Kafka and other systems. You can use Kafka Connect to define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
+
+{registry} provides the following features for Kafka Connect:
+
+* Storage for Kafka Connect schemas
+* Kafka Connect converters for Apache Avro and JSON schemas
+
+You can use these Avro and JSON schema converters to map Kafka Connect schemas into Avro or JSON schemas. Those schemas can then serialize message keys and values into the compact Avro binary format or human-readable JSON format. The converted JSON is also less verbose because the messages do not contain the schema information, only the schema ID.
+
+{registry} can manage and track the schemas used in Kafka topics, and where the Avro or JSON converter sends the generated Avro or JSON schemas. Because the schemas are stored in {registry}, each message must only include a tiny schema identifier. For an I/O bound system like Kafka, this means more total throughput for producers and consumers.
+
+The Avro and JSON schema serializers and deserializers (Serdes) provided by {registry} are also used by Kafka producers and consumers in this use case. Kafka consumer applications that you write to consume change events can use the Avro or JSON Serdes to deserialize these change events. You can install these Serdes into any Kafka-based distribution and use them along with Kafka Connect and Debezium.
+
+.Additional resources
+
+* link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
+ifdef::rh-service-registry[]
+* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2020-04/html/debezium_user_guide/index[Debezium User Guide]
+endif::[]
+//* link:{LinkCDCUserGuide}#avro-serialization[Avro serialization]  
+* link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kakfa Connect with Debezium and Apicurio Registry]

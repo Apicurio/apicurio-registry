@@ -20,4 +20,12 @@ This chapter introduces {registry} concepts and features and provides details on
 
 //INCLUDES
 include::../../modules/getting-started/con_registry-overview.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-artifacts.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-web-console.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-rest-api.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-serde.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_kafka-connect-converters.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-demo.adoc[leveloffset=+1]
+include::../../modules/getting-started/con_registry-distros.adoc[leveloffset=+1]
 include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]

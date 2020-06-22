@@ -66,6 +66,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
             CompletionStage<ArtifactMetaData> csResult = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, stream);
             ConcurrentUtil.result(csResult);
+            waitForArtifact(artifactId);
 
             EditableMetaData emd = new EditableMetaData();
             emd.setName("myname");
@@ -80,7 +81,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             csResult = supplier.get().updateArtifact(artifactId, ArtifactType.JSON, stream);
             ConcurrentUtil.result(csResult);
         } finally {
-            supplier.get().deleteArtifact(artifactId);
+//            supplier.get().deleteArtifact(artifactId);
         }
     }
 

@@ -19,6 +19,7 @@ package io.apicurio.registry;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.ValidatableResponse;
@@ -158,27 +159,29 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
                 .put("/ccompat/config/{subject}", SUBJECT)
-                .then()
+            .then()
                 .statusCode(200)
                 .body(anything());
         
         // POST
-        given()
-            .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-            .then()
-                .statusCode(200)
-                .body("is_compatible", equalTo(true));
-        given()
-            .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-            .then()
-                .statusCode(200)
-                .body("is_compatible", equalTo(false));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_1_WRAPPED)
+                    .post("/ccompat/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                .then()
+                    .statusCode(200)
+                    .body("is_compatible", equalTo(true));
+            given()
+                .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_SIMPLE_WRAPPED)
+                    .post("/ccompat/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                .then()
+                    .statusCode(200)
+                    .body("is_compatible", equalTo(false));
+        });
     }
     
     @Test
@@ -216,12 +219,14 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                .statusCode(204);
         
         // GET - shouldn't return as the state has been changed to DISABLED
-        given()
-            .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-            .then()
-                .statusCode(400);
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                .then()
+                    .statusCode(400);
+        });
     }
     
     @Test
@@ -233,7 +238,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
-            .then().log().all()
+            .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
 
@@ -259,12 +264,14 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                .statusCode(204);
         
         // GET - shouldn't return as the state has been changed to DELETED
-        given()
-            .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-            .then()
-            .statusCode(404); 
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                .then()
+                    .statusCode(404); 
+        });
     }
 
     @Test

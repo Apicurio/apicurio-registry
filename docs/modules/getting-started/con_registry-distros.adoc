@@ -41,37 +41,40 @@ ifdef::rh-service-registry[]
 |OpenShift web console under *Operators* → *OperatorHub*
 |General Availability
 |Container image for {registry} Operator 
-|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |General Availability
 |Container image for Kafka storage in AMQ Streams 
-|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |General Availability
 |Container image for embedded Infinispan storage 
-|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |Technical Preview only
 |Container image for JPA storage in PostgreSQL 
-|link:{download-url-registry-container-catalog}[Red Hat Container Catalog]
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |Technical Preview only
 |===
 
 
-.{registry} downloads
+.{registry} zip downloads
 [%header,cols="3,3,2"]
 |===
 |Distribution
 |Location
 |Release
-|Maven repository .zip
+|Example custom resource definitions for installation
+|link:{download-url-registry-custom-resources}[Software Downloads for Red Hat Integration]
+|General Availability and Technical Preview
+|Kafka Connect converters 
+|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
+|General Availability
+|Maven repository
 |link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
 |General Availability
-|Full Maven repository .zip (with all dependencies) 
+|Full Maven repository (with all dependencies) 
 |link:{download-url-registry-maven-full}[Software Downloads for Red Hat Integration]
 |General Availability
-|Source code .zip
+|Source code 
 |link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]
-|General Availability
-|Kafka Connect converters .zip 
-|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
 |General Availability
 |===
 

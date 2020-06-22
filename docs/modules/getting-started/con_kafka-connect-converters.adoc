@@ -19,6 +19,8 @@ The Avro and JSON schema serializers and deserializers (Serdes) provided by {reg
 .Additional resources
 
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
+ifdef::rh-service-registry[]
 * link:https://access.redhat.com/documentation/en-us/red_hat_integration/2020-04/html/debezium_user_guide/index[Debezium User Guide]
+endif::[]
 //* link:{LinkCDCUserGuide}#avro-serialization[Avro serialization]  
 * link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kakfa Connect with Debezium and Apicurio Registry]

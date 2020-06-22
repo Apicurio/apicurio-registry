@@ -5,8 +5,26 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.storage.*;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.SearchedVersion;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.MetaDataKeys;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
@@ -35,15 +53,32 @@ import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
@@ -372,7 +407,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
 
     @Override
     public Set<String> getArtifactIds(Integer limit) {
-        Set<String> ids = new TreeSet<>();
+        Set<String> ids = new ConcurrentSkipListSet<>();
         try (Stream<String> stream = storageStore.allKeys()) {
             // exists can be costly ...
             if (limit != null) {

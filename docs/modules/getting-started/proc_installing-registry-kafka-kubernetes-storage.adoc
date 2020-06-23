@@ -3,11 +3,11 @@
 
 [id="installing-registry-kafka-kubernetes-storage"]
 
+= Installing {registry} with {kafka-streams} storage using an OpenShift template
+
+This topic explains how to install and run {registry} with Kafka-based storage in {kafka-streams} using an OpenShift template. This storage option is suitable for production environments. 
+
 ifdef::apicurio-registry[]
-= Installing {registry} with Apache Kafka Streams storage on Kubernetes
-
-This topic explains how to install and run {registry} with storage in Apache Kafka Streams with Strimzi using an OpenShift template. This storage option is suitable for production environments. 
-
 The following versions are supported:
 
 * Apache Kafka 2.3.x
@@ -15,9 +15,6 @@ The following versions are supported:
 endif::[]
 
 ifdef::rh-service-registry[]
-=  Installing {registry} with AMQ Streams storage on OpenShift
-
-This topic explains how to install and run {registry} with storage in Red Hat AMQ Streams using an OpenShift template. 
 
 The following versions are supported:
 

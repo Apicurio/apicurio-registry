@@ -9,6 +9,7 @@ This chapter introduces {registry} concepts and features and provides details on
 
 * xref:registry-overview[]
 * xref:registry-artifacts[]
+* xref:registry-web-console[]
 * xref:registry-rest-api[]
 * xref:registry-storage[]
 * xref:client-serde[]

@@ -48,4 +48,4 @@ The Apicurio Registry `docs` directory contains the following directories:
 ** `getting-started`
 
 == REST API documentation
-The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swaggger file using link:https://github.com/Redocly/redoc[ReDoc]. 
+The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swagger file using link:https://github.com/Redocly/redoc[ReDoc]. 

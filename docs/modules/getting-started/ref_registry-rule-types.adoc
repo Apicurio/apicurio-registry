@@ -10,13 +10,13 @@ You can specify the following rule types to govern content evolution in the regi
 |Type
 |Description
 |`VALIDITY`
-a| Validates data before adding it to the registry. The possible configuration values for this rule are:
+a| Validate data before adding it to the registry. The possible configuration values for this rule are:
 
 * `FULL`: The validation is both syntax and semantic.
 * `SYNTAX_ONLY`: The validation is syntax only.
 
 |`COMPATIBILITY`
-a| Ensures that newly added artifacts are compatible with previously added versions. The possible configuration values for this rule are:
+a| Ensure that newly added artifacts are compatible with previously added versions. The possible configuration values for this rule are:
 
 * `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
 * `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.

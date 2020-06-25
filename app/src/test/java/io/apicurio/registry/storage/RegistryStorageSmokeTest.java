@@ -175,25 +175,17 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         getStorage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("config").build());
 
-        // ops can be async
-        int tries = 5;
-        while (tries > 0) {
-            try {
-                assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
-                assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDITY));
+        TestUtils.retry(() -> {
+            assertEquals(1, getStorage().getArtifactRules(ARTIFACT_ID_3).size());
+            assertTrue(getStorage().getArtifactRules(ARTIFACT_ID_3).contains(RuleType.VALIDITY));
 
-                assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
+            assertEquals("config", getStorage().getArtifactRule(ARTIFACT_ID_3, RuleType.VALIDITY).getConfiguration());
 
-                assertEquals(1, getStorage().getGlobalRules().size());
-                assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
-
-                break;
-            } catch (Throwable t) {
-                tries--;
-                Thread.sleep(100L);
-            }
-        }
-        assertTrue(tries > 0, "Failed to create rules!");
+            assertEquals(1, getStorage().getGlobalRules().size());
+            assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
+            
+            return null;
+        });
 
         getStorage().deleteArtifact(ARTIFACT_ID_3);
     }

@@ -453,18 +453,34 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
         // Try to add the rule again - should get a 409
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .body(rule)
-                .pathParam("artifactId", artifactId)
-                .post("/artifacts/{artifactId}/rules")
-            .then()
-                .statusCode(409)
-                .body("error_code", equalTo(409))
-                .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+        final Rule finalRule = rule;
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .body(finalRule)
+                    .pathParam("artifactId", artifactId)
+                    .post("/artifacts/{artifactId}/rules")
+                .then()
+                    .statusCode(409)
+                    .body("error_code", equalTo(409))
+                    .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+        });
         
         // Add another rule
         rule.setType(RuleType.COMPATIBILITY);
@@ -479,6 +495,19 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204)
                 .body(anything());
 
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("BACKWARD"));
+        });
+
         // Get the list of rules (should be 2 of them)
         given()
             .when()
@@ -490,17 +519,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("[0]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                 .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                 .body("[2]", nullValue());
-        
-        // Get a single rule by name
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
-            .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
-                .body("config", equalTo("BACKWARD"));
 
         // Update a rule's config
         rule.setType(RuleType.COMPATIBILITY);
@@ -518,15 +536,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("config", equalTo("FULL"));
 
         // Get a single (updated) rule by name
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
-            .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("type", equalTo("COMPATIBILITY"))
-                .body("config", equalTo("FULL"));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("FULL"));
+        });
 
         // Try to update a rule's config for a rule that doesn't exist.
         // TODO test for a rule that doesn't exist
@@ -655,19 +675,19 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204);
 
-        // TODO -- fix async!
-
         // Get the (updated) artifact meta-data
-        given()
-            .when()
-                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .get("/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
-                .body("version", anything())
-                .body("name", equalTo("Empty API Name"))
-                .body("description", equalTo("Empty API description."));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                    .get("/artifacts/{artifactId}/meta")
+                .then()
+                    .statusCode(200)
+                    .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
+                    .body("version", anything())
+                    .body("name", equalTo("Empty API Name"))
+                    .body("description", equalTo("Empty API description."));
+        });
         
         // Update the artifact content and then make sure the name/description meta-data is still available
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
@@ -761,18 +781,20 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
 
         // Get the (updated) artifact meta-data
-        given()
-            .when()
-                .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
-                .pathParam("version", version2)
-                .get("/artifacts/{artifactId}/versions/{version}/meta")
-            .then()
-                .statusCode(200)
-                .body("version", equalTo(version2))
-                .body("type", equalTo(ArtifactType.OPENAPI.name()))
-                .body("createdOn", anything())
-                .body("name", equalTo("Updated Name"))
-                .body("description", equalTo("Updated description."));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
+                    .pathParam("version", version2)
+                    .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200)
+                    .body("version", equalTo(version2))
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                    .body("createdOn", anything())
+                    .body("name", equalTo("Updated Name"))
+                    .body("description", equalTo("Updated description."));
+        });
 
         // Get the version meta-data for the version we **didn't** update
         given()
@@ -978,15 +1000,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
         
         // Get a single rule by name
-        given()
-            .when()
-                .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/rules/VALIDITY")
-            .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("type", equalTo("VALIDITY"))
-                .body("config", equalTo("FULL"));
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
 
         // Delete the artifact
         given()

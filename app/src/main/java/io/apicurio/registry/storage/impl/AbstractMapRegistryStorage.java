@@ -505,7 +505,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
      */
-    @SuppressWarnings("unchecked")
     @Override
     public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {

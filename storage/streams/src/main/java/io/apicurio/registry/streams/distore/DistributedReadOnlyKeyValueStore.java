@@ -70,7 +70,7 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     @Override
     protected ExtReadOnlyKeyValueStore<K, V> localService(String storeName, KafkaStreams streams) {
         QueryableStoreType<ReadOnlyKeyValueStore<K, V>> queryableStoreType = QueryableStoreTypes.keyValueStore();
-        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType).enableStaleStores();
+        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType);
         ReadOnlyKeyValueStore<K, V> delegate = streams.store(sqp);
         return new ExtReadOnlyKeyValueStoreImpl<>(delegate, filterPredicate);
     }

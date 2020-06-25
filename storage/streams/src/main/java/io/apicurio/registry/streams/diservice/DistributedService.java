@@ -134,7 +134,10 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         }
         ArrayList<S> services = new ArrayList<>(smetas.size());
         for (StreamsMetadata smeta : smetas) {
-            services.add(serviceForHostInfo(smeta.hostInfo()));
+            // only use stores that have some active partitions
+            if (smeta.topicPartitions().size() > 0) {
+                services.add(serviceForHostInfo(smeta.hostInfo()));
+            }
         }
         return services;
     }
@@ -155,7 +158,10 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         }
         ArrayList<S> services = new ArrayList<>(smetas.size());
         for (StreamsMetadata smeta : smetas) {
-            services.add(serviceForHostInfo(smeta.hostInfo()));
+            // only use stores that have some active partitions
+            if (smeta.topicPartitions().size() > 0) {
+                services.add(serviceForHostInfo(smeta.hostInfo()));
+            }
         }
         return services;
     }

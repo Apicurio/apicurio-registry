@@ -17,7 +17,7 @@ ifdef::apicurio-registry[]
 endif::[]
 
 ifdef::rh-service-registry[]
-* AMQ Streams 1.4
+* AMQ Streams 1.5
 * OpenShift 4.4 or 4.3   
 endif::[]
 

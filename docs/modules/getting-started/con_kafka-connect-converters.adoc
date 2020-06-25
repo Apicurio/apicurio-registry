@@ -3,12 +3,16 @@
 
 [id="kafka-connect"]
 = Kafka Connect converters 
-{registry} supports Apache Kafka Connect for streaming data between Kafka and other systems. You can use Kafka Connect to define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
+You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
+
+.{registry} and Kafka Connect architecture
+image::images/getting-started/registry-connect-architecture.png[Registry and Kafka Connect architecture]
 
 {registry} provides the following features for Kafka Connect:
 
 * Storage for Kafka Connect schemas
-* Kafka Connect converters for Apache Avro and JSON schemas
+* Kafka Connect converters for Apache Avro and JSON Schema
+* Registry REST API to manage schemas
 
 You can use these Avro and JSON schema converters to map Kafka Connect schemas into Avro or JSON schemas. Those schemas can then serialize message keys and values into the compact Avro binary format or human-readable JSON format. The converted JSON is also less verbose because the messages do not contain the schema information, only the schema ID.
 

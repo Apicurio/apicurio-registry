@@ -2,24 +2,24 @@
 
 
 [id="client-serde"]
-= Client serializers/deserializers 
-Event-based producer applications can use serializers to encode messages that conform to a specific event schema. Consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. 
+= Kafka client serializers/deserializers 
+Kafka producer applications can use serializers to encode messages that conform to a specific event schema. Kafka consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. 
 
-.{registry} client serializer/deserializer architecture
+.{registry} and Kafka client serializer/deserializer architecture
 image::images/getting-started/registry-serdes-architecture.png[Registry Serdes architecture]
 
-{registry} provides client serializers/deserializers (Serdes) to validate the following message types at runtime:
+{registry} provides Kafka client serializers/deserializers (Serdes) to validate the following message types at runtime:
 
 * Apache Avro
 * Google protocol buffers
 * JSON Schema
 
-The {registry} Maven repository and source code distributions include the serializer/deserializer implementations for these message types, which client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
+The {registry} Maven repository and source code distributions include the Kafka serializer/deserializer implementations for these message types, which Kafka client developers can use to integrate with the registry. These implementations include custom `io.apicurio.registry.utils.serde` Java classes for each supported message type, which client applications can use to pull schemas from the registry at runtime for validation. 
 
 ifdef::rh-service-registry[]
 
 .Additional resources
-* For instructions on how to use the {registry} client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+* For instructions on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
 link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
 
 endif::[]

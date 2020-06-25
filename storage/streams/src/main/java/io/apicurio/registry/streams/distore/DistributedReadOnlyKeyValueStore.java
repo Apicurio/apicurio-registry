@@ -4,9 +4,11 @@ import io.grpc.Channel;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
@@ -67,7 +69,9 @@ public class DistributedReadOnlyKeyValueStore<K, V>
 
     @Override
     protected ExtReadOnlyKeyValueStore<K, V> localService(String storeName, KafkaStreams streams) {
-        ReadOnlyKeyValueStore<K, V> delegate = streams.store(storeName, QueryableStoreTypes.keyValueStore());
+        QueryableStoreType<ReadOnlyKeyValueStore<K, V>> queryableStoreType = QueryableStoreTypes.keyValueStore();
+        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType).enableStaleStores();
+        ReadOnlyKeyValueStore<K, V> delegate = streams.store(sqp);
         return new ExtReadOnlyKeyValueStoreImpl<>(delegate, filterPredicate);
     }
 

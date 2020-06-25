@@ -50,12 +50,16 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -71,11 +75,11 @@ import io.apicurio.registry.types.RuleType;
 @Logged
 public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
-    @ConfigProperty(name = "registry.asyncmem.delays.create", defaultValue = "1000")
+    @ConfigProperty(name = "registry.asyncmem.delays.create", defaultValue = "500")
     long createDelay;
-    @ConfigProperty(name = "registry.asyncmem.delays.update", defaultValue = "1000")
+    @ConfigProperty(name = "registry.asyncmem.delays.update", defaultValue = "500")
     long updateDelay;
-    @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "1000")
+    @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "500")
     long deleteDelay;
     
     private AtomicLong counter = new AtomicLong(1);
@@ -108,6 +112,40 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
+     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
+    @Override
+    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        if (this.hasArtifactRule(artifactId, rule)) {
+            throw new RuleAlreadyExistsException(rule);
+        }
+        this.executor.execute(() -> {
+            preCreateSleep();
+            runWithErrorSuppression(() -> {
+                super.createArtifactRule(artifactId, rule, config);
+            });
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
+    @Override
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleAlreadyExistsException, RegistryStorageException {
+        if (this.hasGlobalRule(rule)) {
+            throw new RuleAlreadyExistsException(rule);
+        }
+        this.executor.execute(() -> {
+            preCreateSleep();
+            runWithErrorSuppression(() -> {
+                super.createGlobalRule(rule, config);
+            });
+        });
+    }
+    
+    /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
@@ -122,6 +160,96 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         } catch (ArtifactAlreadyExistsException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        ArtifactMetaDataDto amd = this.getArtifactMetaData(artifactId);
+        // Check for disabled
+        if (amd.getState() == ArtifactState.DISABLED) {
+            throw new InvalidArtifactStateException(artifactId, amd.getVersion(), amd.getState());
+        }
+
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactMetaData(artifactId, metaData);
+            });
+        });
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, io.apicurio.registry.types.ArtifactState, java.lang.Integer)
+     */
+    @Override
+    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+        if (state == ArtifactState.ENABLED && this.isDeprecated(artifactId, version)) {
+            throw new InvalidArtifactStateException(ArtifactState.DEPRECATED, state);
+        }
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactState(artifactId, state, version);
+            });
+        });
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public void updateArtifactVersionMetaData(String artifactId, long version,
+            EditableArtifactMetaDataDto metaData)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        ArtifactVersionMetaDataDto vmd = this.getArtifactVersionMetaData(artifactId, version);
+        // Check for disabled
+        if (vmd.getState() == ArtifactState.DISABLED) {
+            throw new InvalidArtifactStateException(artifactId, vmd.getVersion(), vmd.getState());
+        }
+
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactVersionMetaData(artifactId, version, metaData);
+            });
+        });
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
+    @Override
+    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        this.getArtifactMetaData(artifactId);
+
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactRule(artifactId, rule, config);
+            });
+        });
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     */
+    @Override
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateGlobalRule(rule, config);
+            });
+        });
     }
     
     /**
@@ -262,6 +390,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     @Override
     public void deleteArtifactVersion(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        this.getArtifactVersionMetaData(artifactId, version);
+
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
@@ -273,6 +404,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        this.getArtifactVersionMetaData(artifactId, version);
+
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
@@ -284,6 +418,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     @Override
     public void deleteArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        this.getArtifactMetaData(artifactId);
+
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
@@ -295,6 +432,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     @Override
     public void deleteArtifactRules(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        // Check if the artifact exists.
+        this.getArtifactMetaData(artifactId);
+
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
@@ -323,28 +463,90 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         });
     }
 
-    private void preDeleteSleep() {
+    private boolean hasGlobalRule(RuleType rule) {
         try {
-            Thread.sleep(this.deleteDelay);
+            this.getGlobalRule(rule);
+            return true;
+        } catch (RuleNotFoundException e) {
+            return false;
+        }
+    }
+
+    private boolean hasArtifactRule(String artifactId, RuleType rule) {
+        try {
+            this.getArtifactRule(artifactId, rule);
+            return true;
+        } catch (RuleNotFoundException e) {
+            return false;
+        }
+    }
+
+    private boolean isArtifactDeprecated(String artifactId) {
+        try {
+            ArtifactMetaDataDto metaData = this.getArtifactMetaData(artifactId);
+            if (metaData.getState() == ArtifactState.DEPRECATED) {
+                return true;
+            }
+        } catch (ArtifactNotFoundException | RegistryStorageException e) {
+        }
+        return false;
+    }
+
+    private boolean isVersionDeprecated(String artifactId, Integer version) {
+        try {
+            ArtifactVersionMetaDataDto metaData = this.getArtifactVersionMetaData(artifactId, version.longValue());
+            if (metaData.getState() == ArtifactState.DEPRECATED) {
+                return true;
+            }
+        } catch (ArtifactNotFoundException | RegistryStorageException e) {
+        }
+        return false;
+    }
+
+    private boolean isDeprecated(String artifactId, Integer version) {
+        if (version == null) {
+            return this.isArtifactDeprecated(artifactId);
+        } else {
+            return this.isVersionDeprecated(artifactId, version);
+        }
+    }
+
+    private void preDeleteSleep() {
+        doSleep(this.deleteDelay);
+    }
+
+    private void preUpdateSleep() {
+        doSleep(this.updateDelay);
+    }
+    
+    private void preCreateSleep() {
+        doSleep(this.createDelay);
+    }
+    
+    private void doSleep(long delay) {
+        try {
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
-//
-//    private void preUpdateSleep() {
-//        try {
-//            Thread.sleep(this.updateDelay);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
     
-    private void runWithErrorSuppression(Runnable command) {
+    protected void runWithErrorSuppression(Runnable command) {
         try {
             command.run();
         } catch (Throwable t) {
             // TODO log the error with e.g. TRACE or DEBUG level
         }
     }
-    
+
+    protected void runWithErrorSuppression(Runnable command, boolean reportError) {
+        try {
+            command.run();
+        } catch (Throwable t) {
+            if (reportError) {
+                t.printStackTrace();
+            }
+        }
+    }
+
 }

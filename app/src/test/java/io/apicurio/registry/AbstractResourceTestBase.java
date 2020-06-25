@@ -25,6 +25,7 @@ import javax.inject.Inject;
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -117,4 +118,72 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .statusCode(200);
         });
     }
+
+    /**
+     * Wait for an artifact's state to change.
+     * @param artifactId
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForArtifactState(String artifactId, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("artifactId", artifactId)
+                .get("/artifacts/{artifactId}/meta")
+                .then(), state, false);
+        });
+    }
+
+    /**
+     * Wait for an artifact version's state to change.
+     * @param artifactId
+     * @param version
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForVersionState(String artifactId, int version, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then(), state, true);
+        });
+    }
+
+    /**
+     * Wait for an artifact version's state to change (by global id).
+     * @param globalId
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForVersionState(long globalId, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("globalId", globalId)
+                .get("/ids/{globalId}/meta")
+                .then(), state, true);
+        });
+    }
+
+    /**
+     * Ensures the state of the meta-data response is what we expect.
+     * @param response
+     * @param state
+     */
+    protected void validateMetaDataResponseState(ValidatableResponse response, ArtifactState state, boolean version) {
+        if (state == ArtifactState.DISABLED && !version) {
+            response.statusCode(404);
+        } else {
+            response.statusCode(200);
+            response.body("state", equalTo(state.name()));
+        }
+    }
 }
+

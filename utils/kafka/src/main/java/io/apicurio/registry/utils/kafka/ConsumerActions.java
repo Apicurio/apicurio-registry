@@ -30,7 +30,7 @@ import java.util.function.Function;
 /**
  * Simple consumer actions.
  */
-public interface ConsumerActions<K, V> {
+public interface ConsumerActions<K, V> extends AutoCloseable {
 
     /**
      * Submit an action to be performed in the consumer thread and return a {@link CompletableFuture}

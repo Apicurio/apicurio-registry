@@ -270,9 +270,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(secondName, descResults.getArtifacts().get(1).getName());
             Assertions.assertEquals(firstName, descResults.getArtifacts().get(2).getName());
 
-            /*ArtifactSearchResults searchIdOverName = */client.searchArtifacts(firstArtifactId, 0, 5, SearchOver.name, SortOrder.asc);
-            Assertions.assertEquals(firstName, ascResults.getArtifacts().get(0).getName());
-            Assertions.assertEquals(firstArtifactId, ascResults.getArtifacts().get(0).getId());
+            ArtifactSearchResults searchIdOverName = client.searchArtifacts(firstArtifactId, 0, 5, SearchOver.name, SortOrder.asc);
+            Assertions.assertEquals(firstName, searchIdOverName.getArtifacts().get(0).getName());
+            Assertions.assertEquals(firstArtifactId, searchIdOverName.getArtifacts().get(0).getId());
 
         } finally {
             client.deleteArtifact(firstArtifactId);

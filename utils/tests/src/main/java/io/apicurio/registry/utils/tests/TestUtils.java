@@ -279,9 +279,9 @@ public class TestUtils {
     private static void internalAssertWebError(int expectedCode, Runnable runnable) {
         try {
             runnable.run();
-            Assertions.fail();
+            Assertions.fail("Expected (but didn't get) a web application exception with code: " + expectedCode);
         } catch (Exception e) {
-            Assertions.assertTrue(e instanceof WebApplicationException, () -> "e: " + e);
+            Assertions.assertEquals(WebApplicationException.class.getName(), e.getClass().getName(), () -> "e: " + e);
             Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());
         }
     }

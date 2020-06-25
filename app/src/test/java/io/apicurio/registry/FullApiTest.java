@@ -26,6 +26,7 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.config.EncoderConfig;
@@ -59,7 +60,20 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
+        
+        // Get the global rule (make sure it was created)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("SYNTAX_ONLY"));
+        });
 
+        
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
         given()
@@ -95,6 +109,18 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
+        
+        // Get the global rule (make sure it was created)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("SYNTAX_ONLY"));
+        });
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationProtobuf/InvalidAPI";

@@ -38,23 +38,21 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     private KafkaContainer kafka;
 
     public Map<String, String> start() {
+        String bootstrapServers = "localhost:9092";
         if (!skipKafkaContainer) {
             kafka = new KafkaContainer();
             kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
             kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
             kafka.start();
 
-            String bootstrapServers = kafka.getBootstrapServers();
+            bootstrapServers = kafka.getBootstrapServers();
 
             createTopics(bootstrapServers);
-
-            return Collections.singletonMap(
-                    CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
-                    bootstrapServers
-            );
-        } else {
-            return Collections.emptyMap();
         }
+        return Collections.singletonMap(
+                CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
+                bootstrapServers
+        );
     }
 
     private void createTopics(String bootstrapServers) {

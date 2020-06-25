@@ -47,8 +47,8 @@ public class KafkaRegistryConfiguration {
     @ApplicationScoped
     public CloseableSupplier<Boolean> livenessCheck(
         @RegistryProperties(
-            value = "registry.kafka.liveness-check.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.kafka.common", "registry.kafka.liveness-check"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         AdminClient admin = AdminClient.create(properties);
@@ -73,8 +73,8 @@ public class KafkaRegistryConfiguration {
     @ApplicationScoped
     public ProducerActions<Long, StorageSnapshot> snapshotProducer(
         @RegistryProperties(
-            value = "registry.kafka.snapshot-producer.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.kafka.common", "registry.kafka.snapshot-producer"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         return new AsyncProducer<>(
@@ -92,8 +92,8 @@ public class KafkaRegistryConfiguration {
     @ApplicationScoped
     public ProducerActions<Cmmn.UUID, Str.StorageValue> storageProducer(
         @RegistryProperties(
-            value = "registry.kafka.storage-producer.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.kafka.common", "registry.kafka.storage-producer"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         return new AsyncProducer<>(
@@ -111,12 +111,12 @@ public class KafkaRegistryConfiguration {
     @ApplicationScoped
     public ConsumerActions.DynamicAssignment<Cmmn.UUID, Str.StorageValue> registryContainer(
         @RegistryProperties(
-            value = "registry.kafka.storage-consumer.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.kafka.common", "registry.kafka.storage-consumer"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties registryProperties,
         @RegistryProperties(
-            value = "registry.kafka.snapshot-consumer.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.kafka.common", "registry.kafka.snapshot-consumer"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties snapshotProperties,
         KafkaRegistryStorageHandle handle
     ) {

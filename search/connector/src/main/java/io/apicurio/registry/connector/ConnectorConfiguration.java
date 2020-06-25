@@ -17,15 +17,14 @@
 package io.apicurio.registry.connector;
 
 import io.apicurio.registry.utils.PropertiesUtil;
-import io.apicurio.registry.utils.RegistryProperties;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 
-import java.util.Properties;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
+import java.util.Properties;
 
 /**
  * @author Ales Justin
@@ -35,8 +34,7 @@ public class ConnectorConfiguration {
 
     @Produces
     public Properties properties(InjectionPoint ip) {
-        RegistryProperties kp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
-        return PropertiesUtil.properties(kp);
+        return PropertiesUtil.properties(ip);
     }
 
     public void init(@Observes StartupEvent event, ConnectorApplication app) {

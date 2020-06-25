@@ -26,12 +26,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -58,57 +66,64 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
     // how much to wait for new records in one poll
     private final Duration consumerPollTimeout;
     // only one of following two is set
-    private final java.util.function.Consumer<? super ConsumerRecord<K, V>> recordConsumer;
-    private final java.util.function.Consumer<? super ConsumerRecords<K, V>> recordsConsumer;
+    private final java.util.function.Consumer<? super ConsumerRecord<K, V>> recordHandler;
+    private final java.util.function.Consumer<? super ConsumerRecords<K, V>> recordsHandler;
+    // exceptions from consumer.poll get passed to this handler
+    private final BiConsumer<? super Consumer<?, ?>, ? super RuntimeException> consumerExceptionHandler;
     // if there are no records consumed for a particular TopicPartition in idlePingTimeout
-    // millis, the idlePingConsumer is notified about that...
+    // millis, the idlePingHandler is notified about that...
     private final long idlePingTimeout;
-    private final java.util.function.Consumer<? super TopicPartition> idlePingConsumer;
+    private final java.util.function.Consumer<? super TopicPartition> idlePingHandler;
 
     private final Thread thread;
     private final BlockingQueue<CompletableFuture<Consumer<K, V>>> tasks = new LinkedTransferQueue<>();
 
     public ConsumerContainer(
-        Properties consumerProperties,
-        Deserializer<K> keyDeserializer,
-        Deserializer<V> valueDeserializer,
-        Oneof2<
-            java.util.function.Consumer<? super ConsumerRecord<K, V>>,
-            java.util.function.Consumer<? super ConsumerRecords<K, V>>
-            > recordOrRecordsConsumer
+            Properties consumerProperties,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer,
+            Oneof2<
+                    java.util.function.Consumer<? super ConsumerRecord<K, V>>,
+                    java.util.function.Consumer<? super ConsumerRecords<K, V>>
+                    > recordOrRecordsHandler,
+            BiConsumer<? super Consumer<?, ?>, ? super RuntimeException> consumerExceptionHandler
     ) {
         this(
-            consumerProperties,
-            keyDeserializer,
-            valueDeserializer,
-            DEFAULT_CONSUMER_POLL_TIMEOUT,
-            recordOrRecordsConsumer,
-            0L, null
+                consumerProperties,
+                keyDeserializer,
+                valueDeserializer,
+                DEFAULT_CONSUMER_POLL_TIMEOUT,
+                recordOrRecordsHandler,
+                consumerExceptionHandler,
+                0L, null
         );
     }
 
     public ConsumerContainer(
-        Properties consumerProperties,
-        Deserializer<K> keyDeserializer,
-        Deserializer<V> valueDeserializer,
-        long consumerPollTimeout,
-        Oneof2<
-            java.util.function.Consumer<? super ConsumerRecord<K, V>>,
-            java.util.function.Consumer<? super ConsumerRecords<K, V>>
-            > recordOrRecordsConsumer,
-        long idlePingTimeout,
-        java.util.function.Consumer<? super TopicPartition> idlePingConsumer
+            Properties consumerProperties,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer,
+            long consumerPollTimeout,
+            Oneof2<
+                    java.util.function.Consumer<? super ConsumerRecord<K, V>>,
+                    java.util.function.Consumer<? super ConsumerRecords<K, V>>
+                    > recordOrRecordsHandler,
+            BiConsumer<? super Consumer<?, ?>, ? super RuntimeException> consumerExceptionHandler,
+            long idlePingTimeout,
+            java.util.function.Consumer<? super TopicPartition> idlePingHandler
     ) {
         this.consumerProperties = Objects.requireNonNull(consumerProperties);
         this.keyDeserializer = Objects.requireNonNull(keyDeserializer);
         this.valueDeserializer = Objects.requireNonNull(valueDeserializer);
         this.consumerPollTimeout = Duration.ofMillis(consumerPollTimeout);
-        this.recordConsumer = recordOrRecordsConsumer.isFirst() ? recordOrRecordsConsumer.getFirst() : null;
-        this.recordsConsumer = recordOrRecordsConsumer.isSecond() ? recordOrRecordsConsumer.getSecond() : null;
+        this.recordHandler = recordOrRecordsHandler.isFirst() ? recordOrRecordsHandler.getFirst() : null;
+        this.recordsHandler = recordOrRecordsHandler.isSecond() ? recordOrRecordsHandler.getSecond() : null;
+        this.consumerExceptionHandler = Objects.requireNonNull(consumerExceptionHandler);
         this.idlePingTimeout = idlePingTimeout;
-        this.idlePingConsumer = /* optional */ idlePingConsumer;
+        this.idlePingHandler = /* optional */ idlePingHandler;
         this.thread = new Thread(this::consumerLoop,
-                                 "kafka-consumer-container-" + containerCount.incrementAndGet());
+                "kafka-consumer-container-" + containerCount.incrementAndGet());
+        thread.start();
     }
 
     @Override
@@ -120,8 +135,8 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
             synchronized (lock) {
                 CompletableFuture<Consumer<K, V>> consumerTask = new CompletableFuture<>();
                 CompletableFuture<R> actionTask = consumerTask.thenApply(consumerAction);
-                if (stopping) {
-                    consumerTask.completeExceptionally(new IllegalStateException("Already stopping or stopped"));
+                if (closed) {
+                    consumerTask.completeExceptionally(new IllegalStateException("Container already closed"));
                 } else {
                     tasks.add(consumerTask);
                 }
@@ -132,34 +147,38 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
 
     private void consumerLoop() {
         boolean waitingForSubscriptionOrAssignment = false;
-        Map<TopicPartition, Long> activeTopics = idlePingConsumer == null ? null : new HashMap<>();
+        Map<TopicPartition, Long> activeTopics = idlePingHandler == null ? null : new HashMap<>();
         try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerProperties, keyDeserializer, valueDeserializer)) {
-            while (!stopping) {
-                CompletableFuture<Consumer<K, V>> task = waitingForSubscriptionOrAssignment
-                                                         ? tasks.take()
-                                                         : tasks.poll();
+            while (!closed) {
+                CompletableFuture<Consumer<K, V>> task;
+                boolean interrupted = false;
+                try {
+                    task = waitingForSubscriptionOrAssignment ? tasks.take() : tasks.poll();
+                } catch (InterruptedException e) {
+                    log.warn("Consumer thread interrupted", e);
+                    task = null;
+                    interrupted = true;
+                }
                 if (task != null) {
                     task.complete(consumer);
                     if (waitingForSubscriptionOrAssignment) {
                         waitingForSubscriptionOrAssignment = consumer.subscription().isEmpty() &&
-                                                             consumer.assignment().isEmpty();
+                                consumer.assignment().isEmpty();
                     }
-                } else {
+                } else if (!interrupted) {
                     assert !waitingForSubscriptionOrAssignment;
 
-                    boolean[] flag = new boolean[1];
-                    ConsumerRecords<K, V> records = consumeRetryable(null, r -> {
-                        try {
-                            return consumer.poll(consumerPollTimeout);
-                        } catch (IllegalStateException e) { // thrown when there's no subscription or assignment
-                            log.info("{} - will wait", e.getMessage());
-                            flag[0] = true;
-                            return null;
-                        }
-                    }, consumer);
-                    waitingForSubscriptionOrAssignment = flag[0];
+                    ConsumerRecords<K, V> records = null;
+                    try {
+                        records = consumer.poll(consumerPollTimeout);
+                    } catch (IllegalStateException e) { // thrown when there's no subscription or assignment
+                        log.info("{} - will wait", e.getMessage());
+                        waitingForSubscriptionOrAssignment = true;
+                    } catch (RuntimeException e) {
+                        consumerExceptionHandler.accept(consumer, e);
+                    }
 
-                    Long time = System.currentTimeMillis();
+                    Long time = System.currentTimeMillis(); // make just one object
 
                     if (records != null) {
                         if (activeTopics != null) {
@@ -167,7 +186,7 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
                                 activeTopics.put(partition, time);
                             }
                         }
-                        consume(records, consumer);
+                        handleRecords(records, consumer);
                     }
 
                     if (activeTopics != null) {
@@ -181,39 +200,39 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
                             }
                         }
                         if (idlePartitions != null) {
-                            idlePartitions.forEach(idlePingConsumer);
+                            idlePartitions.forEach(idlePingHandler);
                             activeTopics.keySet().retainAll(consumer.assignment());
                         }
                     }
                 }
             }
+            log.info("Consumer loop finished");
         } catch (Throwable e) {
             log.warn("Exception caught in consumer polling thread", e);
         } finally {
-            log.info("Consumer thread exiting");
-            running = false;
+            log.info("Consumer thread terminating");
         }
     }
 
-    private void consume(ConsumerRecords<K, V> records, Consumer<K, V> consumer) {
-        if (recordsConsumer != null) {
-            consumeRetryable(records, recordsConsumer, consumer);
+    private void handleRecords(ConsumerRecords<K, V> records, Consumer<K, V> consumer) {
+        if (recordsHandler != null) {
+            acceptRetryable(records, recordsHandler, consumer);
         } else {
-            assert recordConsumer != null;
+            assert recordHandler != null;
             for (ConsumerRecord<K, V> record : records) {
-                consumeRetryable(record, recordConsumer, consumer);
+                acceptRetryable(record, recordHandler, consumer);
             }
         }
     }
 
     /**
-     * Consume record by passing it to {@link #recordConsumer} and retrying that until successful (possibly ad infinitum)
+     * Handle record(s) by passing it/them to {@code handler} and retrying that until successful (possibly ad infinity)
      *
-     * @param record the record to consume
+     * @param record the record/records to handle
      */
-    private <T> void consumeRetryable(T record, java.util.function.Consumer<? super T> recordConsumer, Consumer<K, V> consumer) {
-        consumeRetryable(record, r -> {
-            recordConsumer.accept(r);
+    private <T> void acceptRetryable(T record, java.util.function.Consumer<? super T> handler, Consumer<K, V> consumer) {
+        applyRetryable(record, r -> {
+            handler.accept(r);
             return null;
         }, consumer);
     }
@@ -222,21 +241,20 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
      * Handle record(s) by passing it/them to {@code function} and retrying that until successful (possibly ad infinity)
      *
      * @param record the record/records to handle
-     * @return function's result or null if stopped before
+     * @return function's result or null if closed while retrying
      */
-    private <T, R> R consumeRetryable(T record, java.util.function.Function<? super T, R> recordFunction, Consumer<K, V> consumer) {
+    private <T, R> R applyRetryable(T record, Function<? super T, ? extends R> handler, Consumer<K, V> consumer) {
         long delay = MIN_RETRY_DELAY;
         boolean interrupted = false;
         // retry loop
-        while (!stopping) {
+        while (!closed) {
             try {
-                return recordFunction.apply(record);
-                // everything alright
+                return handler.apply(record);
             } catch (Exception e) {
                 log.warn("Exception caught while processing {} - retrying in {} ms", formatRecord(record), delay, e);
                 CompletableFuture<Consumer<K, V>> task;
                 try {
-                    while (!stopping && (task = tasks.poll(delay, TimeUnit.MILLISECONDS)) != null) {
+                    while (!closed && (task = tasks.poll(delay, TimeUnit.MILLISECONDS)) != null) {
                         task.complete(consumer);
                     }
                 } catch (InterruptedException ie) {
@@ -267,50 +285,30 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
         if (record instanceof ConsumerRecord<?, ?>) {
             ConsumerRecord<?, ?> cr = (ConsumerRecord<?, ?>) record;
             return String.format("message from topic-partition %s-%s, offset %d, timestamp %tc",
-                                 cr.topic(), cr.partition(), cr.offset(), cr.timestamp());
+                    cr.topic(), cr.partition(), cr.offset(), cr.timestamp());
         } else if (record instanceof ConsumerRecords<?, ?>) {
             ConsumerRecords<?, ?> crs = (ConsumerRecords<?, ?>) record;
             return String.format("%d messages from topic-partitions %s",
-                                 crs.count(), crs.partitions());
+                    crs.count(), crs.partitions());
         } else {
             return String.valueOf(record);
         }
     }
 
-    // Lifecycle
+    private volatile boolean closed;
 
-    private volatile boolean running, stopping;
-
-    public void start() {
+    /**
+     * AutoCloseable
+     */
+    @Override
+    public void close() {
         synchronized (lock) {
-            if (stopping)
-                throw new IllegalArgumentException("Already stopping or stopped");
-            if (running) return;
-            running = true;
-            thread.start();
+            if (closed) return;
+            submit(consumer -> {
+                closed = true;
+                return null;
+            }).join();
         }
-    }
-
-    public void stop() {
-        synchronized (lock) {
-            doStop().join();
-        }
-    }
-
-    public boolean isRunning() {
-        return running;
-    }
-
-    private CompletableFuture<Void> doStop() {
-        if (!running)
-            throw new IllegalStateException("Not started yet or already stopped");
-
-        return submit(consumer -> {
-            if (!stopping) {
-                stopping = true;
-            }
-            return null;
-        });
     }
 
     /**
@@ -320,36 +318,38 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
      * @param <K>
      * @param <V>
      */
-    public static class DynamicPool<K, V> {
+    public static class DynamicPool<K, V> implements AutoCloseable {
         private final Properties consumerProperties;
         private final Deserializer<K> keyDeserializer;
         private final Deserializer<V> valueDeserializer;
         private final String topic;
         private final Oneof2<
-            java.util.function.Consumer<? super ConsumerRecord<K, V>>,
-            java.util.function.Consumer<? super ConsumerRecords<K, V>>
-            > recordOrRecordsConsumer;
+                java.util.function.Consumer<? super ConsumerRecord<K, V>>,
+                java.util.function.Consumer<? super ConsumerRecords<K, V>>
+                > recordOrRecordsHandler;
+        private final BiConsumer<? super Consumer<?, ?>, ? super RuntimeException> consumerExceptionHandler;
         private final LinkedList<ConsumerContainer<K, V>> containers = new LinkedList<>();
 
         public DynamicPool(
-            Properties consumerProperties,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer,
-            String topic,
-            int initialConsumerThreads,
-            Oneof2<
-                java.util.function.Consumer<? super ConsumerRecord<K, V>>,
-                java.util.function.Consumer<? super ConsumerRecords<K, V>>
-                > recordOrRecordsConsumer
+                Properties consumerProperties,
+                Deserializer<K> keyDeserializer,
+                Deserializer<V> valueDeserializer,
+                String topic,
+                int initialConsumerThreads,
+                Oneof2<
+                        java.util.function.Consumer<? super ConsumerRecord<K, V>>,
+                        java.util.function.Consumer<? super ConsumerRecords<K, V>>
+                        > recordOrRecordsHandler,
+                BiConsumer<? super Consumer<?, ?>, ? super RuntimeException> consumerExceptionHandler
         ) {
             this.consumerProperties = Objects.requireNonNull(consumerProperties);
             this.keyDeserializer = Objects.requireNonNull(keyDeserializer);
             this.valueDeserializer = Objects.requireNonNull(valueDeserializer);
             this.topic = Objects.requireNonNull(topic);
-            this.recordOrRecordsConsumer = Objects.requireNonNull(recordOrRecordsConsumer);
+            this.recordOrRecordsHandler = Objects.requireNonNull(recordOrRecordsHandler);
+            this.consumerExceptionHandler = Objects.requireNonNull(consumerExceptionHandler);
             setConsumerThreads(initialConsumerThreads);
         }
-
 
         public synchronized int getConsumerThreads() {
             return containers.size();
@@ -361,62 +361,50 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
          * @param consumerThreads number of consumer threads to set this pool to dynamically
          */
         public synchronized void setConsumerThreads(int consumerThreads) {
-            checkNotStopped();
+            checkNotClosed();
             if (consumerThreads < 0) {
                 throw new IllegalArgumentException("consumerThreads should be non-negative");
             }
 
             while (containers.size() > consumerThreads) {
                 ConsumerContainer<K, V> container = containers.removeLast();
-                if (running) {
-                    container.stop();
-                }
+                container.close();
             }
 
             while (containers.size() < consumerThreads) {
                 ConsumerContainer<K, V> container = new ConsumerContainer<>(
-                    consumerProperties,
-                    keyDeserializer, valueDeserializer,
-                    recordOrRecordsConsumer
+                        consumerProperties,
+                        keyDeserializer, valueDeserializer,
+                        recordOrRecordsHandler,
+                        consumerExceptionHandler
                 );
                 container.submit(consumer -> {
                     consumer.subscribe(Collections.singletonList(topic));
                     return null;
                 });
-                if (running) {
-                    container.start();
-                }
                 containers.addLast(container);
             }
         }
 
-        private volatile boolean running, stopped;
+        private volatile boolean closed;
 
-        private void checkNotStopped() {
-            if (stopped) {
-                throw new IllegalArgumentException("Already stopped");
+        private void checkNotClosed() {
+            if (closed) {
+                throw new IllegalStateException("Container already closed");
             }
         }
 
-        public synchronized void start() {
-            checkNotStopped();
-            if (!running) {
-                containers.forEach(ConsumerContainer::start);
-                running = true;
+        /**
+         * AutoCloseable
+         */
+        @Override
+        public synchronized void close() {
+            if (closed) return;
+            try {
+                containers.forEach(ConsumerContainer::close);
+            } finally {
+                closed = true;
             }
-        }
-
-        public synchronized void stop() {
-            if (stopped) return;
-            if (running) {
-                containers.forEach(ConsumerContainer::stop);
-                running = false;
-            }
-            stopped = true;
-        }
-
-        public boolean isRunning() {
-            return running;
         }
     }
 }

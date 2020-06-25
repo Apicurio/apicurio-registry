@@ -2,11 +2,24 @@ package io.apicurio.registry.streams;
 
 import com.google.common.collect.ImmutableMap;
 import io.apicurio.registry.storage.proto.Str;
-import io.apicurio.registry.streams.diservice.*;
+import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
+import io.apicurio.registry.streams.diservice.AsyncBiFunctionServiceGrpcLocalDispatcher;
+import io.apicurio.registry.streams.diservice.DefaultGrpcChannelProvider;
+import io.apicurio.registry.streams.diservice.DistributedAsyncBiFunctionService;
+import io.apicurio.registry.streams.diservice.LocalService;
 import io.apicurio.registry.streams.diservice.proto.AsyncBiFunctionServiceGrpc;
-import io.apicurio.registry.streams.distore.*;
+import io.apicurio.registry.streams.distore.DistributedReadOnlyKeyValueStore;
+import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
+import io.apicurio.registry.streams.distore.FilterPredicate;
+import io.apicurio.registry.streams.distore.KeyValueSerde;
+import io.apicurio.registry.streams.distore.KeyValueStoreGrpcImplLocalDispatcher;
+import io.apicurio.registry.streams.distore.UnknownStatusDescriptionInterceptor;
 import io.apicurio.registry.streams.distore.proto.KeyValueStoreGrpc;
-import io.apicurio.registry.streams.utils.*;
+import io.apicurio.registry.streams.utils.ForeachActionDispatcher;
+import io.apicurio.registry.streams.utils.Lifecycle;
+import io.apicurio.registry.streams.utils.LoggingStateRestoreListener;
+import io.apicurio.registry.streams.utils.StateService;
+import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
@@ -60,8 +73,8 @@ public class StreamsRegistryConfiguration {
     @ApplicationScoped
     public StreamsProperties streamsProperties(
         @RegistryProperties(
-            value = "registry.streams.topology.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.streams.common", "registry.streams.topology"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         return new StreamsPropertiesImpl(properties);
@@ -71,8 +84,8 @@ public class StreamsRegistryConfiguration {
     @ApplicationScoped
     public ProducerActions<String, Str.StorageValue> storageProducer(
         @RegistryProperties(
-            value = "registry.streams.storage-producer.",
-            empties = {"ssl.endpoint.identification.algorithm="}
+                value = {"registry.streams.common", "registry.streams.storage-producer"},
+                empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         return new AsyncProducer<>(

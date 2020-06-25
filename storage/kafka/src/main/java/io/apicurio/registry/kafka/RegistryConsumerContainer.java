@@ -17,11 +17,12 @@
 package io.apicurio.registry.kafka;
 
 import io.apicurio.registry.common.proto.Cmmn;
-import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshot;
 import io.apicurio.registry.kafka.snapshot.StorageSnapshotSerde;
+import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.utils.kafka.ConsumerActions;
 import io.apicurio.registry.utils.kafka.ConsumerContainer;
+import io.apicurio.registry.utils.kafka.ConsumerSkipRecordsSerializationExceptionHandler;
 import io.apicurio.registry.utils.kafka.Oneof2;
 import io.apicurio.registry.utils.kafka.Seek;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -52,7 +53,13 @@ public class RegistryConsumerContainer extends ConsumerContainer<Cmmn.UUID, Str.
         KafkaRegistryStorageHandle handle,
         Properties snapshotProperties
     ) {
-        super(consumerProperties, keyDeserializer, valueDeserializer, Oneof2.first(handle::consumeStorageValue));
+        super(
+                consumerProperties,
+                keyDeserializer,
+                valueDeserializer,
+                Oneof2.first(handle::consumeStorageValue),
+                new ConsumerSkipRecordsSerializationExceptionHandler()
+        );
         this.handle = handle;
         this.snapshotProperties = snapshotProperties;
     }
@@ -78,9 +85,13 @@ public class RegistryConsumerContainer extends ConsumerContainer<Cmmn.UUID, Str.
 
     @Override
     public void stop() {
-        handle.stop();
-        removeTopicParition(new TopicPartition(handle.registryTopic(), 0));
-        super.stop();
+        try {
+            handle.stop();
+            removeTopicParition(new TopicPartition(handle.registryTopic(), 0));
+            super.stop();
+        } finally {
+            close();
+        }
     }
 
     // handle / load snapshot

@@ -51,7 +51,7 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
                     storeName,
                     sn -> {
                         QueryableStoreType<ReadOnlyKeyValueStore<K, V>> queryableStoreType = QueryableStoreTypes.keyValueStore();
-                        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType).enableStaleStores();
+                        StoreQueryParameters<ReadOnlyKeyValueStore<K, V>> sqp = StoreQueryParameters.fromNameAndType(storeName, queryableStoreType);
                         return new ExtReadOnlyKeyValueStoreImpl(
                                 streams.store(sqp),
                                 filterPredicate

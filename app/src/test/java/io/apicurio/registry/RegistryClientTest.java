@@ -112,6 +112,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+
+        // Try searching for *everything*.  This test was added due to Issue #661
+        results = client.searchArtifacts(null, null, null, null, null);
+        Assertions.assertNotNull(results);
+        Assertions.assertTrue(results.getCount() > 0);
     }
 
     @RegistryServiceTest
@@ -265,7 +270,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(secondName, descResults.getArtifacts().get(1).getName());
             Assertions.assertEquals(firstName, descResults.getArtifacts().get(2).getName());
 
-            ArtifactSearchResults searchIdOverName = client.searchArtifacts(firstArtifactId, 0, 5, SearchOver.name, SortOrder.asc);
+            /*ArtifactSearchResults searchIdOverName = */client.searchArtifacts(firstArtifactId, 0, 5, SearchOver.name, SortOrder.asc);
             Assertions.assertEquals(firstName, ascResults.getArtifacts().get(0).getName());
             Assertions.assertEquals(firstArtifactId, ascResults.getArtifacts().get(0).getId());
 

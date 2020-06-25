@@ -20,6 +20,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.SearchUtil;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.ProtoUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
 import lombok.AllArgsConstructor;
@@ -390,7 +391,7 @@ public class StreamsRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
         LongAdder itemsCount = new LongAdder();
-        List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
+        List<SearchedArtifact> matchedArtifacts = storageStore.filter(ProtoUtil.nullAsEmpty(search), searchOver.value())
             .peek(artifactId -> itemsCount.increment())
             .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, getArtifactMetaData(kv1.key), getArtifactMetaData(kv2.key)))
             .skip(offset)

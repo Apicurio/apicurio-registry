@@ -8,8 +8,8 @@ To govern the evolution of registry content, you can configure optional rules fo
 The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
 
 * Invalid syntax for a given artifact type (for example, `AVRO` or `PROTOBUF`)
-* Valid syntax, but semantics violate company standards
-* Incompatibility, when new content includes breaking changes to the current artifact version
+* Valid syntax, but semantics violate a specification
+* Incompatibility, when new content includes breaking changes relative to the current artifact version
 
 You can add these optional content rules using the {registry} web console, REST API commands, or a Java client application.
 

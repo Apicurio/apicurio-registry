@@ -13,16 +13,16 @@
 // Untagged content is common
 
 // upstream
-//:apicurio-registry:
-//:registry: Apicurio Registry
-//:kafka-streams: Strimzi
-//:registry-version: 1.2
+:apicurio-registry:
+:registry: Apicurio Registry
+:kafka-streams: Strimzi
+:registry-version: 1.2
 
 // downstream 
-:rh-service-registry:
-:registry: Service Registry
-:kafka-streams: AMQ Streams
-:registry-version: 1.0
+//:rh-service-registry:
+//:registry: Service Registry
+//:kafka-streams: AMQ Streams
+//:registry-version: 1.0
 :registry-ocp-version: 4.3
 :version: 2020-Q2
 

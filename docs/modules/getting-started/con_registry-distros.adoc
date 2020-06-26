@@ -3,7 +3,7 @@
 [id="registry-distros"]
 = Available distributions
 
-You can access the following distributions for {registry}: 
+{registry} includes the following distributions: 
 
 ifdef::apicurio-registry[]
 
@@ -69,9 +69,6 @@ ifdef::rh-service-registry[]
 |General Availability
 |Maven repository
 |link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
-|General Availability
-|Full Maven repository (with all dependencies) 
-|link:{download-url-registry-maven-full}[Software Downloads for Red Hat Integration]
 |General Availability
 |Source code 
 |link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]

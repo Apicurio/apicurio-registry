@@ -100,7 +100,7 @@
 // Red Hat 3scale API Management titles
 :3scaleProdName: Red Hat 3scale API Management
 :3scaleProdNameShort: 3scale
-:3scaleVersion: 2.8
+:3scaleVersion: 2.7
 
 :Link3scaleServiceDiscovery: https://access.redhat.com/documentation/en-us/red_hat_3scale_api_management/{3scaleVersion}/html-single/admin_portal_guide/service_discovery
 :NameOf3scaleServiceDiscovery: Service Discovery
@@ -126,6 +126,17 @@
 :LinkIntegrationData: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/data_integration/
 :NameIntegrationData: Data Integration
 
+:LinkServiceRegistryGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_service-registry/index
+:NameServiceRegistryGetStart: Getting Started with Service Registry
+
+// Camel K titles
+
+:LinkCamelKDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/deploying_camel_k_integrations_on_openshift/index
+:NameCamelKDeploy: Deploying Camel K Integrations on OpenShift
+
+:LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_camel_kafka_connector/index
+:NameCamelKafkaConnectorGetStart: Getting Started with Camel Kafka Connector
+
 // AMQ Streams titles
 
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_openshift/index
@@ -137,18 +148,18 @@
 // Change Data Capture titles
 
 :LinkCDCInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_openshift/
-:NameCDCInstallOpenShift: Installing {ProductName} on OpenShift
+:NameCDCInstallOpenShift: Installing Debezium on OpenShift
 
 :LinkCDCInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_rhel/
-:NameCDCInstallRHEL: Installing {ProductName} on RHEL
+:NameCDCInstallRHEL: Installing Debezium on RHEL
 
 :LinkCDCGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_change_data_capture/index
-:NameCDCGettingStarted: Getting Started with {ProductName}
+:NameCDCGettingStarted: Getting Started with Debezium
 
 :LinkCDCUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/debezium_user_guide/index
-:NameCDCUserGuide: {ProductName} User Guide
+:NameCDCUserGuide: Debezium User Guide
 
-// Debezium link attributes that are used upstream.  Add attributes as needed. 
+// Debezium link attributes that are used upstream.  Add attributes as needed.
 
 :link-avro-serialization: {LinkCDCUserGuide}
 :link-cloud-events: {LinkCDCUserGuide}
@@ -166,6 +177,7 @@
 :link-prefix: link
 :link-sqlserver-connector: {LinkCDCUserGuide}
 :link-topic-routing: {LinkCDCUserGuide}
+:link-tutorial: {LinkCDCGettingStarted}
 
 // Data Virtualization titles
 

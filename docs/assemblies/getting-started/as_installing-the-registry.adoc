@@ -20,21 +20,21 @@ This chapter explains how to install and run {registry} with the following stora
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install and set up storage in {kafka-streams} and then how to install and run {registry}:
-
-.{kafka-streams}
-* xref:installing-kafka-streams-operatorhub[] 
-* xref:setting-up-kafka-kubernetes-storage[]
-
-//.Embedded Infinispan (Technology Preview)
-//* TBD
-
-//.PostgreSQL database (Technology Preview)
-//* TBD 
+This chapter explains how to first install {registry} and then how to set up your storage in {kafka-streams}:
 
 .{registry}
 * xref:installing-registry-operatorhub[]
 endif::[]
+
+.{kafka-streams} storage
+* xref:installing-kafka-streams-operatorhub[] 
+* xref:setting-up-kafka-kubernetes-storage[]
+
+//.Embedded Infinispan storage (Technology Preview)
+//* TBD
+
+//.PostgreSQL database storage (Technology Preview)
+//* TBD 
  
 .Prerequisites
 * xref:registry-overview[]
@@ -59,8 +59,8 @@ include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc
 endif::[]
 
 ifdef::rh-service-registry[]
+include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
 //include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
 endif::[]

@@ -23,7 +23,7 @@ This chapter explains how to install and run {registry} with the following stora
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install {registry} and then how to set up your chosen storage environment:
+This chapter explains how to first install {registry} and then how to set up your chosen storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database.
 
 .{registry}
 * xref:installing-registry-operatorhub[]

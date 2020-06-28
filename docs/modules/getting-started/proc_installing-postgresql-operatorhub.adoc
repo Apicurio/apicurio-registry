@@ -6,7 +6,7 @@
 = Installing a PostgreSQL database from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-If you do not already have PostgreSQL database installed, you can install a PostgreSQL Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have a PostgreSQL database installed, you can install a PostgreSQL Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
 ifdef::rh-service-registry[]
 [IMPORTANT]
@@ -32,7 +32,7 @@ endif::[]
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 
-. In the *Filter by keyword* text box, enter `PostgreSQL` to find your an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
+. In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
 
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 

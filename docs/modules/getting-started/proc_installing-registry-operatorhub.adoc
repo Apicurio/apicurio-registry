@@ -11,7 +11,6 @@ You can install the {registry} Operator on your OpenShift cluster from the Opera
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster.
-* You must have installed 
 
 .Procedure
 

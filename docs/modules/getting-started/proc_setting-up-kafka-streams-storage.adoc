@@ -1,18 +1,18 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="setting-up-kafka-kubernetes-storage"]
+[id="setting-up-kafka-streams-storage"]
 
 
 //Use OpenShift for now until Helm chart available for Kubernetes
 = Configuring {registry} storage in {kafka-streams} 
 
-This topic explains how to install and configure Kafka-based storage for {registry} on OpenShift using {kafka-streams}. This storage option is suitable for production environments when `perisistent` storage is configured for the Kafka cluster on OpenShift. You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
+This section explains how to configure Kafka-based storage for {registry} on OpenShift using {kafka-streams}. This storage option is suitable for production environments when `perisistent` storage is configured for the Kafka cluster on OpenShift. You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have installed {registry}. See xref:installing-registry-operatorhub[].
-* You must have installed {kafka-streams} or a compatible Kafka-based system. See xref:installing-kafka-streams-operatorhub[].
+* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
+* You must have already installed {kafka-streams} or a compatible Kafka-based system. See xref:installing-kafka-streams-operatorhub[].
 +
 NOTE: If you have deployed a Kafka-based cluster in another way, you can still use your Kafka cluster with the {registry} Operator, but you must provide the required Kafka topics manually.
 
@@ -57,10 +57,13 @@ status:
 . Create a topic to store the to store the {registry} global IDs:
 .. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
 .. Change the default topic name from `my-topic` to the required `global-id-topic`.
-
+ifdef::apicurio-registry[]
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+endif::[]
+ifdef::rh-service-registry[]
 . Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
-
-. Paste in the following `spec`, but use your `bootstrapServers` value that you copied earlier: 
+endif::[]
+. Paste in the following custom resource definition, but use your `bootstrapServers` value that you copied earlier: 
 +
 [source,yaml]
 ----
@@ -75,7 +78,7 @@ spec:
       bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9092"
 ----
       
-. Click *Create* and wait a few seconds for the {registry} route to be created on OpenShift.
+. Click *Create* and wait for the {registry} route to be created on OpenShift.
 
 . Click *Networking* > *Route* to access the new route for the {registry} web console. For example:
 +
@@ -91,7 +94,6 @@ For more details on installing Strimzi and on creating Kafka clusters and topics
 endif::[]
 
 ifdef::rh-service-registry[]
-For more details on creating Kafka clusters and topics using {kafka-streams}:
-
-* link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
+//* For more details, including how to configure Transport Layer Security (TLS) and Salted Challenge Response Authentication Mechanism (SCRAM), see the link:https://github.com/redhat-integration/apicurio-registry-install-examples[example custom resource definitions] provided for registry installation.
+* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]
 endif::[]

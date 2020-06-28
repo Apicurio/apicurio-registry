@@ -10,7 +10,7 @@ You can also manage artifacts in the registry using a Java client application. T
 
 * See xref:client-serde[]
 * You must have implemented a client application in Java that imports the {registry} client classes: `io.apicurio.registry.client.RegistryClient` 
-* {registry} must be installed and running in your environment.
+* {registry} must be installed and running in your environment
 
 .Procedure
 
@@ -42,4 +42,7 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
 
 .Additional resources
 * For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
-* For more details on Kafka client applications, see: link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on Openshift].
+ifdef::rh-service-registry[]
+* For details on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
+endif::[]

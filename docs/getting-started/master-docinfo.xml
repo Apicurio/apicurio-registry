@@ -2,7 +2,7 @@
 <productnumber>{registry-version}</productnumber>
 <subtitle>{registry}</subtitle>
 <abstract>
-    <para>This guide introduces {registry} concepts and features, and explains how to install into your preferred registry storage environment. It also explains how to manage your event schemas and API designs stored in {registry} using the {registry} web console, REST API commands, client application code, and Maven plug-in. This guide also lists the supported artifact types and rule types stored in the registry.</para>
+    <para>This guide introduces {registry} concepts and features, and explains how to install into your preferred registry storage environment. It also explains how to manage your event schemas and API designs stored in {registry} using the {registry} web console, REST API commands, Java client code, or Maven plug-in. This guide also lists the supported artifact types and rule types stored in the registry.</para>
 </abstract>
 <authorgroup>
   <org>

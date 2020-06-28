@@ -4,9 +4,9 @@
 [id="setting-up-infinispan-storage"]
 
 
-= Configuring {registry} storage in an embedded Infinispan cache  
+= Configuring {registry} storage in embedded Infinispan  
 
-This section explains how to configure Infinispan cache-based storage for {registry} on OpenShift. This storage option is based on Infinispan community Java libraries embedded in the Quarkus-based {registry} server. You do not need to install a separate Infinispan server using this storage option. This option is suitable for development and demonstration only, and is not suitable for production environments.
+This section explains how to configure Infinispan cache-based storage for {registry} on OpenShift. This storage option is based on Infinispan community Java libraries embedded in the Quarkus-based {registry} server. You do not need to install a separate Infinispan server using this storage option. This option is suitable for development or demonstration only, and is not suitable for production environments.
 
 ifdef::rh-service-registry[]
 [IMPORTANT]
@@ -42,7 +42,7 @@ metadata:
 spec:
   configuration:
     persistence: "infinispan"
-    infinispan: # Currently, registry uses an embedded version of Infinispan
+    infinispan: # Currently uses embedded version of Infinispan
       clusterName: "example-apicurioregistry"
       # ^ Optional
 ----
@@ -58,5 +58,5 @@ http://example-apicurioregistry.my-project.my-domain-name.com/
 
 .Additional resources
 
-* For more details on configuring Infinispan clusters, see the example custom resources available from the link:https://github.com/Apicurio/apicurio-registry-demo/blob/master/kubernetes/resources-infinispan.yaml[Apicurio Registry demonstration] 
-* For more details on Infinispan, see https://infinispan.org/[]
+* For more details on configuring Infinispan clusters, see the example custom resources available from the link:https://github.com/Apicurio/apicurio-registry-demo/blob/master/kubernetes/resources-infinispan.yaml[Apicurio Registry demonstration]. 
+* For more details on Infinispan, see https://infinispan.org/[].

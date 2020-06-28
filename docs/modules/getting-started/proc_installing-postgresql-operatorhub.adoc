@@ -32,7 +32,7 @@ endif::[]
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 
-. In the *Filter by keyword* text box, enter `PostgreSQL` to find your an Operator that is suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
+. In the *Filter by keyword* text box, enter `PostgreSQL` to find your an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
 
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
@@ -45,7 +45,7 @@ endif::[]
 
 . Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
 +
-IMPORTANT: You must see the documentation from your chosen *PostgreSQL* Operator for details on how to create and manage your database.
+IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operator for details on how to create and manage your database.
 
 .Additional resources
 

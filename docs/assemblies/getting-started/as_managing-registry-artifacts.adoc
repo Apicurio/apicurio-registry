@@ -2,7 +2,7 @@
 //
 
 [id="managing-registry-artifacts"]
-= Managing artifacts in {registry} 
+= Managing artifacts stored in {registry} 
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 This chapter explains how to manage artifacts stored in the registry using the {registry} web console. This chapter also explains other approaches to managing artifacts, which include using the registry REST API commands, Maven repository, or a Java client application:

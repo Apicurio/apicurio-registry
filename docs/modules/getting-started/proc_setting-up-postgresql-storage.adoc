@@ -6,7 +6,7 @@
 
 = Configuring {registry} storage in a PostgreSQL database  
 
-This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. This storage option is suitable for production environments. You can install {registry} in an existing database or create new database, depending on your environment.
+This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create new database, depending on your environment.
 
 ifdef::rh-service-registry[]
 [IMPORTANT]
@@ -29,7 +29,7 @@ NOTE: If you have deployed a PostgreSQL database in another way, you can still u
 
 . Create a PostgreQSL database for your {registry} storage. For example, click *Installed Operators* > *PostgreSQL Operator by Dev4Ddevs.com* > *Create database* > *YAML*. 
 
-. Edit the database name to `registry` and edit any other settings depending on your environment, for example:
+. Edit the database name to `registry` and edit any other database settings as needed depending on your environment, for example:
 +
 [source,yaml]
 ----

@@ -1,0 +1,18 @@
+// Metadata created by nebel
+//
+
+[id="artifact-and-rule-types"]
+= {registry} artifact and rule types
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+This chapter lists the supported artifact types and rule types that are stored in {registry}:
+
+* xref:registry-artifact-types[]
+* xref:registry-rule-types[]
+
+.Additional resources
+* For more detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation] 
+
+//INCLUDES
+include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]

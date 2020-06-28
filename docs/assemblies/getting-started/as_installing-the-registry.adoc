@@ -23,7 +23,7 @@ This chapter explains how to install and run {registry} with the following stora
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install {registry} and then how to set up your chose storage environment:
+This chapter explains how to first install {registry} and then how to set up your chosen storage environment:
 
 .{registry}
 * xref:installing-registry-operatorhub[]
@@ -55,7 +55,7 @@ ifdef::apicurio-registry[]
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 endif::[]
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage, for example, Kafka cluster configuration, and on the number and type of artifacts stored in the registry.
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in the registry.
 
 //INCLUDES
 ifdef::apicurio-registry[]

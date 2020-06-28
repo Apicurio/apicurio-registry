@@ -4,7 +4,7 @@
 [id="adding-artifacts-using-console"]
 = Adding artifacts using the {registry} web console
 
-You can use the {registry} web console to upload event schema and API design artifacts to the registry. For more details on the artifacts types that you can upload, see xref:registry-artifact-types[]. This section shows simple examples of uploading {registry} artifacts, applying artifact rules, and adding new artifact versions.  
+You can use the {registry} web console to upload event schema and API design artifacts to the registry. For more details on the artifact types that you can upload, see xref:registry-artifact-types[]. This section shows simple examples of uploading {registry} artifacts, applying artifact rules, and adding new artifact versions.  
 
 .Prerequisites
 
@@ -19,13 +19,17 @@ You can use the {registry} web console to upload event schema and API design art
 . Click *Upload Artifact*, and specify the following:
 ** *ID*: Use the default empty setting to automatically generate an ID, or enter a specific artifact ID.
 ** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the drop-down, for example, *Avro Schema* or *OpenAPI*. 
++
+NOTE: The {registry} server can automatically detect most artifact types, but not all.
 ** *Artifact*: Drag and drop or click *Browse* to upload a file, for example, `my-schema.json` or `my-openapi.json`.
 
 . Click *Upload* and view the *Artifact Details*:
-
-** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click *Edit Artifact Metadata* to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
-
-** *Documentation* (OpenAPI and WSDL only): Displays automatically-generated REST or Web Service API documentation.
++
+.Artifact Details in {registry} web console
+image::images/getting-started/registry-web-console-artifact.png[Artifact Details in Registry web console]
++
+** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
+** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 
 . In *Content Rules*, click *Enable* to configure a *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see xref:registry-rule-types[].

@@ -12,28 +12,39 @@ This chapter explains how to install and run {registry} with the following stora
 * xref:installing-registry-kafka-storage[]
 * xref:installing-registry-kafka-streams-storage[]
 
-.Kubernetes/OpenShift
-* xref:installing-kafka-streams-operatorhub[]
-* xref:setting-up-kafka-kubernetes-storage[]
+.OpenShift
 //* xref:installing-registry-kafka-kubernetes-storage[]
 * xref:installing-registry-operatorhub[]
+* xref:installing-kafka-streams-operatorhub[] 
+* xref:setting-up-kafka-streams-storage[]
+* xref:installing-postgresql-operatorhub[]
+* xref:setting-up-postgresql-storage[] 
+* xref:setting-up-infinispan-storage[] 
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install and set up storage in {kafka-streams} and then how to install and run {registry}:
-
-.{kafka-streams}
-* xref:installing-kafka-streams-operatorhub[] 
-* xref:setting-up-kafka-kubernetes-storage[]
-
-//.Embedded Infinispan (Technology Preview)
-//* TBD
-
-//.PostgreSQL database (Technology Preview)
-//* TBD 
+This chapter explains how to first install {registry} and then how to set up your chosen storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database.
 
 .{registry}
 * xref:installing-registry-operatorhub[]
+
+.{kafka-streams} storage
+* xref:installing-kafka-streams-operatorhub[] 
+* xref:setting-up-kafka-streams-storage[]
+
+.Embedded Infinispan storage (Technology Preview)
+* xref:setting-up-infinispan-storage[] 
+
+.PostgreSQL database storage (Technology Preview)
+* xref:installing-postgresql-operatorhub[]
+* xref:setting-up-postgresql-storage[] 
+
+[IMPORTANT]
+====
+Infinispan and PostgreSQL storage are Technology Preview features only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
 endif::[]
  
 .Prerequisites
@@ -44,7 +55,7 @@ ifdef::apicurio-registry[]
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 endif::[]
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage, for example, Kafka cluster configuration, and on the number and type of artifacts stored in the registry.
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in the registry.
 
 //INCLUDES
 ifdef::apicurio-registry[]
@@ -52,15 +63,21 @@ include::../../modules/getting-started/proc_installing-registry-in-memory-storag
 include::../../modules/getting-started/proc_installing-registry-jpa-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-kafka-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-//include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+//include::../../modules/getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-infinispan-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-postgresql-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-postgresql-storage.adoc[leveloffset=+1]
 endif::[]
 
 ifdef::rh-service-registry[]
-include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_setting-up-kafka-kubernetes-storage.adoc[leveloffset=+1]
-//include::../../modules/getting-started/proc_installing-registry-kafka-kubernetes-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-registry-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-infinispan-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_installing-postgresql-operatorhub.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_setting-up-postgresql-storage.adoc[leveloffset=+1]
+//include::../../modules/getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 endif::[]

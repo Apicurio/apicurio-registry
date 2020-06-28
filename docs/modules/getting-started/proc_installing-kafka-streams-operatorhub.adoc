@@ -7,19 +7,8 @@
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-If you do not already have {kafka-streams} or a compatible Kafka Streams-based system installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have {kafka-streams} or a compatible Kafka system installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
-The following versions are supported:
-
-ifdef::apicurio-registry[]
-* Apache Kafka Streams 2.3.x
-* Apache Kafka Streams 2.2.x
-endif::[]
-
-ifdef::rh-service-registry[]
-* AMQ Streams 1.5
-* OpenShift 4.4 or 4.3   
-endif::[]
 
 .Prerequisites
 
@@ -32,10 +21,7 @@ endif::[]
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Create a new OpenShift project:
-
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
-.. Enter a project name, for example, `my-registry-project`, and click *Create*.
+. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 ifdef::apicurio-registry[]
@@ -46,9 +32,9 @@ ifdef::rh-service-registry[]
 endif::[]
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
-. Select the following subscription settings:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-registry-project*
-** *Update Channel* > *stable*
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+** *Update Channel* > *amq-streams-1.5.x*
 ** *Approval Strategy* > *Automatic*
 +
 NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.

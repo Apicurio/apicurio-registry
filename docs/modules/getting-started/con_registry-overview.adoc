@@ -39,7 +39,7 @@ endif::[]
 
 * Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems 
 
-* Client serializers/deserializers (SerDes) to validate Kafka and other message types at runtime
+* Client serializers/deserializers (Serdes) to validate Kafka and other message types at runtime
 
 * Cloud-native Quarkus Java runtime for low memory footprint and fast deployment times
 

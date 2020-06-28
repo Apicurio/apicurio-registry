@@ -1,0 +1,97 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="setting-up-postgresql-storage"]
+
+
+= Configuring {registry} storage in a PostgreSQL database  
+
+This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment.
+
+ifdef::rh-service-registry[]
+[IMPORTANT]
+====
+PostgreSQL storage is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
+
+.Prerequisites
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
+* You must have already installed a PostgreSQL database Operator. See xref:installing-postgresql-operatorhub[].
++
+NOTE: If you have deployed a PostgreSQL database in another way, you can still use your database with the {registry} Operator, but you must create the required database configuration manually. See your PostgreSQL documentation for details.
+
+
+.Procedure
+
+. Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators* > *PostgreSQL Operator by Dev4Ddevs.com* > *Create database* > *YAML*. 
+
+. Edit the database name to `registry` and edit any other database settings as needed depending on your environment, for example:
++
+[source,yaml]
+----
+apiVersion: postgresql.dev4devs.com/v1alpha1
+kind: Database
+metadata:
+  name: registry
+  namespace: my-project
+spec:
+  databaseCpu: 30m
+  databaseCpuLimit: 60m
+  databaseMemoryLimit: 512Mi
+  databaseMemoryRequest: 128Mi
+  databaseName: example
+  databaseNameKeyEnvVar: POSTGRESQL_DATABASE
+  databasePassword: postgres
+  databasePasswordKeyEnvVar: POSTGRESQL_PASSWORD
+  databaseStorageRequest: 1Gi
+  databaseUser: postgres
+  databaseUserKeyEnvVar: POSTGRESQL_USER
+  image: centos/postgresql-96-centos7
+  size: 1
+----  
+
+. Click *Create Database*, and wait until the database is created.
+
+ifdef::apicurio-registry[]
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+endif::[]
+ifdef::rh-service-registry[]
+. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+endif::[]
+
+. Paste in the following custom resource definition, and edit the database `url` and credentials to suit your environment: 
++
+[source,yaml]
+----
+apiVersion: apicur.io/v1alpha1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+spec:
+  configuration:
+    persistence: "jpa"
+    dataSource:
+      url: "jdbc:postgresql://SERVICE_NAME.NAMESPACE.svc:5432/DATABASE_NAME"
+      # e.g. url: "jdbc:postgresql://acid-minimal-cluster.my-project.svc:5432/registry"
+      userName: "postgres"
+      password: "PASSWORD"
+      # ^ Optional
+----
+      
+. Click *Create* and wait for the {registry} route to be created on OpenShift.
+
+. Click *Networking* > *Route* to access the new route for the {registry} web console. For example:
++
+[source]
+----
+http://example-apicurioregistry.my-project.my-domain-name.com/   
+----
+
+.Additional resources
+
+ * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
+ * https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/minikube-quickstart.md[Apicurio Registry Operator QuickStart]

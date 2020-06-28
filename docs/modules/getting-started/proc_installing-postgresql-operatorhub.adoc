@@ -1,0 +1,53 @@
+// Metadata created by nebel
+//
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-postgresql-operatorhub"]
+= Installing a PostgreSQL database from the OpenShift OperatorHub
+// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
+
+If you do not already have a PostgreSQL database installed, you can install a PostgreSQL Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+
+ifdef::rh-service-registry[]
+[IMPORTANT]
+====
+PostgreSQL storage is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
+
+.Prerequisites
+
+* You must have cluster administrator access to an OpenShift cluster.
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Create a new OpenShift project:
+
+.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. Enter a project name, for example, `my-project`, and click *Create*.
+
+. In the left navigation menu, click *Catalog* > *OperatorHub*.
+
+. In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
+
+. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+** *Update Channel* > *stable*
+** *Approval Strategy* > *Automatic*
+
+. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
+
+. Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
++
+IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operator for details on how to create and manage your database.
+
+.Additional resources
+
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]

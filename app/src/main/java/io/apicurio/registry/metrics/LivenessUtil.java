@@ -16,9 +16,13 @@
 
 package io.apicurio.registry.metrics;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,37 +31,30 @@ import io.apicurio.registry.rest.RegistryExceptionMapper;
 /**
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
 public class LivenessUtil {
 
     private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
 
-    private static final Set<String> IGNORED_CLASSES = new HashSet<>();
-    static {
-        IGNORED_CLASSES.add("io.grpc.StatusRuntimeException");
-        IGNORED_CLASSES.add("org.apache.kafka.streams.errors.InvalidStateStoreException");
-    }
+    @Inject
+    @ConfigProperty(name = "registry.liveness.errors.whitelist")
+    List<String> whitelist;
 
-
-    public static boolean isIgnoreError(Throwable ex) {
-        boolean ignored = false;
-        
-        if (ex instanceof LivenessIgnoredException) {
-            ignored = true;
-        }
-        
-        Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapper.getIgnored();
-        if (ignoredClasses.contains(ex.getClass())) {
-            ignored = true;
-        }
-            
-        if (IGNORED_CLASSES.contains(ex.getClass().getName())) {
-            ignored = true;
-        }
-        
+    public boolean isIgnoreError(Throwable ex) {
+        boolean ignored = this.isIgnored(ex) || this.isWhitelisted(ex);
         if (ignored) {
             log.debug("Ignored intercepted exception: " + ex.getClass().getName() + " :: " + ex.getMessage());
         }
         return ignored;
+    }
+    
+    private boolean isIgnored(Throwable ex) {
+        Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapper.getIgnored();
+        return ignoredClasses.contains(ex.getClass());
+    }
+    
+    private boolean isWhitelisted(Throwable ex) {
+        return this.whitelist != null && this.whitelist.contains(ex.getClass().getName());
     }
 
 }

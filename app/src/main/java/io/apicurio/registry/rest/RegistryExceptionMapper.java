@@ -75,6 +75,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     @Inject
     ResponseErrorLivenessCheck liveness;
+    @Inject
+    LivenessUtil livenessUtil;
 
     @Context
     HttpServletRequest request;
@@ -119,10 +121,16 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
-            if (!LivenessUtil.isIgnoreError(t)) {
+            // If the error is not something we should ignore, then we report it to the liveness object 
+            // and log it.  Otherwise we only log it if debug logging is enabled.
+            if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
+                log.error(t.getMessage(), t);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.error(t.getMessage(), t);
+                }
             }
-            log.error(t.getMessage(), t);
         }
 
         Error error = toError(t, code);

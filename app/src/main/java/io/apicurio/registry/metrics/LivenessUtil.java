@@ -37,11 +37,11 @@ public class LivenessUtil {
     private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
 
     @Inject
-    @ConfigProperty(name = "registry.liveness.errors.whitelist")
-    List<String> whitelist;
+    @ConfigProperty(name = "registry.liveness.errors.ignored")
+    List<String> ignored;
 
     public boolean isIgnoreError(Throwable ex) {
-        boolean ignored = this.isIgnored(ex) || this.isWhitelisted(ex);
+        boolean ignored = this.isIgnored(ex);
         if (ignored) {
             log.debug("Ignored intercepted exception: " + ex.getClass().getName() + " :: " + ex.getMessage());
         }
@@ -50,11 +50,10 @@ public class LivenessUtil {
     
     private boolean isIgnored(Throwable ex) {
         Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapper.getIgnored();
-        return ignoredClasses.contains(ex.getClass());
-    }
-    
-    private boolean isWhitelisted(Throwable ex) {
-        return this.whitelist != null && this.whitelist.contains(ex.getClass().getName());
+        if (ignoredClasses.contains(ex.getClass())) {
+            return true;
+        }
+        return this.ignored != null && this.ignored.contains(ex.getClass().getName());
     }
 
 }

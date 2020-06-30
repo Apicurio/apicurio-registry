@@ -120,7 +120,7 @@
         <jandex.version>1.0.8</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.9.2</avro.version>
+        <avro.version>1.10.0</avro.version>
         <json-schema-validator.version>1.0.41</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.12.2</protobuf.version>

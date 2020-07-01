@@ -73,7 +73,7 @@ import io.apicurio.tests.BaseIT;
 @Tag(CLUSTER)
 public class RegistryConverterIT extends BaseIT {
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     public void testConfiguration(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
@@ -84,7 +84,7 @@ public class RegistryConverterIT extends BaseIT {
         CompletionStage<ArtifactMetaData> csa = service.createArtifact(
             ArtifactType.AVRO,
             artifactId + "-myrecord4",
-            null, 
+            null,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
@@ -142,7 +142,7 @@ public class RegistryConverterIT extends BaseIT {
         }
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         RegistryService service = supplier.get();
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(service);
@@ -151,27 +151,27 @@ public class RegistryConverterIT extends BaseIT {
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
             try (AvroConverter converter = new AvroConverter<>(serializer, deserializer, avroData)) {
-    
+
                 org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
                                                                        .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
                                                                        .build();
                 Struct struct = new Struct(sc);
                 struct.put("bar", "somebar");
-    
+
                 String subject = generateArtifactId();
-    
+
                 byte[] bytes = converter.fromConnectData(subject, sc, struct);
-    
+
                 // some impl details ...
                 waitForSchema(service, bytes);
-    
+
                 Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
             }
         }
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     public void testPrettyJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
             supplier.get(),
@@ -188,7 +188,7 @@ public class RegistryConverterIT extends BaseIT {
         );
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     public void testCompactJson(Supplier<RegistryService> supplier) throws Exception {
         testJson(
             supplier.get(),

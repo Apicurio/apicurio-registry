@@ -52,7 +52,7 @@ public class LoadIT extends BaseIT {
 
     private String base = TestUtils.generateArtifactId();
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void concurrentLoadTest(RegistryService apicurioService) throws Exception {
 
         Queue<String> artifactsQueue = new ConcurrentLinkedQueue<>();

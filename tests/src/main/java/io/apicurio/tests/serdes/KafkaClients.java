@@ -94,11 +94,11 @@ public class KafkaClients {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer);
         // Schema Registry location.
         if (valueSerializer.contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryUrl() + "/ccompat");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat");
             props.putIfAbsent(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy);
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryUrl());
+            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryApiUrl());
             props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, artifactIdStrategy);
         }
 
@@ -121,9 +121,9 @@ public class KafkaClients {
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
         //Schema registry location.
         if (valueDeserializer.contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryUrl() + "/ccompat");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat");
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryUrl());
+            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryApiUrl());
         }
         return new KafkaConsumer<>(props);
     }

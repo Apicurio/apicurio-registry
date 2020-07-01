@@ -134,7 +134,7 @@ public class KafkaConnectConverterIT extends BaseIT {
 
     private ConnectorConfiguration getConfiguration(int id, String converter, String... options) {
         final String apicurioUrl = TestUtils.isExternalRegistry() ?
-                TestUtils.getRegistryUrl()
+                TestUtils.getRegistryApiUrl()
                 :
                 "http://host.testcontainers.internal:8081/api/";
 

@@ -76,25 +76,18 @@ public class TestUtils {
     }
 
     public static String getRegistryUIUrl() {
-        return getRegistryUrl().replace("/api", "/ui");
+        return getRegistryUrl().concat("/ui");
     }
 
-    public static String getRegistryUrl() {
-        return getRegistryUrl(
-            String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT),
-            false
-        );
+    public static String getRegistryApiUrl() {
+        return getRegistryUrl().concat("/api");
     }
 
-    public static String getRegistryUrl(RegistryServiceTest rst) {
-        return getRegistryUrl(rst.value(), rst.localOnly());
-    }
-
-    public static String getRegistryUrl(String fallbackUrl, boolean localOnly) {
-        if (localOnly || !isExternalRegistry()) {
-            return fallbackUrl;
+    private static String getRegistryUrl() {
+        if (isExternalRegistry()) {
+            return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
         } else {
-            return String.format("http://%s:%s/api", REGISTRY_HOST, REGISTRY_PORT);
+            return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
         }
     }
 
@@ -128,7 +121,7 @@ public class TestUtils {
      */
     public static boolean isReady(boolean logResponse) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().replace("/api", "/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().concat("/health/ready")));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info("Service registry is ready");
@@ -307,5 +300,4 @@ public class TestUtils {
         ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
         Assertions.assertNotNull(amd); // wait for global id to populate
     }
-    
 }

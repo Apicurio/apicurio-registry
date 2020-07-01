@@ -76,32 +76,32 @@ public class UploadArtifactsIT extends BaseIT {
 //        doTest(service, "avro/multi-field_v1.json", ArtifactType.AVRO, null, false);
 //    }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testProtobuf(RegistryService service) throws Exception {
         doTest(service, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testJsonSchema(RegistryService service) throws Exception {
         doTest(service, "jsonSchema/person_v1.json", ArtifactType.JSON, null, false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testKafkaConnect(RegistryService service) throws Exception {
         doTest(service, "kafkaConnect/simple_v1.json", ArtifactType.KCONNECT, null, false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testOpenApi30(RegistryService service) throws Exception {
         doTest(service, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAsyncApi(RegistryService service) throws Exception {
         doTest(service, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testGraphQL(RegistryService service) throws Exception {
         doTest(service, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, false);
     }
@@ -113,44 +113,44 @@ public class UploadArtifactsIT extends BaseIT {
 //        doTest(service, "avro/multi-field_v1.json", null, null);
 //    }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testProtobufAutoDetect(RegistryService service) throws Exception {
         doTest(service, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testJsonSchemaAutoDetect(RegistryService service) throws Exception {
         doTest(service, "jsonSchema/person_v1.json", ArtifactType.JSON, null, true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testOpenApi30AutoDetect(RegistryService service) throws Exception {
         doTest(service, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAsyncApiAutoDetect(RegistryService service) throws Exception {
         doTest(service, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testGraphQLAutoDetect(RegistryService service) throws Exception {
         doTest(service, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, true);
     }
 
     //provide artifact id
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testSetArtifactId(RegistryService service) throws Exception {
         doTest(service, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", false);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testSetArtifactIdAndAutodetect(RegistryService service) throws Exception {
         doTest(service, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testCreateViaApi(RegistryService service) throws Exception {
 
         RegistryUITester page = new RegistryUITester(selenium);

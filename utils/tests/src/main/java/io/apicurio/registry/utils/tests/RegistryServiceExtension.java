@@ -80,10 +80,10 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     @Override
     public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext context) {
-        RegistryServiceTest rst = AnnotationUtils.findAnnotation(context.getRequiredTestMethod(), RegistryServiceTest.class)
+        AnnotationUtils.findAnnotation(context.getRequiredTestMethod(), RegistryServiceTest.class)
                                                  .orElseThrow(IllegalStateException::new); // should be there
 
-        String registryUrl = TestUtils.getRegistryUrl(rst);
+        String registryUrl = TestUtils.getRegistryApiUrl();
 
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
 

@@ -38,12 +38,24 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Code Checkout
+      - name: Apicurio Registry Code Checkout
         run: |
           git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+          git fetch
+          git checkout master
+          git branch --set-upstream-to=origin/master
+          git pull
+      - name: Apicurio Website Code Checkout
+        run: |
+          mkdir website
+          cd website
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
           git fetch
           git checkout master
           git branch --set-upstream-to=origin/master
@@ -111,4 +123,25 @@ jobs:
         run: |
           git add .
           git commit -m"Automated update to next Snapshot Version: ${{steps.metadata.outputs.snapshot-version}}"
+          git push
+      - name: Updating Project Website for Release ${{steps.metadata.outputs.release-version}}
+        run: |
+          cd website
+          echo "********** Downloading Latest Release JSON File **********"
+          cd _data/registry
+          rm latestRelease.json
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          
+          echo "********** Copying Latest Release JSON File **********"
+          PUBLISHED_AT=$(cat responsefile | jq '.published_at' | sed 's/"//g')
+          cp latestRelease.json releases/$PUBLISHED_AT.json
+          
+          # setting up env variable to use in next step to force commit the file
+          echo "::set-env name=FILENAME::$PUBLISHED_AT" 
+      - name: Commit Project Website Changes
+        run: |
+          cd website
+          git add .
+          git add -f _data/registry/releases/$FILENAME.json    #ignored due to .gitignore config
+          git commit -m "Automated Update For Apicurio Registry Release Version: ${{steps.metadata.outputs.release-version}}"
           git push

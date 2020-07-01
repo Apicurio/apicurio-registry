@@ -20,7 +20,7 @@ You can use the {registry} web console to upload event schema and API design art
 ** *ID*: Use the default empty setting to automatically generate an ID, or enter a specific artifact ID.
 ** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the drop-down, for example, *Avro Schema* or *OpenAPI*. 
 +
-NOTE: The {registry} server can automatically detect most artifact types, but not all.
+NOTE: You must manually select the *JSON Schema* artifact type. The {registry} server cannot automatically detect this artifact type. 
 ** *Artifact*: Drag and drop or click *Browse* to upload a file, for example, `my-schema.json` or `my-openapi.json`.
 
 . Click *Upload* and view the *Artifact Details*:

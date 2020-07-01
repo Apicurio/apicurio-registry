@@ -92,7 +92,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testEvolveAvroConfluent(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
         String topicName = TestUtils.generateTopic();
         String recordName = "myrecordconfluent5";

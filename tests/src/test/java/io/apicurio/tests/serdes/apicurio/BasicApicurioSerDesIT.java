@@ -44,7 +44,7 @@ import java.util.concurrent.TimeoutException;
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvroApicurioSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
@@ -58,7 +58,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         KafkaClients.consumeAvroApicurioMessages(topicName, 10).get(5, TimeUnit.SECONDS);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvroApicurioSerDesFail(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = TestUtils.generateSubject();
@@ -71,7 +71,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvroApicurioSerDesWrongStrategyTopic(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = TestUtils.generateSubject();
@@ -84,7 +84,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesTopicStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvroApicurioSerDesWrongStrategyRecord(RegistryService service) throws TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
@@ -97,7 +97,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testEvolveAvroApicurio(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String recordName = TestUtils.generateSubject();
@@ -129,7 +129,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         KafkaClients.consumeAvroApicurioMessages(topicName, 30).get(5, TimeUnit.SECONDS);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvroApicurioForMultipleTopics(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName1 = TestUtils.generateTopic();
         String topicName2 = TestUtils.generateTopic();
@@ -152,7 +152,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         KafkaClients.consumeAvroApicurioMessages(topicName3, 10).get(5, TimeUnit.SECONDS);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testJsonSchemaApicurioSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String jsonSchema = "{" +
                             "    \"$id\": \"https://example.com/message.schema.json\"," +
@@ -164,14 +164,14 @@ public class BasicApicurioSerDesIT extends BaseIT {
                             "    \"type\": \"object\"," +
                             "    \"properties\": {" +
                             "        \"message\": {" +
-                "            \"description\": \"\"," + 
-                "            \"type\": \"string\"" + 
-                "        }," + 
-                "        \"time\": {" + 
-                "            \"description\": \"\"," + 
-                "            \"type\": \"number\"" + 
-                "        }" + 
-                "    }" + 
+                "            \"description\": \"\"," +
+                "            \"type\": \"string\"" +
+                "        }," +
+                "        \"time\": {" +
+                "            \"description\": \"\"," +
+                "            \"type\": \"number\"" +
+                "        }" +
+                "    }" +
                 "}";
         String artifactId = TestUtils.generateArtifactId();
         String subjectName = TestUtils.generateSubject();
@@ -202,7 +202,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         return b.build();
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testProtobufSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         Serde.Schema protobufSchema = toSchemaProto(MsgTypes.Msg.newBuilder().build().getDescriptorForType().getFile());
         String artifactId = TestUtils.generateArtifactId();
@@ -226,7 +226,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
         KafkaClients.produceProtobufMessages(artifactId, subjectName, 100).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeProtobufMessages(artifactId, 100).get(5, TimeUnit.SECONDS);
     }
-    
+
     @BeforeAll
     static void setupEnvironment() {
         kafkaCluster.start();

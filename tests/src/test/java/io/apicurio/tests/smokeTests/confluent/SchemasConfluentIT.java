@@ -170,7 +170,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createConfluentQueryApicurio(RegistryService service) throws IOException, RestClientException, TimeoutException {
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
@@ -193,7 +193,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testCreateDeleteSchemaRuleIsDeleted(RegistryService service) throws Exception {
 
         String name = "schemaname";

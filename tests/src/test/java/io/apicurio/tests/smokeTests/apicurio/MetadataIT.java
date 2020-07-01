@@ -44,7 +44,7 @@ class MetadataIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void getAndUpdateMetadataOfArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -82,7 +82,7 @@ class MetadataIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void getAndUpdateMetadataOfArtifactSpecificVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

@@ -47,7 +47,7 @@ class RulesResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createAndDeleteGlobalRules(RegistryService service) throws Exception {
         // Create a global rule
         Rule rule = new Rule();
@@ -79,7 +79,7 @@ class RulesResourceIT extends BaseIT {
         TestUtils.assertWebError(404, () -> service.getGlobalRuleConfig(RuleType.VALIDITY));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createAndValidateGlobalRules(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -113,7 +113,7 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createAndValidateArtifactRule(RegistryService service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -169,7 +169,7 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testRulesDeletedWithArtifact(RegistryService service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

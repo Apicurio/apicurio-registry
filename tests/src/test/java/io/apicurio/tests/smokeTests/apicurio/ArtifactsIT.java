@@ -53,7 +53,7 @@ class ArtifactsIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createAndUpdateArtifact(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -109,7 +109,7 @@ class ArtifactsIT extends BaseIT {
         assertThat(response.getJsonArray("fields").getJsonObject(0).getString("name"), is("foo"));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createAndDeleteMultipleArtifacts(RegistryService service) throws Exception {
         LOGGER.info("Creating some artifacts...");
         Map<String, String> idMap = createMultipleArtifacts(service, 10);
@@ -122,7 +122,7 @@ class ArtifactsIT extends BaseIT {
         }
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createNonAvroArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
@@ -141,7 +141,7 @@ class ArtifactsIT extends BaseIT {
         assertThat(response.getString("config"), is("invalid"));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void createArtifactSpecificVersion(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
@@ -164,7 +164,7 @@ class ArtifactsIT extends BaseIT {
         assertThat(artifactVersions, hasItems(1L, 2L));
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDuplicatedArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
@@ -175,7 +175,7 @@ class ArtifactsIT extends BaseIT {
         TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, iad), true);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDisableEnableArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -209,7 +209,7 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDisableEnableArtifactVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -273,7 +273,7 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDeprecateArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -302,7 +302,7 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDeprecateArtifactVersion(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -344,7 +344,7 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void deleteNonexistingSchema(RegistryService service) {
         TestUtils.assertWebError(404, () -> service.deleteArtifact("non-existing"));
     }

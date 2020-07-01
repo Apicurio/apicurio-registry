@@ -48,7 +48,7 @@ public class DeleteArtifactIT extends BaseIT {
         }
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDeleteArtifacts(RegistryService service) throws Exception {
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
@@ -96,7 +96,7 @@ public class DeleteArtifactIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testDeleteViaApi(RegistryService service) throws Exception {
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();

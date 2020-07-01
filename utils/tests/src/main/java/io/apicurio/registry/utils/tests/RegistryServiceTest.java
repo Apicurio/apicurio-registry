@@ -34,17 +34,5 @@ import java.lang.annotation.Target;
 @TestTemplate
 @ExtendWith(RegistryServiceExtension.class)
 public @interface RegistryServiceTest {
-    /**
-     * Provide the RegistryService url.
-     *
-     * @return the url
-     */
-    String value() default "http://localhost:8081/api";
 
-    /**
-     * Limit the registry to local app.
-     *
-     * @return false to allow external lookup, true otherwise
-     */
-    boolean localOnly() default true;
 }

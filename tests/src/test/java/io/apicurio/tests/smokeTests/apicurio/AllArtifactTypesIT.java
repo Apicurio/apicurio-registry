@@ -94,37 +94,37 @@ class AllArtifactTypesIT extends BaseIT {
         }
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAvro(RegistryService service) {
         doTest(service, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testProtobuf(RegistryService service) {
         doTest(service, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testJsonSchema(RegistryService service) {
         doTest(service, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testKafkaConnect(RegistryService service) {
         doTest(service, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testOpenApi30(RegistryService service) {
         doTest(service, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testAsyncApi(RegistryService service) {
         doTest(service, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
     }
 
-    @RegistryServiceTest(localOnly = false)
+    @RegistryServiceTest
     void testGraphQL(RegistryService service) {
         doTest(service, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
     }

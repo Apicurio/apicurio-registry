@@ -41,7 +41,7 @@ export default class App extends React.PureComponent<{}, {}> {
 
     componentDidMount() {
         let initOptions = {
-            url: 'http://localhost:8090/auth', realm: 'registry', clientId: 'registry-ui', onLoad: 'login-required'
+            url: Services.getConfigService().authUrl(), realm: Services.getConfigService().authRealm(), clientId: Services.getConfigService().authClientId(), onLoad: Services.getConfigService().authOnLoad()
         }
         const keycloak = Keycloak(initOptions);
         keycloak.init({onLoad: 'login-required'}).then(authenticated => {

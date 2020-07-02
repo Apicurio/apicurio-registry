@@ -26,6 +26,7 @@ import {ArtifactVersionPage} from "./pages/artifactVersion";
 import {Services} from "@apicurio/registry-services";
 import {RootRedirectPage} from "./pages/root";
 import {NotFoundPage} from "./pages/404";
+import Keycloak from 'keycloak-js';
 
 
 /**
@@ -35,10 +36,21 @@ export default class App extends React.PureComponent<{}, {}> {
 
     constructor(props: Readonly<any>) {
         super(props);
+        this.state = {keycloak: null, authenticated: false};
+    }
+
+    componentDidMount() {
+        let initOptions = {
+            url: 'http://localhost:8090/auth', realm: 'registry', clientId: 'registry-ui', onLoad: 'login-required'
+        }
+        const keycloak = Keycloak(initOptions);
+        keycloak.init({onLoad: 'login-required'}).then(authenticated => {
+            this.setState({keycloak: keycloak, authenticated: authenticated})
+        })
     }
 
     public render() {
-        const contextPath: string|undefined = Services.getConfigService().uiContextPath();
+        const contextPath: string | undefined = Services.getConfigService().uiContextPath();
         Services.getLoggerService().info("Using app contextPath: ", contextPath);
 
         // Function to force the Artifact Version Page to fully remount each time we navigate to it.  This
@@ -51,23 +63,31 @@ export default class App extends React.PureComponent<{}, {}> {
             );
         };
 
+        if (this.state.keycloak) {
+            if (this.state.authenticated) {
+                return (
+                    <Router basename={contextPath}>
+                        <Page
+                            className="pf-m-redhat-font"
+                            isManagedSidebar={false}
+                            header={<AppHeader/>}
+                        >
+                            <Switch>
+                                <Route path='/' exact={true} component={RootRedirectPage}/>
+                                <Route path='/rules' exact={true} component={RulesPage}/>
+                                <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
+                                <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>
+                                <Route path='/artifacts/:artifactId/versions/:version' exact={true}
+                                       component={artifactVersionPage}/>
+                                <Route component={NotFoundPage}/>
+                            </Switch>
+                        </Page>
+                    </Router>
+                );
+            } else return (<div>Unable to authenticate!</div>)
+        }
         return (
-            <Router basename={contextPath}>
-                <Page
-                    className="pf-m-redhat-font"
-                    isManagedSidebar={false}
-                    header={<AppHeader/>}
-                >
-                    <Switch>
-                        <Route path='/' exact={true} component={RootRedirectPage}/>
-                        <Route path='/rules' exact={true} component={RulesPage}/>
-                        <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
-                        <Route path='/artifacts/:artifactId' exact={true} component={ArtifactRedirectPage}/>
-                        <Route path='/artifacts/:artifactId/versions/:version' exact={true} component={artifactVersionPage} />
-                        <Route component={NotFoundPage} />
-                    </Switch>
-                </Page>
-            </Router>
+            <div>Initializing Keycloak...</div>
         );
     }
 }

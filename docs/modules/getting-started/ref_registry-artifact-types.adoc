@@ -2,7 +2,7 @@
 
 [id="registry-artifact-types"]
 
-= Supported artifact types
+= Supported {registry} artifact types
 You can store and manage the following artifact types in {registry}:
 
 .{registry} artifact types

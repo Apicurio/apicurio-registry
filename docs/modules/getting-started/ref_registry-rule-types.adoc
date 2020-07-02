@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-rule-types"]
-= Supported content rule types
+= Supported {registry} content rule types
 You can specify the following rule types to govern content evolution in the registry: 
 
 .{registry} content rule types

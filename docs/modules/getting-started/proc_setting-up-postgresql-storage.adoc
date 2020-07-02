@@ -21,9 +21,6 @@ endif::[]
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See xref:installing-registry-operatorhub[].
 * You must have already installed a PostgreSQL database Operator. See xref:installing-postgresql-operatorhub[].
-+
-NOTE: If you have deployed a PostgreSQL database Operator in another way, you can still use your database with the {registry} Operator, but you must create the required database configuration shown in this section. See your PostgreSQL documentation for more details.
-
 
 .Procedure
 

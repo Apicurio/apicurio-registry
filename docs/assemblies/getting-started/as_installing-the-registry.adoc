@@ -23,7 +23,7 @@ This chapter explains how to install and run {registry} with the following stora
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install {registry} and then how to set up your chosen storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database.
+This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database.
 
 .{registry}
 * xref:installing-registry-operatorhub[]
@@ -41,7 +41,7 @@ This chapter explains how to first install {registry} and then how to set up you
 
 [IMPORTANT]
 ====
-Infinispan and PostgreSQL storage are Technology Preview features only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+{registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
 
 These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
 ====
@@ -55,7 +55,7 @@ ifdef::apicurio-registry[]
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 endif::[]
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in the registry.
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in {registry}.
 
 //INCLUDES
 ifdef::apicurio-registry[]

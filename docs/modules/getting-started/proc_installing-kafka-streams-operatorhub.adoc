@@ -7,14 +7,14 @@
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-If you do not already have {kafka-streams} or a compatible Kafka system installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
 
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster 
 ifdef::rh-service-registry[]
-* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/getting-started-str[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
 
 .Procedure
@@ -35,9 +35,7 @@ endif::[]
 . Select your subscription settings, for example:
 ** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Update Channel* > *amq-streams-1.5.x*
-** *Approval Strategy* > *Automatic*
-+
-NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.
+** *Approval Strategy* > *Manual*
 
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
 

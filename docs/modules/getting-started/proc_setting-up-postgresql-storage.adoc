@@ -4,14 +4,14 @@
 [id="setting-up-postgresql-storage"]
 
 
-= Configuring {registry} storage in a PostgreSQL database  
+= Configuring {registry} with PostgreSQL database storage 
 
-This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment.
+This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 
 ifdef::rh-service-registry[]
 [IMPORTANT]
 ====
-PostgreSQL storage is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+{registry} storage in a PostgreSQL database is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
 
 These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
 ====
@@ -22,14 +22,18 @@ endif::[]
 * You must have already installed {registry}. See xref:installing-registry-operatorhub[].
 * You must have already installed a PostgreSQL database Operator. See xref:installing-postgresql-operatorhub[].
 +
-NOTE: If you have deployed a PostgreSQL database in another way, you can still use your database with the {registry} Operator, but you must create the required database configuration manually. See your PostgreSQL documentation for details.
+NOTE: If you have deployed a PostgreSQL database Operator in another way, you can still use your database with the {registry} Operator, but you must create the required database configuration shown in this section. See your PostgreSQL documentation for more details.
 
 
 .Procedure
 
 . Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators* > *PostgreSQL Operator by Dev4Ddevs.com* > *Create database* > *YAML*. 
 
-. Edit the database name to `registry` and edit any other database settings as needed depending on your environment, for example:
+. Edit the database settings as follows:
+** `name`: Change the value to `registry`
+** `image`: Change the value to `centos/postgresql-10-centos7` 
+
+. Edit any other database settings as needed depending on your environment, for example:
 +
 [source,yaml]
 ----
@@ -50,7 +54,7 @@ spec:
   databaseStorageRequest: 1Gi
   databaseUser: postgres
   databaseUserKeyEnvVar: POSTGRESQL_USER
-  image: centos/postgresql-96-centos7
+  image: centos/postgresql-10-centos7
   size: 1
 ----  
 
@@ -63,7 +67,7 @@ ifdef::rh-service-registry[]
 . Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
 endif::[]
 
-. Paste in the following custom resource definition, and edit the database `url` and credentials to suit your environment: 
+. Paste in the following custom resource definition, and edit the values for the database `url` and credentials to match your environment: 
 +
 [source,yaml]
 ----
@@ -75,8 +79,8 @@ spec:
   configuration:
     persistence: "jpa"
     dataSource:
-      url: "jdbc:postgresql://SERVICE_NAME.NAMESPACE.svc:5432/DATABASE_NAME"
-      # e.g. url: "jdbc:postgresql://acid-minimal-cluster.my-project.svc:5432/registry"
+      url: "jdbc:postgresql://SERVICE_NAME.NAMESPACE.svc:5432/"
+      # e.g. url: "jdbc:postgresql://acid-minimal-cluster.my-project.svc:5432/"
       userName: "postgres"
       password: "PASSWORD"
       # ^ Optional

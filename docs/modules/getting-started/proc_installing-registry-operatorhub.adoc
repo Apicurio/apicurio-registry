@@ -33,9 +33,7 @@ endif::[]
 . Select your subscription settings, for example:
 ** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Update Channel* > *serviceregistry-1.0*
-** *Approval Strategy* > *Automatic*
-+
-NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.
+** *Approval Strategy* > *Manual*
 
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
 

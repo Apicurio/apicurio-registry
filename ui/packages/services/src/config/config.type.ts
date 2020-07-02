@@ -29,9 +29,17 @@ export interface UiConfig {
     contextPath: string;
 }
 
+export interface AuthConfig {
+    url: string;
+    realm: string;
+    clientId?: string;
+    onLoad: string;
+}
+
 export interface ConfigType {
     mode: string;
     artifacts: ArtifactsConfig;
+    auth?: AuthConfig;
     features?: FeaturesConfig;
     ui: UiConfig;
 }

@@ -4,7 +4,7 @@
 [id="setting-up-infinispan-storage"]
 
 
-= Configuring {registry} storage in embedded Infinispan  
+= Configuring {registry} with embedded Infinispan storage
 
 This section explains how to configure Infinispan cache-based storage for {registry} on OpenShift. This storage option is based on Infinispan community Java libraries embedded in the Quarkus-based {registry} server. You do not need to install a separate Infinispan server using this storage option. This option is suitable for development or demonstration only, and is not suitable for production environments.
 

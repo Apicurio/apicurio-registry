@@ -3,22 +3,20 @@
 
 [id="setting-up-kafka-streams-storage"]
 
-
-//Use OpenShift for now until Helm chart available for Kubernetes
-= Configuring {registry} storage in {kafka-streams} 
+= Configuring {registry} with {kafka-streams} storage
 
 This section explains how to configure Kafka-based storage for {registry} on OpenShift using {kafka-streams}. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift. You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See xref:installing-registry-operatorhub[].
-* You must have already installed {kafka-streams} or a compatible Kafka-based system. See xref:installing-kafka-streams-operatorhub[].
+* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub[].
 +
-NOTE: If you have deployed a Kafka-based cluster in another way, you can still use your Kafka cluster with the {registry} Operator, but you must create the required Kafka topics manually.
+NOTE: If you have already deployed a Kafka cluster in another way, for example, on the command line, you can still use your Kafka cluster with the {registry} Operator, but you must create the required Kafka topics: `storage-topic` and `global-id-topic`.
 
 .Procedure
 
-. If you do not already have a Kafka cluster configured, create a new Kafka cluster with {kafka-streams}. For example, in the OpenShift OperatorHub:
+. If you do not already have a Kafka cluster configured, create a new Kafka cluster using {kafka-streams}. For example, in the OpenShift OperatorHub:
 +
 ifdef::apicurio-registry[]
 .. Click *Installed Operators* > *{kafka-streams}*.

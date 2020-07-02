@@ -28,7 +28,7 @@
       <goal>register</goal> <1>
     </goals>
     <configuration>
-      <registryUrl>https://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
+      <registryUrl>http://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
       <artifactType>AVRO</artifactType> 
       <artifacts>
         <schema1>${project.basedir}/schemas/schema1.avsc</schema1> <3>
@@ -58,7 +58,7 @@
       <goal>download</goal> <1>
     </goals>
     <configuration>
-      <registryUrl>https://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
+      <registryUrl>http://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
           <ids>
             <param1>schema1</param1> <3>
           </ids>

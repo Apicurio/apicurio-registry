@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z',GMT} %highlight(%-5p) [%c{0}] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL:-info}">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</configuration>

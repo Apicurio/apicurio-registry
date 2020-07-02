@@ -25,15 +25,11 @@ import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.interfaces.TestSeparator;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.restassured.RestAssured;
-import io.restassured.parsing.Parser;
 import org.apache.avro.Schema;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,26 +38,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @DisplayNameGeneration(SimpleDisplayName.class)
+@ExtendWith(RegistryDeploymentManager.class)
 public abstract class BaseIT implements TestSeparator, Constants {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = new KafkaFacade();
-    private static RegistryFacade registry = new RegistryFacade();
 
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
@@ -69,32 +61,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
             return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    @BeforeAll
-    static void beforeAll() throws Exception {
-        if (!TestUtils.isExternalRegistry()) {
-            registry.start();
-        } else {
-            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryApiUrl());
-        }
-        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryApiUrl() + " in timeout!",
-                          Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
-        TestUtils.waitFor("Registry reports is ready",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
-        RestAssured.baseURI = TestUtils.getRegistryApiUrl();
-        LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
-        RestAssured.defaultParser = Parser.JSON;
-    }
-
-    @AfterAll
-    static void afterAll(TestInfo info) throws Exception {
-        if (!TestUtils.isExternalRegistry()) {
-            registry.stop();
-            Thread.sleep(3000);
-            //noinspection OptionalGetWithoutIsPresent
-            storeRegistryLog(info.getTestClass().get().getCanonicalName());
         }
     }
 
@@ -112,21 +78,6 @@ public abstract class BaseIT implements TestSeparator, Constants {
                 LOGGER.error("", e);
             }
         }
-    }
-
-    private static void storeRegistryLog(String className) {
-        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
-        File logDir = new File("target/logs/" + className + "-" + currentDate);
-
-        if (!logDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            logDir.mkdirs();
-        }
-
-        TestUtils.writeFile(logDir + "/registries-stdout.log", registry.getRegistryStdOut());
-        TestUtils.writeFile(logDir + "/registries-stderr.log", registry.getRegistryStdErr());
     }
 
     protected Map<String, String> createMultipleArtifacts(RegistryService apicurioService, int count) throws Exception {

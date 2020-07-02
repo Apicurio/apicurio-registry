@@ -26,6 +26,7 @@ import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
+import io.quarkus.security.Authenticated;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -49,6 +50,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
+@Authenticated
 public class SearchResourceImpl implements SearchResource {
 
     @Inject

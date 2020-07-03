@@ -4,7 +4,7 @@
 [id="registry-liveness-env-vars"]
 = Environment variables for {registry} health checks
 
-This section describes the available environment variables for {registry} health checks. These include liveness and readiness probes on OpenShift to monitor the health of the {registry} server. For an example procedure, see xref:configuring-liveness-readiness-probes[].
+This section describes the available environment variables for {registry} health checks. These include liveness and readiness probes on OpenShift to monitor the health of the {registry} server. For an example, see xref:configuring-liveness-readiness-probes[].
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 
@@ -66,7 +66,7 @@ a|Readiness tracks the timeout of two operations:
 * How long it takes for storage requests to complete
 * How long it takes for HTTP REST API requests to return a response
 
-If the operation takes more time than these timeouts, it is counted as a readiness issue or error. This value controls these timeouts.
+If these operations take more time than the configured timeout, this is counted as a readiness issue or error. This value controls the timeouts for both operations.
 |Seconds
 |`5`
 |===

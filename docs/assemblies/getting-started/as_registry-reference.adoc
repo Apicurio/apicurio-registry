@@ -5,7 +5,7 @@
 = {registry} reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter lists the supported artifact types and content rule types that are stored in {registry}. This chapter also describes the environment variables that you can configure for liveness and readiness checks on OpenShift:
+This chapter lists the supported artifact types and content rule types that are stored in {registry}. This chapter also describes the environment variables that you can configure for {registry} health checks on OpenShift:
 
 * xref:registry-artifact-types[]
 * xref:registry-rule-types[]

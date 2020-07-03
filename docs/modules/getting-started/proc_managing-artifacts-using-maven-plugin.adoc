@@ -13,7 +13,7 @@
 
 .Procedure
 
-. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to upload an artifact. The following example shows registering an Apache Avro schema artifact:
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to upload an artifact to {registry}. The following example shows registering an Apache Avro schema artifact:
 +
 [source,xml]
 ----
@@ -40,10 +40,10 @@
 ----
 +
 <1> Specify `register` as the execution goal to upload an artifact to the registry.
-<2> You must specify the {registry} URL.
+<2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can upload multiple artifacts using the artifact ID and location. 
 
-. You can also update your Maven `pom.xml` file to download a previously registered artifact:
+. You can also update your Maven `pom.xml` file to download a previously registered artifact from {registry}:
 +
 [source,xml]
 ----
@@ -70,7 +70,7 @@
 ----
 +
 <1> Specify `download` as the execution goal.
-<2> You must specify the {registry} URL.
+<2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can download multiple artifacts to a specified directory using the artifact ID.
 
 .Additional resources

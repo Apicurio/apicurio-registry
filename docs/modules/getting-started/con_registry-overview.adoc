@@ -5,7 +5,7 @@
 
 {registry} is a datastore for sharing standard event schemas and API designs across API and event-driven architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
 
-For example, client applications can dynamically push or pull the latest schema updates to or from the registry at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.  
+For example, client applications can dynamically push or pull the latest schema updates to or from {registry} at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.  
 
 You can enable client applications to use schemas and API designs stored in {registry} by specifying the registry URL in your client application code. For example, the registry can store schemas used to serialize and deserialize messages, which can then be referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas.
 
@@ -33,7 +33,7 @@ ifdef::apicurio-registry[]
 * Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database 
 endif::[]
 
-* Registry content management by web console, REST API command, Maven plug-in, or Java client
+* Registry content management using a web console, REST API command, Maven plug-in, or Java client
 
 * Rules for content validation and version compatibility to govern how registry content evolves over time
 

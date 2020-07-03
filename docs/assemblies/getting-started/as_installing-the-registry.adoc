@@ -23,10 +23,9 @@ This chapter explains how to install and run {registry} with the following stora
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database. This chapter also explains how to configure optional settings for readiness and liveness probes on OpenShift.
+This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database. This chapter also explains how to configure optional settings for health checks on OpenShift.
 
 .{registry} installation
-* xref:installing-registry-operatorhub[]
 * xref:installing-registry-operatorhub[]
 
 .{kafka-streams} storage
@@ -40,8 +39,9 @@ This chapter explains how to first install {registry} and then how to set up you
 * xref:installing-postgresql-operatorhub[]
 * xref:setting-up-postgresql-storage[] 
 
-.OpenShift readiness and liveness
+.{registry} health checks
 * xref:configuring-liveness-readiness-probes[]
+
 [IMPORTANT]
 ====
 {registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 

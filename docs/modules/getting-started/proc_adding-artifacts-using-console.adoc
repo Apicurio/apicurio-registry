@@ -20,7 +20,7 @@ You can use the {registry} web console to upload event schema and API design art
 ** *ID*: Use the default empty setting to automatically generate an ID, or enter a specific artifact ID.
 ** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the drop-down, for example, *Avro Schema* or *OpenAPI*. 
 +
-NOTE: You must manually select the *JSON Schema* artifact type. The {registry} server cannot automatically detect this artifact type. 
+NOTE:  The {registry} server cannot automatically detect the *JSON Schema* artifact type. You must manually select this artifact type.
 ** *Artifact*: Drag and drop or click *Browse* to upload a file, for example, `my-schema.json` or `my-openapi.json`.
 
 . Click *Upload* and view the *Artifact Details*:
@@ -28,7 +28,7 @@ NOTE: You must manually select the *JSON Schema* artifact type. The {registry} s
 .Artifact Details in {registry} web console
 image::images/getting-started/registry-web-console-artifact.png[Artifact Details in Registry web console]
 +
-** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
+** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
 ** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 

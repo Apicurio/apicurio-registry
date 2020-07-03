@@ -25,10 +25,7 @@ endif::[]
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Create a new OpenShift project:
-
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
-.. Enter a project name, for example, `my-project`, and click *Create*.
+. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 

@@ -20,11 +20,13 @@ endif::[]
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See xref:installing-registry-operatorhub[].
-* You must have already installed a PostgreSQL database system, which is available from OpenShift. For examaple, see xref:installing-postgresql-operatorhub[].
+* You must have already installed a PostgreSQL Operator on OpenShift. For examaple, see xref:installing-postgresql-operatorhub[].
 
 .Procedure
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Change to the OpenShift project in which {registry} and your PostgreSQL Operator are installed. For example, from the *Project* drop-down, select `my-project`. 
 
 . Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators* > *PostgreSQL Operator by Dev4Ddevs.com* > *Create database* > *YAML*. 
 

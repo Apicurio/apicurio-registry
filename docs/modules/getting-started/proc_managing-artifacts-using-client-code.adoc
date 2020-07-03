@@ -4,7 +4,7 @@
 [id="managing-artifacts-using-client-code"]
 = Managing artifacts using a Java client application
 
-You can also manage artifacts in the registry using a Java client application. The {registry} Java client classes  enable you to create, read, update, or delete artifacts in the registry. 
+You can also manage artifacts stored in {registry} using a Java client application. You create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes.  
 
 .Prerequisites
 
@@ -36,7 +36,7 @@ String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.u
     }
  }
 ----
-<1> Configure the client application with the {registry} URL in the client properties. You can create properties for more than one registry node.
+<1> Configure the client application with the {registry} URL in the client properties. You must specify the {registry} URL with the `/api` endpoint. You can create properties for more than one registry node.
 <2> Check to see if the schema artifact already exists in the registry based on the artifact ID.
 <3> Add the new schema artifact in the registry.
 

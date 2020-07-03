@@ -24,7 +24,7 @@ image::images/getting-started/registry-web-console.png[Browse artifacts in Regis
 +
 . Click *View artifact* to view the *Artifact Details*:
 
-** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
+** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
 ** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 

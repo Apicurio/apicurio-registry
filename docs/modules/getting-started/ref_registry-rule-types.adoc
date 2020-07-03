@@ -1,4 +1,5 @@
 // Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-rule-types"]
 = Supported {registry} content rule types

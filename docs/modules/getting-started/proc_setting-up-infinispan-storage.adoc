@@ -24,6 +24,8 @@ endif::[]
 
 .Procedure
 
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
 ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
 endif::[]

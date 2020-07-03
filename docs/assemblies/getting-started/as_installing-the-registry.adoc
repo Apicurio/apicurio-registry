@@ -19,13 +19,14 @@ This chapter explains how to install and run {registry} with the following stora
 * xref:setting-up-kafka-streams-storage[]
 * xref:installing-postgresql-operatorhub[]
 * xref:setting-up-postgresql-storage[] 
-* xref:setting-up-infinispan-storage[] 
+* xref:configuring-liveness-readiness-probes[]
 endif::[]
  
 ifdef::rh-service-registry[]
-This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database.
+This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: AMQ Streams, embedded Infinispan, or PostgreSQL database. This chapter also explains how to configure optional settings for readiness and liveness probes on OpenShift.
 
-.{registry}
+.{registry} installation
+* xref:installing-registry-operatorhub[]
 * xref:installing-registry-operatorhub[]
 
 .{kafka-streams} storage
@@ -39,6 +40,8 @@ This chapter explains how to first install {registry} and then how to set up you
 * xref:installing-postgresql-operatorhub[]
 * xref:setting-up-postgresql-storage[] 
 
+.OpenShift readiness and liveness
+* xref:configuring-liveness-readiness-probes[]
 [IMPORTANT]
 ====
 {registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
@@ -70,6 +73,7 @@ include::../../modules/getting-started/proc_setting-up-kafka-streams-storage.ado
 include::../../modules/getting-started/proc_setting-up-infinispan-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-postgresql-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_setting-up-postgresql-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 endif::[]
 
 ifdef::rh-service-registry[]
@@ -79,5 +83,6 @@ include::../../modules/getting-started/proc_setting-up-kafka-streams-storage.ado
 include::../../modules/getting-started/proc_setting-up-infinispan-storage.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_installing-postgresql-operatorhub.adoc[leveloffset=+1]
 include::../../modules/getting-started/proc_setting-up-postgresql-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 //include::../../modules/getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 endif::[]

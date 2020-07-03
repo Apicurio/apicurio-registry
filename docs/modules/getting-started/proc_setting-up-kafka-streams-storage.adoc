@@ -14,6 +14,8 @@ This section explains how to configure Kafka-based storage for {registry} on Ope
 
 .Procedure
 
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
 . If you do not already have a Kafka cluster configured, create a new Kafka cluster using {kafka-streams}. For example, in the OpenShift OperatorHub:
 +
 ifdef::apicurio-registry[]

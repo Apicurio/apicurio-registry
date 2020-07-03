@@ -1,18 +1,18 @@
 // Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-liveness-env-vars"]
-= Environment variables for {registry} liveness and readiness
+= Environment variables for {registry} health checks
 
-You can configure environment variables for {registry} liveness and readiness probes on OpenShift:
+This section describes the available environment variables for {registry} health checks. These include liveness and readiness probes on OpenShift to monitor the health of the {registry} server. For an example procedure, see xref:configuring-liveness-readiness-probes[].
 
-* OpenShift _liveness probes_ test if the application can make progress. If the application cannot make progress, OpenShift  restarts the failing Pod. 
+IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 
-* OpenShift _readiness probes_ test if the application is ready to process requests. If the application is not ready, it can become overwhelmed by requests, so OpenShift stops sending requests for the time that the probe fails. If other Pods are OK, they continue to receive requests.
-
-NOTE: The following settings are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. 
+[discrete]
+== Liveness environment variables 
 
 .Environment variables for {registry} liveness probes
-[%header,cols="3,5,1,1"] 
+[%header,cols="5,5,2,5"] 
 |===
 |Name
 |Description
@@ -21,22 +21,25 @@ NOTE: The following settings are provided for reference only. The default values
 |`LIVENESS_ERROR_THRESHOLD`
 |Number of liveness issues or errors that can occur before the liveness probe fails.
 |Integer
-|1
+|`1`
 |`LIVENESS_COUNTER_RESET`
 |Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails after two errors occur in 1 minute
 |Seconds
-|60
+|`60`
 |`LIVENESS_STATUS_RESET`
 |Number of seconds that must elapse without any more errors for the liveness probe to reset to OK status. 
 |Seconds
-|300
+|`300`
 |`LIVENESS_ERRORS_IGNORED`
 |Comma-separated list of ignored liveness exceptions.
 |String
-|None
+|`io.grpc.StatusRuntimeException,org.apache.kafka.streams.errors.InvalidStateStoreException`
 |===
 
 NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
+
+[discrete]
+== Readiness environment variables
 
 .Environment variables for {registry} readiness probes
 [%header,cols="3,5,1,1"] 
@@ -46,24 +49,30 @@ NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check
 |Type
 |Default
 |`READINESS_ERROR_THRESHOLD`
-|Number of readiness issues or errors that can occur before readiness probe fails.
+|Number of readiness issues or errors that can occur before the readiness probe fails.
 |Integer
-|1
+|`1`
 |`READINESS_COUNTER_RESET`
-|Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails after two errors occur in 1 minute
+|Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails after two errors occur in 1 minute.
 |Seconds
-|60
+|`60`
 |`READINESS_STATUS_RESET`
-|Number of seconds that must elapse without any more errors for the liveness probe to reset to OK status. In this case, this means how long the pod stays not ready, until it returns to normal operation.
+|Number of seconds that must elapse without any more errors for the liveness probe to reset to OK status. In this case, this means how long the Pod stays not ready, until it returns to normal operation.
 |Seconds
-|300
+|`300`
 |`READINESS_TIMEOUT`
-|Readiness tracks timeout of two operations - how long it takes for storage request to complete, and how long it takes for HTTP REST API request to return a response. If the operation takes more time than that, it is counted as a readiness issue or error. This value controls those timeouts.
+a|Readiness tracks the timeout of two operations: 
+
+* How long it takes for storage requests to complete
+* How long it takes for HTTP REST API requests to return a response
+
+If the operation takes more time than these timeouts, it is counted as a readiness issue or error. This value controls these timeouts.
 |Seconds
-|5
+|`5`
 |===
 
 
 .Additional resources
-* link:https://docs.openshift.com/container-platform/4.4/applications/application-health.html[OpenShift documentation on Monitoring application health]
+* xref:configuring-liveness-readiness-probes[]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
 //* TBD

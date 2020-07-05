@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="managing-artifacts-using-client-code"]
-= Managing artifacts using a Java client application
+= Managing artifacts using a {registry} client application
 
 You can also manage artifacts stored in {registry} using a Java client application. You create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes.  
 

@@ -1,0 +1,17 @@
+// Metadata created by nebel
+//
+
+[id="managing-registry-artifacts-api"]
+= Managing artifacts stored in {registry} using the REST API 
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+This chapter explains how to use the Registry REST API to manage {registry} content. This includes using Registry REST API commands, a Maven plug-in, or a Java client application:
+
+* xref:managing-artifacts-using-rest-api[]
+* xref:managing-artifacts-using-maven-plugin[]
+* xref:managing-artifacts-using-client-code[]
+
+//INCLUDES
+include::../../modules/getting-started/proc_managing-artifacts-using-rest-api.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc_managing-artifacts-using-client-code.adoc[leveloffset=+1]

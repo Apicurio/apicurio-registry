@@ -10,4 +10,4 @@ You can also use the {registry} web console to configure optional rules for regi
 .{registry} web console
 image::images/getting-started/registry-web-console.png[{registry} web console]
 
-The {registry} web console is available from the main endpoint of your {registry} deployment, for example, on  `\http://MY-REGISTRY-URL/ui`. For more details, see xref:managing-registry-artifacts[].
+The {registry} web console is available from the main endpoint of your {registry} deployment, for example, on  `\http://MY-REGISTRY-URL/ui`. For more details, see xref:managing-registry-artifacts-ui[].

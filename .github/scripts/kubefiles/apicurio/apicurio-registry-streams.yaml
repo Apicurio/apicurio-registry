@@ -1,0 +1,12 @@
+apiVersion: apicur.io/v1alpha1
+kind: ApicurioRegistry
+metadata:
+  name: apicurio-registry-streams
+spec:
+  deployment:
+    host: "localhost"
+  configuration:
+    persistence: streams
+    streams:
+      applicationId: registry-application
+      bootstrapServers: my-cluster-kafka-bootstrap:9092

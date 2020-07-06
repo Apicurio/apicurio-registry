@@ -1,0 +1,27 @@
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: storage-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: global-id-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824

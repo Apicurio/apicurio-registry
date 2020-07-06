@@ -1,0 +1,69 @@
+name: Kubernetes e2e testing
+
+env:
+  EXTERNAL_REGISTRY: true
+  REGISTRY_PORT: 80
+
+on:
+  # push:
+  #   paths-ignore:
+  #     # - '.github/**'
+  #     - '.gitignore'
+  #     - 'LICENSE'
+  #     - 'README*'
+  #   branches: ['*']
+    # branches: [master]
+#TODO choose to fire up with cron or on push to master
+# on:
+#   schedule:
+#     - cron:  '0 */2 * * *'
+
+#This trigger is only for testing
+  pull_request:
+    paths-ignore:
+      - '.github/project.yaml'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [master]
+
+
+jobs:
+  integration-tests-on-k8s:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    #TODO uncomment, only for testing
+    # if: github.repository_owner == 'Apicurio' && github.actor != 'dependabot-preview[bot]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Kind
+        run: ./.github/scripts/setup_kind.sh
+
+      - name: Install operator and deploy registry
+        run: ./.github/scripts/deploy_operator.sh
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Run Integration Tests
+        run: mvn verify -am -Pall -pl tests -Dmaven.javadoc.skip=true
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+          

@@ -23,7 +23,7 @@ kubectl apply -n $TEST_NAMESPACE -f .github/scripts/kubefiles/apicurio/apicurio-
 sleep 5
 kubectl get pod -n $TEST_NAMESPACE
 waitForPodByLabel "app=apicurio-registry-streams"
-kubectl wait deployment -l app=apicurio-registry-streams --for condition=available --timeout=180s
+kubectl get pod -n $TEST_NAMESPACE
 kubectl get ingress -n $TEST_NAMESPACE
 
 # set -a

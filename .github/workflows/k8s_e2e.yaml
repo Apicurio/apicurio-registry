@@ -56,7 +56,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Run Integration Tests
-        run: mvn verify -am -Pall -pl tests -Dmaven.javadoc.skip=true
+        run: mvn verify -am -Psmoke -Pcluster -pl tests -Dmaven.javadoc.skip=true
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh

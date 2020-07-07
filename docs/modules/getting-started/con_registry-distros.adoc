@@ -10,7 +10,7 @@ ifdef::apicurio-registry[]
 .{registry} images 
 [%header,cols=2*] 
 |===
-|Storage option
+|Distribution option
 |Container Image
 |In-memory
 |https://hub.docker.com/r/apicurio/apicurio-registry-mem
@@ -22,10 +22,13 @@ ifdef::apicurio-registry[]
 |https://hub.docker.com/r/apicurio/apicurio-registry-streams
 |Infinispan
 |https://hub.docker.com/r/apicurio/apicurio-registry-infinispan
+|{registry} Operator 
+|https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
 .Additional resources
-* For details on building from source code, see https://github.com/Apicurio/apicurio-registry.
+* For details on building from source code and running Docker images, see https://github.com/Apicurio/apicurio-registry
+* For details on using the Operator to deploy, see https://github.com/Apicurio/apicurio-registry-operator
 
 endif::[]
 

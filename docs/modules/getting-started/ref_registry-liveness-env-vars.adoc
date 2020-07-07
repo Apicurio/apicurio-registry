@@ -12,7 +12,8 @@ IMPORTANT: The following environment variables are provided for reference only. 
 == Liveness environment variables 
 
 .Environment variables for {registry} liveness probes
-[%header,cols="5,5,2,5"] 
+//[%header,cols="5,5,2,5"] 
+[.table-expandable,width="100%",cols="5,5,2,5",options="header"]
 |===
 |Name
 |Description
@@ -42,7 +43,8 @@ NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check
 == Readiness environment variables
 
 .Environment variables for {registry} readiness probes
-[%header,cols="3,5,1,1"] 
+//[%header,cols="4,5,2,2"] 
+[.table-expandable,width="100%",cols="4,5,2,2",options="header"]
 |===
 |Name
 |Description

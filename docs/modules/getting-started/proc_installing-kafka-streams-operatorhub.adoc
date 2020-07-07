@@ -34,7 +34,12 @@ endif::[]
 
 . Select your subscription settings, for example:
 ** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+ifdef::apicurio-registry[]
+** *Update Channel* > *stable*
+endif::[]
+ifdef::rh-service-registry[]
 ** *Update Channel* > *amq-streams-1.5.x*
+endif::[]
 ** *Approval Strategy* > *Manual*
 
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.

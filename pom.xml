@@ -95,6 +95,7 @@
         <module>distro</module>
         <module>docs</module>
         <module>tests</module>
+        <module>rest-client</module>
     </modules>
 
     <properties>

@@ -6,7 +6,7 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-      - 'docs'
+      - 'docs/**'
     branches: [master, 1.2.x]
   pull_request:
     paths-ignore:
@@ -14,7 +14,7 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-      - 'docs'
+      - 'docs/**'
     branches: [master]
 
 jobs:

@@ -1,7 +1,7 @@
 name: Release Workflow
 on:
   pull_request:
-    branches: [master]
+    branches: [1.2.x]
     types: [closed]
     paths:
       - '.github/project.yaml'
@@ -34,7 +34,7 @@ jobs:
       - name: Cache Dependencies
         uses: actions/cache@v1
         with:
-          path: ~/.m2/repository                               
+          path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
@@ -45,8 +45,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout 1.2.x
+          git branch --set-upstream-to=origin/1.2.x
           git pull
       - name: Update Release Version ${{steps.metadata.outputs.release-version}}
         run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true

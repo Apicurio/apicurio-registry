@@ -4,7 +4,7 @@
 [id="setting-up-postgresql-storage"]
 
 
-= Configuring {registry} with PostgreSQL database storage 
+= Configuring {registry} with PostgreSQL database storage on OpenShift
 
 This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 

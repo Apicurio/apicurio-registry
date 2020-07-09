@@ -14,10 +14,10 @@ This chapter explains how to install and run {registry} using Docker with the fo
 .Prerequisites
 * xref:registry-overview[]
 
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in {registry}.
+
 .Additional resources
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
-
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in {registry}.
 
 //INCLUDES
 include::../../modules/getting-started/proc_installing-registry-in-memory-storage.adoc[leveloffset=+1]

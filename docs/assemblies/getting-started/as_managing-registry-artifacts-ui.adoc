@@ -2,7 +2,7 @@
 //
 
 [id="managing-registry-artifacts-ui"]
-= Managing artifacts stored in {registry} using the web console
+= Managing {registry} content using the web console
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 This chapter explains how to manage artifacts stored in the registry using the {registry} web console. This includes uploading and browsing registry content, and configuring optional rules:

@@ -4,7 +4,7 @@
 [id="setting-up-infinispan-storage"]
 
 
-= Configuring {registry} with embedded Infinispan storage
+= Configuring {registry} with embedded Infinispan storage on OpenShift
 
 This section explains how to configure Infinispan cache-based storage for {registry} on OpenShift. This storage option is based on Infinispan community Java libraries embedded in the Quarkus-based {registry} server. You do not need to install a separate Infinispan server using this storage option. This option is suitable for development or demonstration only, and is not suitable for production environments.
 
@@ -61,4 +61,4 @@ http://example-apicurioregistry.my-project.my-domain-name.com/
 .Additional resources
 
 * For more details on configuring Infinispan clusters, see the example custom resources available from the link:https://github.com/Apicurio/apicurio-registry-demo/blob/master/kubernetes/resources-infinispan.yaml[Apicurio Registry demonstration]. 
-* For more details on Infinispan, see https://infinispan.org/[].
+* For more details on Infinispan, see https://infinispan.org/[]

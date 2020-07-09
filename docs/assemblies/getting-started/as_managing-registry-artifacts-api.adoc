@@ -2,10 +2,10 @@
 //
 
 [id="managing-registry-artifacts-api"]
-= Managing artifacts stored in {registry} using the REST API 
+= Managing {registry} content using the REST API 
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter explains how to use the Registry REST API to manage {registry} content. This includes using Registry REST API commands, a Maven plug-in, or a Java client application:
+This chapter explains how to manage artifacts stored in the registry using the Registry REST API. This includes using Registry REST API commands, a Maven plug-in, or a Java client application:
 
 * xref:managing-artifacts-using-rest-api[]
 * xref:managing-artifacts-using-maven-plugin[]

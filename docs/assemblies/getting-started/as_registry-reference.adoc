@@ -5,11 +5,10 @@
 = {registry} reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter lists the supported artifact types and content rule types that are stored in {registry}. This chapter also describes the environment variables that you can configure for {registry} health checks on OpenShift:
+This chapter lists the supported artifact types and content rule types that are stored in {registry}. 
 
 * xref:registry-artifact-types[]
 * xref:registry-rule-types[]
-* xref:registry-liveness-env-vars[]
 
 .Additional resources
 * For more detailed information on artifact and rule types, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation] 
@@ -17,4 +16,3 @@ This chapter lists the supported artifact types and content rule types that are 
 //INCLUDES
 include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
 include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-liveness-env-vars.adoc[leveloffset=+1]

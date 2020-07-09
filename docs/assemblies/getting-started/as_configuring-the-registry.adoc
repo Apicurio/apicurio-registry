@@ -1,0 +1,13 @@
+// Metadata created by nebel
+
+[id="configuring-the-registry"]
+= Configuring {registry} on OpenShift
+
+This chapter explains how to configure optional settings for {registry} health checks on OpenShift:
+
+* xref:configuring-liveness-readiness-probes[]
+* xref:registry-liveness-env-vars[]
+
+//INCLUDES
+include::../../modules/getting-started/proc_configuring-liveness-readiness-probes.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref_registry-liveness-env-vars.adoc[leveloffset=+1]

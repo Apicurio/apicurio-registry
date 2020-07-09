@@ -21,6 +21,7 @@ public class RegistryClient {
     private static final Logger log = Logger.getLogger(RegistryClient.class.getName());
 
     private ArtifactsService artifactsService;
+    private IdsService idsService;
 
     private RegistryClient(String baseUrl) {
 
@@ -43,6 +44,7 @@ public class RegistryClient {
 
     private void initServices(Retrofit retrofit) {
         artifactsService = retrofit.create(ArtifactsService.class);
+        idsService = retrofit.create(IdsService.class);
     }
 
     public List<String> listArtifacts() {
@@ -144,5 +146,13 @@ public class RegistryClient {
     public void testUpdateArtifact(String artifactId,
                                    ArtifactType xRegistryArtifactType, InputStream data) {
         artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, data);
+    }
+
+    public Response getArtifactByGlobalId(long globalId) {
+        return idsService.getArtifactByGlobalId(globalId);
+    }
+
+    public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
+        return idsService.getArtifactMetaDataByGlobalId(globalId);
     }
 }

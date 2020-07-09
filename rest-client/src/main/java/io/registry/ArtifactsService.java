@@ -22,78 +22,78 @@ public interface ArtifactsService {
                                                      @Query("ifExists") IfExistsType ifExistsType,
                                                      InputStream data);
 
-    @GET("/{artifactId}")
+    @GET("artifacts/{artifactId}")
     Response getLatestArtifact(@Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}")
+    @PUT("artifacts/{artifactId}")
     CompletionStage<ArtifactMetaData> updateArtifact(@Path("artifactId") String artifactId,
                                                      @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
-    @DELETE("/{artifactId}")
+    @DELETE("artifacts/{artifactId}")
     void deleteArtifact(@Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/state")
+    @PUT("artifacts/{artifactId}/state")
     void updateArtifactState(@Path("artifactId") String artifactId, UpdateState data);
 
-    @GET("/{artifactId/meta}")
+    @GET("artifacts/{artifactId/meta}")
     ArtifactMetaData getArtifactMetaData(@Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/meta")
+    @PUT("artifacts/{artifactId}/meta")
     void updateArtifactMetaData(@Path("artifactId") String artifactId, EditableMetaData data);
 
-    @POST("/{artifactId}/meta")
+    @POST("artifacts/{artifactId}/meta")
     ArtifactMetaData getArtifactMetaDataByContent(@Path("artifactId") String artifactId,
                                                   InputStream data);
 
-    @GET("/{artifactId}/versions")
+    @GET("artifacts/{artifactId}/versions")
     List<Long> listArtifactVersions(@Path("artifactId") String artifactId);
 
-    @POST("/{artifactId}/versions")
+    @POST("artifacts/{artifactId}/versions")
     CompletionStage<VersionMetaData> createArtifactVersion(@Path("artifactId") String artifactId,
                                                            @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
-    @GET("/{artifactId}/versions/{version}")
+    @GET("artifacts/{artifactId}/versions/{version}")
     Response getArtifactVersion(@Path("version") Integer version,
                                 @Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/versions/{version}/state")
+    @PUT("artifacts/{artifactId}/versions/{version}/state")
     void updateArtifactVersionState(@Path("version") Integer version,
                                     @Path("artifactId") String artifactId, UpdateState data);
 
-    @GET("/{artifactId}/versions/{version}/meta")
+    @GET("artifacts/{artifactId}/versions/{version}/meta")
     VersionMetaData getArtifactVersionMetaData(@Path("version") Integer version,
                                                @Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/versions/{version}/meta")
+    @PUT("artifacts/{artifactId}/versions/{version}/meta")
     void updateArtifactVersionMetaData(@Path("version") Integer version,
                                        @Path("artifactId") String artifactId, EditableMetaData data);
 
-    @DELETE("/{artifactId}/versions/{version}/meta")
+    @DELETE("artifacts/{artifactId}/versions/{version}/meta")
     void deleteArtifactVersionMetaData(@Path("version") Integer version,
                                        @Path("artifactId") String artifactId);
 
-    @GET("/{artifactId}/rules")
+    @GET("artifacts/{artifactId}/rules")
     List<RuleType> listArtifactRules(@Path("artifactId") String artifactId);
 
-    @POST("/{artifactId}/rules")
+    @POST("artifacts/{artifactId}/rules")
     void createArtifactRule(@Path("artifactId") String artifactId, Rule data);
 
-    @DELETE("/{artifactId}/rules")
+    @DELETE("artifacts/{artifactId}/rules")
     void deleteArtifactRules(@Path("artifactId") String artifactId);
 
-    @GET("/{artifactId}/rules/{rule}")
+    @GET("artifacts/{artifactId}/rules/{rule}")
     Rule getArtifactRuleConfig(@Path("rule") RuleType rule,
                                @Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/rules/{rule}")
+    @PUT("artifacts/{artifactId}/rules/{rule}")
     Rule updateArtifactRuleConfig(@Path("rule") RuleType rule,
                                   @Path("artifactId") String artifactId, Rule data);
 
-    @DELETE("/{artifactId}/rules/{rule}")
+    @DELETE("artifacts/{artifactId}/rules/{rule}")
     void deleteArtifactRule(@Path("rule") RuleType rule,
                             @Path("artifactId") String artifactId);
 
-    @PUT("/{artifactId}/test")
+    @PUT("artifacts/{artifactId}/test")
     void testUpdateArtifact(@Path("artifactId") String artifactId,
                             @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 }

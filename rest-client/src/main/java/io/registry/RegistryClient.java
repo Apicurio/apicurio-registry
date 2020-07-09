@@ -21,6 +21,7 @@ public class RegistryClient {
     private static final Logger log = Logger.getLogger(RegistryClient.class.getName());
 
     private ArtifactsService artifactsService;
+    private RulesService rulesService;
     private SearchService searchService;
     private IdsService idsService;
 
@@ -45,6 +46,7 @@ public class RegistryClient {
 
     private void initServices(Retrofit retrofit) {
         artifactsService = retrofit.create(ArtifactsService.class);
+        rulesService = retrofit.create(RulesService.class);
         idsService = retrofit.create(IdsService.class);
         searchService = retrofit.create(SearchService.class);
     }
@@ -164,5 +166,29 @@ public class RegistryClient {
 
     public VersionSearchResults searchVersion(String artifactId, Integer offset, Integer limit) {
         return searchService.searchVersions(artifactId, offset, limit);
+    }
+
+    public Rule getGlobalRuleConfig(RuleType rule) {
+        return rulesService.getGlobalRuleConfig(rule);
+    }
+
+    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+        return rulesService.updateGlobalRuleConfig(rule, data);
+    }
+
+    public void deleteGlobalRule(RuleType rule) {
+        rulesService.deleteGlobalRule(rule);
+    }
+
+    public List<RuleType> listGlobalRules() {
+        return rulesService.listGlobalRules();
+    }
+
+    public void createGlobalRule(Rule data) {
+        rulesService.createGlobalRule(data);
+    }
+
+    public void deleteAllGlobalRules() {
+        rulesService.deleteAllGlobalRules();
     }
 }

@@ -1,4 +1,4 @@
-package io.registry;
+package io.registry.service;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import retrofit2.http.GET;

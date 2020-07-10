@@ -1,4 +1,4 @@
-package io.registry;
+package io.registry.service;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;

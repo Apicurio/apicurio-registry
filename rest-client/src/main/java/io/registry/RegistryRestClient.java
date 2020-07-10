@@ -64,6 +64,14 @@ public class RegistryRestClient implements RegistryRestService {
         initServices(retrofit);
     }
 
+    public static RegistryRestClient create(String baseUrl) {
+        return new RegistryRestClient(baseUrl);
+    }
+
+    public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {
+        return new RegistryRestClient(baseUrl, okHttpClient);
+    }
+
     private void initServices(Retrofit retrofit) {
         artifactsService = retrofit.create(ArtifactsService.class);
         rulesService = retrofit.create(RulesService.class);

@@ -25,8 +25,10 @@ import io.registry.service.RulesService;
 import io.registry.service.SearchService;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -39,7 +41,7 @@ public class RegistryRestClient implements RegistryRestService {
 
     private static final Logger log = Logger.getLogger(RegistryRestClient.class.getName());
 
-    private Retrofit retrofit;
+    private final Retrofit retrofit;
     private ArtifactsService artifactsService;
     private RulesService rulesService;
     private SearchService searchService;
@@ -49,6 +51,7 @@ public class RegistryRestClient implements RegistryRestService {
 
         retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         initServices(retrofit);
@@ -81,7 +84,12 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public List<String> listArtifacts() {
-        return artifactsService.listArtifacts();
+        try {
+            return artifactsService.listArtifacts().execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -91,7 +99,12 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public Response getLatestArtifact(String artifactId) {
-        return artifactsService.getLatestArtifact(artifactId);
+        try {
+            return artifactsService.getLatestArtifact(artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -112,7 +125,12 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        return artifactsService.getArtifactMetaData(artifactId);
+        try {
+            return artifactsService.getArtifactMetaData(artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -123,12 +141,22 @@ public class RegistryRestClient implements RegistryRestService {
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
                                                          InputStream data) {
-        return artifactsService.getArtifactMetaDataByContent(artifactId, data);
+        try {
+            return artifactsService.getArtifactMetaDataByContent(artifactId, data).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        return artifactsService.listArtifactVersions(artifactId);
+        try {
+            return artifactsService.listArtifactVersions(artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -140,7 +168,12 @@ public class RegistryRestClient implements RegistryRestService {
     @Override
     public Response getArtifactVersion(Integer version,
                                        String artifactId) {
-        return artifactsService.getArtifactVersion(version, artifactId);
+        try {
+            return artifactsService.getArtifactVersion(version, artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -149,7 +182,12 @@ public class RegistryRestClient implements RegistryRestService {
     }
 
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        return artifactsService.getArtifactVersionMetaData(version, artifactId);
+        try {
+            return artifactsService.getArtifactVersionMetaData(version, artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -164,7 +202,12 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
-        return artifactsService.listArtifactRules(artifactId);
+        try {
+            return artifactsService.listArtifactRules(artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -180,13 +223,23 @@ public class RegistryRestClient implements RegistryRestService {
     @Override
     public Rule getArtifactRuleConfig(RuleType rule,
                                       String artifactId) {
-        return artifactsService.getArtifactRuleConfig(rule, artifactId);
+        try {
+            return artifactsService.getArtifactRuleConfig(rule, artifactId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule,
                                          String artifactId, Rule data) {
-        return artifactsService.updateArtifactRuleConfig(rule, artifactId, data);
+        try {
+            return artifactsService.updateArtifactRuleConfig(rule, artifactId, data).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -202,32 +255,66 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public Response getArtifactByGlobalId(long globalId) {
-        return idsService.getArtifactByGlobalId(globalId);
+        try {
+            return idsService.getArtifactByGlobalId(globalId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
-        return idsService.getArtifactMetaDataByGlobalId(globalId);
+        try {
+            return idsService.getArtifactMetaDataByGlobalId(globalId).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order) {
-        return searchService.searchArtifacts(search, offset, limit, over, order);
+        try {
+            return searchService.searchArtifacts(search, offset, limit, over, order).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-        return searchService.searchVersions(artifactId, offset, limit);
+        try {
+            return searchService.searchVersions(artifactId, offset, limit).execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
-        return rulesService.getGlobalRuleConfig(rule);
+        try {
+            return rulesService.getGlobalRuleConfig(rule)
+                    .execute()
+                    .body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
-        return rulesService.updateGlobalRuleConfig(rule, data);
+        try {
+            return rulesService.updateGlobalRuleConfig(rule, data)
+                    .execute()
+                    .body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -237,7 +324,14 @@ public class RegistryRestClient implements RegistryRestService {
 
     @Override
     public List<RuleType> listGlobalRules() {
-        return rulesService.listGlobalRules();
+        try {
+            return rulesService.listGlobalRules()
+                    .execute()
+                    .body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override

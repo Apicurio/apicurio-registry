@@ -18,6 +18,7 @@ package io.registry.service;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
+import retrofit2.Call;
 import retrofit2.http.*;
 
 import java.util.List;
@@ -28,20 +29,20 @@ import java.util.List;
 public interface RulesService {
 
     @GET("rules/{rule}")
-    Rule getGlobalRuleConfig(@Path("rule") RuleType rule);
+    Call<Rule> getGlobalRuleConfig(@Path("rule") RuleType rule);
 
     @PUT("rules/{rule}")
-    Rule updateGlobalRuleConfig(@Path("rule") RuleType rule, Rule data);
+    Call<Rule> updateGlobalRuleConfig(@Path("rule") RuleType rule, Rule data);
 
     @DELETE("rules/{rule}")
-    void deleteGlobalRule(@Path("rule") RuleType rule);
+    Call<Void> deleteGlobalRule(@Path("rule") RuleType rule);
 
     @GET("rules")
-    List<RuleType> listGlobalRules();
+    Call<List<RuleType>> listGlobalRules();
 
     @POST("rules")
-    void createGlobalRule(Rule data);
+    Call<Void> createGlobalRule(Rule data);
 
     @DELETE("rules")
-    void deleteAllGlobalRules();
+    Call<Void> deleteAllGlobalRules();
 }

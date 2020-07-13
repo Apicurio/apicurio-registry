@@ -32,7 +32,7 @@ public interface RulesService {
     Call<Rule> getGlobalRuleConfig(@Path("rule") RuleType rule);
 
     @PUT("rules/{rule}")
-    Call<Rule> updateGlobalRuleConfig(@Path("rule") RuleType rule, Rule data);
+    Call<Rule> updateGlobalRuleConfig(@Path("rule") RuleType rule, @Body Rule data);
 
     @DELETE("rules/{rule}")
     Call<Void> deleteGlobalRule(@Path("rule") RuleType rule);
@@ -41,7 +41,7 @@ public interface RulesService {
     Call<List<RuleType>> listGlobalRules();
 
     @POST("rules")
-    Call<Void> createGlobalRule(Rule data);
+    Call<Void> createGlobalRule(@Body Rule data);
 
     @DELETE("rules")
     Call<Void> deleteAllGlobalRules();

@@ -26,7 +26,7 @@ public class RegistryRestClient {
 
     }
 
-    public static RegistryService create(String baseUrl) {
+    public static RegistryService createCustom(String baseUrl) {
         return new RegistryRestService(baseUrl);
     }
 }

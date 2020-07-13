@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
+import io.registry.RegistryRestClient;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
@@ -37,6 +38,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
+    private static final String REGISTRY_CLIENT_CUSTOM = "createCustom";
     private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {
@@ -96,6 +98,15 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                     RegistryServiceWrapper.class
                 );
             invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain, context.getRequiredTestMethod()));
+        }
+
+        if (testRegistryClient(REGISTRY_CLIENT_CUSTOM)) {
+            RegistryServiceWrapper custom = store.getOrComputeIfAbsent(
+                    "custom",
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CUSTOM, registryUrl),
+                    RegistryServiceWrapper.class
+            );
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(custom, context.getRequiredTestMethod()));
         }
 
         if (testRegistryClient(REGISTRY_CLIENT_CACHED)) {
@@ -177,33 +188,46 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                     return (wrapper.service = createRegistryService());
                 }
                 case SUPPLIER: {
-                    return (Supplier<Object>) () -> {
-                        if (wrapper.service == null) {
-                            try {
-                                ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-                                if (tccl == null || tccl == ExtensionContext.class.getClassLoader()) {
-                                    wrapper.service = createRegistryService();
-                                } else {
-                                    Class<?> clientClass = tccl.loadClass(RegistryClient.class.getName());
-                                    Method factoryMethod = clientClass.getMethod(wrapper.method, String.class);
-                                    wrapper.service = (AutoCloseable) factoryMethod.invoke(null, wrapper.registryUrl);
-                                }
-                            } catch (Exception e) {
-                                throw new IllegalStateException(e);
-                            }
-                        }
-                        return wrapper.service;
-                    };
+                    switch (wrapper.method) {
+                        case REGISTRY_CLIENT_ALL:
+                        case REGISTRY_CLIENT_CACHED:
+                        case REGISTRY_CLIENT_CREATE:
+                            return getSupplier(RegistryClient.class.getName());
+                        case REGISTRY_CLIENT_CUSTOM:
+                            return getSupplier(RegistryRestClient.class.getName());
+                    }
                 }
                 default:
                     throw new IllegalStateException("Invalid parameter type: " + type);
             }
         }
 
+        private Supplier<Object> getSupplier(String clientClassName) {
+            return () -> {
+                if (wrapper.service == null) {
+                    try {
+                        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+                        if (tccl == null || tccl == ExtensionContext.class.getClassLoader()) {
+                            wrapper.service = createRegistryService();
+                        } else {
+                            Class<?> clientClass = tccl.loadClass(clientClassName);
+                            Method factoryMethod = clientClass.getMethod(wrapper.method, String.class);
+                            wrapper.service = (AutoCloseable) factoryMethod.invoke(null, wrapper.registryUrl);
+                        }
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+                return wrapper.service;
+            };
+        }
+
         private RegistryService createRegistryService() {
             switch (wrapper.method) {
                 case REGISTRY_CLIENT_CREATE:
                     return RegistryClient.create(wrapper.registryUrl);
+                case REGISTRY_CLIENT_CUSTOM:
+                    return RegistryRestClient.createCustom(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CACHED:
                     return RegistryClient.cached(wrapper.registryUrl);
                 default:

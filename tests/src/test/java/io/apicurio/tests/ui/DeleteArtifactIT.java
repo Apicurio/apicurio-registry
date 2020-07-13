@@ -25,7 +25,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;

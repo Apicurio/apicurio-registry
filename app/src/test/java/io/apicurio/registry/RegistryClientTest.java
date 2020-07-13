@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Assertions;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;

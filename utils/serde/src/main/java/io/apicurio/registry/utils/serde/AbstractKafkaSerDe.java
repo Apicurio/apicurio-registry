@@ -17,7 +17,7 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
 import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;

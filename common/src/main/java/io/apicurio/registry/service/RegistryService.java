@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client;
+package io.apicurio.registry.service;
 
 import io.apicurio.registry.rest.ArtifactsResource;
 import io.apicurio.registry.rest.IdsResource;

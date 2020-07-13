@@ -18,7 +18,7 @@ package io.apicurio.registry.utils.serde;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;

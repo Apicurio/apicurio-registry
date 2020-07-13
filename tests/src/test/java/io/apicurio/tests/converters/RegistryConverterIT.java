@@ -44,7 +44,7 @@ import org.junit.jupiter.api.Tag;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;

@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;

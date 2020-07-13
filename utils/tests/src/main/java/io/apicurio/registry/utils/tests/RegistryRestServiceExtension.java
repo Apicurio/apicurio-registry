@@ -1,5 +1,21 @@
+/*
+ * Copyright 2020 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.apicurio.registry.utils.tests;
 
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
 import io.registry.RegistryRestClient;
 import io.registry.RegistryRestService;
@@ -18,7 +34,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.singletonList;
 
 /**
- * @author carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal <carnalca@redhat.com>
  */
 public class RegistryRestServiceExtension implements TestTemplateInvocationContextProvider {
 
@@ -33,17 +49,17 @@ public class RegistryRestServiceExtension implements TestTemplateInvocationConte
 
     private static ParameterType getParameterType(Type type) {
         if (type instanceof Class) {
-            if (type == RegistryRestService.class) {
+            if (type == RegistryService.class) {
                 return ParameterType.REGISTRY_SERVICE;
             }
         } else if (type instanceof ParameterizedType) {
             ParameterizedType pt = (ParameterizedType) type;
             Type rawType = pt.getRawType();
-            if (rawType == RegistryRestService.class) {
+            if (rawType == RegistryService.class) {
                 return ParameterType.REGISTRY_SERVICE;
             } else if (rawType == Supplier.class) {
                 Type[] arguments = pt.getActualTypeArguments();
-                if (arguments[0] == RegistryRestService.class) {
+                if (arguments[0] == RegistryService.class) {
                     return ParameterType.SUPPLIER;
                 }
             }
@@ -178,7 +194,7 @@ public class RegistryRestServiceExtension implements TestTemplateInvocationConte
             }
         }
 
-        private RegistryRestService createRegistryService() {
+        private RegistryService createRegistryService() {
             if (REGISTRY_CLIENT_CREATE.equals(wrapper.method)) {
                 return RegistryRestClient.create(wrapper.registryUrl);
             }

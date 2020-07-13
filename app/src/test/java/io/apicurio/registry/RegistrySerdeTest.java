@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Assertions;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;

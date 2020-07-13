@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;

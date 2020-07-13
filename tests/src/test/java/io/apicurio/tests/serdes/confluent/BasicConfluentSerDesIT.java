@@ -16,7 +16,7 @@
 
 package io.apicurio.tests.serdes.confluent;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;

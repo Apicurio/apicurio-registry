@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;

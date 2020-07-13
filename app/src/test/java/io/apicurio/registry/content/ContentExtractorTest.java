@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;

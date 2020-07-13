@@ -18,7 +18,7 @@ package io.apicurio.registry.utils.serde;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;

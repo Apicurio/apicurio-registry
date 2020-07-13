@@ -18,7 +18,7 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;

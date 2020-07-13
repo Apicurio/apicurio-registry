@@ -19,6 +19,7 @@ package io.apicurio.registry.client;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactState;
 
 import java.lang.reflect.Method;

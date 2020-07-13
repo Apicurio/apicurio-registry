@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;

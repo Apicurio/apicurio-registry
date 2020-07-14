@@ -20,13 +20,16 @@ import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 import io.registry.service.ArtifactsService;
 import io.registry.service.IdsService;
 import io.registry.service.RulesService;
 import io.registry.service.SearchService;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -52,7 +55,7 @@ public class RegistryRestService implements RegistryService {
 
         retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(JacksonConverterFactory.create())
                 .build();
 
         initServices(retrofit);
@@ -95,7 +98,7 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType artifactType, String artifactId, IfExistsType ifExistsType, InputStream data) {
-        return artifactsService.createArtifact(artifactType, artifactId, ifExistsType, data);
+        return artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(MediaType.get("application/json"), IoUtil.toBytes(data)));
     }
 
     @Override
@@ -111,23 +114,32 @@ public class RegistryRestService implements RegistryService {
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId,
                                                             ArtifactType xRegistryArtifactType, InputStream data) {
-        return artifactsService.updateArtifact(artifactId, xRegistryArtifactType, data);
+        return artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"), IoUtil.toBytes(data)));
     }
 
     @Override
     public void deleteArtifact(String artifactId) {
-        artifactsService.deleteArtifact(artifactId);
+        try {
+            artifactsService.deleteArtifact(artifactId).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void updateArtifactState(String artifactId, UpdateState data) {
-        artifactsService.updateArtifactState(artifactId, data);
+        try {
+            artifactsService.updateArtifactState(artifactId, data).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
         try {
-            return artifactsService.getArtifactMetaData(artifactId).execute().body();
+            ArtifactMetaData artifactMetaData = artifactsService.getArtifactMetaData(artifactId).execute().body();
+            return artifactMetaData;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -136,14 +148,18 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
-        artifactsService.updateArtifactMetaData(artifactId, data);
+        try {
+            artifactsService.updateArtifactMetaData(artifactId, data).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
                                                          InputStream data) {
         try {
-            return artifactsService.getArtifactMetaDataByContent(artifactId, data).execute().body();
+            return artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data))).execute().body();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -163,7 +179,7 @@ public class RegistryRestService implements RegistryService {
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId,
                                                                   ArtifactType xRegistryArtifactType, InputStream data) {
-        return artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, data);
+        return artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data)));
     }
 
     @Override
@@ -193,12 +209,20 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
-        artifactsService.updateArtifactVersionMetaData(version, artifactId, data);
+        try {
+            artifactsService.updateArtifactVersionMetaData(version, artifactId, data).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        artifactsService.deleteArtifactVersionMetaData(version, artifactId);
+        try {
+            artifactsService.deleteArtifactVersionMetaData(version, artifactId).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -218,7 +242,11 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void deleteArtifactRules(String artifactId) {
-        artifactsService.deleteArtifactRules(artifactId);
+        try {
+            artifactsService.deleteArtifactRules(artifactId).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -245,13 +273,17 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
-        artifactsService.deleteArtifactRule(rule, artifactId);
+        try {
+            artifactsService.deleteArtifactRule(rule, artifactId).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void testUpdateArtifact(String artifactId,
                                    ArtifactType xRegistryArtifactType, InputStream data) {
-        artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, data);
+        artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data)));
     }
 
     @Override
@@ -337,12 +369,20 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void createGlobalRule(Rule data) {
-        rulesService.createGlobalRule(data);
+        try {
+            rulesService.createGlobalRule(data).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void deleteAllGlobalRules() {
-        rulesService.deleteAllGlobalRules();
+        try {
+            rulesService.deleteAllGlobalRules().execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

@@ -192,6 +192,7 @@ public class GenericClient {
                     targetClass,
                     tc -> RestClientBuilder.newBuilder()
                                            .baseUri(baseUri)
+                                           .register(HeaderDecorator.class)
                                            .executorService(executor)
                                            .build(tc)
                 );

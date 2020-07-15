@@ -31,6 +31,7 @@ import javax.ws.rs.core.Response;
  */
 public class RegistryClient {
     private static final Logger log = Logger.getLogger(RegistryClient.class.getName());
+    private static String token;
 
     private RegistryClient() {
     }
@@ -79,5 +80,13 @@ public class RegistryClient {
         if (stateSupplier.get() == ArtifactState.DEPRECATED) {
             log.warning(String.format("Artifact %s [%s] is deprecated", artifactId, version));
         }
+    }
+
+    public static void setToken(String authToken){
+        token = authToken;
+    }
+
+    public static String getToken(){
+        return token;
     }
 }

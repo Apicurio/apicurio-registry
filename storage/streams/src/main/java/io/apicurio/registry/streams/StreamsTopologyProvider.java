@@ -1,10 +1,30 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.streams;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
@@ -32,11 +52,11 @@ import org.apache.kafka.streams.state.Stores;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
  * Request --> Storage (topic / store) --> GlobalId (topic / store)
@@ -345,10 +365,16 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
                         avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
                         avb.putMetadata(MetaDataKeys.LABELS, metaData.getLabels());
+                        try {
+                            avb.putMetadata(MetaDataKeys.ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getAdditionalPropertiesMap()));
+                        } catch (JsonProcessingException e) {
+                            throw new InvalidAdditionalPropertiesException(MetaDataKeys.ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+                        }
                     } else if (type == Str.ActionType.DELETE) {
                         avb.removeMetadata(MetaDataKeys.NAME);
                         avb.removeMetadata(MetaDataKeys.DESCRIPTION);
                         avb.removeMetadata(MetaDataKeys.LABELS);
+                        avb.removeMetadata(MetaDataKeys.ADDITIONAL_PROPERTIES);
                     }
                     builder.setArtifacts(index, avb.build()); // override with new value
                 }

@@ -59,6 +59,7 @@ public final class DtoUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
+        metaData.setAdditionalProperties(dto.getAdditionalProperties());
         return metaData;
     }
 
@@ -144,6 +145,9 @@ public final class DtoUtil {
         }
         if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
             amdd.setLabels(editableArtifactMetaData.getLabels());
+        }
+        if (editableArtifactMetaData.getAdditionalProperties() != null) {
+            amdd.setAdditionalProperties(editableArtifactMetaData.getAdditionalProperties());
         }
         return amdd;
     }

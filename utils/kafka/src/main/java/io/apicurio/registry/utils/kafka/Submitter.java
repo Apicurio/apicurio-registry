@@ -1,3 +1,20 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.utils.kafka;
 
 import com.google.protobuf.ByteString;
@@ -7,6 +24,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -50,7 +68,7 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels) {
+    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> additionalProperties) {
         Str.MetaDataValue.Builder builder = Str.MetaDataValue.newBuilder();
         if (name != null) {
             builder.setName(name);
@@ -61,6 +79,10 @@ public class Submitter {
 
         if (labels != null && !labels.isEmpty()) {
             builder.setLabels(String.join(",", labels));
+        }
+
+        if (additionalProperties != null && !additionalProperties.isEmpty()) {
+            builder.putAllAdditionalProperties(additionalProperties);
         }
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.METADATA, actionType, artifactId, version).setMetadata(builder);

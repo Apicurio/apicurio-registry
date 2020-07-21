@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -536,6 +537,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
+        dto.setAdditionalProperties(data.getAdditionalProperties());
         storage.updateArtifactMetaData(artifactId, dto);
     }
 

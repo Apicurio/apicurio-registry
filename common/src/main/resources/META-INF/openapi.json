@@ -1691,6 +1691,13 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "additionalProperties": {
+                        "description": "Additional user-defined name-value pairs. Name and value must be strings.",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
@@ -1699,7 +1706,11 @@
                     "labels": [
                         "regional",
                         "global"
-                    ]
+                    ],
+                    "additionalProperties": {
+                        "extraprop1": "extra prop 1 value",
+                        "extraprop2": "extra prop 2 value"
+                    }
                 }
             },
             "VersionMetaData": {
@@ -1755,6 +1766,13 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "additionalProperties": {
+                        "description": "Additional user-defined name-value pairs",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
@@ -1769,7 +1787,11 @@
                     "labels": [
                         "label-1",
                         "label-2"
-                    ]
+                    ],
+                    "additionalProperties": {
+                        "extraprop1": "extra prop 1 value",
+                        "extraprop2": "extra prop 2 value"
+                    }
                 }
             },
             "ArtifactMetaData": {
@@ -1836,6 +1858,13 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "additionalProperties": {
+                        "description": "Additional user-defined name-value pairs",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     }
                 },
                 "example": {
@@ -1852,7 +1881,11 @@
                     "labels": [
                         "label-1",
                         "label-2"
-                    ]
+                    ],
+                    "additionalProperties": {
+                        "extraprop1": "extra prop 1 value",
+                        "extraprop2": "extra prop 2 value"
+                    }
                 }
             },
             "Rule": {

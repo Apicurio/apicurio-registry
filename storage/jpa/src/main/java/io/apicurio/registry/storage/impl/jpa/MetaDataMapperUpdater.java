@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +17,17 @@
 
 package io.apicurio.registry.storage.impl.jpa;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
 
+import javax.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,9 +36,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.persistence.EntityManager;
 
-import static io.apicurio.registry.storage.MetaDataKeys.*;
+import static io.apicurio.registry.storage.MetaDataKeys.ADDITIONAL_PROPERTIES;
+import static io.apicurio.registry.storage.MetaDataKeys.ARTIFACT_ID;
+import static io.apicurio.registry.storage.MetaDataKeys.CONTENT;
+import static io.apicurio.registry.storage.MetaDataKeys.DESCRIPTION;
+import static io.apicurio.registry.storage.MetaDataKeys.GLOBAL_ID;
+import static io.apicurio.registry.storage.MetaDataKeys.LABELS;
+import static io.apicurio.registry.storage.MetaDataKeys.NAME;
+import static io.apicurio.registry.storage.MetaDataKeys.VERSION;
 
 public class MetaDataMapperUpdater {
 
@@ -143,6 +154,13 @@ public class MetaDataMapperUpdater {
         res.put(DESCRIPTION, dto.getDescription());
         if (dto.getLabels() != null) {
             res.put(LABELS, String.join(",", dto.getLabels()));
+        }
+        if (dto.getAdditionalProperties() != null) {
+            try {
+                res.put(ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(dto.getAdditionalProperties()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidAdditionalPropertiesException(ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+            }
         }
         return res;
     }

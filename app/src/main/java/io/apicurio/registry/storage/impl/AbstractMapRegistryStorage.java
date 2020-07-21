@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.storage.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -33,6 +35,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -220,7 +223,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (create && v2c.size() > 0) {
             throw new ArtifactAlreadyExistsException(artifactId);
         }
-        
+
         if (!create && v2c.size() == 0) {
             storage.remove(artifactId); // remove, as we just "computed" empty map
             throw new ArtifactNotFoundException(artifactId);
@@ -502,7 +505,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
-            throws ArtifactNotFoundException, RegistryStorageException {
+            throws ArtifactNotFoundException, RegistryStorageException, InvalidAdditionalPropertiesException {
         if (metaData.getName() != null) {
             storage.put(artifactId, MetaDataKeys.NAME, metaData.getName());
         }
@@ -511,6 +514,13 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             storage.put(artifactId, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
+        }
+        if (metaData.getAdditionalProperties() != null && !metaData.getAdditionalProperties().isEmpty()) {
+            try {
+                storage.put(artifactId, MetaDataKeys.ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getAdditionalProperties()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidAdditionalPropertiesException(MetaDataKeys.ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+            }
         }
     }
 
@@ -525,7 +535,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         Set<String> arules = artifactRules.keys(artifactId);
         return arules.stream().map(RuleType::fromValue).collect(Collectors.toList());
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
      */
@@ -552,7 +562,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         getVersion2ContentMap(artifactId);
         this.deleteArtifactRulesInternal(artifactId);
     }
-    
+
     /**
      * Internal delete of artifact rules without checking for existence of artifact first.
      * @param artifactId
@@ -689,7 +699,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         Map<String, String> content = getContentMap(artifactId, version, null);
         return MetaDataKeys.toArtifactVersionMetaData(content);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
      */

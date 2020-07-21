@@ -1,7 +1,21 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package io.apicurio.registry.rest.beans;
-
-import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,6 +24,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -22,6 +40,7 @@ import io.apicurio.registry.types.ArtifactType;
 @JsonPropertyOrder({
     "name",
     "description",
+    "labels",
     "createdBy",
     "createdOn",
     "modifiedBy",
@@ -30,7 +49,8 @@ import io.apicurio.registry.types.ArtifactType;
     "version",
     "type",
     "globalId",
-    "state"
+    "state",
+    "additionalProperties"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ArtifactMetaData {
@@ -115,6 +135,11 @@ public class ArtifactMetaData {
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
+
+    @JsonProperty("additionalProperties")
+    @JsonPropertyDescription("Additional properties as name-value pairs for an artifact or artifact version.")
+    private Map<String, String> additionalProperties;
+
 
     @JsonProperty("name")
     public String getName() {
@@ -338,6 +363,17 @@ public class ArtifactMetaData {
         this.labels = labels;
     }
 
+    @JsonProperty("additionalProperties")
+    public Map<String, String> getAdditionalProperties() {
+        return additionalProperties;
+    }
+
+    @JsonProperty("additionalProperties")
+    public void setAdditionalProperties(Map<String, String> additionalProperties) {
+        this.additionalProperties = additionalProperties;
+    }
+
+
     @Override
     public String toString() {
         return "ArtifactMetaData{" +
@@ -353,6 +389,8 @@ public class ArtifactMetaData {
                 ", type=" + type +
                 ", globalId=" + globalId +
                 ", state=" + state +
+                ", additionalProperties=" + (additionalProperties == null ? "{}" : "{" + additionalProperties.entrySet().stream()
+                        .map(entry -> entry.getKey() + ": " + entry.getValue()).collect(Collectors.joining(", ")) + "}") +
                 '}';
     }
 }

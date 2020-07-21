@@ -1,8 +1,11 @@
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.client.auth.Auth;
+import io.apicurio.registry.client.auth.AuthConfig;
+import io.apicurio.registry.client.auth.AuthStrategy;
+import io.apicurio.registry.client.auth.HeaderDecorator;
 import io.apicurio.registry.client.ext.RestEasyExceptionUnwrapper;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -63,6 +66,7 @@ public class GenericClient {
         private ExecutorService executor;
         private BiFunction<Method, Object[], Object> customMethods;
         private Consumer<Object> resultConsumer;
+        private AuthStrategy authStrategy;
 
         public Builder(Class<I> serviceInterface) {
             if (!serviceInterface.isInterface()) {
@@ -85,6 +89,11 @@ public class GenericClient {
             return this;
         }
 
+        public Builder<I> setAuth(AuthConfig config) {
+            this.authStrategy = new Auth(Objects.requireNonNull(config)).getAuthStrategy();
+            return this;
+        }
+
         public Builder<I> setExecutor(ExecutorService executor) {
             this.executor = executor; // can be null
             return this;
@@ -102,9 +111,9 @@ public class GenericClient {
 
         public I build() {
             return serviceInterface.cast(Proxy.newProxyInstance(
-                GenericClient.class.getClassLoader(),
-                new Class[]{serviceInterface, AutoCloseable.class},
-                new ServiceProxy(this)
+                    GenericClient.class.getClassLoader(),
+                    new Class[]{serviceInterface, AutoCloseable.class},
+                    new ServiceProxy(this)
             ));
         }
     }
@@ -118,6 +127,7 @@ public class GenericClient {
         private final Map<Class<?>, Object> targets = new ConcurrentHashMap<>();
         private final Consumer<Object> resultConsumer;
         private final BiFunction<Method, Object[], Object> customMethods;
+        private AuthStrategy authStrategy;
 
         private ServiceProxy(Builder<?> builder) {
             this.baseUri = builder.baseUrl;
@@ -125,6 +135,7 @@ public class GenericClient {
             this.executor = (shutdownExecutor ? Executors.newFixedThreadPool(10) : builder.executor);
             this.resultConsumer = builder.resultConsumer;
             this.customMethods = builder.customMethods;
+            this.authStrategy = builder.authStrategy;
         }
 
         @Override
@@ -185,16 +196,21 @@ public class GenericClient {
                 }
             }
 
+            if(this.authStrategy != null)
+            {
+                HeaderDecorator.setToken(this.authStrategy.getToken());
+            }
+
             Class<?> targetClass = method.getDeclaringClass();
             Object target;
             if (targetClass.isInterface()) {
                 target = targets.computeIfAbsent(
-                    targetClass,
-                    tc -> RestClientBuilder.newBuilder()
-                                           .baseUri(baseUri)
-                                           .register(HeaderDecorator.class)
-                                           .executorService(executor)
-                                           .build(tc)
+                        targetClass,
+                        tc -> RestClientBuilder.newBuilder()
+                                .baseUri(baseUri)
+                                .register(HeaderDecorator.class)
+                                .executorService(executor)
+                                .build(tc)
                 );
             } else {
                 // Object methods like equals(), hashCode(), wait(), ...
@@ -214,7 +230,7 @@ public class GenericClient {
                 result = cs.whenComplete((r, t) -> {
                     if (t != null) {
                         throw new CompletionException(
-                            UNWRAPPER.apply(method, t instanceof CompletionException ? t.getCause() : t)
+                        		UNWRAPPER.apply(method, t instanceof CompletionException ? t.getCause() : t)
                         );
                     } else {
                         if (resultConsumer != null) {

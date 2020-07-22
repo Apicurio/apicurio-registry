@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package io.registry;
+package io.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.service.ArtifactsService;
-import io.registry.service.IdsService;
-import io.registry.service.RulesService;
-import io.registry.service.SearchService;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
+import io.registry.client.callback.ResultCallback;
+import io.registry.client.service.ArtifactsService;
+import io.registry.client.service.IdsService;
+import io.registry.client.service.RulesService;
+import io.registry.client.service.SearchService;
+import okhttp3.*;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
@@ -35,7 +34,9 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 /**
@@ -137,13 +138,13 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        try {
-            ArtifactMetaData artifactMetaData = artifactsService.getArtifactMetaData(artifactId).execute().body();
-            return artifactMetaData;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+
+        final ResultCallback<ArtifactMetaData> artifactMetaDataCallback = new ResultCallback<>();
+
+        artifactsService.getArtifactMetaData(artifactId)
+                .enqueue(artifactMetaDataCallback);
+
+        return artifactMetaDataCallback.getResult();
     }
 
     @Override
@@ -159,7 +160,7 @@ public class RegistryRestService implements RegistryService {
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
                                                          InputStream data) {
         try {
-            return artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data))).execute().body();
+            return artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.get("application/json"), IoUtil.toBytes(data))).execute().body();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,28 +180,35 @@ public class RegistryRestService implements RegistryService {
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId,
                                                                   ArtifactType xRegistryArtifactType, InputStream data) {
-        return artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data)));
+        return artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"), IoUtil.toBytes(data)));
     }
 
     @Override
     public Response getArtifactVersion(Integer version,
                                        String artifactId) {
-        try {
-            return artifactsService.getArtifactVersion(version, artifactId).execute().body();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+
+        final ResultCallback<Response> responseCallback = new ResultCallback<>();
+
+        artifactsService.getArtifactVersion(version, artifactId).enqueue(responseCallback);
+
+        return responseCallback.getResult();
     }
 
     @Override
     public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
-        artifactsService.updateArtifactVersionState(version, artifactId, data);
+
+        final ResultCallback<Void> responseCallback = new ResultCallback<>();
+
+        artifactsService.updateArtifactVersionState(version, artifactId, data).enqueue(responseCallback);
+
+        responseCallback.getResult();
     }
 
+    @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
         try {
-            return artifactsService.getArtifactVersionMetaData(version, artifactId).execute().body();
+            return (VersionMetaData) extractOrThrow(artifactsService.getArtifactVersionMetaData(version, artifactId).execute());
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -209,11 +217,10 @@ public class RegistryRestService implements RegistryService {
 
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
-        try {
-            artifactsService.updateArtifactVersionMetaData(version, artifactId, data).execute();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        final ResultCallback<Void> voidResultCallback = new ResultCallback<>();
+        artifactsService.updateArtifactVersionMetaData(version, artifactId, data).enqueue(voidResultCallback);
+        voidResultCallback.getResult();
     }
 
     @Override
@@ -283,7 +290,7 @@ public class RegistryRestService implements RegistryService {
     @Override
     public void testUpdateArtifact(String artifactId,
                                    ArtifactType xRegistryArtifactType, InputStream data) {
-        artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"),IoUtil.toBytes(data)));
+        artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.get("application/json"), IoUtil.toBytes(data)));
     }
 
     @Override
@@ -392,5 +399,14 @@ public class RegistryRestService implements RegistryService {
     @Override
     public void reset() {
 
+    }
+
+    private Object extractOrThrow(retrofit2.Response response) {
+
+        if (response.isSuccessful()) {
+            return response.body();
+        } else {
+            throw new RestClientException(response.message());
+        }
     }
 }

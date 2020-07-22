@@ -19,7 +19,7 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.RegistryRestClient;
+import io.registry.client.RegistryRestClient;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
@@ -39,6 +39,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
     private static final String REGISTRY_CLIENT_CUSTOM = "createCustom";
+    private static final String REGISTRY_CLIENT_CUSTOM_CACHED = "createCustomCached";
     private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {

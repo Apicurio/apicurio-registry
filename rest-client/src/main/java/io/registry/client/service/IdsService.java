@@ -13,20 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.registry;
 
-import io.apicurio.registry.service.RegistryService;
+package io.registry.client.service;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import retrofit2.Call;
+import retrofit2.http.GET;
+import retrofit2.http.Path;
+
+import javax.ws.rs.core.Response;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public class RegistryRestClient {
+public interface IdsService {
 
-    private RegistryRestClient() {
+    @GET("ids/{globalId}")
+    Call<Response> getArtifactByGlobalId(@Path("globalId") long globalId);
 
-    }
-
-    public static RegistryService createCustom(String baseUrl) {
-        return new RegistryRestService(baseUrl);
-    }
+    @GET("ids/{globalId}/meta")
+    Call<ArtifactMetaData> getArtifactMetaDataByGlobalId(@Path("globalId") long globalId);
 }

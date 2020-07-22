@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.registry.service;
+package io.registry.client.service;
 
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;

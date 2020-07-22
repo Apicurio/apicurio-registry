@@ -39,7 +39,7 @@ export interface AuthConfig {
 export interface ConfigType {
     mode: string;
     artifacts: ArtifactsConfig;
-    auth?: AuthConfig;
+    auth: AuthConfig;
     features?: FeaturesConfig;
     ui: UiConfig;
 }

@@ -31,8 +31,8 @@ public class RestMetricsResponseFilter implements ContainerResponseFilter {
 
 	private static final Logger log = LoggerFactory.getLogger(RestMetricsResponseFilter.class);
 
-	String REST_RESPONSE_STATUS_CODE_COUNT = "rest_response_status_code";
-	String REST_RESPONSE_STATUS_CODE_COUNT_DESC = "Total number of REST HTTP Response Codes across all endpoints.";
+	String REST_HTTP_REQUESTS_TOTAL = "rest_http_requests_total";
+	String REST_HTTP_REQUESTS_TOTAL_DESC = "Total number of REST HTTP Requests";
 
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
@@ -50,10 +50,10 @@ public class RestMetricsResponseFilter implements ContainerResponseFilter {
 			return;
 		}
 
-		final Metadata metadata = Metadata.builder().withName(REST_RESPONSE_STATUS_CODE_COUNT)
-				.withDescription(REST_RESPONSE_STATUS_CODE_COUNT_DESC).withType(COUNTER).build();
+		final Metadata metadata = Metadata.builder().withName(REST_HTTP_REQUESTS_TOTAL)
+				.withDescription(REST_HTTP_REQUESTS_TOTAL_DESC).withType(COUNTER).build();
 		int statusFamilyCode = statusCode / 100;
-		Tag[] counterTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_RESPONSE_STATUS_CODE_COUNT),
+		Tag[] counterTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TOTAL),
 				new Tag("code", String.format("%dxx", statusFamilyCode)), };
 		Counter statusFamilyCounter = metricRegistry.counter(metadata, counterTags);
 		statusFamilyCounter.inc();

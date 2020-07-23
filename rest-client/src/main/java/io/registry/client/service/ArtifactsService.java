@@ -20,12 +20,11 @@ import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.*;
 
-import javax.ws.rs.core.Response;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -36,17 +35,17 @@ public interface ArtifactsService {
     Call<List<String>> listArtifacts();
 
     @POST("artifacts")
-    CompletableFuture<ArtifactMetaData> createArtifact(@Header("X-Registry-ArtifactType") ArtifactType artifactType,
-                                                       @Header("X-Registry-Artifactid") String xRegistryArtifactId,
-                                                       @Query("ifExists") IfExistsType ifExistsType,
-                                                       @Body RequestBody data);
+    Call<ArtifactMetaData> createArtifact(@Header("X-Registry-ArtifactType") ArtifactType artifactType,
+                                          @Header("X-Registry-Artifactid") String xRegistryArtifactId,
+                                          @Query("ifExists") IfExistsType ifExistsType,
+                                          @Body RequestBody data);
 
     @GET("artifacts/{artifactId}")
-    Call<Response> getLatestArtifact(@Path("artifactId") String artifactId);
+    Call<ResponseBody> getLatestArtifact(@Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}")
-    CompletableFuture<ArtifactMetaData> updateArtifact(@Path("artifactId") String artifactId,
-                                                       @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
+    Call<ArtifactMetaData> updateArtifact(@Path("artifactId") String artifactId,
+                                          @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
 
     @DELETE("artifacts/{artifactId}")
     Call<Void> deleteArtifact(@Path("artifactId") String artifactId);
@@ -68,12 +67,12 @@ public interface ArtifactsService {
     Call<List<Long>> listArtifactVersions(@Path("artifactId") String artifactId);
 
     @POST("artifacts/{artifactId}/versions")
-    CompletableFuture<VersionMetaData> createArtifactVersion(@Path("artifactId") String artifactId,
-                                                             @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
+    Call<VersionMetaData> createArtifactVersion(@Path("artifactId") String artifactId,
+                                                @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
 
     @GET("artifacts/{artifactId}/versions/{version}")
-    Call<Response> getArtifactVersion(@Path("version") Integer version,
-                                      @Path("artifactId") String artifactId);
+    Call<ResponseBody> getArtifactVersion(@Path("version") Integer version,
+                                          @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/versions/{version}/state")
     Call<Void> updateArtifactVersionState(@Path("version") Integer version,

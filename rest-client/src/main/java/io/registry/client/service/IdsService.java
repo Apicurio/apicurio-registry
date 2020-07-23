@@ -17,11 +17,10 @@
 package io.registry.client.service;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
-
-import javax.ws.rs.core.Response;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -29,7 +28,7 @@ import javax.ws.rs.core.Response;
 public interface IdsService {
 
     @GET("ids/{globalId}")
-    Call<Response> getArtifactByGlobalId(@Path("globalId") long globalId);
+    Call<ResponseBody> getArtifactByGlobalId(@Path("globalId") long globalId);
 
     @GET("ids/{globalId}/meta")
     Call<ArtifactMetaData> getArtifactMetaDataByGlobalId(@Path("globalId") long globalId);

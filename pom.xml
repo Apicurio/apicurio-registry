@@ -154,6 +154,7 @@
         <!-- Dependency versions -->
         <lombok.version>1.18.12</lombok.version>
         <h2.version>1.4.199</h2.version>
+        <retrofit.version>2.9.0</retrofit.version>
 
         <!-- Search -->
         <connect.version>2.5.0</connect.version>

@@ -67,6 +67,7 @@ public class RegistryRestService implements RegistryService {
 
         retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
+                .addConverterFactory(JacksonConverterFactory.create())
                 .baseUrl(baseUrl)
                 .build();
 

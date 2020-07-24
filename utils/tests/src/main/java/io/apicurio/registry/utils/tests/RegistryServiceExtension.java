@@ -39,7 +39,6 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
     private static final String REGISTRY_CLIENT_CUSTOM = "createCustom";
-    private static final String REGISTRY_CLIENT_CUSTOM_CACHED = "createCustomCached";
     private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {

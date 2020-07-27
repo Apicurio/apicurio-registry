@@ -6,13 +6,15 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-    branches: [master]
+      - 'docs/**'
+    branches: [master, 1.2.x]
   pull_request:
     paths-ignore:
       - '.github/project.yaml'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
+      - 'docs/**'
     branches: [master]
 
 jobs:

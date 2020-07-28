@@ -176,6 +176,12 @@
             <artifactId>apicurio-registry-utils-tests</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.tngtech.keycloakmock</groupId>
+            <artifactId>mock</artifactId>
+            <scope>test</scope>
+            <version>0.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>

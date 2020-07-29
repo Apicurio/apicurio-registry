@@ -7,16 +7,12 @@ env:
 on:
   # push:
   #   paths-ignore:
-  #     # - '.github/**'
+  #     # - '.github/project.yaml'
+        # - 'docs/**'
   #     - '.gitignore'
   #     - 'LICENSE'
   #     - 'README*'
-  #   branches: ['*']
     # branches: [master]
-#TODO choose to fire up with cron or on push to master
-# on:
-#   schedule:
-#     - cron:  '0 */2 * * *'
 
 #This trigger is only for testing
   pull_request:

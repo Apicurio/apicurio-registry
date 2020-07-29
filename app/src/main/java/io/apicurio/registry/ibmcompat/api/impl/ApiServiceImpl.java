@@ -16,8 +16,20 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.ibmcompat.api.ApiService;
+import io.apicurio.registry.ibmcompat.model.EnabledModification;
+import io.apicurio.registry.ibmcompat.model.NewSchema;
+import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
+import io.apicurio.registry.ibmcompat.model.Schema;
+import io.apicurio.registry.ibmcompat.model.SchemaInfo;
+import io.apicurio.registry.ibmcompat.model.SchemaListItem;
+import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
 import io.apicurio.registry.ibmcompat.model.SchemaState;
 import io.apicurio.registry.ibmcompat.model.SchemaSummary;
+import io.apicurio.registry.ibmcompat.model.SchemaVersion;
+import io.apicurio.registry.ibmcompat.model.StateModification;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -26,31 +38,23 @@ import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.ibmcompat.api.ApiService;
-import io.apicurio.registry.ibmcompat.model.AnyOfStateModificationEnabledModification;
-import io.apicurio.registry.ibmcompat.model.NewSchema;
-import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
-import io.apicurio.registry.ibmcompat.model.Schema;
-import io.apicurio.registry.ibmcompat.model.SchemaInfo;
-import io.apicurio.registry.ibmcompat.model.SchemaListItem;
-import io.apicurio.registry.ibmcompat.model.SchemaVersion;
-import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
+import org.jetbrains.annotations.Nullable;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
@@ -59,6 +63,7 @@ import javax.ws.rs.core.Response;
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 @Logged
 public class ApiServiceImpl implements ApiService {
+
     @Inject
     @Current
     RegistryStorage storage;
@@ -145,7 +150,10 @@ public class ApiServiceImpl implements ApiService {
             // Set the artifact name from the version name
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(versionName);
-            // TODO: On Kafka topic storage, updateArtifactMetaData does not return. Help needed here.
+            //
+            // TODO: On Kafka topic storage, this call to updateArtifactMetaData never returns.
+            // The consumer thread appears to be blocked. Help needed here.
+            //
             // storage.updateArtifactMetaData(artifactId, dto);
 
             // Prepare the response
@@ -178,6 +186,37 @@ public class ApiServiceImpl implements ApiService {
             return true;
         } catch (ArtifactNotFoundException ignored) {
             return false;
+        }
+    }
+
+    @Nullable
+    private ArtifactState getPatchedArtifactState(List<SchemaModificationPatch> schemaModificationPatches) {
+        ArtifactState artifactState = null;
+        for (SchemaModificationPatch schemaModificationPatch : schemaModificationPatches) {
+            if (schemaModificationPatch instanceof EnabledModification) {
+                if (((EnabledModification) schemaModificationPatch).getValue()) {
+                    artifactState = ArtifactState.ENABLED;
+                } else {
+                    artifactState = ArtifactState.DISABLED;
+                }
+            } else if (schemaModificationPatch instanceof StateModification) {
+                if (SchemaState.StateEnum.DEPRECATED.equals(((StateModification) schemaModificationPatch).getValue().getState())) {
+                    artifactState = ArtifactState.DEPRECATED;
+                } else {
+                    artifactState = ArtifactState.ENABLED;
+                }
+            }
+        }
+        return artifactState;
+    }
+
+    private void setSchemaVersionState(ArtifactState artifactState, SchemaVersion version) {
+        if(ArtifactState.DISABLED.equals(artifactState)) {
+            version.setEnabled(false);
+        } else if(ArtifactState.ENABLED.equals(artifactState)) {
+            version.setEnabled(true);
+        } else if(ArtifactState.DEPRECATED.equals(artifactState)) {
+            version.getState().setState(SchemaState.StateEnum.DEPRECATED);
         }
     }
 
@@ -236,10 +275,35 @@ public class ApiServiceImpl implements ApiService {
         return info;
     }
 
-    public Response apiSchemasSchemaidPatch(String schemaid, List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    public Response apiSchemasSchemaidPatch(String schemaid, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        // do some magic!
-        return Response.ok().entity("OK").build();
+
+        ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
+        if(artifactState != null) {
+            // Modify all the artifact version states
+            for (Long versionid : storage.getArtifactVersions(schemaid)) {
+                storage.updateArtifactState(schemaid, artifactState, versionid.intValue());
+            }
+        }
+
+        // Return the updated schema info
+        SchemaInfo info = new SchemaInfo();
+        populateSchemaSummary(schemaid, info);
+        info.setVersions(getSchemaVersions(schemaid));
+
+        // updateArtifactState call may be async, so also set the version state in the response
+        if(ArtifactState.DISABLED.equals(artifactState)) {
+            info.setEnabled(false);
+        } else if(ArtifactState.ENABLED.equals(artifactState)) {
+            info.setEnabled(true);
+        } else if(ArtifactState.DEPRECATED.equals(artifactState)) {
+            info.getState().setState(SchemaState.StateEnum.DEPRECATED);
+        }
+        for(SchemaVersion version: info.getVersions()) {
+            setSchemaVersionState(artifactState, version);
+        }
+
+        return Response.ok().entity(info).build();
     }
 
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion newSchemaVersion, boolean verify)
@@ -270,9 +334,28 @@ public class ApiServiceImpl implements ApiService {
         return schema;
     }
 
-    public Response apiSchemasSchemaidVersionsVersionnumPatch(String schemaid, int versionnum, List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    public Response apiSchemasSchemaidVersionsVersionnumPatch(String schemaid, int versionnum, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        // do some magic!
-        return Response.ok().entity("OK").build();
+
+        ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
+        if(artifactState != null) {
+            // Modify the artifact version state
+            storage.updateArtifactState(schemaid, artifactState, versionnum);
+        }
+
+        // Return the updated schema info
+        SchemaInfo info = new SchemaInfo();
+        populateSchemaSummary(schemaid, info);
+        info.setVersions(getSchemaVersions(schemaid));
+
+        // updateArtifactState call may be async, so also set the version state in the response
+        SchemaVersion schemaVersion = info.getVersions()
+                .stream()
+                .filter(version -> versionnum == version.getId())
+                .findFirst()
+                .orElseThrow(() -> new VersionNotFoundException(schemaid, versionnum));
+        setSchemaVersionState(artifactState, schemaVersion);
+
+        return Response.ok().entity(info).build();
     }
 }

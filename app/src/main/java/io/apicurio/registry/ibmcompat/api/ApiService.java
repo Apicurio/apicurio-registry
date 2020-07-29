@@ -16,18 +16,18 @@
  */
 package io.apicurio.registry.ibmcompat.api;
 
-import io.apicurio.registry.ibmcompat.model.AnyOfStateModificationEnabledModification;
 import io.apicurio.registry.ibmcompat.model.NewSchema;
 import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
 import io.apicurio.registry.ibmcompat.model.Schema;
 import io.apicurio.registry.ibmcompat.model.SchemaInfo;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
+import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 
-import java.util.List;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public interface ApiService {
@@ -43,7 +43,7 @@ public interface ApiService {
     SchemaInfo apiSchemasSchemaidGet(String schemaid)
     throws ArtifactNotFoundException;
 
-    Response apiSchemasSchemaidPatch(String schemaid, List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    Response apiSchemasSchemaidPatch(String schemaid, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException;
 
     void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion schema, boolean verify)
@@ -55,6 +55,6 @@ public interface ApiService {
     Schema apiSchemasSchemaidVersionsVersionnumGet(String schemaid, int versionnum)
     throws ArtifactNotFoundException;
 
-    Response apiSchemasSchemaidVersionsVersionnumPatch(String schemaid, int versionnum, List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    Response apiSchemasSchemaidVersionsVersionnumPatch(String schemaid, int versionnum, List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException;
 }

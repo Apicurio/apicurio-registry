@@ -162,6 +162,70 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         });
     }
 
+    @Test
+    public void testPatchSchemaState() throws Exception {
+
+        String artifactContent = resourceToString("avro.json");
+        String version2SchemaDefinition = artifactContent
+            .replaceAll("\\\"", "\\\\\"")
+            .replaceAll("\\\n", "\\\\n");
+        String schemaName = "testPatchSchemaState_userInfo";
+        String version2Name = "testversion_2.0.0";
+
+        // Create Avro artifact via the artifact API
+        createArtifact(schemaName, ArtifactType.AVRO, artifactContent);
+        // Add the new version via ibmcompat API
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
+                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+            .then()
+                .statusCode(201)
+                .body("versions.size()", equalTo(2));
+
+        // Patch the schema enabled state via ibmcompat API
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
+                .patch("/ibmcompat/schemas/" + schemaName)
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(schemaName))
+                .body("id", equalTo(schemaName))
+                .body("enabled", is(false))
+                .body("state.state", equalTo("active"))
+                .body("versions.size()", is(2))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("active"))
+                .body("versions[0].enabled", is(false))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("active"))
+                .body("versions[1].enabled", is(false));
+
+
+        // Patch the schame deprecated state via ibmcompat API
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\"}}]")
+                .patch("/ibmcompat/schemas/" + schemaName)
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(schemaName))
+                .body("id", equalTo(schemaName))
+                .body("enabled", is(true))
+                .body("state.state", equalTo("deprecated"))
+                .body("versions.size()", is(2))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("deprecated"))
+                .body("versions[0].enabled", is(true))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("deprecated"))
+                .body("versions[1].enabled", is(true));
+    }
+
 
     @Test
     public void testGetSchemaVersion() throws Exception {
@@ -262,6 +326,72 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                     .get("/ibmcompat/schemas/" + schemaName + "/versions/2")
                 .then()
                    .statusCode(404);
+        });
+    }
+
+
+    @Test
+    public void testPatchSchemaVersionState() throws Exception {
+
+        String artifactContent = resourceToString("avro.json");
+        String version2SchemaDefinition = artifactContent
+            .replaceAll("\\\"", "\\\\\"")
+            .replaceAll("\\\n", "\\\\n");
+        String schemaName = "testPatchSchemaVersionState_userInfo";
+        String version2Name = "testversion_2.0.0";
+
+        // Create Avro artifact via the artifact API
+        createArtifact(schemaName, ArtifactType.AVRO, artifactContent);
+        // Add the new version via ibmcompat API
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
+                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+            .then()
+                .statusCode(201)
+                .body("versions.size()", equalTo(2));
+
+        // Patch the schema enabled state via ibmcompat API
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
+                .patch("/ibmcompat/schemas/" + schemaName + "/versions/2")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(schemaName))
+                .body("id", equalTo(schemaName))
+                .body("enabled", is(true))
+                .body("state.state", equalTo("active"))
+                .body("versions.size()", is(2))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("active"))
+                .body("versions[0].enabled", is(true))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("active"))
+                .body("versions[1].enabled", is(false));
+
+        TestUtils.retry(() -> {
+            // Patch the schame deprecated state via ibmcompat API
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\"}}]")
+                    .patch("/ibmcompat/schemas/" + schemaName + "/versions/1")
+                .then()
+                    .statusCode(200)
+                    .body("name", equalTo(schemaName))
+                    .body("id", equalTo(schemaName))
+                    .body("enabled", is(true))
+                    .body("state.state", equalTo("active"))
+                    .body("versions.size()", is(2))
+                    .body("versions[0].id", is(1))
+                    .body("versions[0].state.state", equalTo("deprecated"))
+                    .body("versions[0].enabled", is(true))
+                    .body("versions[1].id", is(2))
+                    .body("versions[1].state.state", equalTo("active"))
+                    .body("versions[1].enabled", is(false));
         });
     }
 }

@@ -32,6 +32,8 @@ import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
+import javax.enterprise.inject.Vetoed;
+import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
@@ -43,6 +45,8 @@ import java.util.logging.Logger;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
+@Vetoed // not a bean
+@Path("__dummy_hack")
 public class RegistryRestService implements RegistryService {
 
     private static final Logger log = Logger.getLogger(RegistryRestService.class.getName());
@@ -52,6 +56,11 @@ public class RegistryRestService implements RegistryService {
     private RulesService rulesService;
     private SearchService searchService;
     private IdsService idsService;
+
+    public RegistryRestService() {
+        // hack + client side only
+        retrofit = null;
+    }
 
     protected RegistryRestService(String baseUrl) {
 

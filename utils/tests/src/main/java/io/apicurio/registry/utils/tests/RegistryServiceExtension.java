@@ -101,9 +101,11 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         }
 
         if (testRegistryClient(REGISTRY_CLIENT_CUSTOM)) {
+
+            //Since Retrofit needs the base path to end with a slash, we need to add it here
             RegistryServiceWrapper custom = store.getOrComputeIfAbsent(
                     "custom",
-                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CUSTOM, registryUrl),
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CUSTOM, registryUrl + "/"),
                     RegistryServiceWrapper.class
             );
             invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(custom, context.getRequiredTestMethod()));

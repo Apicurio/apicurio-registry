@@ -81,7 +81,7 @@ public class TestUtils {
     }
 
     public static String getRegistryApiUrl() {
-        return getRegistryUrl().concat("/api/");
+        return getRegistryUrl().concat("/api");
     }
 
     private static String getRegistryUrl() {

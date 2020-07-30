@@ -13,26 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.util;
 
-package io.apicurio.registry;
+import io.restassured.specification.RequestSpecification;
 
-import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
-import static org.hamcrest.CoreMatchers.anything;
+import static io.restassured.RestAssured.given;
 
-import org.junit.jupiter.api.Test;
+/**
+ * @author Carles Arnal <carnalca@redhat.com>
+ */
+public class AuthUtil {
 
-import io.quarkus.test.junit.QuarkusTest;
+    public static RequestSpecification givenAuthenticated() {
 
-@QuarkusTest
-public class SubjectsResourceTest extends AbstractResourceTestBase {
-
-    @Test
-    public void testListSubjectsEndpoint() {
-        givenAuthenticated()
-                .when().contentType(CT_JSON).get("/ccompat/subjects")
-                .then()
-                .statusCode(200)
-                .body(anything());
+        return given().auth().basic("user", "user");
     }
-
 }

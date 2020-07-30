@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
@@ -61,7 +62,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent);
 
         // Create OpenAPI artifact - indicate the type via the content-type
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/2")
@@ -73,7 +74,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
         
         // Try to create a duplicate artifact ID (should fail)
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/1")
@@ -85,7 +86,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("An artifact with ID 'testCreateArtifact/EmptyAPI/1' already exists."));
 
         // Try to create an artifact with an invalid artifact type
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON + "; artifactType=INVALID_ARTIFACT_TYPE")
                 .header("X-Registry-ArtifactId", "testCreateArtifact/InvalidAPI")
@@ -95,7 +96,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(400);
 
         // Create OpenAPI artifact - don't provide the artifact type
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/detect")
@@ -125,7 +126,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testGetArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
         
         // Get the artifact content
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifact/EmptyAPI")
                 .get("/artifacts/{artifactId}")
@@ -135,7 +136,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API"));
         
         // Try to get artifact content for an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/artifacts/{artifactId}")
@@ -154,7 +155,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testUpdateArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Update OpenAPI artifact
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -167,7 +168,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Get the artifact content (should be the updated content)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
                 .get("/artifacts/{artifactId}")
@@ -177,7 +178,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API (Updated)"));
         
         // Try to update an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -207,7 +208,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testDeleteArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Make sure we can get the artifact content
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
                 .get("/artifacts/{artifactId}")
@@ -217,7 +218,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API"));
         
         // Delete the artifact
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
                 .delete("/artifacts/{artifactId}")
@@ -226,7 +227,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Try to get artifact content for an artifact that doesn't exist.
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
                     .get("/artifacts/{artifactId}")
@@ -235,9 +236,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("error_code", equalTo(404))
                     .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
         });
-    
+
         // Try to delete an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testDeleteArtifact/MissingAPI")
                 .delete("/artifacts/{artifactId}")
@@ -255,7 +256,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Update the artifact 5 times
         for (int idx = 0; idx < 5; idx++) {
-            given()
+            givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -269,7 +270,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         }
         
         // List the artifact versions
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
                 .get("/artifacts/{artifactId}/versions")
@@ -292,7 +293,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 });
         
         // Try to list artifact versions for an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testListArtifactVersions/MissingAPI")
                 .get("/artifacts/{artifactId}/versions")
@@ -310,7 +311,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testCreateArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Create a new version of the artifact
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -323,7 +324,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Get the artifact content (should be the updated content)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
                 .get("/artifacts/{artifactId}")
@@ -333,7 +334,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API (Updated)"));
 
         // Try to create a new version of an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -342,9 +343,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(404);
-        
+
         // Try to create a new version of the artifact with empty content
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -359,14 +360,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGetArtifactVersion() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        
+
         // Create an artifact
         createArtifact("testGetArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Update the artifact 5 times
         List<Integer> versions = new ArrayList<>();
         for (int idx = 0; idx < 5; idx++) {
-            Integer version = given()
+            Integer version = givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -385,7 +386,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             Integer version = versions.get(idx);
             String expected = "Empty API (Update " + idx + ")";
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                     .pathParam("version", version)
@@ -396,7 +397,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         }
         
         // Now get a version that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI")
                 .pathParam("version", 12345)
@@ -405,7 +406,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
         
         // Now get a version of an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifactVersion/MissingAPI")
                 .pathParam("version", 1)
@@ -424,7 +425,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Update the artifact 5 times
         List<Integer> versions = new ArrayList<>();
         for (int idx = 0; idx < 5; idx++) {
-            Integer version = given()
+            Integer version = givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -441,7 +442,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Get meta-data by content
         String searchContent = artifactContent.replace("Empty API", "Empty API (Update 2)");
-        Integer globalId1 = given()
+        Integer globalId1 = givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
@@ -454,7 +455,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         
         // Now add some extra whitespace/formatting to the content and try again
         searchContent = searchContent.replace("{", "{\n").replace("}", "\n}");
-        Integer globalId2 = given()
+        Integer globalId2 = givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
@@ -469,7 +470,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Assertions.assertEquals(globalId1, globalId2);
 
         // Get meta-data by empty content
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
@@ -477,7 +478,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(400);
-        
+
     }
 
     @Test
@@ -492,7 +493,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -504,7 +505,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Verify the rule was added
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
@@ -518,7 +519,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Try to add the rule again - should get a 409
         final Rule finalRule = rule;
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .body(finalRule)
@@ -533,7 +534,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Add another rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -545,7 +546,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Verify the rule was added
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
@@ -557,7 +558,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         });
 
         // Get the list of rules (should be 2 of them)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/rules")
@@ -571,7 +572,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Update a rule's config
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("FULL");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -585,7 +586,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Get a single (updated) rule by name
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
@@ -613,7 +614,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 //                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
 
         // Delete a rule
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .delete("/artifacts/{artifactId}/rules/COMPATIBILITY")
@@ -623,7 +624,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Get a single (deleted) rule by name (should fail with a 404)
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
@@ -635,7 +636,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         });
 
         // Get the list of rules (should be 1 of them)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/rules")
@@ -647,7 +648,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("[1]", nullValue());
 
         // Delete all rules
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .delete("/artifacts/{artifactId}/rules")
@@ -656,7 +657,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Get the list of rules (no rules now)
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules")
@@ -670,7 +671,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -687,9 +688,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         
         // Create OpenAPI artifact
         createArtifact("testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
-        
+
         // Get the artifact meta-data
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                 .get("/artifacts/{artifactId}/meta")
@@ -703,7 +704,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo("An example API design using OpenAPI."));
         
         // Try to get artifact meta-data for an artifact that doesn't exist.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifactMetaData/MissingAPI")
                 .get("/artifacts/{artifactId}/meta")
@@ -711,10 +712,10 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404)
                 .body("error_code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
-        
+
         // Update the artifact meta-data
         String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"properties\":{\"additionalProp1\": \"Empty API additional property\"}}";
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(metaData)
@@ -723,14 +724,13 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204);
 
-
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {
             List<String> expectedLabels = Arrays.asList("Empty API label 1", "Empty API label 2");
             Map<String, String> expectedProperties = new HashMap<>();
             expectedProperties.put("additionalProp1", "Empty API additional property");
 
-            int version = given()
+            int version = givenAuthenticated()
                 .when()
                     .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                     .get("/artifacts/{artifactId}/meta")
@@ -743,9 +743,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("labels", equalToObject(expectedLabels))
                     .body("properties", equalToObject(expectedProperties))
                 .extract().body().path("version");
-            
+
             // Make sure the version specific meta-data also returns all the custom meta-data
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                     .pathParam("version", version)
@@ -758,10 +758,10 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("properties", equalToObject(expectedProperties))
                 .extract().body().path("version");
         });
-        
+
         // Update the artifact content and then make sure the name/description meta-data is still available
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -774,7 +774,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Verify the artifact meta-data name and description are still set.
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                 .get("/artifacts/{artifactId}/meta")
@@ -784,8 +784,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", anything())
                 .body("name", equalTo("Empty API (Updated)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
+
     }
-    
+
     @Test
     public void testArtifactVersionMetaData() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
@@ -796,7 +797,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact("testArtifactVersionMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Create a new version of the artifact
-        int version2 = given()
+        int version2 = givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -810,7 +811,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .extract().body().path("version");
 
         // Create another new version of the artifact
-        int version3 = given()
+        int version3 = givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
@@ -824,7 +825,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .extract().body().path("version");
 
         // Get meta-data for v2
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version2)
@@ -839,7 +840,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Update the version meta-data
         String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(metaData)
@@ -851,7 +852,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                     .pathParam("version", version2)
@@ -866,7 +867,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         });
 
         // Get the version meta-data for the version we **didn't** update
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", version3)
@@ -880,7 +881,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo("An example API design using OpenAPI."));
 
         // Get the version meta-data for a non-existant version
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI")
                 .pathParam("version", 12345)
@@ -897,7 +898,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.yaml");
 
         // Create OpenAPI artifact (from YAML)
-        given()
+        givenAuthenticated()
             .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_YAML, ContentType.TEXT)))
             .when()
                 .contentType(CT_YAML)
@@ -915,7 +916,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         this.waitForArtifact(artifactId);
 
         // Get the artifact content (should be JSON)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testYamlContentType")
                 .get("/artifacts/{artifactId}")
@@ -934,7 +935,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("sample.wsdl");
 
         // Create OpenAPI artifact (from YAML)
-        given()
+        givenAuthenticated()
             .config(RestAssuredConfig.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs(CT_XML, ContentType.TEXT)))
             .when()
                 .contentType(CT_XML)
@@ -950,7 +951,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         this.waitForArtifact(artifactId);
 
         // Get the artifact content (should be XML)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", "testWsdlArtifact")
                 .get("/artifacts/{artifactId}")
@@ -971,7 +972,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Integer globalId1 = createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Try to create the same artifact ID (should fail)
-        given()
+        givenAuthenticated()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -983,7 +984,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("An artifact with ID '"+artifactId+"' already exists."));
 
         // Try to create the same artifact ID with Return for if exists (should return same artifact)
-        given()
+        givenAuthenticated()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -999,7 +1000,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo("An example API design using OpenAPI."));
         
         // Try to create the same artifact ID with Update for if exists (should update the artifact)
-        ValidatableResponse resp = given()
+        ValidatableResponse resp = givenAuthenticated()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -1017,7 +1018,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         this.waitForGlobalId(globalId2);
 
         // Try to create the same artifact ID with ReturnOrUpdate - should return v1 (matching content)
-        resp = given()
+        resp = givenAuthenticated()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -1033,7 +1034,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Assertions.assertEquals(globalId1, globalId3);
 
         // Try to create the same artifact ID with ReturnOrUpdate and updated content - should create a new version
-        resp = given()
+        resp = givenAuthenticated()
                 .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
                 .header("X-Registry-ArtifactId", artifactId)
@@ -1050,7 +1051,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     public void testDeleteArtifactWithRule() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testDeleteArtifactWithRule/EmptyAPI";
-        
+
         // Create an artifact
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
@@ -1058,7 +1059,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -1067,10 +1068,10 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get a single rule by name
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
@@ -1082,17 +1083,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         });
 
         // Delete the artifact
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .delete("/artifacts/{artifactId}")
             .then()
                 .statusCode(204);
-        
+
         // Get a single rule by name (should be 404 because the artifact is gone)
         // Also try to get the artifact itself (should be 404)
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
@@ -1110,18 +1111,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
         // Get a single rule by name (should be 404 because the artifact is gone)
-        given()
+        givenAuthenticated()
             .when()
                 .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/rules/VALIDITY")
             .then()
                 .statusCode(404);
-        
+
         // Add the same rule - should work because the old rule was deleted when the artifact was deleted.
         rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)

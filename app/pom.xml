@@ -177,10 +177,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.tngtech.keycloakmock</groupId>
-            <artifactId>mock</artifactId>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-elytron-security-properties-file</artifactId>
             <scope>test</scope>
-            <version>0.4.0</version>
         </dependency>
     </dependencies>
 

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -32,15 +32,16 @@ import io.restassured.RestAssured;
 import io.restassured.config.EncoderConfig;
 import io.restassured.http.ContentType;
 
-/** 
+/**
  * Tests registry via its jax-rs interface.  This test performs more realistic
  * usage scenarios than the more unit-test focused {@link RulesResourceTest}
  * and {@link ArtifactsResourceTest}.
  * @author eric.wittmann@gmail.com
+ * @author Carles Arnal <carnalca@redhat.com>
  */
 @QuarkusTest
 public class FullApiTest extends AbstractResourceTestBase {
-    
+
     @Test
     public void testGlobalRuleApplicationOpenAPI() throws Exception {
         ArtifactType artifactType = ArtifactType.OPENAPI;
@@ -48,23 +49,23 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationOpenAPI/API", artifactType, artifactContent);
-        
+
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
-        given()
-            .when()
+        givenAuthenticated()
+                .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
-            given()
-                .when()
+            givenAuthenticated()
+                    .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -73,11 +74,11 @@ public class FullApiTest extends AbstractResourceTestBase {
                     .body("config", equalTo("SYNTAX_ONLY"));
         });
 
-        
+
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
-        given()
-            .when()
+        givenAuthenticated()
+                .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
@@ -97,23 +98,23 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationProtobuf/API", artifactType, artifactContent);
-        
+
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
-        given()
-            .when()
+        givenAuthenticated()
+                .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
-            given()
-                .when()
+            givenAuthenticated()
+                    .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -124,9 +125,9 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationProtobuf/InvalidAPI";
-        given()
-            .config(RestAssured.config().encoderConfig(new EncoderConfig().encodeContentTypeAs(CT_PROTO, ContentType.TEXT)))
-            .when()
+        givenAuthenticated()
+                .config(RestAssured.config().encoderConfig(new EncoderConfig().encodeContentTypeAs(CT_PROTO, ContentType.TEXT)))
+                .when()
                 .contentType(CT_PROTO)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())

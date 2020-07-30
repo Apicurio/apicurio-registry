@@ -16,8 +16,6 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
@@ -31,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
@@ -39,7 +36,7 @@ import static org.hamcrest.Matchers.equalTo;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
-    
+
     protected static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
@@ -47,10 +44,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @Inject
     Instance<ServiceInitializer> initializers;
-    
+
     protected static String registryUrl;
     protected static RegistryRestClient client;
-    
+
     @BeforeAll
     protected static void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
@@ -65,9 +62,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         initializers.stream().forEach(ServiceInitializer::beforeEach);
 
         // Delete all global rules
-        given().when().delete("/rules").then().statusCode(204);
+        givenAuthenticated().when().delete("/rules").then().statusCode(204);
         TestUtils.retry(() -> {
-            given().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
+            givenAuthenticated().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
         });
     }
 
@@ -79,8 +76,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @throws Exception
      */
     protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
-        ValidatableResponse response = given()
-            .when()
+        ValidatableResponse response = givenAuthenticated()
+                .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
@@ -90,12 +87,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
-        
+
         waitForArtifact(artifactId);
-        
+
         return response.extract().body().path("globalId");
     }
-    
+
     /**
      * Wait for an artifact to be created.
      * @param artifactId
@@ -103,8 +100,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForArtifact(String artifactId) throws Exception {
         TestUtils.retry(() -> {
-            given()
-                .when()
+            givenAuthenticated()
+                    .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/meta")
@@ -121,7 +118,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForVersion(String artifactId, int version) throws Exception {
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
@@ -139,8 +136,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForGlobalId(long globalId) throws Exception {
         TestUtils.retry(() -> {
-            given()
-                .when()
+            givenAuthenticated()
+                    .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
                 .get("/ids/{globalId}/meta")
@@ -157,8 +154,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForArtifactState(String artifactId, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(given()
-                .when()
+            validateMetaDataResponseState(givenAuthenticated()
+                    .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                 .get("/artifacts/{artifactId}/meta")
@@ -175,8 +172,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForVersionState(String artifactId, int version, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(given()
-                .when()
+            validateMetaDataResponseState(givenAuthenticated()
+                    .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
@@ -193,8 +190,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForVersionState(long globalId, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(given()
-                .when()
+            validateMetaDataResponseState(givenAuthenticated()
+                    .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
                 .get("/ids/{globalId}/meta")

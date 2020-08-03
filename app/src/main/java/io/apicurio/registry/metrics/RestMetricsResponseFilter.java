@@ -76,8 +76,6 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
 			throws IOException {
-		log.info("'{} {}'", requestContext.getMethod(), requestContext.getUriInfo().getRequestUri().toString());
-		log.info("Response code: '{}'", responseContext.getStatus());
 		// Don't do anything when response code has not been set or when
 		// response code is not between 1XX and 5XX
 		int statusCode = responseContext.getStatus();

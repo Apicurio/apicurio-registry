@@ -91,11 +91,6 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 				.withDescription(REST_HTTP_REQUESTS_TOTAL_DESC).withType(COUNTER).build();
 		Tag[] counterTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TOTAL),
 				new Tag("status", String.format("%dxx", statusFamilyCode)),
-				// TODO this information those not include base path (/api). Should we include
-				// it as part
-				// of the endpoint tag? or being in the rest_http_requests_total context it's
-				// assumed that user
-				// knows the path? maybe another tag named basePath?
 				new Tag("endpoint", this.getUri()), new Tag("method", requestContext.getMethod()), };
 		Counter statusFamilyCounter = metricRegistry.counter(metadata, counterTags);
 		statusFamilyCounter.inc();
@@ -108,11 +103,6 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 				.withDescription(REST_HTTP_REQUESTS_TIME_DESC).withType(TIMER).build();
 		Tag[] timerTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TIME),
 				new Tag("status", String.format("%dxx", statusFamilyCode)),
-				// TODO this information those not include base path (/api). Should we include
-				// it as part
-				// of the endpoint tag? or being in the rest_http_requests_total context it's
-				// assumed that user
-				// knows the path? maybe another tag named basePath?
 				new Tag("endpoint", this.getUri()), new Tag("method", requestContext.getMethod()), };
 		Timer timer = metricRegistry.timer(timerMetadata, timerTags);
 		timer.update(elapsed, TimeUnit.NANOSECONDS);

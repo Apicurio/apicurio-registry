@@ -21,12 +21,16 @@ import retrofit2.Callback;
 import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
 public class ResultCallback<T> implements Callback<T> {
+
+    private static final Logger logger = Logger.getLogger(ResultCallback.class.getName());
 
     private final CompletableFuture<T> result;
 
@@ -61,5 +65,6 @@ public class ResultCallback<T> implements Callback<T> {
         if (e instanceof WebApplicationException) {
             throw (WebApplicationException) e;
         }
+        logger.log(Level.SEVERE, "Error getting call result", e);
     }
 }

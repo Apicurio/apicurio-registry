@@ -40,7 +40,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.logging.Logger;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -48,8 +47,6 @@ import java.util.logging.Logger;
 @Vetoed // not a bean
 @Path("__dummy_hack")
 public class RegistryRestService implements RegistryService {
-
-    private static final Logger log = Logger.getLogger(RegistryRestService.class.getName());
 
     private final Retrofit retrofit;
     private ArtifactsService artifactsService;

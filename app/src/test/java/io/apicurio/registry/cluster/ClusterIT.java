@@ -81,7 +81,7 @@ public class ClusterIT {
             TestUtils.retry(() -> {
                 ArtifactMetaData amd = client2.getArtifactMetaData(artifactId);
                 Assertions.assertEquals(1, amd.getVersion());
-            });
+            }, "ClusterIT-SmokeTest-CreateArtifact", 10);
 
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
@@ -150,12 +150,12 @@ public class ClusterIT {
             TestUtils.retry(() -> {
                 Collection<String> allSubjects = client2.getAllSubjects();
                 Assertions.assertTrue(allSubjects.contains(subject));
-            });
+            }, "ClusterIT-SmokeTest-RegisterSchema-1", 10);
 
             TestUtils.retry(() -> {
                 Schema s = client2.getById(id);
                 Assertions.assertNotNull(s);
-            });
+            }, "ClusterIT-SmokeTest-RegisterSchema-2", 10);
         } finally {
             client1.deleteSchemaVersion(subject, "1");
         }

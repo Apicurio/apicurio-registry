@@ -39,8 +39,6 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
 import org.eclipse.microprofile.metrics.Timer;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.smallrye.metrics.app.Clock;
 
@@ -51,8 +49,6 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 	@Inject
 	@RegistryType(type = APPLICATION)
 	MetricRegistry metricRegistry;
-
-	private static final Logger log = LoggerFactory.getLogger(RestMetricsResponseFilter.class);
 
 	String REST_HTTP_REQUESTS_TOTAL = "rest_http_requests_total";
 	String REST_HTTP_REQUESTS_TOTAL_DESC = "Total number of REST HTTP Requests";

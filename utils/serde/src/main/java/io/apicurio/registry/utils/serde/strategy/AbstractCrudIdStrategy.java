@@ -18,7 +18,6 @@ package io.apicurio.registry.utils.serde.strategy;
 
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 
@@ -51,7 +50,7 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
             return initialLookup(service, artifactId, artifactType, schema);
         } catch (WebApplicationException e) {
             if (isNotFound(e.getResponse())) {
-                CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
+                CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, null, toStream(schema));
                 ArtifactMetaData amd = unwrap(cs);
                 afterCreateArtifact(schema, amd);
                 return amd.getGlobalId();

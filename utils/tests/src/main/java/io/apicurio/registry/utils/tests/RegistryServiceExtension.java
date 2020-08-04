@@ -182,8 +182,15 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                             try {
                                 ClassLoader tccl = Thread.currentThread().getContextClassLoader();
                                 if (tccl == null || tccl == ExtensionContext.class.getClassLoader()) {
-                                    wrapper.service = createRegistryService();
+                                    System.err.println("======== [RegistryServiceExtension] TCCL Path #1 ");
+                                    try {
+                                        Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+                                        wrapper.service = createRegistryService();
+                                    } finally {
+                                        Thread.currentThread().setContextClassLoader(tccl);
+                                    }
                                 } else {
+                                    System.err.println("======== [RegistryServiceExtension] TCCL Path #2 ");
                                     Class<?> clientClass = tccl.loadClass(RegistryClient.class.getName());
                                     Method factoryMethod = clientClass.getMethod(wrapper.method, String.class);
                                     wrapper.service = (AutoCloseable) factoryMethod.invoke(null, wrapper.registryUrl);

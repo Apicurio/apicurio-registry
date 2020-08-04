@@ -194,7 +194,6 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                                     System.err.println("======== [RegistryServiceExtension] TCCL : " + tccl);
                                     System.err.println("======== [RegistryServiceExtension]      : " + tccl.getClass());
                                     System.err.println("======== [RegistryServiceExtension]      : " + tccl.getParent());
-                                    System.err.println("======== [RegistryServiceExtension]      : " + tccl.getParent().getClass());
                                     Class<?> clientClass = tccl.loadClass(RegistryClient.class.getName());
                                     Method factoryMethod = clientClass.getMethod(wrapper.method, String.class);
                                     wrapper.service = (AutoCloseable) factoryMethod.invoke(null, wrapper.registryUrl);

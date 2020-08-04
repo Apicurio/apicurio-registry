@@ -22,6 +22,10 @@ import java.lang.annotation.Target;
 
 import javax.ws.rs.NameBinding;
 
+/**
+ * Meta-Annotation used to perform name-binding between REST API methods and
+ * {@link io.apicurio.registry.metrics.RestMetricsResponseFilter} filter
+ */
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(value = RetentionPolicy.RUNTIME)
 @NameBinding

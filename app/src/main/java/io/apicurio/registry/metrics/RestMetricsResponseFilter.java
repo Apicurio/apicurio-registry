@@ -86,8 +86,8 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 		final Metadata metadata = Metadata.builder().withName(REST_HTTP_REQUESTS_TOTAL)
 				.withDescription(REST_HTTP_REQUESTS_TOTAL_DESC).withType(COUNTER).build();
 		Tag[] counterTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TOTAL),
-				new Tag("status", String.format("%dxx", statusFamilyCode)),
-				new Tag("endpoint", this.getUri()), new Tag("method", requestContext.getMethod()), };
+				new Tag("status", String.format("%dxx", statusFamilyCode)), new Tag("endpoint", this.getUri()),
+				new Tag("method", requestContext.getMethod()), };
 		Counter statusFamilyCounter = metricRegistry.counter(metadata, counterTags);
 		statusFamilyCounter.inc();
 
@@ -98,8 +98,8 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 		final Metadata timerMetadata = Metadata.builder().withName(REST_HTTP_REQUESTS_TIME)
 				.withDescription(REST_HTTP_REQUESTS_TIME_DESC).withType(TIMER).build();
 		Tag[] timerTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TIME),
-				new Tag("status", String.format("%dxx", statusFamilyCode)),
-				new Tag("endpoint", this.getUri()), new Tag("method", requestContext.getMethod()), };
+				new Tag("status", String.format("%dxx", statusFamilyCode)), new Tag("endpoint", this.getUri()),
+				new Tag("method", requestContext.getMethod()), };
 		Timer timer = metricRegistry.timer(timerMetadata, timerTags);
 		timer.update(elapsed, TimeUnit.NANOSECONDS);
 	}

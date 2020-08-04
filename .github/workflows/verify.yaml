@@ -33,6 +33,8 @@ jobs:
         run: printenv
       - name: Check Java Version
         run: java -version
+      - name: Check Maven Version
+        run: mvn -version
       - name: Build All Variants
         run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
       - name: Verify (Standard)

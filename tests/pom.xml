@@ -14,7 +14,6 @@
     <name>apicurio-registry-tests</name>
 
     <properties>
-        <groups></groups>
         <skipTests>true</skipTests>
         
         <exclude.integration.tests>**/KafkaConnectConverterIT.java</exclude.integration.tests>
@@ -29,10 +28,11 @@
         <vertx.version>3.9.2</vertx.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
-        <logback.version>1.2.3</logback.version>
+        <slf4j-api.version>2.0.0-alpha1</slf4j-api.version>
+        <slf4j-log4j.version>2.13.3</slf4j-log4j.version>
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>
+        <version.failsafe.plugin>3.0.0-M4</version.failsafe.plugin>
     </properties>
 
     <repositories>
@@ -93,11 +93,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>provided</scope>
@@ -125,15 +120,21 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>${slf4j-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>runtime</scope>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${slf4j-log4j.version}</version>
+            <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j18-impl</artifactId>
+            <version>${slf4j-log4j.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
@@ -203,6 +204,7 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
             <version>${test-containers.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -255,10 +257,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${version.failsafe.plugin}</version>
-                <configuration>
-                    <groups>${groups}</groups>
-                    <skipTests>${skipTests}</skipTests>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -269,8 +267,11 @@
                             <systemProperties>
                                 <project.version>${project.version}</project.version>
                                 <native.image.path>${test.app.name}</native.image.path>
-                                <test.storage>${test.storage}</test.storage>
+                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                             </systemProperties>
+                            <environmentVariables>
+                                <REGISTRY_JAR_PATH>../app/target/apicurio-registry-app-${project.version}-runner.jar</REGISTRY_JAR_PATH>
+                            </environmentVariables>
                             <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
                                 <disable>false</disable>
                                 <version>3.0</version>
@@ -279,11 +280,6 @@
                                 <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
                                 <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
                             </statelessTestsetReporter>
-                            <consoleOutputReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5ConsoleOutputReporter">
-                                <disable>false</disable>
-                                <encoding>UTF-8</encoding>
-                                <usePhrasedFileName>true</usePhrasedFileName>
-                            </consoleOutputReporter>
                             <excludes>
                                 <exclude>${exclude.integration.tests}</exclude>
                             </excludes>
@@ -329,7 +325,6 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke | cluster | ui</groups>
             </properties>
         </profile>
 
@@ -361,37 +356,6 @@
             <id>enableConverterTest</id>
             <properties>
                 <exclude.integration.tests>**/NothingToExclude.java</exclude.integration.tests>
-            </properties>
-        </profile>
-
-        <!-- Profiles to set test.storage system property, in case EXTERNAL_REGISTRY env var is set to false
-        this property will be used by the test suite to locally deploy the registry using the indicated storage variant
-         -->
-        <profile>
-            <id>inmemory</id>
-            <properties>
-                <test.storage>inmemory</test.storage>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>streams</id>
-            <properties>
-                <test.storage>streams</test.storage>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>jpa</id>
-            <properties>
-                <test.storage>jpa</test.storage>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>infinispan</id>
-            <properties>
-                <test.storage>infinispan</test.storage>
             </properties>
         </profile>
     </profiles>

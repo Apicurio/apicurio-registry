@@ -17,7 +17,6 @@ package io.apicurio.tests.executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -118,18 +116,7 @@ public class Exec {
      * @return execution results
      */
     public int execute(List<String> command) throws InterruptedException, ExecutionException, IOException {
-        return execute(command, null);
-    }
-
-    /**
-     * Method executes external command
-     *
-     * @param command arguments for command
-     * @param environmentVariables environment variables to be set
-     * @return execution results
-     */
-    public int execute(List<String> command, Map<String, String> environmentVariables) throws InterruptedException, ExecutionException, IOException {
-        return execute(null, command, environmentVariables, 0);
+        return execute(null, command, 0);
     }
 
     /**
@@ -139,7 +126,7 @@ public class Exec {
      * @return execution results
      */
     public int execute(String input, List<String> command) throws InterruptedException, ExecutionException, IOException {
-        return execute(input, command, null, 0);
+        return execute(input, command, 0);
     }
 
     /**
@@ -152,14 +139,11 @@ public class Exec {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public int execute(String input, List<String> commands, Map<String, String> environmentVariables, int timeout) throws IOException, InterruptedException, ExecutionException {
+    public int execute(String input, List<String> commands, int timeout) throws IOException, InterruptedException, ExecutionException {
         LOGGER.trace("Running command - " + join(" ", commands.toArray(new String[0])));
         ProcessBuilder builder = new ProcessBuilder();
         builder.command(commands);
         builder.directory(new File(System.getProperty("user.dir")));
-        if (environmentVariables != null) {
-            builder.environment().putAll(environmentVariables);
-        }
         process = builder.start();
         OutputStream outputStream = process.getOutputStream();
         if (input != null) {
@@ -309,5 +293,4 @@ public class Exec {
             }, runnable -> new Thread(runnable).start());
         }
     }
-
 }

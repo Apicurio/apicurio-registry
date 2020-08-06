@@ -16,22 +16,24 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import org.apache.avro.Schema;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
+
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 
 @Tag(SMOKE)
 public class MetadataConfluentIT extends ConfluentBaseIT {
@@ -40,15 +42,15 @@ public class MetadataConfluentIT extends ConfluentBaseIT {
 
     @Test
     void getAndUpdateMetadataOfSchema() throws IOException, RestClientException, TimeoutException {
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         String schemaSubject = TestUtils.generateArtifactId();
 
         int schemaId = createArtifactViaConfluentClient(schema, schemaSubject);
 
-        schema = confluentService.getById(schemaId);
+        schema = confluentService.getSchemaById(schemaId);
         SchemaMetadata schemaMetadata = confluentService.getSchemaMetadata(schemaSubject, 1);
 
-        LOGGER.info("Scheme name: {} has following metadata: {}", schema.getFullName(), schemaMetadata.getSchema());
+        LOGGER.info("Scheme name: {} has following metadata: {}", schema.name(), schemaMetadata.getSchema());
 
         assertThat(schemaMetadata.getId(), is(schemaId));
         assertThat(schemaMetadata.getVersion(), is(1));

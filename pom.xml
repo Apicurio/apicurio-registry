@@ -763,9 +763,6 @@
             <activation>
                 <jdk>[1.8,)</jdk>
             </activation>
-            <properties>
-                <additionalRuntimeArgLine>-Xmx1g -Djdk.attach.allowAttachSelf=true --add-opens java.base/jdk.internal.module=ALL-UNNAMED --add-opens java.base/jdk.internal.loader=ALL-UNNAMED --add-opens java.base/java.lang.module=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED  --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED</additionalRuntimeArgLine>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -777,6 +774,15 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>java11</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <additionalRuntimeArgLine>-Xmx1g -Djdk.attach.allowAttachSelf=true --add-opens java.base/jdk.internal.module=ALL-UNNAMED --add-opens java.base/jdk.internal.loader=ALL-UNNAMED --add-opens java.base/java.lang.module=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED  --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED</additionalRuntimeArgLine>
+            </properties>
         </profile>
         <!-- 
             conditional repo to be excluded in productization 

@@ -19,11 +19,14 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.client.RegistryRestClient;
+import io.registry.client.CompatibleRestClient;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -38,7 +41,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
-    private static final String REGISTRY_CLIENT_CUSTOM = "createCustom";
+    private static final String REGISTRY_CLIENT_CUSTOM = "createCompatible";
     private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {
@@ -196,7 +199,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                         case REGISTRY_CLIENT_CREATE:
                             return getSupplier(RegistryClient.class.getName());
                         case REGISTRY_CLIENT_CUSTOM:
-                            return getSupplier(RegistryRestClient.class.getName());
+                            return getSupplier(CompatibleRestClient.class.getName());
                     }
                 }
                 default:
@@ -229,7 +232,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                 case REGISTRY_CLIENT_CREATE:
                     return RegistryClient.create(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CUSTOM:
-                    return RegistryRestClient.createCustom(wrapper.registryUrl);
+                    return CompatibleRestClient.createCompatible(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CACHED:
                     return RegistryClient.cached(wrapper.registryUrl);
                 default:

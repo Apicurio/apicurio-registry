@@ -145,19 +145,19 @@
 :LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_rhel/index
 :NameStreamsRhel: Using AMQ Streams on RHEL
 
-// Change Data Capture titles
+// Debezium titles
 
-:LinkCDCInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_openshift/
-:NameCDCInstallOpenShift: Installing Debezium on OpenShift
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
 
-:LinkCDCInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_rhel/
-:NameCDCInstallRHEL: Installing Debezium on RHEL
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
 
-:LinkCDCGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_change_data_capture/index
-:NameCDCGettingStarted: Getting Started with Debezium
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
 
-:LinkCDCUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/debezium_user_guide/index
-:NameCDCUserGuide: Debezium User Guide
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 // Debezium link attributes that are used upstream.  Add attributes as needed.
 

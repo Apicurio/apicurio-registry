@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 /**
@@ -132,6 +133,9 @@ public class ApiServiceImpl implements ApiService {
 
     private void handleArtifactCreation(AsyncResponse response, String artifactId, String versionName, Throwable t) {
         if (t != null) {
+            if(t instanceof CompletionException) {
+                t = ((CompletionException) t).getCause();
+            }
             response.resume(t);
             return;
         }
@@ -233,6 +237,8 @@ public class ApiServiceImpl implements ApiService {
                           populateSchemaSummary(id, item);
                           item.setLatest(getLatestSchemaVersion(id));
                       } catch (ArtifactNotFoundException e) {
+                          // If artifact does not exist (which may occur due to race conditions), swallow
+                          // the exception here and filter the null result out below.
                           return null;
                       }
                       return item;

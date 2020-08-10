@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.metrics;
 
-package io.apicurio.registry.rest;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
-
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
+import javax.ws.rs.NameBinding;
 
 /**
- * @author eric.wittmann@gmail.com
+ * Meta-Annotation used to perform name-binding between REST API methods and
+ * {@link io.apicurio.registry.metrics.RestMetricsResponseFilter} filter
  */
-@ApplicationPath("/api")
-@RestMetricsResponseFilteredNameBinding
-public class RegistryApplication extends Application {
-
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(value = RetentionPolicy.RUNTIME)
+@NameBinding
+public @interface RestMetricsResponseFilteredNameBinding {
 }

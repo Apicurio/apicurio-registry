@@ -18,6 +18,8 @@ package io.apicurio.registry.utils.tests;
 
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.auth.AuthConfig;
+import io.apicurio.registry.client.auth.AuthProvider;
 import io.apicurio.registry.utils.IoUtil;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
@@ -85,6 +87,8 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
         String registryUrl = TestUtils.getRegistryApiUrl();
 
+        AuthConfig config = TestUtils.getAuthConfig(AuthProvider.KEYCLOAK);
+
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.GLOBAL);
 
         List<TestTemplateInvocationContext> invocationCtxts = new ArrayList<>();
@@ -92,7 +96,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         if (testRegistryClient(REGISTRY_CLIENT_CREATE)) {
             RegistryServiceWrapper plain = store.getOrComputeIfAbsent(
                     "plain_client",
-                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CREATE, registryUrl),
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CREATE, registryUrl, config),
                     RegistryServiceWrapper.class
                 );
             invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain, context.getRequiredTestMethod()));
@@ -101,7 +105,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         if (testRegistryClient(REGISTRY_CLIENT_CACHED)) {
             RegistryServiceWrapper cached = store.getOrComputeIfAbsent(
                     "cached_client",
-                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CACHED, registryUrl),
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CACHED, registryUrl, config),
                     RegistryServiceWrapper.class
                 );
             invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(cached, context.getRequiredTestMethod()));
@@ -125,12 +129,14 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         private String key;
         private String method;
         private String registryUrl;
+        private AuthConfig authConfig;
         private volatile AutoCloseable service;
 
-        public RegistryServiceWrapper(String key, String method, String registryUrl) {
+        public RegistryServiceWrapper(String key, String method, String registryUrl, AuthConfig authConfig) {
             this.key = key;
             this.method = method;
             this.registryUrl = registryUrl;
+            this.authConfig = authConfig;
         }
 
         @Override
@@ -203,9 +209,9 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
         private RegistryService createRegistryService() {
             switch (wrapper.method) {
                 case REGISTRY_CLIENT_CREATE:
-                    return RegistryClient.create(wrapper.registryUrl);
+                    return RegistryClient.create(wrapper.registryUrl, wrapper.authConfig);
                 case REGISTRY_CLIENT_CACHED:
-                    return RegistryClient.cached(wrapper.registryUrl);
+                    return RegistryClient.cached(wrapper.registryUrl, wrapper.authConfig);
                 default:
                     throw new IllegalArgumentException("Unsupported registry client method: " + wrapper.method);
             }

@@ -27,6 +27,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
+import io.apicurio.registry.auth.KeycloakResourceManager;
+import io.quarkus.test.common.QuarkusTestResource;
 import org.junit.jupiter.api.Assertions;
 
 import io.apicurio.registry.client.RegistryService;
@@ -46,6 +48,7 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author Ales Justin
  */
 @QuarkusTest
+@QuarkusTestResource(KeycloakResourceManager.class)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest

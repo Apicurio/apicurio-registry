@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
 
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -47,17 +47,17 @@ public abstract class ConfluentBaseIT extends BaseIT {
         clearAllConfluentSubjects();
     }
 
-    public int createArtifactViaConfluentClient(Schema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
+    public int createArtifactViaConfluentClient(ParsedSchema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
         int idOfSchema = confluentService.register(artifactName, schema);
         confluentService.reset(); // clear cache
         TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
             () -> {
                 try {
-                    Schema newSchema = confluentService.getBySubjectAndId(artifactName, idOfSchema);
+                    ParsedSchema newSchema = confluentService.getSchemaBySubjectAndId(artifactName, idOfSchema);
                     LOGGER.info("Checking that created schema is equal to the get schema");
                     assertThat(schema.toString(), is(newSchema.toString()));
                     assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
-                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.getFullName());
+                    LOGGER.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.name());
                     return true;
                 } catch (IOException | RestClientException e) {
                     LOGGER.debug("", e);

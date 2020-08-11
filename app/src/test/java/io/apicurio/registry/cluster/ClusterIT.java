@@ -1,23 +1,6 @@
 package io.apicurio.registry.cluster;
 
-import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.cluster.support.ClusterUtils;
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.support.HealthResponse;
-import io.apicurio.registry.support.HealthUtils;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.quarkus.runtime.configuration.QuarkusConfigFactory;
-import io.smallrye.config.SmallRyeConfig;
-import org.apache.avro.Schema;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.junit.jupiter.api.*;
+import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +10,35 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
-import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.client.RegistryClient;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.cluster.support.ClusterUtils;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.support.HealthResponse;
+import io.apicurio.registry.support.HealthUtils;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.quarkus.runtime.configuration.QuarkusConfigFactory;
+import io.smallrye.config.SmallRyeConfig;
 
 /**
  * @author Ales Justin
@@ -144,7 +155,7 @@ public class ClusterIT {
         SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
 
         String subject = UUID.randomUUID().toString();
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id = client1.register(subject, schema);
         try {
             TestUtils.retry(() -> {
@@ -153,7 +164,7 @@ public class ClusterIT {
             }, "ClusterIT-SmokeTest-RegisterSchema-1", 10);
 
             TestUtils.retry(() -> {
-                Schema s = client2.getById(id);
+                ParsedSchema s = client2.getSchemaById(id);
                 Assertions.assertNotNull(s);
             }, "ClusterIT-SmokeTest-RegisterSchema-2", 10);
         } finally {

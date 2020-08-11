@@ -1,6 +1,5 @@
 /*
  * Copyright 2020 Red Hat
- * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.ibmcompat.model;
+package io.apicurio.registry.metrics;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import javax.validation.constraints.NotNull;
+import javax.ws.rs.NameBinding;
 
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
-public class StateModification extends SchemaModificationPatch {
-
-    private SchemaState value;
-
-    /**
-     *
-     **/
-
-    @JsonProperty("value")
-    @NotNull
-    public SchemaState getValue() {
-        return value;
-    }
-
-    public void setValue(SchemaState value) {
-        this.value = value;
-    }
+/**
+ * Meta-Annotation used to perform name-binding between REST API methods and
+ * {@link io.apicurio.registry.metrics.RestMetricsResponseFilter} filter
+ */
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(value = RetentionPolicy.RUNTIME)
+@NameBinding
+public @interface RestMetricsResponseFilteredNameBinding {
 }
-

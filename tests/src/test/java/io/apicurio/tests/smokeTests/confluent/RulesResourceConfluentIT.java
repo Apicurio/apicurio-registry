@@ -16,17 +16,19 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
-import org.apache.avro.Schema;
+import static io.apicurio.tests.Constants.SMOKE;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.tests.Constants.SMOKE;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 
 @Tag(SMOKE)
 public class RulesResourceConfluentIT extends ConfluentBaseIT {
@@ -37,14 +39,14 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
     void compatibilityGlobalRules() throws Exception {
         GlobalRuleUtils.createGlobalCompatibilityConfig("FULL");
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
         String schemeSubject = TestUtils.generateArtifactId();
         int schemaId = createArtifactViaConfluentClient(schema, schemeSubject);
 
-        confluentService.getById(schemaId);
+        confluentService.getSchemaById(schemaId);
 
-        Schema newSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema newSchema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
         createArtifactViaConfluentClient(newSchema, schemeSubject);
 

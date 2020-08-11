@@ -19,7 +19,7 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.client.CompatibleRestClient;
+import io.registry.client.CompatibleClient;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 
@@ -199,7 +199,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                         case REGISTRY_CLIENT_CREATE:
                             return getSupplier(RegistryClient.class.getName());
                         case REGISTRY_CLIENT_CUSTOM:
-                            return getSupplier(CompatibleRestClient.class.getName());
+                            return getSupplier(CompatibleClient.class.getName());
                     }
                 }
                 default:
@@ -232,7 +232,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                 case REGISTRY_CLIENT_CREATE:
                     return RegistryClient.create(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CUSTOM:
-                    return CompatibleRestClient.createCompatible(wrapper.registryUrl);
+                    return CompatibleClient.createCompatible(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CACHED:
                     return RegistryClient.cached(wrapper.registryUrl);
                 default:

@@ -25,6 +25,7 @@ import io.registry.client.service.ArtifactsService;
 import io.registry.client.service.IdsService;
 import io.registry.client.service.RulesService;
 import io.registry.client.service.SearchService;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -35,11 +36,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public class RegistryRestClient implements RegistryService {
+public class RegistryClient implements RegistryService {
 
     private final Retrofit retrofit;
     private ArtifactsService artifactsService;
@@ -47,7 +49,7 @@ public class RegistryRestClient implements RegistryService {
     private SearchService searchService;
     private IdsService idsService;
 
-    protected RegistryRestClient(String baseUrl) {
+    private RegistryClient(String baseUrl) {
 
         retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -57,7 +59,20 @@ public class RegistryRestClient implements RegistryService {
         initServices(retrofit);
     }
 
-    private RegistryRestClient(String baseUrl, OkHttpClient okHttpClient) {
+    private RegistryClient(String baseUrl, OkHttpClient okHttpClient) {
+
+        retrofit = new Retrofit.Builder()
+                .client(okHttpClient)
+                .addConverterFactory(JacksonConverterFactory.create())
+                .baseUrl(baseUrl)
+                .build();
+
+        initServices(retrofit);
+    }
+
+    private RegistryClient(String baseUrl, Map<String, String> headers) {
+
+        final OkHttpClient okHttpClient = createWithHeaders(headers);
 
         retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
@@ -69,11 +84,24 @@ public class RegistryRestClient implements RegistryService {
     }
 
     public static RegistryService create(String baseUrl) {
-        return new RegistryRestClient(baseUrl);
+        return new RegistryClient(baseUrl);
     }
 
     public static RegistryService create(String baseUrl, OkHttpClient okHttpClient) {
-        return new RegistryRestClient(baseUrl, okHttpClient);
+        return new RegistryClient(baseUrl, okHttpClient);
+    }
+
+    public static RegistryService create(String baseUrl, Map<String, String> headers) {
+        return new RegistryClient(baseUrl, headers);
+    }
+
+    private static OkHttpClient createWithHeaders(Map<String, String> headers) {
+
+        final Interceptor headersInterceptor = new HeadersInterceptor(headers);
+
+        return new OkHttpClient.Builder()
+                .addInterceptor(headersInterceptor)
+                .build();
     }
 
     private void initServices(Retrofit retrofit) {

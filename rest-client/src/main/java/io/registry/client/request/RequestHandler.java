@@ -48,7 +48,7 @@ public class RequestHandler {
             try {
                 return ConcurrentUtil.get(result);
             } catch (RuntimeException e) {
-                handleError(e.getCause());
+                handleError(e);
             }
             return null;
         }

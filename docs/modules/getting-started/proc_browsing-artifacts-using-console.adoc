@@ -9,7 +9,7 @@ You can use the {registry} web console to browse the event schema and API design
 .Prerequisites
 
 * {registry} must be installed and running in your environment. For details, see xref:installing-the-registry[].
-* Artifacts must have been added to the registry using the {registry} web console, REST API commands, Maven repository, or a Java client application. 
+* Artifacts must have been added to the registry using the {registry} web console, REST API commands, Maven plug-in, or a Java client application. 
 
 .Procedure
 
@@ -18,12 +18,14 @@ You can use the {registry} web console to browse the event schema and API design
 `*\http://MY_REGISTRY_URL/ui*`
 
 . Browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific *Name*, *Description*, *Label*, or *Everything*.  
-
++
+.Browse artifacts in {registry} web console
+image::images/getting-started/registry-web-console.png[Browse artifacts in Registry web console]
++
 . Click *View artifact* to view the *Artifact Details*:
 
-** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click *Edit Artifact Metadata* to edit the artifact name and description or add labels, and click *Download* to download the artifact file. Also displays artifact *Content Rules* that you can enable and configure.
-
-** *Documentation* (OpenAPI and WSDL only): Displays automatically-generated REST or Web Service API documentation.
+** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
+** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 
 . Select to view a different artifact *Version* from the drop-down, if additional versions have been added.

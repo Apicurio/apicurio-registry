@@ -1,7 +1,7 @@
 name: Release Workflow
 on:
   pull_request:
-    branches: [master]
+    branches: [1.2.x]
     types: [closed]
     paths:
       - '.github/project.yaml'
@@ -41,8 +41,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout 1.2.x
+          git branch --set-upstream-to=origin/1.2.x
           git pull
       - name: Apicurio Website Code Checkout
         run: |

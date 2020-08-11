@@ -227,7 +227,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {
-
         return null == filter || metadataValues.stream().anyMatch(value -> stringMetadataContainsFilter(filter, value));
     }
 

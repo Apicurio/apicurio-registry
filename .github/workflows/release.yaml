@@ -1,7 +1,7 @@
 name: Release Workflow
 on:
   pull_request:
-    branches: [1.2.x]
+    branches: [master, 1.2.x]
     types: [closed]
     paths:
       - '.github/project.yaml'

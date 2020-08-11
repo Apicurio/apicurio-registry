@@ -20,7 +20,7 @@ import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.client.callback.ResultCallback;
+import io.registry.client.request.RequestHandler;
 import io.registry.client.service.ArtifactsService;
 import io.registry.client.service.IdsService;
 import io.registry.client.service.RulesService;
@@ -44,6 +44,8 @@ import java.util.Map;
 public class RegistryClient implements RegistryService {
 
     private final Retrofit retrofit;
+    private final RequestHandler requestHandler;
+
     private ArtifactsService artifactsService;
     private RulesService rulesService;
     private SearchService searchService;
@@ -51,21 +53,25 @@ public class RegistryClient implements RegistryService {
 
     private RegistryClient(String baseUrl) {
 
-        retrofit = new Retrofit.Builder()
+        this.retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .addConverterFactory(JacksonConverterFactory.create())
                 .build();
+
+        this.requestHandler = new RequestHandler();
 
         initServices(retrofit);
     }
 
     private RegistryClient(String baseUrl, OkHttpClient okHttpClient) {
 
-        retrofit = new Retrofit.Builder()
+        this.retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
                 .addConverterFactory(JacksonConverterFactory.create())
                 .baseUrl(baseUrl)
                 .build();
+
+        this.requestHandler = new RequestHandler();
 
         initServices(retrofit);
     }
@@ -74,11 +80,13 @@ public class RegistryClient implements RegistryService {
 
         final OkHttpClient okHttpClient = createWithHeaders(headers);
 
-        retrofit = new Retrofit.Builder()
+        this.retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
                 .addConverterFactory(JacksonConverterFactory.create())
                 .baseUrl(baseUrl)
                 .build();
+
+        this.requestHandler = new RequestHandler();
 
         initServices(retrofit);
     }
@@ -114,377 +122,206 @@ public class RegistryClient implements RegistryService {
     @Override
     public List<String> listArtifacts() {
 
-        final ResultCallback<List<String>> artifacts = new ResultCallback<>();
-
-        artifactsService.listArtifacts()
-                .enqueue(artifacts);
-
-        return artifacts.getResult();
+        return requestHandler.execute(artifactsService.listArtifacts());
     }
 
     @Override
     public ArtifactMetaData createArtifact(ArtifactType artifactType, String artifactId, IfExistsType ifExistsType, InputStream data) {
 
-        final ResultCallback<ArtifactMetaData> result = new ResultCallback<>();
-
-        artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(null, IoUtil.toBytes(data)))
-                .enqueue(result);
-
-        return result.getResult();
+        return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(null, IoUtil.toBytes(data))));
     }
 
     @Override
     public Response getLatestArtifact(String artifactId) {
 
-        final ResultCallback<ResponseBody> resultCallback = new ResultCallback<>();
-
-        artifactsService.getLatestArtifact(artifactId)
-                .enqueue(resultCallback);
-
-        ResponseBody result = resultCallback.getResult();
-
-        return parseResponseBody(result);
+        return parseResponseBody(requestHandler.execute(artifactsService.getLatestArtifact(artifactId)));
     }
 
     @Override
     public ArtifactMetaData updateArtifact(String artifactId,
-                                                            ArtifactType xRegistryArtifactType, InputStream data) {
+                                           ArtifactType xRegistryArtifactType, InputStream data) {
 
-        final ResultCallback<ArtifactMetaData> result = new ResultCallback<>();
-
-        artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data)))
-                .enqueue(result);
-
-        return result.getResult();
+        return requestHandler.execute(artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
     }
 
     @Override
     public void deleteArtifact(String artifactId) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.deleteArtifact(artifactId)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.deleteArtifact(artifactId));
     }
 
     @Override
     public void updateArtifactState(String artifactId, UpdateState data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.updateArtifactState(artifactId, data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.updateArtifactState(artifactId, data));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
 
-        final ResultCallback<ArtifactMetaData> resultCallback = new ResultCallback<>();
-
-        artifactsService.getArtifactMetaData(artifactId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.getArtifactMetaData(artifactId));
     }
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.updateArtifactMetaData(artifactId, data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.updateArtifactMetaData(artifactId, data));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
                                                          InputStream data) {
 
-        final ResultCallback<ArtifactMetaData> resultCallback = new ResultCallback<>();
-
-        artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(null, IoUtil.toBytes(data)))
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(null, IoUtil.toBytes(data))));
     }
 
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
 
-        final ResultCallback<List<Long>> resultCallback = new ResultCallback<>();
-
-        artifactsService.listArtifactVersions(artifactId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.listArtifactVersions(artifactId));
     }
 
     @Override
     public VersionMetaData createArtifactVersion(String artifactId,
-                                                                  ArtifactType xRegistryArtifactType, InputStream data) {
+                                                 ArtifactType xRegistryArtifactType, InputStream data) {
 
-        final ResultCallback<VersionMetaData> result = new ResultCallback<>();
-
-        artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data)))
-                .enqueue(result);
-
-        return result.getResult();
+        return requestHandler.execute(artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
     }
 
     @Override
     public Response getArtifactVersion(Integer version,
                                        String artifactId) {
 
-        final ResultCallback<ResponseBody> resultCallback = new ResultCallback<>();
-
-        artifactsService.getArtifactVersion(version, artifactId)
-                .enqueue(resultCallback);
-
-        final ResponseBody result = resultCallback.getResult();
-
-        return parseResponseBody(result);
+        return parseResponseBody(requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId)));
     }
 
     @Override
     public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.updateArtifactVersionState(version, artifactId, data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.updateArtifactVersionState(version, artifactId, data));
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
 
-        final ResultCallback<VersionMetaData> resultCallback = new ResultCallback<>();
-
-        artifactsService.getArtifactVersionMetaData(version, artifactId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.getArtifactVersionMetaData(version, artifactId));
     }
 
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.updateArtifactVersionMetaData(version, artifactId, data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.updateArtifactVersionMetaData(version, artifactId, data));
     }
 
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.deleteArtifactVersionMetaData(version, artifactId)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.deleteArtifactVersionMetaData(version, artifactId));
     }
 
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
 
-        final ResultCallback<List<RuleType>> resultCallback = new ResultCallback<>();
-
-        artifactsService.listArtifactRules(artifactId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.listArtifactRules(artifactId));
     }
 
     @Override
     public void createArtifactRule(String artifactId, Rule data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.createArtifactRule(artifactId, data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.createArtifactRule(artifactId, data));
     }
 
     @Override
     public void deleteArtifactRules(String artifactId) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.deleteArtifactRules(artifactId)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.deleteArtifactRules(artifactId));
     }
 
     @Override
     public Rule getArtifactRuleConfig(RuleType rule,
                                       String artifactId) {
 
-        final ResultCallback<Rule> resultCallback = new ResultCallback<>();
-
-        artifactsService.getArtifactRuleConfig(rule, artifactId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.getArtifactRuleConfig(rule, artifactId));
     }
 
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule,
                                          String artifactId, Rule data) {
 
-        final ResultCallback<Rule> resultCallback = new ResultCallback<>();
-
-        artifactsService.updateArtifactRuleConfig(rule, artifactId, data)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(artifactsService.updateArtifactRuleConfig(rule, artifactId, data));
     }
 
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.deleteArtifactRule(rule, artifactId)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.deleteArtifactRule(rule, artifactId));
     }
 
     @Override
     public void testUpdateArtifact(String artifactId,
                                    ArtifactType xRegistryArtifactType, InputStream data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data)))
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
     }
 
     @Override
     public Response getArtifactByGlobalId(long globalId) {
 
-        final ResultCallback<ResponseBody> resultCallback = new ResultCallback<>();
-
-        idsService.getArtifactByGlobalId(globalId)
-                .enqueue(resultCallback);
-
-        final ResponseBody result = resultCallback.getResult();
-
-        return parseResponseBody(result);
+        return parseResponseBody(requestHandler.execute(idsService.getArtifactByGlobalId(globalId)));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
 
-        final ResultCallback<ArtifactMetaData> resultCallback = new ResultCallback<>();
-
-        idsService.getArtifactMetaDataByGlobalId(globalId)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(idsService.getArtifactMetaDataByGlobalId(globalId));
     }
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order) {
 
-        final ResultCallback<ArtifactSearchResults> resultCallback = new ResultCallback<>();
-
-        searchService.searchArtifacts(search, offset, limit, over, order)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(searchService.searchArtifacts(search, offset, limit, over, order));
     }
 
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
 
-        final ResultCallback<VersionSearchResults> resultCallback = new ResultCallback<>();
-
-        searchService.searchVersions(artifactId, offset, limit)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(searchService.searchVersions(artifactId, offset, limit));
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
 
-        final ResultCallback<Rule> resultCallback = new ResultCallback<>();
-
-        rulesService.getGlobalRuleConfig(rule)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(rulesService.getGlobalRuleConfig(rule));
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
 
-        final ResultCallback<Rule> resultCallback = new ResultCallback<>();
-
-        rulesService.updateGlobalRuleConfig(rule, data)
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(rulesService.updateGlobalRuleConfig(rule, data));
     }
 
     @Override
     public void deleteGlobalRule(RuleType rule) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        rulesService.deleteGlobalRule(rule)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(rulesService.deleteGlobalRule(rule));
     }
 
     @Override
     public List<RuleType> listGlobalRules() {
 
-        final ResultCallback<List<RuleType>> resultCallback = new ResultCallback<>();
-
-        rulesService.listGlobalRules()
-                .enqueue(resultCallback);
-
-        return resultCallback.getResult();
+        return requestHandler.execute(rulesService.listGlobalRules());
     }
 
     @Override
     public void createGlobalRule(Rule data) {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        rulesService.createGlobalRule(data)
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(rulesService.createGlobalRule(data));
     }
 
     @Override
     public void deleteAllGlobalRules() {
 
-        final ResultCallback<Void> resultCallback = new ResultCallback<>();
-
-        rulesService.deleteAllGlobalRules()
-                .enqueue(resultCallback);
-
-        resultCallback.getResult();
+        requestHandler.execute(rulesService.deleteAllGlobalRules());
     }
 
     private Response parseResponseBody(ResponseBody result) {

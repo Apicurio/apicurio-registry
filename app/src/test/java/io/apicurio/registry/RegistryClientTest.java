@@ -30,6 +30,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.auth.KeycloakResourceManager;
+import io.quarkus.test.common.QuarkusTestResource;
 import org.junit.jupiter.api.Assertions;
 
 import io.apicurio.registry.client.RegistryRestClient;
@@ -51,6 +53,7 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author Ales Justin
  */
 @QuarkusTest
+@QuarkusTestResource(KeycloakResourceManager.class)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     @RegistryRestClientTest
@@ -289,7 +292,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
 
             retry((() -> {
-                ArtifactSearchResults results = client
+                ArtifactSearchResults results = restClient
                         .searchArtifacts("open api", SearchOver.labels, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());

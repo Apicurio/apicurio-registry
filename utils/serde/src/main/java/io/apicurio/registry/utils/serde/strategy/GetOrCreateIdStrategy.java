@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 
 /**

@@ -17,7 +17,6 @@
 package io.apicurio.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.service.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;

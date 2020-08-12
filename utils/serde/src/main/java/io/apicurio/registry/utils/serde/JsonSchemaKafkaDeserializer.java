@@ -18,7 +18,7 @@ package io.apicurio.registry.utils.serde;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;

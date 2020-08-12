@@ -15,7 +15,7 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;

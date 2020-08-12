@@ -29,7 +29,7 @@ import javax.ws.rs.core.Response;
 
 import org.junit.jupiter.api.Assertions;
 
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.UpdateState;

@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.concurrent.CompletionStage;
 
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;

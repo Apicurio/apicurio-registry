@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worldturner.medeia.api.StringSchemaSource;
 import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.serde.util.Utils;
 import org.apache.kafka.common.serialization.Serializer;
 

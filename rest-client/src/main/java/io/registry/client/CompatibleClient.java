@@ -16,10 +16,12 @@
 package io.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
+import javax.enterprise.inject.Vetoed;
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
@@ -29,9 +31,16 @@ import java.util.concurrent.CompletionStage;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
+@Vetoed // not a bean
+@Path("__dummy_hack_apicurio")
 public class CompatibleClient implements RegistryService {
 
     private final io.registry.client.RegistryService delegate;
+
+    public CompatibleClient() {
+        // hack + client side only
+        delegate = null;
+    }
 
     private CompatibleClient(String baseUrl) {
         this.delegate = RegistryClient.create(baseUrl);

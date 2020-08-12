@@ -18,7 +18,7 @@ package io.apicurio.registry.utils.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;

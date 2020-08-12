@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.service.RegistryService;
+import io.apicurio.registry.client.RegistryService;
 
 import java.util.Map;
 import java.util.Objects;

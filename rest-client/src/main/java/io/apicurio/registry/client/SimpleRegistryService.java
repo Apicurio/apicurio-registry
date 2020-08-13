@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.registry.client;
+package io.apicurio.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-interface RegistryService {
+public interface SimpleRegistryService {
 
     List<String> listArtifacts();
 

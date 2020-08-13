@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.registry.client;
+package io.apicurio.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -35,7 +34,7 @@ import java.util.concurrent.CompletionStage;
 @Path("__dummy_hack_apicurio")
 public class CompatibleClient implements RegistryService {
 
-    private final io.registry.client.RegistryService delegate;
+    private final SimpleRegistryService delegate;
 
     public CompatibleClient() {
         // hack + client side only
@@ -43,7 +42,7 @@ public class CompatibleClient implements RegistryService {
     }
 
     private CompatibleClient(String baseUrl) {
-        this.delegate = RegistryClient.create(baseUrl);
+        this.delegate = SimpleRegistryClient.create(baseUrl);
     }
 
     public static RegistryService createCompatible(String baseUrl) {

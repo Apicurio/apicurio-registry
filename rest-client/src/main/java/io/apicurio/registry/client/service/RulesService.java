@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.registry.client.service;
+package io.apicurio.registry.client.service;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;

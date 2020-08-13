@@ -1,4 +1,4 @@
-package io.registry.client.request;
+package io.apicurio.registry.client.request;
 
 import io.apicurio.registry.utils.ConcurrentUtil;
 import retrofit2.Call;

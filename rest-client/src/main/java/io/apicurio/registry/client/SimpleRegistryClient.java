@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package io.registry.client;
+package io.apicurio.registry.client;
 
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.client.request.RequestHandler;
-import io.registry.client.service.ArtifactsService;
-import io.registry.client.service.IdsService;
-import io.registry.client.service.RulesService;
-import io.registry.client.service.SearchService;
+import io.apicurio.registry.client.request.RequestHandler;
+import io.apicurio.registry.client.service.ArtifactsService;
+import io.apicurio.registry.client.service.IdsService;
+import io.apicurio.registry.client.service.RulesService;
+import io.apicurio.registry.client.service.SearchService;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -41,7 +41,7 @@ import java.util.Map;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public class RegistryClient implements RegistryService {
+public class SimpleRegistryClient implements SimpleRegistryService {
 
     private final Retrofit retrofit;
     private final RequestHandler requestHandler;
@@ -51,7 +51,7 @@ public class RegistryClient implements RegistryService {
     private SearchService searchService;
     private IdsService idsService;
 
-    private RegistryClient(String baseUrl) {
+    private SimpleRegistryClient(String baseUrl) {
 
         this.retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -63,7 +63,7 @@ public class RegistryClient implements RegistryService {
         initServices(retrofit);
     }
 
-    private RegistryClient(String baseUrl, OkHttpClient okHttpClient) {
+    private SimpleRegistryClient(String baseUrl, OkHttpClient okHttpClient) {
 
         this.retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
@@ -76,7 +76,7 @@ public class RegistryClient implements RegistryService {
         initServices(retrofit);
     }
 
-    private RegistryClient(String baseUrl, Map<String, String> headers) {
+    private SimpleRegistryClient(String baseUrl, Map<String, String> headers) {
 
         final OkHttpClient okHttpClient = createWithHeaders(headers);
 
@@ -91,16 +91,16 @@ public class RegistryClient implements RegistryService {
         initServices(retrofit);
     }
 
-    public static RegistryService create(String baseUrl) {
-        return new RegistryClient(baseUrl);
+    public static SimpleRegistryService create(String baseUrl) {
+        return new SimpleRegistryClient(baseUrl);
     }
 
-    public static RegistryService create(String baseUrl, OkHttpClient okHttpClient) {
-        return new RegistryClient(baseUrl, okHttpClient);
+    public static SimpleRegistryService create(String baseUrl, OkHttpClient okHttpClient) {
+        return new SimpleRegistryClient(baseUrl, okHttpClient);
     }
 
-    public static RegistryService create(String baseUrl, Map<String, String> headers) {
-        return new RegistryClient(baseUrl, headers);
+    public static SimpleRegistryService create(String baseUrl, Map<String, String> headers) {
+        return new SimpleRegistryClient(baseUrl, headers);
     }
 
     private static OkHttpClient createWithHeaders(Map<String, String> headers) {

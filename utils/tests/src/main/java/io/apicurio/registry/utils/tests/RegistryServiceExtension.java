@@ -19,7 +19,7 @@ package io.apicurio.registry.utils.tests;
 import io.apicurio.registry.client.RegistryClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.IoUtil;
-import io.registry.client.CompatibleClient;
+import io.apicurio.registry.client.CompatibleClient;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.util.AnnotationUtils;
 

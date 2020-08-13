@@ -27,7 +27,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * Maximum number of timeouts as captured by this interceptor,
      * before the readiness check fails.
      */
-    @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
+    @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "5")
     Integer configErrorThreshold;
 
     /**
@@ -48,7 +48,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
     /**
      * Set the operation duration in seconds, after which it's considered an error.
      */
-    @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", defaultValue = "5")
+    @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", defaultValue = "15")
     Integer configTimeoutSec;
 
     private Duration timeoutSec;

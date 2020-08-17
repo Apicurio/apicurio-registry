@@ -131,7 +131,7 @@
         <infinispan.version>12.0.0.Dev01</infinispan.version>
 
         <!-- gRPC -->
-        <grpc.version>1.31.0</grpc.version>
+        <grpc.version>1.31.1</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>5.5.1</confluent.version>

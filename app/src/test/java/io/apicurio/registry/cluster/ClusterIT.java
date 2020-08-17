@@ -191,10 +191,12 @@ public class ClusterIT {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
 
-            EditableMetaData emd = new EditableMetaData();
-            emd.setName(name);
-            emd.setDescription(desc);
-            client2.updateArtifactMetaData(artifactId, emd);
+            TestUtils.retry(() -> {
+                EditableMetaData emd = new EditableMetaData();
+                emd.setName(name);
+                emd.setDescription(desc);
+                client2.updateArtifactMetaData(artifactId, emd);
+            });
 
             TestUtils.retry(() -> {
                 ArtifactSearchResults results = client2.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);

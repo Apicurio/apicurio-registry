@@ -47,7 +47,6 @@ public class SearchUtil {
     }
 
     public static SearchedArtifact buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {
-
         final SearchedArtifact searchedArtifact = new SearchedArtifact();
         searchedArtifact.setId(artifactMetaData.getId());
         searchedArtifact.setName(artifactMetaData.getName());

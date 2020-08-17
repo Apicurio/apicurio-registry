@@ -7,35 +7,21 @@
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-If you do not already have {kafka-streams} or a compatible Kafka Streams-based system installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
-The following versions are supported:
-
-ifdef::apicurio-registry[]
-* Apache Kafka Streams 2.3.x
-* Apache Kafka Streams 2.2.x
-endif::[]
-
-ifdef::rh-service-registry[]
-* AMQ Streams 1.4
-* OpenShift 4.4 or 4.3   
-endif::[]
 
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster 
 ifdef::rh-service-registry[]
-* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/getting-started-str[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
 
 .Procedure
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Create a new OpenShift project:
-
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
-.. Enter a project name, for example, `my-registry-project`, and click *Create*.
+. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 ifdef::apicurio-registry[]
@@ -46,12 +32,15 @@ ifdef::rh-service-registry[]
 endif::[]
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
-. Select the following subscription settings:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-registry-project*
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+ifdef::apicurio-registry[]
 ** *Update Channel* > *stable*
-** *Approval Strategy* > *Automatic*
-+
-NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.
+endif::[]
+ifdef::rh-service-registry[]
+** *Update Channel* > *amq-streams-1.5.x*
+endif::[]
+** *Approval Strategy* > *Manual*
 
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
 

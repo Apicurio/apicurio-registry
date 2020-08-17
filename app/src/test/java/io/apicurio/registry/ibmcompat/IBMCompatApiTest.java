@@ -30,8 +30,8 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 
 @QuarkusTest
@@ -89,6 +89,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Get the list of artifacts via ibmcompat API
         List<SchemaListItem> schemas = given()
             .when()
+                .param("per_page", 200)
                 .get("/ibmcompat/schemas")
             .then()
                 .statusCode(200)
@@ -197,18 +198,15 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .body("enabled", is(false))
                 .body("state.state", equalTo("active"))
                 .body("versions.size()", is(2))
-                // Note: we can't currently ensure that the versions have been updated prior to returning them here (for some async storages).
-                // FIXME enable these assertions once we've updated the IBM compat and storage layers appropriately
-//                .body("versions[0].id", is(1))
-//                .body("versions[0].state.state", equalTo("active"))
-//                .body("versions[0].enabled", is(false))
-//                .body("versions[1].id", is(2))
-//                .body("versions[1].state.state", equalTo("active"))
-//                .body("versions[1].enabled", is(false))
-                ;
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("active"))
+                .body("versions[0].enabled", is(false))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("active"))
+                .body("versions[1].enabled", is(false));
 
 
-        // Patch the schema deprecated state via ibmcompat API
+        // Patch the schame deprecated state via ibmcompat API
         given()
             .when()
                 .contentType(CT_JSON)
@@ -221,14 +219,12 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .body("enabled", is(true))
                 .body("state.state", equalTo("deprecated"))
                 .body("versions.size()", is(2))
-                // Note: we can't currently ensure that the versions have been updated prior to returning them here (for some async storages).
-                // FIXME enable these assertions once we've updated the IBM compat and storage layers appropriately
-//                .body("versions[0].id", is(1))
-//                .body("versions[0].state.state", equalTo("deprecated"))
-//                .body("versions[0].enabled", is(true))
-//                .body("versions[1].id", is(2))
-//                .body("versions[1].state.state", equalTo("deprecated"))
-//                .body("versions[1].enabled", is(true))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("deprecated"))
+                .body("versions[0].enabled", is(true))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("deprecated"))
+                .body("versions[1].enabled", is(true))
                 ;
     }
 

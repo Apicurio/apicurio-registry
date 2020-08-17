@@ -9,6 +9,7 @@ import io.apicurio.registry.streams.distore.proto.KeyValueStoreGrpc;
 import io.apicurio.registry.streams.distore.proto.Size;
 import io.apicurio.registry.streams.distore.proto.Value;
 import io.apicurio.registry.streams.distore.proto.VoidReq;
+import io.apicurio.registry.utils.ProtoUtil;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -79,7 +80,10 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
     public void filter(FilterReq request, StreamObserver<io.apicurio.registry.streams.distore.proto.KeyValue> responseObserver) {
         boolean ok = false;
         try (
-            Stream stream = keyValueStore(request.getStoreName()).filter(request.getFilter(), request.getOver())
+                Stream stream = keyValueStore(request.getStoreName()).filter(
+                        ProtoUtil.emptyAsNull(request.getFilter()),
+                        request.getOver()
+                )
         ) {
             drainToKeyValue(request.getStoreName(), stream, responseObserver);
             ok = true;

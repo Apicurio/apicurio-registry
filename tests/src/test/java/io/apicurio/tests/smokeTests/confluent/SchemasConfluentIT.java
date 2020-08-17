@@ -29,7 +29,6 @@ import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.WebApplicationException;
 
-import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -44,6 +43,8 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.Constants;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.response.Response;
 
@@ -56,13 +57,13 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     void createAndUpdateSchema() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, artifactId);
 
-        Schema updatedSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo2\",\"type\":\"long\"}]}");
+        ParsedSchema updatedSchema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo2\",\"type\":\"long\"}]}");
         createArtifactViaConfluentClient(updatedSchema, artifactId);
 
-        assertThrows(SchemaParseException.class, () -> new Schema.Parser().parse("<type>record</type>\n<name>test</name>"));
+        assertThrows(SchemaParseException.class, () -> new AvroSchema("<type>record</type>\n<name>test</name>"));
         assertThat(confluentService.getAllVersions(artifactId), hasItems(1, 2));
 
         confluentService.deleteSubject(artifactId);
@@ -76,7 +77,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         for (int i = 0; i < 50; i++) {
             String name = "myrecord" + i;
             String subjectName = prefix + i;
-            Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+            ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
             createArtifactViaConfluentClient(schema, subjectName);
         }
 
@@ -100,9 +101,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     void deleteSchemasSpecificVersion() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, artifactId);
-        schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
+        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, artifactId);
 
         List<Integer> schemeVersions = confluentService.getAllVersions(artifactId);
@@ -115,7 +116,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
         assertThat(schemeVersions, hasItems(1));
 
-        schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
+        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, artifactId);
 
         confluentService.deleteSchemaVersion(artifactId, "2");
@@ -150,10 +151,10 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     void createSchemaSpecifyVersion() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(schema, artifactId);
 
-        Schema updatedArtifact = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        ParsedSchema updatedArtifact = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         createArtifactViaConfluentClient(updatedArtifact, artifactId);
 
         List<Integer> schemaVersions = confluentService.getAllVersions(artifactId);
@@ -175,7 +176,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
         String rawSchema = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema schema = new AvroSchema(rawSchema);
         createArtifactViaConfluentClient(schema, subjectName);
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
@@ -198,7 +199,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         int globalId = createArtifactViaConfluentClient(schema, subjectName);
 
         assertThat(1, is(confluentService.getAllSubjects().size()));

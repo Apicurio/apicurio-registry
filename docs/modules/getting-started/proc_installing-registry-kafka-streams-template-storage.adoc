@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-kafka-kubernetes-storage"]
+[id="installing-registry-kafka-streams-template-storage"]
 
 = Installing {registry} with {kafka-streams} storage using an OpenShift template
 

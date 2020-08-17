@@ -60,6 +60,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
@@ -431,13 +432,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
         LongAdder itemsCount = new LongAdder();
         List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
-            .peek(artifactId -> itemsCount.increment())
-            .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, getArtifactMetaData(kv1.key), getArtifactMetaData(kv2.key)))
+            .peek((kv) -> itemsCount.increment())
+            .map(kv -> getArtifactMetaDataOrNull(kv.key))
+            .filter(Objects::nonNull)
+            .sorted((art1, art2) -> SearchUtil.compare(sortOrder, art1, art2))
             .skip(offset)
             .limit(limit)
-            .map(kv -> SearchUtil.buildSearchedArtifact(
-                MetaDataKeys.toArtifactMetaData(findMetadata(search, searchOver.value(), kv.value)))
-            )
+            .map(SearchUtil::buildSearchedArtifact)
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
@@ -465,6 +467,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
 
         return artifactMetaDataDto;
+    }
+
+    private ArtifactMetaDataDto getArtifactMetaDataOrNull(String artifactId) {
+        try {
+            return getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException ex) {
+            return null;
+        }
     }
 
     @Override

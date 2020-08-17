@@ -304,6 +304,8 @@ public class ApiServiceImpl implements ApiService {
             info.setEnabled(true);
         } else if(ArtifactState.DEPRECATED.equals(artifactState)) {
             info.getState().setState(SchemaState.StateEnum.DEPRECATED);
+            // Note: Can't be deprecated and disabled at the same time - Apicurio Registry has a single state for this.
+            info.setEnabled(true);
         }
         for(SchemaVersion version: info.getVersions()) {
             setSchemaVersionState(artifactState, version);

@@ -62,6 +62,7 @@ public class TestUtils {
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
     private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
     public static final String REGISTRY = "registry";
+    public static final String KEYCLOAK_AUTH_URL = "http://localhost:8090/auth";
 
     private TestUtils() {
         // All static methods
@@ -85,7 +86,7 @@ public class TestUtils {
 
     public static AuthConfig getAuthConfig(AuthProvider authProvider){
         AuthConfig config = new AuthConfig.Builder(authProvider)
-                .setServerUrl("http://localhost:8280/auth")
+                .setServerUrl(KEYCLOAK_AUTH_URL)
                 .setClientId("admin-cli")
                 .setRealm(REGISTRY)
                 .setUsername("admin")

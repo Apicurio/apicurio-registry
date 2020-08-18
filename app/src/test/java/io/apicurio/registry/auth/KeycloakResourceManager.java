@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.util.*;
 
 public class KeycloakResourceManager implements QuarkusTestResourceLifecycleManager {
-	private static final String KEYCLOAK_SERVER_URL = System.getProperty("keycloak.url", "http://localhost:8280/auth");
+	private static final String KEYCLOAK_SERVER_URL = System.getProperty("keycloak.url", "http://localhost:8090/auth");
 	private static final String KEYCLOAK_REALM = "registry";
-	public static final String REGISTRY_APP = "registry-app";
+	public static final String REGISTRY_APP = "registry-api";
 
 	static {
 		RestAssured.useRelaxedHTTPSValidation();
@@ -76,8 +76,7 @@ public class KeycloakResourceManager implements QuarkusTestResourceLifecycleMana
 	private static ClientRepresentation createClient(String clientId) {
 		ClientRepresentation client = new ClientRepresentation();
 		client.setClientId(clientId);
-		client.setPublicClient(false);
-		client.setSecret("secret");
+		client.setPublicClient(true);
 		client.setDirectAccessGrantsEnabled(true);
 		client.setEnabled(true);
 		return client;

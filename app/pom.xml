@@ -380,6 +380,7 @@
         <profile>
             <id>docker-keycloak</id>
             <activation>
+                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>docker</name>
                 </property>

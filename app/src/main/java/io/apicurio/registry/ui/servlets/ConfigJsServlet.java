@@ -36,6 +36,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.ui.beans.ConfigJs;
+import io.apicurio.registry.utils.StringUtil;
 
 /**
  * Generates the 'config.js' file imported by the UI.
@@ -44,11 +45,19 @@ import io.apicurio.registry.ui.beans.ConfigJs;
 public class ConfigJsServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1624928159818173418L;
-    
+
     @Inject
     @ConfigProperty(name = "registry.ui.features.readOnly")
     Boolean featureReadOnly;
-    
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.uiUrl")
+    String uiUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.apiUrl")
+    String apiUrl;
+
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -91,8 +100,15 @@ public class ConfigJsServlet extends HttpServlet {
      */
     private String generateApiUrl(HttpServletRequest request) {
         try {
+            if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
+                return apiUrl;
+            }
+            
             String url = request.getRequestURL().toString();
             url = new URI(url).resolve("/api").toString();
+            if (url.startsWith("http:") && request.isSecure()) {
+                url = url.replaceFirst("http", "https");
+            }
             return url;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
@@ -105,8 +121,15 @@ public class ConfigJsServlet extends HttpServlet {
      */
     private String generateUiUrl(HttpServletRequest request) {
         try {
+            if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
+                return uiUrl;
+            }
+
             String url = request.getRequestURL().toString();
             url = new URI(url).resolve("/ui").toString();
+            if (url.startsWith("http:") && request.isSecure()) {
+                url = url.replaceFirst("http", "https");
+            }
             return url;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);

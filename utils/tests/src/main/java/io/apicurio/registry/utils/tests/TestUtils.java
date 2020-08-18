@@ -62,6 +62,10 @@ public class TestUtils {
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
     private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
     public static final String REGISTRY = "registry";
+    public static final String ADMIN = "admin";
+    public static final String REGISTRY_API = "registry-api";
+    public static final String SECRET = "secret";
+    public static final String KEYCLOAK = "KEYCLOAK";
     public static final String KEYCLOAK_AUTH_URL = "http://localhost:8090/auth";
 
     private TestUtils() {
@@ -87,10 +91,11 @@ public class TestUtils {
     public static AuthConfig getAuthConfig(AuthProvider authProvider){
         AuthConfig config = new AuthConfig.Builder(authProvider)
                 .setServerUrl(KEYCLOAK_AUTH_URL)
-                .setClientId("admin-cli")
+                .setClientId(REGISTRY_API)
                 .setRealm(REGISTRY)
-                .setUsername("admin")
-                .setPassword("admin")
+                .setUsername(ADMIN)
+                .setPassword(ADMIN)
+                .setClientSecret(SECRET)
                 .Build();
         return config;
     }

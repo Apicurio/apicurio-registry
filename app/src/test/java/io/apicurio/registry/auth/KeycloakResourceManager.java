@@ -77,6 +77,7 @@ public class KeycloakResourceManager implements QuarkusTestResourceLifecycleMana
 		ClientRepresentation client = new ClientRepresentation();
 		client.setClientId(clientId);
 		client.setPublicClient(true);
+		client.setSecret("secret");
 		client.setDirectAccessGrantsEnabled(true);
 		client.setEnabled(true);
 		return client;
@@ -99,6 +100,19 @@ public class KeycloakResourceManager implements QuarkusTestResourceLifecycleMana
 		user.getCredentials().add(credential);
 
 		return user;
+	}
+
+	public static String getAccessToken(String userName) {
+		return RestAssured
+				.given()
+				.param("grant_type", "password")
+				.param("username", userName)
+				.param("password", userName)
+				.param("client_id", REGISTRY_APP)
+				.param("client_secret", "secret")
+				.when()
+				.post(KEYCLOAK_SERVER_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/token")
+				.as(AccessTokenResponse.class).getToken();
 	}
 
 	@Override

@@ -15,6 +15,8 @@
  */
 package io.apicurio.registry.util;
 
+import io.apicurio.registry.auth.KeycloakResourceManager;
+import io.restassured.http.Header;
 import io.restassured.specification.RequestSpecification;
 
 import static io.restassured.RestAssured.given;
@@ -25,7 +27,8 @@ import static io.restassured.RestAssured.given;
 public class AuthUtil {
 
     public static RequestSpecification givenAuthenticated() {
-
-        return given().auth().basic("user", "user");
+        //given().auth().basic("user", "user")
+        String token = "Bearer "+ KeycloakResourceManager.getAccessToken("admin");
+        return given().header(new Header("Authorization", token));
     }
 }

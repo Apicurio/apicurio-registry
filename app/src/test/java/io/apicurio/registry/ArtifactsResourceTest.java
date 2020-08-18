@@ -1099,7 +1099,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
                 .then()
                     .statusCode(404);
-            given()
+            givenAuthenticated()
                 .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}")

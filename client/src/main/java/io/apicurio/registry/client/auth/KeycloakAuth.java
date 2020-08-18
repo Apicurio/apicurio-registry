@@ -4,6 +4,7 @@ import org.keycloak.admin.client.KeycloakBuilder;
 
 public class KeycloakAuth implements AuthStrategy {
 
+    public static final String BEARER = "Bearer ";
     private Keycloak keycloak;
 
     public KeycloakAuth(AuthConfig config) {
@@ -18,6 +19,6 @@ public class KeycloakAuth implements AuthStrategy {
 
     @Override
     public String getToken() {
-        return this.keycloak.tokenManager().getAccessToken().getToken();
+        return BEARER+this.keycloak.tokenManager().getAccessToken().getToken();
     }
 }

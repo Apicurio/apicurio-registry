@@ -24,8 +24,8 @@ import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import org.apache.avro.Schema;
-import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 
 import java.io.IOException;
@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, AvroKafkaSerializer<U>> {
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private AvroDatumProvider<U> avroDatumProvider = new DefaultAvroDatumProvider<>();
+    private AvroEncoding encoding;
 
     public AvroKafkaSerializer() {
     }
@@ -70,7 +71,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
-
+        encoding = AvroEncoding.fromConfig(configs);
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
         //noinspection unchecked
         Consumer<AvroDatumProvider> consumer =
@@ -91,7 +92,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
 
     @Override
     protected void serializeData(Schema schema, U data, OutputStream out) throws IOException {
-        BinaryEncoder encoder = encoderFactory.directBinaryEncoder(out, null);
+        Encoder encoder = createEncoder(schema, out);
 
         // I guess this can happen if generics are lost with reflection ...
         if (data instanceof NonRecordContainer) {
@@ -102,5 +103,13 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         DatumWriter<U> writer = avroDatumProvider.createDatumWriter(data, schema);
         writer.write(data, encoder);
         encoder.flush();
+    }
+
+    private Encoder createEncoder(Schema schema, OutputStream os) throws IOException {
+        if(encoding == AvroEncoding.JSON) {
+            return encoderFactory.jsonEncoder(schema, os);
+        } else {
+            return encoderFactory.directBinaryEncoder(os, null);
+        }
     }
 }

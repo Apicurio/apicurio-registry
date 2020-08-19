@@ -24,13 +24,14 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
+import javax.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
@@ -38,6 +39,7 @@ import javax.ws.rs.core.Response;
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U, AvroKafkaDeserializer<U>> {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private AvroDatumProvider<U> avroDatumProvider;
+    private AvroEncoding encoding;
 
     public AvroKafkaDeserializer() {
         this(null);
@@ -62,6 +64,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         super.configure(configs, isKey);
 
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
+        encoding = AvroEncoding.fromConfig(configs);
         //noinspection unchecked,rawtypes
         Consumer<AvroDatumProvider> consumer =
             ((Consumer<AvroDatumProvider>) avroDatumProvider -> avroDatumProvider.configure(configs))
@@ -78,7 +81,14 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     protected U readData(Schema schema, ByteBuffer buffer, int start, int length) {
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema);
-            return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
+            if( encoding == AvroEncoding.JSON) {
+                // copy the data into a new byte[]
+                byte[] msgData = new byte[length];
+                System.arraycopy(buffer.array(), start, msgData, 0, 17);
+                return reader.read(null, decoderFactory.jsonDecoder(schema, new ByteArrayInputStream(msgData)));
+            } else {
+                return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

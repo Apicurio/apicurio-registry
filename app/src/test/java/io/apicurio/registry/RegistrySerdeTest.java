@@ -216,7 +216,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
             HashMap<String, String> config = new HashMap();
-            config.put(AvroEncoding.AVRO_ENCODING, AvroEncoding.AVRO_JSON );
+            config.put(AvroEncoding.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
             serializer.configure(config,false);
             deserializer.configure(config, false);
 

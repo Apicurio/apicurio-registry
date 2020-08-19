@@ -19,10 +19,13 @@ package io.apicurio.registry.rest;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationPath("/api")
+@RestMetricsResponseFilteredNameBinding
 public class RegistryApplication extends Application {
 
 }

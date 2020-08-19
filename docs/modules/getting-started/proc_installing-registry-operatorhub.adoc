@@ -11,58 +11,39 @@ You can install the {registry} Operator on your OpenShift cluster from the Opera
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster.
-* You must have installed and set up your registry storage environment. For more details, see
-** xref:installing-kafka-streams-operatorhub[]
-** xref:setting-up-kafka-kubernetes-storage[]
-//** xref:setting-up-postgresql-storage[] 
 
 .Procedure
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Change to the OpenShift project in which your registry storage is installed and configured. For example, from the *Project* drop-down, select `my-registry-project`. 
+. Create a new OpenShift project:
+
+.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. Enter a project name, for example, `my-project`, and click *Create*.
 
 . In the left navigation menu, click *Catalog* > *OperatorHub*.
 ifdef::apicurio-registry[]
-. In the *Filter by keyword* text box, enter `{registry}` to find the *{registry} Operator*.
+. In the *Filter by keyword* text box, enter `Registry` to find the *{registry} Operator*.
 endif::[]
 ifdef::rh-service-registry[]
-. In the *Filter by keyword* text box, enter `{registry}` to find the *Red Hat Integration - {registry} Operator*.
+. In the *Filter by keyword* text box, enter `Registry` to find the *Red Hat Integration - {registry} Operator*.
 endif::[]
 . Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
 
-. Select the following subscription settings:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-registry-project*
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+ifdef::rh-service-registry[]
+** *Update Channel* > *serviceregistry-1.0*
+endif::[]
+ifdef::apicurio-registry[]
 ** *Update Channel* > *alpha*
-** *Approval Strategy* > *Automatic*
-+
-NOTE: The *Installation mode* > *All namespaces on the cluster* and *Approval Strategy* > *Manual* settings are also available if required by your environment.
+endif::[]
+** *Approval Strategy* > *Manual*
 
 . Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
 
 . Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
 
-. Create a new {registry} instance, for example:
-+
-ifdef::apicurio-registry[]
-.. Under *{registry}* > *Provided APIs*, click *Create Instance*.
-endif::[]
-ifdef::rh-service-registry[]
-.. Under *Red Hat Integration - {registry} Operator* > *Provided APIs*, click *Create Instance*.
-endif::[]
-.. Edit the defintion as appropriate for your chosen {registry} storage type. For example, see the sample custom resource definitions:
-*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/streams.yaml[Kafka Streams] 
-*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/infinispan.yaml[Embedded Infinispan (Technical Preview)] 
-*** link:https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/resources/example-cr/postgresql.yaml[PostgreSQL database (Technical Preview)] 
-.. Click *Create {registry}*. 
-
-. Verify that {registry} is installed correctly and running by connecting to the following URLs:
-** {registry} web console: 
-+
-`*\http://MY_REGISTRY_URL/ui*`
-** {registry} REST API documentation: 
-+
-`*\http://MY_REGISTRY_URL/api*`
 
 .Additional resources
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

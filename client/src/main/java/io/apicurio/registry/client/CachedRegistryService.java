@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Ales Justin
  */
+@SuppressWarnings("deprecation")
 @Vetoed // not a bean
 @Path("__dummy_hack_apicurio")
 class CachedRegistryService implements RegistryService {

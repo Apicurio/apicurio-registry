@@ -233,12 +233,19 @@ public class TestUtils {
     }
 
     public static <T> T retry(Callable<T> callable) throws Exception {
-        return retry(callable, "Action #" + System.currentTimeMillis());
+        return retry(callable, "Action #" + System.currentTimeMillis(), 5);
     }
 
-    public static <T> T retry(Callable<T> callable, String name) throws Exception {
+    public static void retry(RunnableExc runnable, String name, int maxRetries) throws Exception {
+        retry(() -> {
+            runnable.run();
+            return null;
+        }, name, maxRetries);
+    }
+
+    public static <T> T retry(Callable<T> callable, String name, int maxRetries) throws Exception {
         Throwable error = null;
-        int tries = 5;
+        int tries = maxRetries;
         int attempt = 1;
         while (tries > 0) {
             try {

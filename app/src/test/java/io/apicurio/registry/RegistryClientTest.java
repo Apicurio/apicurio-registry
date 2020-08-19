@@ -16,19 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
-
-import org.junit.jupiter.api.Assertions;
-
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
@@ -41,6 +28,18 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 /**
  * @author Ales Justin
@@ -113,6 +112,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+
+        // Try searching for *everything*.  This test was added due to Issue #661
+        results = client.searchArtifacts(null, null, null, null, null);
+        Assertions.assertNotNull(results);
+        Assertions.assertTrue(results.getCount() > 0);
     }
 
     @RegistryServiceTest
@@ -267,8 +271,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(firstName, descResults.getArtifacts().get(2).getName());
 
             ArtifactSearchResults searchIdOverName = client.searchArtifacts(firstArtifactId, 0, 5, SearchOver.name, SortOrder.asc);
-            Assertions.assertEquals(firstName, ascResults.getArtifacts().get(0).getName());
-            Assertions.assertEquals(firstArtifactId, ascResults.getArtifacts().get(0).getId());
+            Assertions.assertEquals(firstName, searchIdOverName.getArtifacts().get(0).getName());
+            Assertions.assertEquals(firstArtifactId, searchIdOverName.getArtifacts().get(0).getId());
 
         } finally {
             client.deleteArtifact(firstArtifactId);

@@ -17,17 +17,17 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import javax.ws.rs.WebApplicationException;
+
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Register artifacts against registry.
@@ -45,22 +45,14 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
     public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) throws IOException {
         try {
             try (InputStream stream = handle.stream()) {
-                CompletionStage<ArtifactMetaData> cs = getClient().updateArtifact(artifactId, artifactType, stream);
-                return unwrap(cs);
+                return getClient().createArtifact(artifactType, artifactId, IfExistsType.RETURN_OR_UPDATE, stream);
             }
-        } catch (WebApplicationException e) {
-            if (isNotFound(e.getResponse())) {
-                try (InputStream stream = handle.stream()) {
-                    CompletionStage<ArtifactMetaData> cs = getClient().createArtifact(artifactType, artifactId, null, stream);
-                    return unwrap(cs);
-                }
-            } else {
-                throw new IllegalStateException(String.format(
-                    "Error [%s] retrieving artifact: %s",
-                    e.getMessage(),
-                    artifactId)
-                );
-            }
+        } catch (Exception e) {
+            throw new IllegalStateException(String.format(
+                "Error [%s] registering artifact: %s",
+                e.getMessage(),
+                artifactId)
+            );
         }
     }
 

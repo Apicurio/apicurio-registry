@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,25 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.ArtifactsResource;
-import io.apicurio.registry.rest.IdsResource;
-import io.apicurio.registry.rest.RulesResource;
-import io.apicurio.registry.rest.SearchResource;
+import java.util.Map;
+
+import okhttp3.OkHttpClient;
 
 /**
- * @author Ales Justin
+ * @author eric.wittmann@gmail.com
  */
-public interface RegistryService extends ArtifactsResource, IdsResource, RulesResource, SearchResource, AutoCloseable {
-    void reset();
+public class RegistryRestClientFactory {
+
+    public static RegistryRestClient create(String baseUrl) {
+        return new RegistryRestClientImpl(baseUrl);
+    }
+
+    public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {
+        return new RegistryRestClientImpl(baseUrl, okHttpClient);
+    }
+
+    public static RegistryRestClient create(String baseUrl, Map<String, String> headers) {
+        return new RegistryRestClientImpl(baseUrl, headers);
+    }
+
 }

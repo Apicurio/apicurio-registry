@@ -17,17 +17,17 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import org.apache.maven.plugins.annotations.Parameter;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.HttpURLConnection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
+
 import javax.ws.rs.core.Response;
+
+import org.apache.maven.plugins.annotations.Parameter;
+
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Base class for Mojo's that handle content.
@@ -82,10 +82,6 @@ public abstract class ContentRegistryMojo extends AbstractRegistryMojo {
             });
         }
         return results;
-    }
-
-    protected <R> R unwrap(CompletionStage<R> cs) {
-        return ConcurrentUtil.result(cs);
     }
 
     protected boolean isBadRequest(Response response) {

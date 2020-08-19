@@ -334,6 +334,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifact(java.lang.String, ArtifactType, java.io.InputStream)
      */
+    @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         return updateArtifactInternal(artifactId, xRegistryArtifactType, content)

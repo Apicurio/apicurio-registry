@@ -104,7 +104,12 @@ public class ConfigJsServlet extends HttpServlet {
                 return apiUrl;
             }
             
-            String url = request.getRequestURL().toString();
+            String url = resolveUrlFromXForwarded(request, "/api");
+            if (url != null) {
+                return url;
+            }
+            
+            url = request.getRequestURL().toString();
             url = new URI(url).resolve("/api").toString();
             if (url.startsWith("http:") && request.isSecure()) {
                 url = url.replaceFirst("http", "https");
@@ -124,8 +129,13 @@ public class ConfigJsServlet extends HttpServlet {
             if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
                 return uiUrl;
             }
+            
+            String url = resolveUrlFromXForwarded(request, "/ui");
+            if (url != null) {
+                return url;
+            }
 
-            String url = request.getRequestURL().toString();
+            url = request.getRequestURL().toString();
             url = new URI(url).resolve("/ui").toString();
             if (url.startsWith("http:") && request.isSecure()) {
                 url = url.replaceFirst("http", "https");
@@ -135,7 +145,23 @@ public class ConfigJsServlet extends HttpServlet {
             throw new RuntimeException(e);
         }
     }
-    
+
+    /**
+     * Resolves a URL path relative to the information found in X-Forwarded-Host and X-Forwarded-Proto.
+     * @param path
+     */
+    private String resolveUrlFromXForwarded(HttpServletRequest request, String path) {
+        try {
+            String fproto = request.getHeader("X-Forwarded-Proto");
+            String fhost = request.getHeader("X-Forwarded-Host");
+            if (!StringUtil.isEmpty(fproto) && !StringUtil.isEmpty(fhost)) {
+                return new URI(fproto + "://" + fhost).resolve(path).toString();
+            }
+        } catch (URISyntaxException e) {
+        }
+        return null;
+    }
+
     /**
      * Returns true if the "read only" feature is enabled.
      */

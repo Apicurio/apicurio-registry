@@ -72,11 +72,10 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         super.configure(configs, isKey);
 
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
-        //noinspection unchecked
-        Consumer<AvroDatumProvider> consumer =
-            ((Consumer<AvroDatumProvider>) avroDatumProvider -> avroDatumProvider.configure(configs))
-                .andThen(this::setAvroDatumProvider);
+        //noinspection rawtypes
+        Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
         instantiate(AvroDatumProvider.class, adp, consumer);
+        avroDatumProvider.configure(configs);
     }
 
     @Override

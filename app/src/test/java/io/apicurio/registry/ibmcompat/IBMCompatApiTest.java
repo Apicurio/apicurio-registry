@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,12 +39,12 @@ import static org.hamcrest.Matchers.notNullValue;
 public class IBMCompatApiTest extends AbstractResourceTestBase {
 
     @Test
-    public void testCreateSchema() throws Exception {
+    public void testCreateSchema() {
 
         // Convert the file contents to a JSON string value
         String schemaDefinition = resourceToString("avro.json")
-            .replaceAll("\\\"", "\\\\\"")
-            .replaceAll("\\\n", "\\\\n");
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n");
 
         String schemaName = "testCreateSchema_userInfo";
         String versionName = "testversion_1.0.0";
@@ -87,22 +88,35 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaName, ArtifactType.AVRO, artifactContent);
 
         // Get the list of artifacts via ibmcompat API
-        List<SchemaListItem> schemas = given()
-            .when()
-                .param("per_page", 200)
-                .get("/ibmcompat/schemas")
-            .then()
-                .statusCode(200)
-                .extract().body().as(new TypeRef<List<SchemaListItem>>(){});
+        SchemaListItem schema;
+        int page = 0;
+        while (true) {
+            List<SchemaListItem> schemas = given()
+                    .when()
+                    .get("/ibmcompat/schemas?page=" + page)
+                    .then()
+                    .statusCode(200)
+                    .extract().body().as(new TypeRef<List<SchemaListItem>>() {
+                    });
 
-        // Find the schema that was just added
-        SchemaListItem schema = schemas.stream()
-            .filter(item -> schemaName.equals(item.getId()))
-            .findFirst()
-            .get();
+            if (schemas.isEmpty()) {
+                Assertions.fail("No such schema present: " + schemaName);
+            }
+
+            // Find the schema that was just added
+            Optional<SchemaListItem> so = schemas.stream()
+                    .filter(item -> schemaName.equals(item.getId()))
+                    .findFirst();
+            if (so.isPresent()) {
+                schema = so.get();
+                break;
+            } else {
+                page++;
+            }
+        }
 
         Assertions.assertEquals(schemaName, schema.getName());
-        Assertions.assertEquals(true, schema.isEnabled());
+        Assertions.assertTrue(schema.isEnabled());
         Assertions.assertEquals(SchemaState.StateEnum.ACTIVE, schema.getState().getState());
         Assertions.assertEquals(1, schema.getLatest().getId());
         Assertions.assertEquals("userInfo", schema.getLatest().getName());
@@ -168,8 +182,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         String artifactContent = resourceToString("avro.json");
         String version2SchemaDefinition = artifactContent
-            .replaceAll("\\\"", "\\\\\"")
-            .replaceAll("\\\n", "\\\\n");
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n");
         String schemaName = "testPatchSchemaState_userInfo";
         String version2Name = "testversion_2.0.0";
 
@@ -261,8 +275,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         String artifactContent = resourceToString("avro.json");
         String newSchemaDefinition = artifactContent
-            .replaceAll("\\\"", "\\\\\"")
-            .replaceAll("\\\n", "\\\\n");
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n");
 
         String schemaName = "testCreateSchemaVersion_userInfo";
         String newVersionName = "testversion_2.0.0";
@@ -297,8 +311,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         String artifactContent = resourceToString("avro.json");
         String newSchemaDefinition = artifactContent
-            .replaceAll("\\\"", "\\\\\"")
-            .replaceAll("\\\n", "\\\\n");
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n");
         String schemaName = "testDeleteSchemaVersion_userInfo";
         String newVersionName = "testversion_2.0.0";
 
@@ -337,8 +351,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         String artifactContent = resourceToString("avro.json");
         String version2SchemaDefinition = artifactContent
-            .replaceAll("\\\"", "\\\\\"")
-            .replaceAll("\\\n", "\\\\n");
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n");
         String schemaName = "testPatchSchemaVersionState_userInfo";
         String version2Name = "testversion_2.0.0";
 

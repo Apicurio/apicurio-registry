@@ -9,10 +9,9 @@
     <name>verify-registry-maven-deploy</name>
     <description>Simple Project to verify the deployment of Apicurio Registry JARS</description>
 
- 
-
     <properties>
-        <version.apicurio>To Be Filled at Runtime using "-Dversion.apicurio=1.x.x.Final"</version.apicurio>
+        <!-- To be filled at runtime using "-Dversion.apicurio=1.x.x.Final" -->
+        <version.apicurio>TBD</version.apicurio>
     </properties>
 
     <dependencies>

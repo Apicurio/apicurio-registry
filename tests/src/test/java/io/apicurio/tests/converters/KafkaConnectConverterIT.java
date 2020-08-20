@@ -161,6 +161,7 @@ public class KafkaConnectConverterIT extends BaseIT {
     PostgreSQLContainer<?> postgres;
     DebeziumContainer debeziumContainer;
 
+    @SuppressWarnings("resource")
     @BeforeEach
     public void startContainers() {
         String apicurioVersion = System.getProperty("project.version");

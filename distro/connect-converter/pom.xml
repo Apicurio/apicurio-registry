@@ -36,32 +36,14 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.resteasy</groupId>
-                    <artifactId>resteasy-client-microprofile</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>apicurio-registry-rest-client</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.ext.microprofile</groupId>
-            <artifactId>jersey-mp-rest-client</artifactId>
-            <version>${version.jersey}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.ext.microprofile</groupId>
-            <artifactId>jersey-mp-config</artifactId>
-            <version>${version.jersey}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.geronimo.config</groupId>
-            <artifactId>geronimo-config-impl</artifactId>
-            <version>${version.geronimo.config}</version>
-            <scope>runtime</scope>
-        </dependency>
+<!--         <dependency> -->
+<!--             <groupId>org.apache.geronimo.config</groupId> -->
+<!--             <artifactId>geronimo-config-impl</artifactId> -->
+<!--             <version>${version.geronimo.config}</version> -->
+<!--             <scope>runtime</scope> -->
+<!--         </dependency> -->
     </dependencies>
 
     <build>

@@ -65,7 +65,7 @@ import java.util.Set;
 /**
  * Utilities for converting between our runtime data format and Avro, and (de)serializing that data.
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "rawtypes", "unchecked"})
 public class AvroData {
 
     public static final String NAMESPACE = "io.confluent.connect.avro";

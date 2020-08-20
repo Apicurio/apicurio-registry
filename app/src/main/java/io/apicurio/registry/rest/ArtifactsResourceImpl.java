@@ -21,13 +21,29 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
-import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.search.client.SearchClient;
 import io.apicurio.registry.search.common.Search;
-import io.apicurio.registry.storage.*;
-import io.apicurio.registry.types.*;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -57,7 +73,13 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
@@ -96,23 +118,30 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     private static final int GET_ARTIFACT_IDS_LIMIT = 10000;
 
     /**
+     * Make sure this is ONLY used when request instance is active.
+     * e.g. in actual http request
+     */
+    private String getContentType() {
+        return request.getContentType();
+    }
+
+    /**
      * Figures out the artifact type in the following order of precedent:
      * <p>
      * 1) The provided X-Registry-ArtifactType header
      * 2) A hint provided in the Content-Type header
      * 3) Determined from the content itself
      *
-     * @param content the content
+     * @param content       the content
      * @param xArtifactType the artifact type
-     * @param request http request
+     * @param ct            content type from request API
      */
-    private static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, HttpServletRequest request) {
+    private static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String ct) {
         ArtifactType artifactType = xArtifactType;
         if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(request);
+            artifactType = getArtifactTypeFromContentType(ct);
             if (artifactType == null) {
-                String contentType = request.getContentType();
-                artifactType = ArtifactTypeUtil.discoverType(content, contentType);
+                artifactType = ArtifactTypeUtil.discoverType(content, ct);
             }
         }
         return artifactType;
@@ -121,10 +150,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     /**
      * Tries to figure out the artifact type by analyzing the content-type.
      *
-     * @param request http request
+     * @param contentType the content type header
      */
-    private static ArtifactType getArtifactTypeFromContentType(HttpServletRequest request) {
-        String contentType = request.getHeader("Content-Type");
+    private static ArtifactType getArtifactTypeFromContentType(String contentType) {
         if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
             String[] split = contentType.split(";");
             if (split.length > 1) {
@@ -176,24 +204,31 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExists(ArtifactType artifactType,
-                                                             String artifactId, IfExistsType ifExists, ContentHandle content) {
+    private CompletionStage<ArtifactMetaData> handleIfExists(
+            ArtifactType artifactType,
+            String artifactId,
+            IfExistsType ifExists,
+            ContentHandle content,
+            String ct) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(artifactId);
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(artifactId, artifactType, content);
+                return updateArtifactInternal(artifactId, artifactType, content, ct);
             case RETURN:
                 return CompletableFuture.completedFuture(artifactMetaData);
             case RETURN_OR_UPDATE:
-                return handleIfExistsReturnOrUpdate(artifactId, artifactType, content);
+                return handleIfExistsReturnOrUpdate(artifactId, artifactType, content, ct);
             default:
                 throw new ArtifactAlreadyExistsException(artifactId);
         }
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(String artifactId,
-            ArtifactType artifactType, ContentHandle content) {
+    private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(
+            String artifactId,
+            ArtifactType artifactType,
+            ContentHandle content,
+            String ct) {
         try {
             ArtifactMetaDataDto mdDto = this.storage.getArtifactMetaData(artifactId, content);
             ArtifactMetaData md = DtoUtil.dtoToMetaData(artifactId, artifactType, mdDto);
@@ -201,7 +236,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(artifactId, artifactType, content);
+        return updateArtifactInternal(artifactId, artifactType, content, ct);
     }
 
     @Override
@@ -245,11 +280,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
-        if (ContentTypeUtil.isApplicationYaml(request)) {
+        String ct = getContentType();
+        if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
@@ -258,8 +294,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
-            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+                                                            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
+        String ct = getContentType();
         final ContentHandle finalContent = content;
         try {
             String artifactId = xRegistryArtifactId;
@@ -267,11 +304,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             if (artifactId == null || artifactId.trim().isEmpty()) {
                 artifactId = idGenerator.generate();
             }
-            if (ContentTypeUtil.isApplicationYaml(request)) {
+            if (ContentTypeUtil.isApplicationYaml(ct)) {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
-            ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+            ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
             return storage.createArtifact(artifactId, artifactType, content)
@@ -285,12 +322,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                         throw new CompletionException(t);
                     })
                     .thenCompose(amd -> amd == null ?
-                            handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent) :
+                            handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct) :
                             CompletableFuture.completedFuture(DtoUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
                     )
                     .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd));
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content)
+            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct)
                     .thenCompose(amdd -> indexArtifact(xRegistryArtifactId, finalContent, amdd));
         }
     }
@@ -320,13 +357,17 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return builder.build();
     }
 
-    private CompletionStage<ArtifactMetaData> updateArtifactInternal(String artifactId, ArtifactType xRegistryArtifactType, ContentHandle content) {
+    private CompletionStage<ArtifactMetaData> updateArtifactInternal(
+            String artifactId,
+            ArtifactType xRegistryArtifactType,
+            ContentHandle content,
+            String ct) {
         Objects.requireNonNull(artifactId);
-        if (ContentTypeUtil.isApplicationYaml(request)) {
+        if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         return storage.updateArtifact(artifactId, artifactType, content).thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
@@ -337,7 +378,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
-        return updateArtifactInternal(artifactId, xRegistryArtifactType, content)
+        return updateArtifactInternal(artifactId, xRegistryArtifactType, content, getContentType())
                 .thenCompose(amdd -> indexArtifact(artifactId, content, amdd));
     }
 
@@ -365,11 +406,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
-        if (ContentTypeUtil.isApplicationYaml(request)) {
+        String ct = getContentType();
+        if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, request);
+        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         final ContentHandle finalContent = content;
         return storage.updateArtifact(artifactId, artifactType, content)
@@ -477,7 +519,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
-        if (ContentTypeUtil.isApplicationYaml(request)) {
+        if (ContentTypeUtil.isApplicationYaml(getContentType())) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 

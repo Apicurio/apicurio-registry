@@ -168,25 +168,36 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
 
     private Artifact _getArtifact(String artifactId, EnumSet<ArtifactState> states) {
         requireNonNull(artifactId);
-        String query = "SELECT a.* FROM artifacts a ";
+        List<Artifact> artifacts;
         if (states != null) {
             String statesQuery = states
                     .stream()
                     .map(s -> s.toString())
                     .collect(Collectors.joining(","));
-            query += String.format(
+            String query = String.format(
+                     "SELECT a.* " +
+                     "FROM artifacts a " +
                      "INNER JOIN " +
                      "  (SELECT artifact_id, max(version) AS MaxVersion " +
                      "  FROM meta " +
-                     "  WHERE key = '%s' AND value = ANY('{%s}'::text[]) " +
+                     "  WHERE artifact_id = '%s' AND key = '%s' AND value = ANY('{%s}'::text[]) " +
                      "  GROUP BY artifact_id) b " +
                      "ON a.artifact_id = b.artifact_id AND a.version = b.MaxVersion",
+                     artifactId,
                      MetaDataKeys.STATE,
                      statesQuery);
+            artifacts = entityManager.createNativeQuery(query, Artifact.class)
+                    .setMaxResults(1)
+                    .getResultList();
+        } else {
+            artifacts = entityManager.createQuery(
+                    "SELECT a FROM Artifact a " +
+                            "WHERE a.artifactId = :artifact_id " +
+                            "ORDER BY a.version DESC ", Artifact.class)
+                    .setParameter("artifact_id", artifactId)
+                    .setMaxResults(1)
+                    .getResultList();
         }
-        List<Artifact> artifacts = entityManager.createNativeQuery(query, Artifact.class)
-                .setMaxResults(1)
-                .getResultList();
 
         if (artifacts.isEmpty())
             throw new ArtifactNotFoundException(artifactId);

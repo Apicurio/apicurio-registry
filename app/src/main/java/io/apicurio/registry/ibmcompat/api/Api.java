@@ -16,6 +16,7 @@
  */
 package io.apicurio.registry.ibmcompat.api;
 
+import io.apicurio.registry.ibmcompat.api.impl.ApiUtil;
 import io.apicurio.registry.ibmcompat.model.NewSchema;
 import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
 import io.apicurio.registry.ibmcompat.model.Schema;
@@ -96,7 +97,7 @@ public class Api {
     @Produces({"application/json"})
     public Response apiSchemasSchemaidDelete(@PathParam("schemaid") String schemaid)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidDelete(schemaid);
+        return service.apiSchemasSchemaidDelete(ApiUtil.normalizeSchemaID(schemaid));
     }
 
     @GET
@@ -104,7 +105,7 @@ public class Api {
     @Produces({"application/json"})
     public SchemaInfo apiSchemasSchemaidGet(@PathParam("schemaid") String schemaid)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidGet(schemaid);
+        return service.apiSchemasSchemaidGet(ApiUtil.normalizeSchemaID(schemaid));
     }
 
     @PATCH
@@ -113,7 +114,7 @@ public class Api {
     @Produces({"application/json"})
     public Response apiSchemasSchemaidPatch(@PathParam("schemaid") String schemaid, @NotNull @Valid List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidPatch(schemaid, schemaModificationPatches);
+        return service.apiSchemasSchemaidPatch(ApiUtil.normalizeSchemaID(schemaid), schemaModificationPatches);
     }
 
     @POST
@@ -127,7 +128,7 @@ public class Api {
         @DefaultValue("false") @QueryParam("verify") boolean verify
     )
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
-        service.apiSchemasSchemaidVersionsPost(response, schemaid, schema, verify);
+        service.apiSchemasSchemaidVersionsPost(response, ApiUtil.normalizeSchemaID(schemaid), schema, verify);
     }
 
     @DELETE
@@ -135,7 +136,7 @@ public class Api {
     @Produces({"application/json"})
     public Response apiSchemasSchemaidVersionsVersionnumDelete(@PathParam("schemaid") String schemaid, @PathParam("versionnum") int versionnum)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidVersionsVersionnumDelete(schemaid, versionnum);
+        return service.apiSchemasSchemaidVersionsVersionnumDelete(ApiUtil.normalizeSchemaID(schemaid), versionnum);
     }
 
     @GET
@@ -143,7 +144,7 @@ public class Api {
     @Produces({"application/json", "application/vnd.apache.avro+json"})
     public Schema apiSchemasSchemaidVersionsVersionnumGet(@PathParam("schemaid") String schemaid, @PathParam("versionnum") int versionnum)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidVersionsVersionnumGet(schemaid, versionnum);
+        return service.apiSchemasSchemaidVersionsVersionnumGet(ApiUtil.normalizeSchemaID(schemaid), versionnum);
     }
 
     @PATCH
@@ -152,6 +153,6 @@ public class Api {
     @Produces({"application/json"})
     public Response apiSchemasSchemaidVersionsVersionnumPatch(@PathParam("schemaid") String schemaid, @PathParam("versionnum") int versionnum, @NotNull @Valid List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidVersionsVersionnumPatch(schemaid, versionnum, schemaModificationPatches);
+        return service.apiSchemasSchemaidVersionsVersionnumPatch(ApiUtil.normalizeSchemaID(schemaid), versionnum, schemaModificationPatches);
     }
 }

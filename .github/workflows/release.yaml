@@ -186,7 +186,7 @@ jobs:
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-streams:latest apicurio/apicurio-registry-streams:latest-release 
       - name: Verify Docker Release For jpa
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-jpa:latest apicurio/apicurio-registry-jpa:latest-release 
-      - name: Verify Docker Release For mem
+      - name: Verify Docker Release For infinispan
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
       - name: Verify Maven Release
         run: |

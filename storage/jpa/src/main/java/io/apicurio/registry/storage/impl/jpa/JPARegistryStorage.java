@@ -168,22 +168,30 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
 
     private Artifact _getArtifact(String artifactId, EnumSet<ArtifactState> states) {
         requireNonNull(artifactId);
-        List<Artifact> artifacts = entityManager.createQuery(
-            "SELECT a FROM Artifact a " +
-            "WHERE a.artifactId = :artifact_id " +
-            "ORDER BY a.version DESC ", Artifact.class)
-                                                .setParameter("artifact_id", artifactId)
-                                                .getResultList();
-
-        for (Artifact artifact : artifacts) {
-            ArtifactState state = getState(artifactId, artifact.getVersion());
-            if (states == null || states.contains(state)) {
-                ArtifactStateExt.logIfDeprecated(artifactId, state, artifact.getVersion());
-                return artifact;
-            }
+        String query = "SELECT a.* FROM artifacts a ";
+        if (states != null) {
+            String statesQuery = states
+                    .stream()
+                    .map(s -> s.toString())
+                    .collect(Collectors.joining(","));
+            query += String.format(
+                     "INNER JOIN " +
+                     "  (SELECT artifact_id, max(version) AS MaxVersion " +
+                     "  FROM meta " +
+                     "  WHERE key = '%s' AND value = ANY('{%s}'::text[]) " +
+                     "  GROUP BY artifact_id) b " +
+                     "ON a.artifact_id = b.artifact_id AND a.version = b.MaxVersion",
+                     MetaDataKeys.STATE,
+                     statesQuery);
         }
+        List<Artifact> artifacts = entityManager.createNativeQuery(query, Artifact.class)
+                .setMaxResults(1)
+                .getResultList();
 
-        throw new ArtifactNotFoundException(artifactId);
+        if (artifacts.isEmpty())
+            throw new ArtifactNotFoundException(artifactId);
+        else
+            return artifacts.get(0);
     }
 
     private Artifact _getArtifact(long id, EnumSet<ArtifactState> states) {

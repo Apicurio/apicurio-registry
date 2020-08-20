@@ -12,6 +12,6 @@ This chapter explains how to manage artifacts stored in the registry using the R
 * xref:managing-artifacts-using-client-code[]
 
 //INCLUDES
-include::../../modules/getting-started/proc_managing-artifacts-using-rest-api.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_managing-artifacts-using-client-code.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-managing-artifacts-using-rest-api.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-managing-artifacts-using-client-code.adoc[leveloffset=+1]

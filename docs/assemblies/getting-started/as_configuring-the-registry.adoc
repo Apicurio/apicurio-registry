@@ -9,5 +9,5 @@ This chapter explains how to configure optional settings for {registry} health c
 * xref:registry-liveness-env-vars[]
 
 //INCLUDES
-include::../../modules/getting-started/proc_configuring-liveness-readiness-probes.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-liveness-env-vars.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]

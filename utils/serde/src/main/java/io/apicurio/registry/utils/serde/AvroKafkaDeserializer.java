@@ -82,7 +82,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
             if( encoding == AvroEncoding.JSON) {
                 // copy the data into a new byte[]
                 byte[] msgData = new byte[length];
-                System.arraycopy(buffer.array(), start, msgData, 0, 17);
+                System.arraycopy(buffer.array(), start, msgData, 0, length);
                 return reader.read(null, decoderFactory.jsonDecoder(schema, new ByteArrayInputStream(msgData)));
             } else {
                 return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));

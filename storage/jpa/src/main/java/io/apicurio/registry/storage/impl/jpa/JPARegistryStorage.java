@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +36,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -350,6 +352,15 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifact(artifactId, artifactType, content)
+            .thenApply(amdd -> {
+                updateArtifactMetaData(artifactId, metaData);
+                return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
+            });
+    }
+
+    @Override
     @Transactional
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         try {
@@ -456,6 +467,15 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
         } catch (PersistenceException ex) {
             throw new RegistryStorageException(ex);
         }
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifact(artifactId, artifactType, content)
+            .thenApply(amdd -> {
+                updateArtifactMetaData(artifactId, metaData);
+                return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
+            });
     }
 
     @Override

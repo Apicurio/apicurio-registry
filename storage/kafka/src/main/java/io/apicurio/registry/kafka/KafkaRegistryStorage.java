@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +30,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ProtoUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
@@ -379,6 +381,13 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     }
 
     @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content.bytes())
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
+    }
+
+    @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null));
     }
@@ -386,6 +395,13 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content.bytes());
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content.bytes())
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
     }
 
     @Override

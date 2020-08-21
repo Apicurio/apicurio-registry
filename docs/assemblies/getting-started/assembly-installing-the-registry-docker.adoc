@@ -20,8 +20,8 @@ NOTE: You can install more than one instance of {registry} depending on your env
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
-include::../../modules/getting-started/proc_installing-registry-in-memory-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-jpa-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-infinispan-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_installing-registry-kafka-streams-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-installing-registry-in-memory-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-installing-registry-jpa-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-installing-registry-infinispan-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-installing-registry-kafka-storage.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-installing-registry-kafka-streams-storage.adoc[leveloffset=+1]

@@ -14,5 +14,5 @@ This chapter lists the supported artifact types and content rule types that are 
 * For more detailed information on artifact and rule types, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation] 
 
 //INCLUDES
-include::../../modules/getting-started/ref_registry-artifact-types.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref_registry-rule-types.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
+include::../../modules/getting-started/ref-registry-rule-types.adoc[leveloffset=+1]

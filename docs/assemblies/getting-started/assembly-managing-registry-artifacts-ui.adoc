@@ -12,6 +12,6 @@ This chapter explains how to manage artifacts stored in the registry using the {
 * xref:configuring-rules-using-console[]
 
 //INCLUDES
-include::../../modules/getting-started/proc_adding-artifacts-using-console.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_browsing-artifacts-using-console.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc_configuring-rules-using-console.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-adding-artifacts-using-console.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-browsing-artifacts-using-console.adoc[leveloffset=+1]
+include::../../modules/getting-started/proc-configuring-rules-using-console.adoc[leveloffset=+1]

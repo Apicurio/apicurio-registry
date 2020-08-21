@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -124,6 +126,26 @@ public final class DtoUtil {
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         return metaData;
+    }
+
+    /**
+     * Sets values from the EditableArtifactMetaDataDto into the ArtifactMetaDataDto.
+     *
+     * @param amdd
+     * @param editableArtifactMetaData
+     * @return the updated ArtifactMetaDataDto object
+     */
+    public static final ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
+        if (editableArtifactMetaData.getName() != null) {
+            amdd.setName(editableArtifactMetaData.getName());
+        }
+        if (editableArtifactMetaData.getDescription() != null) {
+            amdd.setDescription(editableArtifactMetaData.getDescription());
+        }
+        if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
+            amdd.setLabels(editableArtifactMetaData.getLabels());
+        }
+        return amdd;
     }
 
 }

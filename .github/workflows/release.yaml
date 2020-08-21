@@ -157,3 +157,38 @@ jobs:
           git add -f _data/registry/releases/$FILENAME.json    #ignored due to .gitignore config
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{steps.metadata.outputs.release-version}}"
           git push
+
+  verify-release:
+    runs-on: ubuntu-18.04
+    needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
+    if: github.event.pull_request.merged == true && github.repository_owner == 'Apicurio'
+    steps:
+      - name: Retrieve Project Metadata
+        uses: radcortez/project-metadata-action@master
+        id: metadata
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          metadata-file-path: '.github/project.yaml'
+      - name: Set up JDK 1.8
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+            version: '8'
+            architecture: x64
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Verify Docker Release For mem
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-mem:latest apicurio/apicurio-registry-mem:latest-release 
+      - name: Verify Docker Release For asyncmem
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-asyncmem:latest apicurio/apicurio-registry-asyncmem:latest-release 
+      - name: Verify Docker Release For kafka
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafka:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-kafka:latest apicurio/apicurio-registry-kafka:latest-release 
+      - name: Verify Docker Release For streams
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-streams:latest apicurio/apicurio-registry-streams:latest-release 
+      - name: Verify Docker Release For jpa
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-jpa:latest apicurio/apicurio-registry-jpa:latest-release 
+      - name: Verify Docker Release For infinispan
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
+      - name: Verify Maven Release
+        run: |
+          cd .github/test-mvn-deploy
+          mvn clean install "-Dversion.apicurio=${{steps.metadata.outputs.release-version}}" # Passing the latest version at run-time

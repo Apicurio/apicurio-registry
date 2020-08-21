@@ -1,0 +1,5 @@
+* xref:index.adoc[ Home]
+** xref:getting-started/as_intro-to-the-registry.adoc[]
+** xref:getting-started/as_intro-to-registry-rules.adoc[]
+** xref:getting-started/as_installing-the-registry.adoc[]
+** xref:getting-started/as_managing-registry-artifacts.adoc[]

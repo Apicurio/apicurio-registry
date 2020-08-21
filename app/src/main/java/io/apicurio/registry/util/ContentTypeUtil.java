@@ -16,12 +16,9 @@
 
 package io.apicurio.registry.util;
 
-import javax.servlet.http.HttpServletRequest;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-
 import io.apicurio.registry.content.ContentHandle;
 
 /**
@@ -38,10 +35,10 @@ public final class ContentTypeUtil {
 
     /**
      * Returns true if the Content-Type of the inbound request is "application/json".
-     * @param request
+     *
+     * @param ct content type
      */
-    public static final boolean isApplicationJson(HttpServletRequest request) {
-        String ct = request.getContentType();
+    public static boolean isApplicationJson(String ct) {
         if (ct == null) {
             return false;
         }
@@ -50,17 +47,17 @@ public final class ContentTypeUtil {
 
     /**
      * Returns true if the Content-Type of the inbound request is "application/x-yaml".
-     * @param request
+     *
+     * @param ct content type
      */
-    public static final boolean isApplicationYaml(HttpServletRequest request) {
-        String ct = request.getContentType();
+    public static boolean isApplicationYaml(String ct) {
         if (ct == null) {
             return false;
         }
         return ct.contains(CT_APPLICATION_YAML);
     }
-    
-    public static final ContentHandle yamlToJson(ContentHandle yaml) {
+
+    public static ContentHandle yamlToJson(ContentHandle yaml) {
         try {
             JsonNode root = yamlMapper.readTree(yaml.stream());
             return ContentHandle.create(jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(root));

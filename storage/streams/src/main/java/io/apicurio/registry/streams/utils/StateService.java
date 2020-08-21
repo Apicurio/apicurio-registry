@@ -1,7 +1,7 @@
 package io.apicurio.registry.streams.utils;
 
-import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.utils.kafka.SelfSerde;
+import io.apicurio.registry.utils.streams.diservice.AsyncBiFunctionService;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KafkaStreams;
 

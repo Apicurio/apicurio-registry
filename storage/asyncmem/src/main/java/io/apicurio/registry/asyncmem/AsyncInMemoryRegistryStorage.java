@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat Inc
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,32 +16,6 @@
  */
 
 package io.apicurio.registry.asyncmem;
-
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.enterprise.context.ApplicationScoped;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
@@ -62,6 +37,33 @@ import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.DtoUtil;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -109,6 +111,25 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         } catch (ArtifactNotFoundException e) {
             throw new RegistryStorageException("Invalid state", e);
         }
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType,
+            ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifact(artifactId, artifactType, content).thenApply(amdd -> {
+            this.executor.execute(() -> {
+                preUpdateSleep();
+                runWithErrorSuppression(() -> {
+                    super.updateArtifactMetaData(artifactId, metaData);
+                });
+            });
+            return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
+        });
     }
     
     /**
@@ -161,7 +182,24 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             throw new RegistryStorageException("Invalid state", e);
         }
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType,
+                                                                           ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return updateArtifact(artifactId, artifactType, content).thenApply(amdd -> {
+            this.executor.execute(() -> {
+                preUpdateSleep();
+                runWithErrorSuppression(() -> {
+                    super.updateArtifactMetaData(artifactId, metaData);
+                });
+            });
+            return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
+        });
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
      */

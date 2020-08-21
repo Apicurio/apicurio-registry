@@ -13,4 +13,4 @@ This chapter introduces the optional rules used to govern registry content and p
 
 
 //INCLUDES
-include::../../modules/getting-started/con_registry-rules.adoc[leveloffset=+1]
+include::../../modules/getting-started/con-registry-rules.adoc[leveloffset=+1]

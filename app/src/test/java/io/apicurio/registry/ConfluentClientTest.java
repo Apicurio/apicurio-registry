@@ -48,6 +48,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -68,6 +69,7 @@ import io.quarkus.test.junit.QuarkusTest;
 
 
 @QuarkusTest
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryClient buildClient() {
@@ -90,20 +92,20 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
 
-        Schema schema1 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
+        ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = client.register(subject, schema1);
         
         // Reset the client cache so that the next line actually does what we want.
         client.reset();
 
-        ParsedSchema ps1 = TestUtils.retry(() -> client.getSchemaById(id1));
+        TestUtils.retry(() -> client.getSchemaById(id1));
 
-        Schema schema2 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"f2\",\"type\":\"string\"}]}");
+        ParsedSchema schema2 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"f2\",\"type\":\"string\"}]}");
         int id2 = client.register(subject, schema2);
 
-        ParsedSchema ps2 = TestUtils.retry(() -> client.getSchemaById(id2));
+        TestUtils.retry(() -> client.getSchemaById(id2));
 
-        Schema schema = client.getById(id1);
+        ParsedSchema schema = client.getSchemaById(id1);
         Assertions.assertNotNull(schema);
 
         client.reset();
@@ -112,7 +114,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         // global id can be mapped async
         retry(() -> {
-            Schema schema3 = client.getById(id2);
+            ParsedSchema schema3 = client.getSchemaById(id2);
             Assertions.assertNotNull(schema3);
             return schema3;
         });
@@ -152,14 +154,15 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
-
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        
+        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
+        ParsedSchema schema = new AvroSchema(rawSchema);
         int id = client.register(subject + "-value", schema);
         client.reset();
 
         // global id can be mapped async
         retry(() -> {
-            Schema schema2 = client.getById(id);
+            ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
             return schema2;
         });
@@ -167,7 +170,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
              KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);) {
 
-            GenericData.Record record = new GenericData.Record(schema);
+            GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
             record.put("bar", "somebar");
 
             byte[] bytes = serializer.serialize(subject, record);
@@ -239,13 +242,13 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         String subject = generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         int id = client.register(subject, schema);
         client.reset();
 
         // global id can be mapped async
         retry(() -> {
-            Schema schema2 = client.getById(id);
+            ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
             return schema2;
         });
@@ -279,20 +282,20 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         apicurioClient.createGlobalRule(rule);
 
         String subject = generateArtifactId();
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         int id = client.register(subject, schema);
         client.reset();
 
         // global id can be mapped async
         retry(() -> {
-            Schema schema2 = client.getById(id);
+            ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
             return schema2;
         });
         
         // try to register an incompatible schema
         Assertions.assertThrows(RestClientException.class, () -> {
-            Schema schema2 = new Schema.Parser().parse("{\"type\":\"string\"}");
+            ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
             client.register(subject, schema2);
             client.reset();
         });
@@ -310,11 +313,11 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             false,
             (client) -> {
                 try {
-                    Schema schema = new Schema.Parser().parse(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
+                    ParsedSchema schema = new AvroSchema(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
                     int id = client.register(subject + "-value", schema);
                     client.reset();
                     // can be async ...
-                    Schema retry = retry(() -> client.getById(id));
+                    ParsedSchema retry = retry(() -> client.getSchemaById(id));
                     Assertions.assertNotNull(retry);
                 } catch (Exception e) {
                     throw new IllegalStateException(e);
@@ -337,11 +340,11 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             (client, bytes) -> {
                 try {
                     client.reset();
-                    Schema retry = retry(() -> {
+                    ParsedSchema retry = retry(() -> {
                         ByteBuffer buffer = ByteBuffer.wrap(bytes);
                         buffer.get(); // magic-byte
                         int id = buffer.getInt();
-                        return client.getById(id);
+                        return client.getSchemaById(id);
                     });
                     Assertions.assertNotNull(retry);
                 } catch (Exception e) {

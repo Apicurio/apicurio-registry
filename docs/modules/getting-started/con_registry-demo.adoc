@@ -1,0 +1,12 @@
+// Metadata created by nebel
+
+[id="registry-demo"]
+= Registry demonstration examples
+{registry} provides an open source demonstration example of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+
+This demonstration also provides simple examples of both 
+link:https://github.com/Apicurio/apicurio-registry-demo/tree/master/src/main/java/io/apicurio/registry/demo/simple[Avro and JSON Schema serialization/deserialization with storage in Apache Kafka].
+
+ifdef::rh-service-registry[]
+For another open source demonstration example with detailed instructions on Avro serialization/deserialization with storage in Apache Kafka, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
+endif::[]

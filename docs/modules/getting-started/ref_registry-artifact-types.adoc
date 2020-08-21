@@ -1,8 +1,9 @@
 // Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-artifact-types"]
 
-= Supported artifact types
+= {registry} artifact types
 You can store and manage the following artifact types in {registry}:
 
 .{registry} artifact types

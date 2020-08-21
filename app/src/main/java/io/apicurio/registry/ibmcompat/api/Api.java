@@ -1,15 +1,33 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.apicurio.registry.ibmcompat.api;
 
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
-import java.util.List;
+import io.apicurio.registry.ibmcompat.model.NewSchema;
+import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
+import io.apicurio.registry.ibmcompat.model.Schema;
+import io.apicurio.registry.ibmcompat.model.SchemaInfo;
+import io.apicurio.registry.ibmcompat.model.SchemaListItem;
+import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
+import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -30,19 +48,16 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.util.List;
 
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-
-import io.apicurio.registry.ibmcompat.model.AnyOfStateModificationEnabledModification;
-import io.apicurio.registry.ibmcompat.model.NewSchema;
-import io.apicurio.registry.ibmcompat.model.NewSchemaVersion;
-import io.apicurio.registry.ibmcompat.model.Schema;
-import io.apicurio.registry.ibmcompat.model.SchemaInfo;
-import io.apicurio.registry.ibmcompat.model.SchemaListItem;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 @Path("/ibmcompat")
 @RestMetricsApply
@@ -72,7 +87,7 @@ public class Api {
         @DefaultValue("false") @QueryParam("verify") boolean verify,
         @Context SecurityContext securityContext
     )
-    throws ArtifactNotFoundException {
+    throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
         service.apiSchemasPost(response, schema, verify);
     }
 
@@ -96,9 +111,9 @@ public class Api {
     @Path("/schemas/{schemaid}")
     @Consumes({"application/json"})
     @Produces({"application/json"})
-    public Response apiSchemasSchemaidPatch(@PathParam("schemaid") String schemaid, @NotNull @Valid List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    public Response apiSchemasSchemaidPatch(@PathParam("schemaid") String schemaid, @NotNull @Valid List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidPatch(schemaid, anyOfStateModificationEnabledModification);
+        return service.apiSchemasSchemaidPatch(schemaid, schemaModificationPatches);
     }
 
     @POST
@@ -111,7 +126,7 @@ public class Api {
         @NotNull @Valid NewSchemaVersion schema,
         @DefaultValue("false") @QueryParam("verify") boolean verify
     )
-    throws ArtifactNotFoundException {
+    throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
         service.apiSchemasSchemaidVersionsPost(response, schemaid, schema, verify);
     }
 
@@ -135,8 +150,8 @@ public class Api {
     @Path("/schemas/{schemaid}/versions/{versionnum}")
     @Consumes({"application/json"})
     @Produces({"application/json"})
-    public Response apiSchemasSchemaidVersionsVersionnumPatch(@PathParam("schemaid") String schemaid, @PathParam("versionnum") int versionnum, @NotNull @Valid List<AnyOfStateModificationEnabledModification> anyOfStateModificationEnabledModification)
+    public Response apiSchemasSchemaidVersionsVersionnumPatch(@PathParam("schemaid") String schemaid, @PathParam("versionnum") int versionnum, @NotNull @Valid List<SchemaModificationPatch> schemaModificationPatches)
     throws ArtifactNotFoundException {
-        return service.apiSchemasSchemaidVersionsVersionnumPatch(schemaid, versionnum, anyOfStateModificationEnabledModification);
+        return service.apiSchemasSchemaidVersionsVersionnumPatch(schemaid, versionnum, schemaModificationPatches);
     }
 }

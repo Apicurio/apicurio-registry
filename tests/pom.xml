@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>1.2.3-SNAPSHOT</version>
+        <version>1.3.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>apicurio-registry-tests</artifactId>
@@ -24,7 +24,7 @@
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
         <debezium.version>1.2.1.Final</debezium.version>
-        <version.okhttp>4.8.0</version.okhttp>
+        <version.okhttp>4.8.1</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
         <vertx.version>3.9.2</vertx.version>
         <scala.version>2.12.10</scala.version>
@@ -143,6 +143,11 @@
                     <artifactId>resteasy-client-microprofile</artifactId>
                 </exclusion>
             </exclusions>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-rest-client</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

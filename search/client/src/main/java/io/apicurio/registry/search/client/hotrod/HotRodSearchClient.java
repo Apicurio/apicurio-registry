@@ -32,9 +32,8 @@ import org.infinispan.commons.configuration.XMLStringConfiguration;
 import org.infinispan.commons.marshall.ProtoStreamMarshaller;
 import org.infinispan.protostream.FileDescriptorSource;
 import org.infinispan.protostream.SerializationContext;
+import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
-
-import static io.apicurio.registry.search.client.SearchUtil.property;
 
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +42,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+
+import static io.apicurio.registry.search.client.SearchUtil.property;
 
 /**
  * @author Ales Justin
@@ -139,7 +140,8 @@ public class HotRodSearchClient extends InfinispanSearchClient {
     public CompletionStage<SearchResults> search(String query) {
         QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(getCache());
         query = query.replace("$Artifact", toFqn()); // simplify usage
-        List<Search.Artifact> list = qf.create(query).list();
+        Query<Search.Artifact> q = qf.create(query);
+        List<Search.Artifact> list = q.execute().list();
         return CompletableFuture.completedFuture(new HotRodSearchResults(list));
     }
 

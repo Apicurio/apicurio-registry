@@ -1,4 +1,8 @@
-= Explanation of the `docs` directory structure
+= Apicurio Registry user documentation
+
+The Apicurio Registry user documentation is created using Asciidoc (https://asciidoc.org/). This readme file describes the documentation directory structure and explains how to use the `asciidoctor` tool to build the documentation.
+
+== Explanation of the `docs` directory structure
 
 The Apicurio Registry `docs` directory is organized for delivering flexible content, which is a framework for putting together exactly the content you need and making it easier to reuse the same content in multiple places. 
 
@@ -23,7 +27,7 @@ a|* `getting-started/files`
 |===
 
 
-== Asciidoc user guides
+=== Asciidoc user guides
 For each Asciidoc-based guide, the `master.adoc` file includes the relevant assemblies and modules: 
 
 * Assemblies are files that introduce a subject and 
@@ -47,5 +51,18 @@ The Apicurio Registry `docs` directory contains the following directories:
 * `images` contains a folder for each category of information. These folders contain image files: 
 ** `getting-started`
 
-== REST API documentation
+=== REST API documentation
 The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swagger file using link:https://github.com/Redocly/redoc[ReDoc]. 
+
+== Building the documentation using Asciidoctor
+
+You can perform a local build of the documentation using Asciidoctor (https://asciidoctor.org/):
+
+. Install the Asciidoctor tool using the following steps: https://asciidoctor.org/docs/install-toolchain/
+. In the `docs/getting-started` directory, enter the following command:
++
+----
+asciidoctor master.adoc
+----
++
+. Open the generated `master.html` file in your browser.  

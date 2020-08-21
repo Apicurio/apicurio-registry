@@ -28,7 +28,9 @@ import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
+ * @deprecated Use io.apicurio.registry.client.RegistryRestClientFactory instead.
  */
+@Deprecated
 public class RegistryClient {
     private static final Logger log = Logger.getLogger(RegistryClient.class.getName());
 

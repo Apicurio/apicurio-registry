@@ -1,6 +1,5 @@
 name: apicurio-registry
 title: Apicurio Registry
 version: 'latest'
-start_ROOT: ROOT:index.adoc
 nav:
-- modules/ROOT/nav.adoc
+- getting-started/master.adoc

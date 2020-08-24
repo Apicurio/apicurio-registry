@@ -8,6 +8,7 @@ content:
   - url: ..
     branches: HEAD
     start_path: .antora
+    edit_url: '{web_url}'
 
 ui:
   bundle:

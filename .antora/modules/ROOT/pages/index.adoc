@@ -1,8 +1,1 @@
-= Apicurio Registry
-
-This is a prototype of the Apicurio Registry documentation. 
-
-Contribute to docs at https://github.com/Apicurio/apicurio-registry
-
-
-See also: https://apicurio-studio.readme.io/
+../../../../docs/getting-started/master.adoc

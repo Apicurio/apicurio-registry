@@ -7,7 +7,7 @@ content:
   sources:
   - url: ..
     branches: HEAD
-    start_path: antora
+    start_path: .antora
 
 ui:
   bundle:

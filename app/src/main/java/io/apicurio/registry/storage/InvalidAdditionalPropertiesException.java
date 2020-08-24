@@ -18,9 +18,6 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.types.RegistryException;
 
-/**
- *
- */
 public class InvalidAdditionalPropertiesException extends RegistryException {
 
     private static final long serialVersionUID = 1L;

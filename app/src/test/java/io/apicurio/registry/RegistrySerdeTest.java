@@ -16,25 +16,8 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
-
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.junit.jupiter.api.Assertions;
-
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
@@ -43,6 +26,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.utils.serde.AvroEncoding;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
@@ -59,6 +43,23 @@ import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Assertions;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 
 /**
  * @author Ales Justin
@@ -200,6 +201,38 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(subject, record);
 
+            // some impl details ...
+            waitForSchema(supplier.get(), bytes);
+
+            GenericData.Record ir = deserializer.deserialize(subject, bytes);
+
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @RegistryServiceTest
+    public void testAvroJSON(Supplier<RegistryService> supplier) throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
+            HashMap<String, String> config = new HashMap();
+            config.put(AvroEncoding.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
+            serializer.configure(config,false);
+            deserializer.configure(config, false);
+
+            serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String subject = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(subject, record);
+
+            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
+            
             // some impl details ...
             waitForSchema(supplier.get(), bytes);
 

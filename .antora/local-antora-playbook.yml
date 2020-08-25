@@ -14,6 +14,8 @@ ui:
   bundle:
     url: https://raw.githubusercontent.com/Apicurio/apicurio-docs-ui/master/dist/ui-bundle.zip
     snapshot: true
+  supplemental_files:
+  - path: .nojekyll
   output_dir: assets
 
 output:

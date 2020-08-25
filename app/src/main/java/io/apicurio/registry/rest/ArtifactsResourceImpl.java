@@ -537,7 +537,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setAdditionalProperties(data.getAdditionalProperties());
+        dto.setProperties(data.getProperties());
         storage.updateArtifactMetaData(artifactId, dto);
     }
 

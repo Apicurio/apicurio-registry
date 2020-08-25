@@ -317,7 +317,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         Str.MetaDataValue metaData = rv.getMetadata();
         if (type == Str.ActionType.UPDATE) {
             EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(metaData.getName(), metaData.getDescription(),
-                    Arrays.asList(metaData.getLabels().split(",")), metaData.getAdditionalPropertiesMap());
+                    Arrays.asList(metaData.getLabels().split(",")), metaData.getPropertiesMap());
             if (version >= 0) {
                 super.updateArtifactVersionMetaData(artifactId, version, emd);
             } else {
@@ -383,7 +383,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @Override
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return submitter.submitArtifact(Str.ActionType.CREATE, artifactId, 0, artifactType, content.bytes())
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getAdditionalProperties())
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
                 .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
     }
 
@@ -400,7 +400,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
     @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         return submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, 0, artifactType, content.bytes())
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getAdditionalProperties())
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
                 .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
     }
 
@@ -411,7 +411,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getAdditionalProperties()));
+        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()));
     }
 
     @Override
@@ -436,7 +436,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
 
     @Override
     public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getAdditionalProperties()));
+        get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()));
     }
 
     @Override

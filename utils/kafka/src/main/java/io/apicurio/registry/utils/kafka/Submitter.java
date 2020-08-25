@@ -68,7 +68,7 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> additionalProperties) {
+    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> properties) {
         Str.MetaDataValue.Builder builder = Str.MetaDataValue.newBuilder();
         if (name != null) {
             builder.setName(name);
@@ -81,8 +81,8 @@ public class Submitter {
             builder.setLabels(String.join(",", labels));
         }
 
-        if (additionalProperties != null && !additionalProperties.isEmpty()) {
-            builder.putAllAdditionalProperties(additionalProperties);
+        if (properties != null && !properties.isEmpty()) {
+            builder.putAllProperties(properties);
         }
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.METADATA, actionType, artifactId, version).setMetadata(builder);

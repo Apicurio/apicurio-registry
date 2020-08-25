@@ -37,7 +37,7 @@ import java.util.Map;
     "name",
     "description",
     "labels",
-    "additionalProperties"
+    "properties"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EditableMetaData {
@@ -48,8 +48,8 @@ public class EditableMetaData {
     private String description;
     @JsonProperty("labels")
     private List<String> labels;
-    @JsonProperty("additionalProperties")
-    private Map<String, String> additionalProperties;
+    @JsonProperty("properties")
+    private Map<String, String> properties;
 
     @JsonProperty("name")
     public String getName() {
@@ -81,13 +81,13 @@ public class EditableMetaData {
         this.labels = labels;
     }
 
-    @JsonProperty("additionalProperties")
-    public Map<String, String> getAdditionalProperties() {
-        return additionalProperties;
+    @JsonProperty("properties")
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
-    @JsonProperty("additionalProperties")
-    public void setAdditionalProperties(Map<String, String> additionalProperties) {
-        this.additionalProperties = additionalProperties;
+    @JsonProperty("properties")
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 }

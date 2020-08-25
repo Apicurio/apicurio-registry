@@ -24,7 +24,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
+import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
@@ -366,15 +366,15 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
                         avb.putMetadata(MetaDataKeys.LABELS, metaData.getLabels());
                         try {
-                            avb.putMetadata(MetaDataKeys.ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getAdditionalPropertiesMap()));
+                            avb.putMetadata(MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getPropertiesMap()));
                         } catch (JsonProcessingException e) {
-                            throw new InvalidAdditionalPropertiesException(MetaDataKeys.ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+                            throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for storage.", e);
                         }
                     } else if (type == Str.ActionType.DELETE) {
                         avb.removeMetadata(MetaDataKeys.NAME);
                         avb.removeMetadata(MetaDataKeys.DESCRIPTION);
                         avb.removeMetadata(MetaDataKeys.LABELS);
-                        avb.removeMetadata(MetaDataKeys.ADDITIONAL_PROPERTIES);
+                        avb.removeMetadata(MetaDataKeys.PROPERTIES);
                     }
                     builder.setArtifacts(index, avb.build()); // override with new value
                 }

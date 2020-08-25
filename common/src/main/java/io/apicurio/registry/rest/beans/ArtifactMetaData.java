@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
     "type",
     "globalId",
     "state",
-    "additionalProperties"
+    "properties"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ArtifactMetaData {
@@ -136,9 +136,9 @@ public class ArtifactMetaData {
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
 
-    @JsonProperty("additionalProperties")
-    @JsonPropertyDescription("Additional properties as name-value pairs for an artifact or artifact version.")
-    private Map<String, String> additionalProperties;
+    @JsonProperty("properties")
+    @JsonPropertyDescription("A set of name-value properties for an artifact or artifact version.")
+    private Map<String, String> properties;
 
 
     @JsonProperty("name")
@@ -363,14 +363,14 @@ public class ArtifactMetaData {
         this.labels = labels;
     }
 
-    @JsonProperty("additionalProperties")
-    public Map<String, String> getAdditionalProperties() {
-        return additionalProperties;
+    @JsonProperty("properties")
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
-    @JsonProperty("additionalProperties")
-    public void setAdditionalProperties(Map<String, String> additionalProperties) {
-        this.additionalProperties = additionalProperties;
+    @JsonProperty("properties")
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 
 
@@ -389,7 +389,7 @@ public class ArtifactMetaData {
                 ", type=" + type +
                 ", globalId=" + globalId +
                 ", state=" + state +
-                ", additionalProperties=" + (additionalProperties == null ? "{}" : "{" + additionalProperties.entrySet().stream()
+                ", properties=" + (properties == null ? "{}" : "{" + properties.entrySet().stream()
                         .map(entry -> entry.getKey() + ": " + entry.getValue()).collect(Collectors.joining(", ")) + "}") +
                 '}';
     }

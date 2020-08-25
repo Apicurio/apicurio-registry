@@ -35,7 +35,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
+import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -505,7 +505,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
-            throws ArtifactNotFoundException, RegistryStorageException, InvalidAdditionalPropertiesException {
+            throws ArtifactNotFoundException, RegistryStorageException, InvalidPropertiesException {
         if (metaData.getName() != null) {
             storage.put(artifactId, MetaDataKeys.NAME, metaData.getName());
         }
@@ -515,11 +515,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             storage.put(artifactId, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
         }
-        if (metaData.getAdditionalProperties() != null && !metaData.getAdditionalProperties().isEmpty()) {
+        if (metaData.getProperties() != null && !metaData.getProperties().isEmpty()) {
             try {
-                storage.put(artifactId, MetaDataKeys.ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getAdditionalProperties()));
+                storage.put(artifactId, MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getProperties()));
             } catch (JsonProcessingException e) {
-                throw new InvalidAdditionalPropertiesException(MetaDataKeys.ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+                throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for storage.", e);
             }
         }
     }

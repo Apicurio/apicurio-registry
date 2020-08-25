@@ -18,11 +18,11 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.types.RegistryException;
 
-public class InvalidAdditionalPropertiesException extends RegistryException {
+public class InvalidPropertiesException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 
-    public InvalidAdditionalPropertiesException(String message, Throwable throwable) {
+    public InvalidPropertiesException(String message, Throwable throwable) {
         super(message, throwable);
     }
 

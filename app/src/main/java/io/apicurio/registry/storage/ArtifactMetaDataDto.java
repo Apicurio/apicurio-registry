@@ -48,7 +48,7 @@ public class ArtifactMetaDataDto {
     private ArtifactType type;
     private ArtifactState state;
     private List<String> labels;
-    private Map<String, String> additionalProperties;
+    private Map<String, String> properties;
 
     /**
      * Constructor.
@@ -225,16 +225,16 @@ public class ArtifactMetaDataDto {
     }
 
     /**
-     * @return the additional properties
+     * @return the user-defined properties
      */
-    public Map<String, String> getAdditionalProperties() {
-        return additionalProperties;
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
     /**
-     * @param additionalProperties the additional properties to set
+     * @param properties the user-defined properties to set
      */
-    public void setAdditionalProperties(Map<String, String> additionalProperties) {
-        this.additionalProperties = additionalProperties;
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 }

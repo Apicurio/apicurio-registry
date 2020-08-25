@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.InvalidAdditionalPropertiesException;
+import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.impl.jpa.entity.Artifact;
 import io.apicurio.registry.storage.impl.jpa.entity.MetaData;
@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.apicurio.registry.storage.MetaDataKeys.ADDITIONAL_PROPERTIES;
+import static io.apicurio.registry.storage.MetaDataKeys.PROPERTIES;
 import static io.apicurio.registry.storage.MetaDataKeys.ARTIFACT_ID;
 import static io.apicurio.registry.storage.MetaDataKeys.CONTENT;
 import static io.apicurio.registry.storage.MetaDataKeys.DESCRIPTION;
@@ -155,11 +155,11 @@ public class MetaDataMapperUpdater {
         if (dto.getLabels() != null) {
             res.put(LABELS, String.join(",", dto.getLabels()));
         }
-        if (dto.getAdditionalProperties() != null) {
+        if (dto.getProperties() != null) {
             try {
-                res.put(ADDITIONAL_PROPERTIES, new ObjectMapper().writeValueAsString(dto.getAdditionalProperties()));
+                res.put(PROPERTIES, new ObjectMapper().writeValueAsString(dto.getProperties()));
             } catch (JsonProcessingException e) {
-                throw new InvalidAdditionalPropertiesException(ADDITIONAL_PROPERTIES + " could not be processed for storage.", e);
+                throw new InvalidPropertiesException(PROPERTIES + " could not be processed for storage.", e);
             }
         }
         return res;

@@ -42,7 +42,7 @@ public class MetaDataKeys {
     public static String MODIFIED_ON = "modifiedOn";
     public static String STATE = "state";
     public static String LABELS = "labels";
-    public static String ADDITIONAL_PROPERTIES = "additionalProperties";
+    public static String PROPERTIES = "properties";
 
     // Internal
 
@@ -75,11 +75,11 @@ public class MetaDataKeys {
         if (content.get(LABELS) != null) {
             dto.setLabels(Arrays.asList(content.get(LABELS).split(",")));
         }
-        if (content.get(ADDITIONAL_PROPERTIES) != null) {
+        if (content.get(PROPERTIES) != null) {
             try {
-                dto.setAdditionalProperties(new ObjectMapper().readValue(content.get(ADDITIONAL_PROPERTIES), Map.class));
+                dto.setProperties(new ObjectMapper().readValue(content.get(PROPERTIES), Map.class));
             } catch (JsonProcessingException e) {
-                // If the additional properties cannot be parsed from a Json string to a Map<String, String>, ignore them
+                // If the user-defined properties cannot be parsed from a Json string to a Map<String, String>, ignore them
             }
         }
         return dto;

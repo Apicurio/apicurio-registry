@@ -205,7 +205,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @RegistryServiceTest
-    public void testAdditionalProperties(Supplier<RegistryService> supplier) throws Exception {
+    public void testProperties(Supplier<RegistryService> supplier) throws Exception {
         String artifactId = generateArtifactId();
         RegistryService client = supplier.get();
         try {
@@ -218,21 +218,21 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             EditableMetaData emd = new EditableMetaData();
             emd.setName("myname");
 
-            final Map<String, String> artifactAdditionalProperties = new HashMap<>();
-            artifactAdditionalProperties.put("extraProperty1", "value for extra property 1");
-            artifactAdditionalProperties.put("extraProperty2", "value for extra property 2");
-            artifactAdditionalProperties.put("extraProperty3", "value for extra property 3");
-            emd.setAdditionalProperties(artifactAdditionalProperties);
+            final Map<String, String> artifactProperties = new HashMap<>();
+            artifactProperties.put("extraProperty1", "value for extra property 1");
+            artifactProperties.put("extraProperty2", "value for extra property 2");
+            artifactProperties.put("extraProperty3", "value for extra property 3");
+            emd.setProperties(artifactProperties);
             client.updateArtifactMetaData(artifactId, emd);
 
             retry(() -> {
                 ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
-                Assertions.assertEquals(3, artifactMetaData.getAdditionalProperties().size());
-                Assertions.assertTrue(artifactMetaData.getAdditionalProperties().keySet().containsAll(artifactAdditionalProperties.keySet()));
-                for(String key: artifactMetaData.getAdditionalProperties().keySet()) {
-                    Assertions.assertTrue(artifactMetaData.getAdditionalProperties().get(key).equals(artifactAdditionalProperties.get(key)));
+                Assertions.assertEquals(3, artifactMetaData.getProperties().size());
+                Assertions.assertTrue(artifactMetaData.getProperties().keySet().containsAll(artifactProperties.keySet()));
+                for(String key: artifactMetaData.getProperties().keySet()) {
+                    Assertions.assertTrue(artifactMetaData.getProperties().get(key).equals(artifactProperties.get(key)));
                 }
             });
         } finally {

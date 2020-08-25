@@ -669,7 +669,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
         
         // Update the artifact meta-data
-        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"additionalProperties\":{\"additionalProp1\": \"Empty API additional property\"}}";
+        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"properties\":{\"additionalProp1\": \"Empty API additional property\"}}";
         given()
             .when()
                 .contentType(CT_JSON)
@@ -683,8 +683,8 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {
             List<String> expectedLabels = Arrays.asList("Empty API label 1", "Empty API label 2");
-            Map<String, String> expectedAdditionalProperties = new HashMap<>();
-            expectedAdditionalProperties.put("additionalProp1", "Empty API additional property");
+            Map<String, String> expectedProperties = new HashMap<>();
+            expectedProperties.put("additionalProp1", "Empty API additional property");
 
             given()
                 .when()
@@ -697,7 +697,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("name", equalTo("Empty API Name"))
                     .body("description", equalTo("Empty API description."))
                     .body("labels", equalToObject(expectedLabels))
-                    .body("additionalProperties", equalToObject(expectedAdditionalProperties));
+                    .body("properties", equalToObject(expectedProperties));
         });
         
         // Update the artifact content and then make sure the name/description meta-data is still available

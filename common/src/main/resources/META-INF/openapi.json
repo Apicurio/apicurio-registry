@@ -1699,8 +1699,7 @@
                         }
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
+                        "$ref": "#/components/schemas/Properties"
                     }
                 },
                 "example": {
@@ -1747,8 +1746,7 @@
                         "type": "string"
                     },
                     "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
+                        "$ref": "#/components/schemas/ArtifactType"
                     },
                     "globalId": {
                         "format": "int64",
@@ -1771,8 +1769,7 @@
                         }
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
+                        "$ref": "#/components/schemas/Properties"
                     }
                 },
                 "example": {
@@ -1860,8 +1857,7 @@
                         }
                     },
                     "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
+                        "$ref": "#/components/schemas/Properties"
                     }
                 },
                 "example": {

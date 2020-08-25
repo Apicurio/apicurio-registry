@@ -226,9 +226,6 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
      */
     @Override
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        if (state == ArtifactState.ENABLED && this.isDeprecated(artifactId, version)) {
-            throw new InvalidArtifactStateException(ArtifactState.DEPRECATED, state);
-        }
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
@@ -516,36 +513,6 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             return true;
         } catch (RuleNotFoundException e) {
             return false;
-        }
-    }
-
-    private boolean isArtifactDeprecated(String artifactId) {
-        try {
-            ArtifactMetaDataDto metaData = this.getArtifactMetaData(artifactId);
-            if (metaData.getState() == ArtifactState.DEPRECATED) {
-                return true;
-            }
-        } catch (ArtifactNotFoundException | RegistryStorageException e) {
-        }
-        return false;
-    }
-
-    private boolean isVersionDeprecated(String artifactId, Integer version) {
-        try {
-            ArtifactVersionMetaDataDto metaData = this.getArtifactVersionMetaData(artifactId, version.longValue());
-            if (metaData.getState() == ArtifactState.DEPRECATED) {
-                return true;
-            }
-        } catch (ArtifactNotFoundException | RegistryStorageException e) {
-        }
-        return false;
-    }
-
-    private boolean isDeprecated(String artifactId, Integer version) {
-        if (version == null) {
-            return this.isArtifactDeprecated(artifactId);
-        } else {
-            return this.isVersionDeprecated(artifactId, version);
         }
     }
 

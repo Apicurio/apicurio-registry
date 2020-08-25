@@ -20,12 +20,12 @@ import io.apicurio.registry.types.ArtifactState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.storage.MetaDataKeys.STATE;
-
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import static io.apicurio.registry.storage.MetaDataKeys.STATE;
 
 /**
  * @author Ales Justin
@@ -39,7 +39,7 @@ public class ArtifactStateExt {
         transitions = new HashMap<>();
         transitions.put(ArtifactState.ENABLED, EnumSet.of(ArtifactState.DISABLED, ArtifactState.DEPRECATED, ArtifactState.DELETED));
         transitions.put(ArtifactState.DISABLED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED, ArtifactState.DELETED));
-        transitions.put(ArtifactState.DEPRECATED, EnumSet.of(ArtifactState.DELETED));
+        transitions.put(ArtifactState.DEPRECATED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DISABLED, ArtifactState.DELETED));
         transitions.put(ArtifactState.DELETED, EnumSet.noneOf(ArtifactState.class));
     }
 

@@ -16,19 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
-
-import javax.ws.rs.core.Response;
-
-import org.junit.jupiter.api.Assertions;
-
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
@@ -39,6 +26,17 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+
+import javax.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Ales Justin
@@ -130,10 +128,20 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         avr = service.getArtifactVersion(2, artifactId);
         Assertions.assertEquals(200, avr.getStatus());
 
-        // cannot go back from deprecated ...
-        assertWebError(400, () -> service.updateArtifactState(artifactId, toUpdateState(ArtifactState.ENABLED)));
-
         service.updateArtifactMetaData(artifactId, emd); // should be allowed for deprecated
+
+        retry(() -> {
+            service.reset();
+            ArtifactMetaData innerAmd = service.getArtifactMetaData(artifactId);
+            Assertions.assertEquals(3, innerAmd.getVersion());
+            Assertions.assertEquals(description, innerAmd.getDescription());
+            Assertions.assertEquals(ArtifactState.DEPRECATED, innerAmd.getState());
+            return null;
+        });
+
+        // can revert back to enabled from deprecated
+        service.updateArtifactVersionState(3, artifactId, toUpdateState(ArtifactState.ENABLED));
+        this.waitForVersionState(artifactId, 3, ArtifactState.ENABLED);
 
         retry(() -> {
             service.reset();
@@ -198,6 +206,50 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ArtifactState.ENABLED, amd.getState());
         vmd = service.getArtifactVersionMetaData(md.getVersion(), artifactId);
         Assertions.assertEquals(ArtifactState.ENABLED, vmd.getState());
+    }
+
+    @RegistryServiceTest
+    void testDeprecateDisableArtifact(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService service = supplier.get();
+        String artifactId = generateArtifactId();
+
+        // Create the artifact
+        CompletionStage<ArtifactMetaData> a1 = service.createArtifact(
+            ArtifactType.JSON,
+            artifactId,
+            null,
+            new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+        );
+        ArtifactMetaData md = ConcurrentUtil.result(a1);
+
+        retry(() -> {
+            // Get the meta-data
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+        });
+
+        // Set to deprecated
+        UpdateState state = new UpdateState();
+        state.setState(ArtifactState.DEPRECATED);
+        service.updateArtifactState(artifactId, state);
+        this.waitForArtifactState(artifactId, ArtifactState.DEPRECATED);
+
+        retry(() -> {
+            // Get the meta-data again - should be DEPRECATED
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(md.getGlobalId(), actualMD.getGlobalId());
+            Assertions.assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
+        });
+
+        // Set to disabled
+        state.setState(ArtifactState.DISABLED);
+        service.updateArtifactState(artifactId, state);
+        this.waitForArtifactState(artifactId, ArtifactState.DISABLED);
+
+        // Get the meta-data again - should be a 404
+        assertWebError(404, () -> service.getArtifactMetaData(artifactId), true);
+        VersionMetaData vmd = service.getArtifactVersionMetaData(md.getVersion(), artifactId);
+        Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
     }
 
 }

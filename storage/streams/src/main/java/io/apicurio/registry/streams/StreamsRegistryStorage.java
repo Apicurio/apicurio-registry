@@ -368,8 +368,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifact(artifactId, artifactType, content)
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
-                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
     }
 
     @Override
@@ -439,8 +439,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return updateArtifact(artifactId, artifactType, content)
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
-                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
     }
 
 
@@ -555,7 +555,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
-            ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels()));
+            ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()));
         } else {
             throw new ArtifactNotFoundException(artifactId);
         }
@@ -725,7 +725,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             artifactId,
             version,
             ArtifactStateExt.ACTIVE_STATES,
-            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels()))
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()))
         );
     }
 
@@ -735,7 +735,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             artifactId,
             version,
             null,
-            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null, Collections.emptyList()))
+            value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null, Collections.emptyList(), Collections.emptyMap()))
         );
     }
 

@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -35,6 +37,7 @@ public class EditableArtifactMetaDataDto {
     private String name;
     private String description;
     private List<String> labels;
+    private Map<String, String> properties;
 
     /**
      * Constructor.
@@ -82,5 +85,19 @@ public class EditableArtifactMetaDataDto {
      */
     public void setLabels(List<String> labels) {
         this.labels = labels;
+    }
+
+    /**
+     * @return the user-defined properties
+     */
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param properties the user-defined properties to set
+     */
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 }

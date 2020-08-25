@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +34,9 @@ import org.junit.jupiter.api.Assertions;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
@@ -196,6 +199,42 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertEquals(1, results.getArtifacts().size());
                 Assertions.assertTrue(results.getArtifacts().get(0).getLabels().containsAll(artifactLabels));
             }));
+        } finally {
+            client.deleteArtifact(artifactId);
+        }
+    }
+
+    @RegistryServiceTest
+    public void testProperties(Supplier<RegistryService> supplier) throws Exception {
+        String artifactId = generateArtifactId();
+        RegistryService client = supplier.get();
+        try {
+            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            CompletionStage<ArtifactMetaData> csResult = client.createArtifact(ArtifactType.JSON, artifactId, null, stream);
+            ConcurrentUtil.result(csResult);
+
+            this.waitForArtifact(artifactId);
+
+            EditableMetaData emd = new EditableMetaData();
+            emd.setName("myname");
+
+            final Map<String, String> artifactProperties = new HashMap<>();
+            artifactProperties.put("extraProperty1", "value for extra property 1");
+            artifactProperties.put("extraProperty2", "value for extra property 2");
+            artifactProperties.put("extraProperty3", "value for extra property 3");
+            emd.setProperties(artifactProperties);
+            client.updateArtifactMetaData(artifactId, emd);
+
+            retry(() -> {
+                ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+                Assertions.assertNotNull(artifactMetaData);
+                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals(3, artifactMetaData.getProperties().size());
+                Assertions.assertTrue(artifactMetaData.getProperties().keySet().containsAll(artifactProperties.keySet()));
+                for(String key: artifactMetaData.getProperties().keySet()) {
+                    Assertions.assertTrue(artifactMetaData.getProperties().get(key).equals(artifactProperties.get(key)));
+                }
+            });
         } finally {
             client.deleteArtifact(artifactId);
         }

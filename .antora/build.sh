@@ -15,6 +15,10 @@ echo "Running : antora $PLAYBOOK"
 antora $PLAYBOOK
 echo "Antora build completed successfully."
 
+echo "Customizing output."
+find ./dist -name '*.html' -exec sed -i 's/_images/assets-images/g' {} \;
+find ./dist -name '_images' -ignore_readdir_race -execdir mv _images assets-images \;
+
 echo "Copying files..."
 cp -rf dist/* /antora-dist/.
 echo "Done."

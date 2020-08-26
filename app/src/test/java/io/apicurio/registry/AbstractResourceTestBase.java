@@ -16,21 +16,20 @@
 
 package io.apicurio.registry;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
-import org.hamcrest.CoreMatchers;
-import org.junit.jupiter.api.BeforeEach;
-
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.BeforeEach;
+
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -101,7 +100,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .statusCode(200);
         });
     }
-    
+
+    /**
+     * Wait for an artifact version to be created.
+     * @param artifactId
+     * @param version
+     * @throws Exception
+     */
+    protected void waitForVersion(String artifactId, int version) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+
     /**
      * Wait for an artifact version to be created.
      * @param globalId

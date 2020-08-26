@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.notNullValue;
 public class IBMCompatApiTest extends AbstractResourceTestBase {
 
     @Test
-    public void testCreateSchema() {
+    public void testCreateSchema() throws Exception {
 
         // Convert the file contents to a JSON string value
         String schemaDefinition = resourceToString("avro.json")
@@ -47,6 +47,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .replaceAll("\n", "\\\\n");
 
         String schemaName = "testCreateSchema_userInfo";
+        String schemaId = schemaName.toLowerCase();
         String versionName = "testversion_1.0.0";
 
         // Create Avro artifact via ibmcompat API
@@ -58,7 +59,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(201)
                 .body("name", equalTo(schemaName))
-                .body("id", equalTo(schemaName.toLowerCase()))
+                .body("id", equalTo(schemaId))
                 .body("enabled", is(true))
                 .body("state.state", equalTo("active"))
                 .body("versions.size()", is(1))
@@ -67,6 +68,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .body("versions[0].state.state", equalTo("active"))
                 .body("versions[0].enabled", is(true))
                 .body("versions[0].date", notNullValue());
+
+        waitForArtifact(schemaId);
 
         // Try to create the same Avro artifact via ibmcompat API
         given()
@@ -154,19 +157,19 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // schema ID in path can be the name or the id (which is the lower-cased name)
         given()
             .when()
-            .get("/ibmcompat/schemas/" + schemaId)
+                .get("/ibmcompat/schemas/" + schemaId)
             .then()
-            .statusCode(200)
-            .body("name", equalTo(schemaId))
-            .body("id", equalTo(schemaId))
-            .body("enabled", is(true))
-            .body("state.state", equalTo("active"))
-            .body("versions.size()", is(1))
-            .body("versions[0].name", equalTo("userInfo"))
-            .body("versions[0].id", is(1))
-            .body("versions[0].state.state", equalTo("active"))
-            .body("versions[0].enabled", is(true))
-            .body("versions[0].date", notNullValue());
+                .statusCode(200)
+                .body("name", equalTo(schemaId))
+                .body("id", equalTo(schemaId))
+                .body("enabled", is(true))
+                .body("state.state", equalTo("active"))
+                .body("versions.size()", is(1))
+                .body("versions[0].name", equalTo("userInfo"))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("active"))
+                .body("versions[0].enabled", is(true))
+                .body("versions[0].date", notNullValue());
     }
 
     @Test
@@ -218,6 +221,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
+
+        waitForVersion(schemaId, 2);
 
         // Patch the schema enabled state via ibmcompat API
         // TODO - this doesn't currently work due to getArtifactMetadata calls returning ArtifactNotFound
@@ -356,6 +361,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
 
+        waitForVersion(schemaId, 2);
+
         // Delete the artifact via ibmcompat API
         given()
             .when()
@@ -396,6 +403,8 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
+
+        waitForVersion(schemaId, 2);
 
         // Patch the schema enabled state via ibmcompat API
         given()

@@ -83,14 +83,6 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }} 
-      - name: Maven Deploy
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
       - name: Create GitHub Release
         uses: actions/create-release@latest
         env:
@@ -132,22 +124,32 @@ jobs:
           docker push apicurio/apicurio-registry-asyncmem:latest
           docker push apicurio/apicurio-registry-asyncmem:latest-release
           docker push apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}}
+      - name: Maven Deploy
+        run: |
+          cd registry
+          # Retry 3 times before the steps actually fails
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "==== Maven Deploy Step Failed ====" && exit 1)
       - name: Update Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
-        run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-      - name: Commit Snapshot Version Change
+        run: |
+          cd registry
+          mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+      - name: Commit Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
         run: |
           cd registry
           git add .
           git commit -m"Automated update to next Snapshot Version: ${{steps.metadata.outputs.snapshot-version}}"
           git push
-      - name: Tweet About The Release
-        uses: ethomson/send-tweet-action@v1
-        with:
-          status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-          consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-          consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-          access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+      # - name: Tweet About The Release
+      #   uses: ethomson/send-tweet-action@v1
+      #   with:
+      #     status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
+      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
       - name: Updating Project Website for Release ${{steps.metadata.outputs.release-version}}
         run: |
           cd website

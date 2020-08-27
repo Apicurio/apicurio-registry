@@ -43,7 +43,7 @@ public class ArtifactStateExt {
         transitions.put(ArtifactState.DELETED, EnumSet.noneOf(ArtifactState.class));
     }
 
-    public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED);
+    public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED, ArtifactState.DISABLED);
 
     public static boolean canTransition(ArtifactState before, ArtifactState after) {
         EnumSet<ArtifactState> states = transitions.get(before);

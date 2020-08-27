@@ -30,8 +30,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -218,14 +218,25 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
            .then()
                .statusCode(204);
         
-        // GET - shouldn't return as the state has been changed to DISABLED
+        // GET - object should return when the state has been changed to DISABLED
         TestUtils.retry(() -> {
             given()
                 .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                 .then()
-                    .statusCode(400);
+                    .statusCode(200)
+                    .body("schema", equalTo(SCHEMA_SIMPLE));
+        });
+
+        // GET schema only - shouldn't return as the state has been changed to DISABLED
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
+                .then()
+                .statusCode(404);
         });
     }
     

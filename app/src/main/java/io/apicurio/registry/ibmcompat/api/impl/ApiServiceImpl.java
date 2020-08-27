@@ -16,6 +16,8 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.ibmcompat.api.ApiService;
 import io.apicurio.registry.ibmcompat.model.EnabledModification;
@@ -32,6 +34,7 @@ import io.apicurio.registry.ibmcompat.model.StateModification;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.validity.InvalidContentException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -268,6 +271,21 @@ public class ApiServiceImpl implements ApiService {
         }
     }
 
+    /**
+     * Return the verfied schema contents as a JSON-escaped string.
+     * @param response
+     * @param content
+     */
+    private void handleVerifiedArtifact(AsyncResponse response, ContentHandle content) {
+        String verifiedContent;
+        try {
+            verifiedContent = new ObjectMapper().writeValueAsString(content.content());
+        } catch (JsonProcessingException e) {
+            throw new InvalidContentException(e);
+        }
+        response.resume(Response.ok().entity(verifiedContent).build());
+    }
+
     @Override
     public List<SchemaListItem> apiSchemasGet(int page, int perPage)
     throws ArtifactNotFoundException {
@@ -306,7 +324,7 @@ public class ApiServiceImpl implements ApiService {
         ContentHandle content = ContentHandle.create(schema.getDefinition());
         rulesService.applyRules(artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE);
         if (verify) {
-            response.resume(Response.ok().entity(content).build());
+            handleVerifiedArtifact(response, content);
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(schema.getVersion());
@@ -399,7 +417,7 @@ public class ApiServiceImpl implements ApiService {
         ContentHandle body = ContentHandle.create(newSchemaVersion.getDefinition());
         rulesService.applyRules(schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE);
         if (verify) {
-            response.resume(Response.ok().entity(body).build());
+            handleVerifiedArtifact(response, body);
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(newSchemaVersion.getVersion());

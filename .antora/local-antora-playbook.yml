@@ -6,7 +6,7 @@ site:
 content:
   sources:
   - url: https://github.com/Apicurio/apicurio-registry.git
-    branches: 1.3.0.Final
+    tags: 1.3.0.Final
     start_path: .antora
     edit_url: '{web_url}'
 

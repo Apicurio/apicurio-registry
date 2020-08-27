@@ -82,6 +82,29 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testVerifySchema() throws Exception {
+
+        // Convert the file contents to a JSON string value
+        String schemaDefinition = resourceToString("avro.json")
+            .replaceAll("\"", "\\\\\"")
+            .replaceAll("\n", "\\\\n");
+
+        String schemaName = "testVerifySchema_userInfo";
+        String versionName = "testversion_1.0.0";
+
+        // Verify Avro artifact via ibmcompat API
+        given()
+            .when()
+                .queryParam("verify", "true")
+                .contentType(CT_JSON)
+                .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
+                .post("/ibmcompat/schemas")
+            .then()
+                .statusCode(200)
+                .body(equalTo("\"" + schemaDefinition + "\""));
+    }
+
+    @Test
     public void testGetSchemas() throws Exception {
 
         String artifactContent = resourceToString("avro.json");
@@ -336,6 +359,33 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .body("versions[1].state.state", equalTo("active"))
                 .body("versions[1].enabled", equalTo(true))
                 .body("versions[1].date", notNullValue());
+    }
+
+    @Test
+    public void testVerifySchemaVersion() throws Exception {
+
+        String artifactContent = resourceToString("avro.json");
+        String newSchemaDefinition = artifactContent
+            .replaceAll("\"", "\\\\\"")
+            .replaceAll("\n", "\\\\n");
+
+        String schemaName = "testVerifySchemaVersion_userInfo";
+        String schemaId = schemaName.toLowerCase();
+        String newVersionName = "testversion_2.0.0";
+
+        // Create Avro artifact via the artifact API
+        createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
+
+        // Verify the new version definition via ibmcompat API
+        given()
+            .when()
+                .queryParam("verify", true)
+                .contentType(CT_JSON)
+                .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
+                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+            .then()
+                .statusCode(200)
+                .body(equalTo("\"" + newSchemaDefinition + "\""));
     }
 
     @Test

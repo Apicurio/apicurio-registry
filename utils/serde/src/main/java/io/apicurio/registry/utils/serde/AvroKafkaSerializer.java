@@ -27,7 +27,9 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.kafka.common.header.Headers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
@@ -102,6 +104,12 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         DatumWriter<U> writer = avroDatumProvider.createDatumWriter(data, schema);
         writer.write(data, encoder);
         encoder.flush();
+    }
+
+    @Override
+    protected void serializeData(Headers headers, Schema schema, U data, ByteArrayOutputStream out) throws IOException {
+        headerUtils.addEncodingHeader(headers, encoding);
+        serializeData(schema, data, out);
     }
 
     private Encoder createEncoder(Schema schema, OutputStream os) throws IOException {

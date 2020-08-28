@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ import io.apicurio.registry.utils.serde.util.Utils;
  * @author Ales Justin
  */
 public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implements AutoCloseable {
+
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
@@ -48,11 +50,19 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
     public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler";
     public static final String REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.as-confluent";
 
+    // Constants for using headers to store the ids
+    public static final String USE_HEADERS = "apicurio.use.headers";
+
     public static final byte MAGIC_BYTE = 0x0;
+    protected boolean key; // do we handle key or value with this ser/de?
 
     private IdHandler idHandler;
 
     private RegistryService client;
+
+    protected boolean useHeader = false;
+    protected HeaderUtils headerUtils;
+
 
     public AbstractKafkaSerDe() {
     }
@@ -90,7 +100,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         return setIdHandler(new Legacy4ByteIdHandler());
     }
 
-    protected void configure(Map<String, ?> configs) {
+    protected void configure(Map<String, ?> configs, boolean isKey) {
         if (client == null) {
             String baseUrl = (String) configs.get(REGISTRY_URL_CONFIG_PARAM);
             if (baseUrl == null) {
@@ -113,6 +123,11 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
                 setIdHandler(new Legacy4ByteIdHandler());
             }
         }
+        useHeader = Utils.isTrue(configs.get(USE_HEADERS));
+        if (useHeader) {
+            headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+        }
+        key = isKey;
     }
 
     protected <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
@@ -164,5 +179,14 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     public void close() {
         IoUtil.closeIgnore(client);
+    }
+
+    protected boolean isKey() {
+        return key;
+    }
+
+    public Object setKey(boolean key) {
+        this.key = key;
+        return self();
     }
 }

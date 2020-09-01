@@ -218,15 +218,14 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
            .then()
                .statusCode(204);
         
-        // GET - object should return when the state has been changed to DISABLED
+        // GET - shouldn't return as the state has been changed to DISABLED
         TestUtils.retry(() -> {
             given()
                 .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                 .then()
-                    .statusCode(200)
-                    .body("schema", equalTo(SCHEMA_SIMPLE));
+                    .statusCode(404);
         });
 
         // GET schema only - shouldn't return as the state has been changed to DISABLED

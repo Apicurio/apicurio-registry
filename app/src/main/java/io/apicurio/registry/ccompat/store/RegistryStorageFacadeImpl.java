@@ -98,18 +98,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return parseVersionString(subject, versionString,
-                version -> FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version)));
-    }
-
-    @Override
-    public String getSchemaOnly(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return parseVersionString(subject, versionString,
-            version -> {
-                if(ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(subject, version).getState())) {
-                    throw new VersionNotFoundException(subject, version);
-                }
-                return FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version));
-            }).getSchema();
+                version -> {
+                    if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(subject, version).getState())) {
+                        throw new VersionNotFoundException(subject, version);
+                    }
+                    return FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version));
+                });
     }
 
     @Override

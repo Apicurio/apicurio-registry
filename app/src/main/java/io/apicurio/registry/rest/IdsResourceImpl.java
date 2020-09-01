@@ -22,6 +22,7 @@ import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactMediaTypes;
@@ -75,6 +76,9 @@ public class IdsResourceImpl implements IdsResource, Headers {
     @Override
     public Response getArtifactByGlobalId(long globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
+        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(String.valueOf(globalId));
+        }
         StoredArtifact artifact = storage.getArtifactVersion(globalId);
 
         // protobuf - the content-type will be different for protobuf artifacts

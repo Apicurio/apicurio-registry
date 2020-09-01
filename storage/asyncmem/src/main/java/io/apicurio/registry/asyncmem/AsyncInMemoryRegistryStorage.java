@@ -26,7 +26,6 @@ import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
@@ -207,12 +206,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        ArtifactMetaDataDto amd = this.getArtifactMetaData(artifactId);
-        // Check for disabled
-        if (amd.getState() == ArtifactState.DISABLED) {
-            throw new InvalidArtifactStateException(artifactId, amd.getVersion(), amd.getState());
-        }
-
+        this.getArtifactMetaData(artifactId);
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
@@ -242,12 +236,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        ArtifactVersionMetaDataDto vmd = this.getArtifactVersionMetaData(artifactId, version);
-        // Check for disabled
-        if (vmd.getState() == ArtifactState.DISABLED) {
-            throw new InvalidArtifactStateException(artifactId, vmd.getVersion(), vmd.getState());
-        }
-
+        this.getArtifactVersionMetaData(artifactId, version);
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {

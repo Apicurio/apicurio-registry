@@ -22,9 +22,12 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
 import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +45,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
@@ -162,6 +167,115 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(2, results.getCount());
         Assertions.assertEquals(2, results.getVersions().size());
         Assertions.assertEquals(name, results.getVersions().get(0).getName());
+    }
+
+    @RegistryServiceTest
+    void testSearchDisabledArtifacts(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
+        // warm-up
+        client.listArtifacts();
+        String root = "testSearchDisabledArtifact" + ThreadLocalRandom.current().nextInt(1000000);
+        List<String> artifactIds = new ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+            String artifactId = root + UUID.randomUUID().toString();
+            String name = root + i;
+            ByteArrayInputStream artifactData = new ByteArrayInputStream(
+                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                    .getBytes(StandardCharsets.UTF_8));
+
+            client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+            waitForArtifact(artifactId);
+            artifactIds.add(artifactId);
+        }
+
+        ArtifactSearchResults results = client.searchArtifacts(root.toUpperCase(), null, null, SearchOver.name, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount());
+        Assertions.assertEquals(5, results.getArtifacts().size());
+        Assertions.assertTrue(results.getArtifacts().stream()
+            .map(SearchedArtifact::getId)
+            .collect(Collectors.toList()).containsAll(artifactIds));
+
+        // Put 2 of the 5 artifacts in DISABLED state
+        UpdateState us = new UpdateState();
+        us.setState(ArtifactState.DISABLED);
+        client.updateArtifactState(artifactIds.get(0), us);
+        waitForArtifactState(artifactIds.get(0), ArtifactState.DISABLED);
+        client.updateArtifactState(artifactIds.get(3), us);
+        waitForArtifactState(artifactIds.get(3), ArtifactState.DISABLED);
+
+        // Check the search results still include the DISABLED artifacts
+        results = client.searchArtifacts(root.toUpperCase(), null, null, SearchOver.name, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount());
+        Assertions.assertEquals(5, results.getArtifacts().size());
+        Assertions.assertTrue(results.getArtifacts().stream()
+            .map(SearchedArtifact::getId)
+            .collect(Collectors.toList()).containsAll(artifactIds));
+        Assertions.assertEquals(2, results.getArtifacts().stream()
+            .filter(searchedArtifact -> ArtifactState.DISABLED.equals(searchedArtifact.getState()))
+            .count());
+        Assertions.assertEquals(3, results.getArtifacts().stream()
+            .filter(searchedArtifact -> ArtifactState.ENABLED.equals(searchedArtifact.getState()))
+            .count());
+    }
+
+    @RegistryServiceTest
+    void testSearchDisabledVersions(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService client = supplier.get();
+
+        // warm-up
+        client.listArtifacts();
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = "testSearchDisabledVersions" + ThreadLocalRandom.current().nextInt(1000000);
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+            ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                .getBytes(StandardCharsets.UTF_8));
+
+        client.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+        waitForArtifact(artifactId);
+
+        artifactData.reset();
+
+        client.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        waitForVersion(artifactId, 2);
+
+        artifactData.reset();
+
+        client.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        waitForVersion(artifactId, 3);
+
+        VersionSearchResults results = client.searchVersions(artifactId, 0, 5);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(3, results.getCount());
+        Assertions.assertEquals(3, results.getVersions().size());
+        Assertions.assertTrue(results.getVersions().stream()
+            .allMatch(searchedVersion -> name.equals(searchedVersion.getName()) && ArtifactState.ENABLED.equals(searchedVersion.getState())));
+
+        // Put 2 of the 3 versions in DISABLED state
+        UpdateState us = new UpdateState();
+        us.setState(ArtifactState.DISABLED);
+        client.updateArtifactVersionState(1, artifactId, us);
+        waitForVersionState(artifactId, 1, ArtifactState.DISABLED);
+        client.updateArtifactVersionState(3, artifactId, us);
+        waitForVersionState(artifactId, 3, ArtifactState.DISABLED);
+
+        // Check that the search results still include the DISABLED versions
+        results = client.searchVersions(artifactId, 0, 5);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(3, results.getCount());
+        Assertions.assertEquals(3, results.getVersions().size());
+        Assertions.assertTrue(results.getVersions().stream()
+            .allMatch(searchedVersion -> name.equals(searchedVersion.getName())));
+        Assertions.assertEquals(2, results.getVersions().stream()
+            .filter(searchedVersion -> ArtifactState.DISABLED.equals(searchedVersion.getState()))
+            .count());
+        Assertions.assertEquals(1, results.getVersions().stream()
+            .filter(searchedVersion -> ArtifactState.ENABLED.equals(searchedVersion.getState()))
+            .count());
     }
 
     @RegistryServiceTest

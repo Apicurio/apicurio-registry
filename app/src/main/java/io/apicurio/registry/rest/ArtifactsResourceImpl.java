@@ -339,6 +339,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getLatestArtifact(String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
+        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
         StoredArtifact artifact = storage.getArtifact(artifactId);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
@@ -426,6 +429,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
+        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts

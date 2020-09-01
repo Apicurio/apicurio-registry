@@ -196,12 +196,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @param state
      */
     protected void validateMetaDataResponseState(ValidatableResponse response, ArtifactState state, boolean version) {
-        if (state == ArtifactState.DISABLED && !version) {
-            response.statusCode(404);
-        } else {
-            response.statusCode(200);
-            response.body("state", equalTo(state.name()));
-        }
+        response.statusCode(200);
+        response.body("state", equalTo(state.name()));
     }
 }
 

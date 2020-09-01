@@ -1,1 +1,3 @@
-../../../../docs/getting-started/master.adoc
+= Welcome
+
+Navigate the documentation using the left hand menu.

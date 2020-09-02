@@ -2,7 +2,7 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
-import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -11,6 +11,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import java.util.List;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -50,7 +51,8 @@ public interface RulesResource {
 
   /**
    * Deletes a single global rule.  If this is the only rule configured, this is the same
-   * as deleting **all** rules.
+   * as deleting **all** rules. Default global rules that have been configured via
+   * `registry.rules.global` environment variables cannot be deleted.
    *
    * This operation can fail for the following reasons:
    *
@@ -90,7 +92,8 @@ public interface RulesResource {
   void createGlobalRule(Rule data);
 
   /**
-   * Deletes all globally configured rules.
+   * Deletes all globally configured rules. Default global rules that have been configured
+   * via `registry.rules.global` environment variables cannot be deleted.
    *
    * This operation can fail for the following reasons:
    *

@@ -28,6 +28,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implements the {@link RulesService} interface.
@@ -45,6 +47,9 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     RuleExecutorFactory factory;
 
+    @Inject
+    RulesProperties rulesProperties;
+
     /**
      * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, io.apicurio.registry.types.ArtifactType, ContentHandle, io.apicurio.registry.rules.RuleApplicationType)
      */
@@ -61,17 +66,26 @@ public class RulesServiceImpl implements RulesService {
             rules = storage.getGlobalRules();
             useGlobalRules = true;
         }
-        if (rules.isEmpty()) {
-            return;
+
+        List<RuleType> defaultGlobalRules = rulesProperties.getDefaultGlobalRules(rules);
+        if (!defaultGlobalRules.isEmpty()) {
+            // We have default global rules as well as rules from storage, so use the concatenated list
+            rules = Stream.concat(rules.stream(), defaultGlobalRules.stream())
+                .collect(Collectors.toList());
         }
+
         ContentHandle currentArtifactContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
             currentArtifactContent = currentArtifact.getContent();
         }
         for (RuleType ruleType : rules) {
-            RuleConfigurationDto configurationDto = useGlobalRules ?
-                                                    storage.getGlobalRule(ruleType) : storage.getArtifactRule(artifactId, ruleType);
+            RuleConfigurationDto configurationDto;
+            if (defaultGlobalRules.contains(ruleType)) {
+                configurationDto = rulesProperties.getDefaultGlobalRuleConfiguration(ruleType);
+            } else {
+                configurationDto = useGlobalRules ? storage.getGlobalRule(ruleType) : storage.getArtifactRule(artifactId, ruleType);
+            }
             RuleExecutor executor = factory.createExecutor(ruleType);
             RuleContext context = new RuleContext(artifactId, artifactType, configurationDto.getConfiguration(),
                                                   currentArtifactContent, artifactContent);
@@ -117,8 +131,22 @@ public class RulesServiceImpl implements RulesService {
             throws RuleViolationException {
         StoredArtifact versionContent = storage.getArtifactVersion(artifactId, artifactVersion);
         // Get the rules for this artifact
-        for (RuleType ruleType : storage.getGlobalRules()) {
-            RuleConfigurationDto configurationDto = storage.getGlobalRule(ruleType);
+
+        List<RuleType> globalRules = storage.getGlobalRules();
+        List<RuleType> defaultGlobalRules = rulesProperties.getDefaultGlobalRules(globalRules);
+        if (!defaultGlobalRules.isEmpty()) {
+            // We have default global rules as well as rules from storage, so use the concatenated list
+            globalRules = Stream.concat(
+                globalRules.stream(),
+                defaultGlobalRules.stream()).collect(Collectors.toList());
+        }
+        for (RuleType ruleType : globalRules) {
+            RuleConfigurationDto configurationDto;
+            if (defaultGlobalRules.contains(ruleType)) {
+                configurationDto = rulesProperties.getDefaultGlobalRuleConfiguration(ruleType);
+            } else {
+                configurationDto = storage.getGlobalRule(ruleType);
+            }
             applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
         }
         for (RuleType ruleType : storage.getArtifactRules(artifactId)) {

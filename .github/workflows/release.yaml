@@ -163,7 +163,7 @@ jobs:
           echo "********** Building Registry Documentation using Antora **********"
           cd docs-playbook
           docker pull apicurio/apicurio-docs-builder:latest
-          docker run -v $(pwd):/apicurio-docs-playbook -it apicurio/apicurio-docs-builder:latest
+          docker run -v $(pwd):/apicurio-docs-playbook apicurio/apicurio-docs-builder:latest
           rm -rf ../website/registry/docs/*
           cp -rf target/dist/* ../website/registry/docs/.
       - name: Updating Project Website for Release ${{steps.metadata.outputs.release-version}}

@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.nullValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -50,8 +49,6 @@ public class RulesResourceTest extends AbstractResourceTestBase {
     
     @Test
     public void testGlobalRules() throws Exception {
-        this.createArtifact(this.generateArtifactId(), ArtifactType.JSON, "{}");
-        
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);

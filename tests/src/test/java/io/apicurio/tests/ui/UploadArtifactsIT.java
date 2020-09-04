@@ -37,6 +37,7 @@ import io.apicurio.tests.selenium.SeleniumChrome;
 import io.apicurio.tests.selenium.SeleniumProvider;
 import io.apicurio.tests.selenium.resources.ArtifactListItem;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.UI;
 
 @Tag(UI)
@@ -77,6 +78,7 @@ public class UploadArtifactsIT extends BaseIT {
 //    }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testProtobuf(RegistryService service) throws Exception {
         doTest(service, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
     }

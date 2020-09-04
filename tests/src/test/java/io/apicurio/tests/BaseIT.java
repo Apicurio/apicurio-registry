@@ -72,7 +72,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
             try {
                 ArtifactUtils.deleteArtifact(artifactId);
             } catch (AssertionError e) {
-                //because of async storage artifact may be already deleted but because listed anyway
+                //because of async storage artifact may be already deleted but listed anyway
                 LOGGER.info(e.getMessage());
             } catch (Exception e) {
                 LOGGER.error("", e);

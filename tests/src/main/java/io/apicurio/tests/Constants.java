@@ -41,5 +41,10 @@ public interface Constants {
      */
     String UI = "ui";
 
+    /**
+     * Tag for acceptance tests, less tests than smoke testing
+     */
+    String ACCEPTANCE = "acceptance";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

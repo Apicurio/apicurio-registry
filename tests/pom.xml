@@ -363,6 +363,14 @@
         </profile>
 
         <profile>
+            <id>acceptance</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>acceptance</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>enableConverterTest</id>
             <properties>
                 <exclude.integration.tests>**/NothingToExclude.java</exclude.integration.tests>

@@ -19,5 +19,4 @@ asciidoc:
     plantuml-server-url: 'http://www.plantuml.com/plantuml'
     plantuml-fetch-diagram: true
     mod-loc: partial$
-    registry: Apicurio Registry
-    apicurio-registry: true
+    registry-overview: link:assembly-intro-to-the-registry.html[Registry Overview]

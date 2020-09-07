@@ -14,7 +14,7 @@ This chapter explains how to install and run {registry} using Docker with the fo
 * xref:installing-registry-kafka-streams-storage[]
  
 .Prerequisites
-* xref:registry-overview[]
+* {registry-overview}
 
 NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka, Infinispan, or database cluster configuration, and on the number and type of artifacts stored in {registry}.
 

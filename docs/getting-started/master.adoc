@@ -8,6 +8,9 @@
 :toclevels: 4
 :numbered:
 
+// internal links
+:registry-overview: xref:registry-overview[]
+
 include::attributes.adoc[]
 
 //:imagesdir: images

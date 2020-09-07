@@ -8,7 +8,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: {kafka-streams}, embedded Infinispan, or PostgreSQL database. 
 
 .Prerequisites
-* xref:registry-overview[]
+* {registry-overview}
 
 .{registry} installation
 * xref:installing-registry-operatorhub[]

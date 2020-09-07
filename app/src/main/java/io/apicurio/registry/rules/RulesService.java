@@ -67,6 +67,6 @@ public interface RulesService {
      * @param updatedContent
      * @throws RuleViolationException
      */
-    void applyRule(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+    void applyRules(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
             throws RuleViolationException;
 }

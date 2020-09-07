@@ -58,6 +58,7 @@ public interface RulesResource {
    *
    * * Invalid rule name/type (HTTP error `400`)
    * * No rule with name/type `rule` exists (HTTP error `404`)
+   * * Default rule with name/type `rule` cannot be deleted (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
    */

@@ -21,6 +21,7 @@ import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
@@ -74,7 +75,7 @@ public class RulesResourceImpl implements RulesResource {
     @Override
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
-        List<RuleType> defaultRules = rulesProperties.getDefaultGlobalRules(rules);
+        List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
         return Stream.concat(rules.stream(), defaultRules.stream())
             .sorted()
             .collect(Collectors.toList());
@@ -132,7 +133,7 @@ public class RulesResourceImpl implements RulesResource {
         } catch (RuleNotFoundException ruleNotFoundException) {
             // This global rule doesn't exist in storage - if the rule exists in the default
             // global rules, override the default by creating a new global rule
-            if (rulesProperties.getDefaultGlobalRuleConfiguration(rule) != null) {
+            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
                 storage.createGlobalRule(rule, configDto);
             } else {
                 throw ruleNotFoundException;
@@ -152,9 +153,12 @@ public class RulesResourceImpl implements RulesResource {
         try {
             storage.deleteGlobalRule(rule);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // This global rule doesn't exist in storage - if the rule also does not exist in
-            // the default global rules, throw the RuleNotFoundException
-            if (rulesProperties.getDefaultGlobalRuleConfiguration(rule) == null) {
+            // This global rule doesn't exist in storage - if the rule exists in
+            // the default global rules, return a DefaultRuleDeletionException.
+            // Otherwise, return the RuleNotFoundException
+            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
+                throw new DefaultRuleDeletionException(rule);
+            } else {
                 throw ruleNotFoundException;
             }
         }

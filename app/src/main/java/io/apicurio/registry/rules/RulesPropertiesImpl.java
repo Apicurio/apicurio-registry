@@ -34,10 +34,15 @@ public class RulesPropertiesImpl implements RulesProperties {
     }
 
     @Override
-    public List<RuleType> getDefaultGlobalRules(List<RuleType> excludeRules) {
+    public List<RuleType> getFilteredDefaultGlobalRules(List<RuleType> excludeRulesFilter) {
         return defaultGlobalRules.keySet().stream()
-            .filter(ruleType -> excludeRules == null || !excludeRules.contains(ruleType))
+            .filter(ruleType -> excludeRulesFilter == null || !excludeRulesFilter.contains(ruleType))
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean isDefaultGlobalRuleConfigured(RuleType ruleType) {
+        return defaultGlobalRules.containsKey(ruleType);
     }
 
     @Override

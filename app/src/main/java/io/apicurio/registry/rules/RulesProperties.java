@@ -31,13 +31,21 @@ import java.util.List;
 public interface RulesProperties {
 
     /**
-     * Get the list of configured default global RuleType enums. A list of exclusions can be supplied.
+     * Get the list of configured default global RuleType enums. A list of RuleType enums can be supplied that will
+     * be filtered out of the returned list.
      *
-     * @param excludeRules a list of RuleType enums to remove from the returned list. If null, the entire
+     * @param excludeRulesFilter a list of RuleType enums to filter from the returned list. If null, the entire
      *                     configured list of default global RuleTypes is returned.
      * @return The list of configured default global RuleTypes with any matching the excludeRules list removed.
      */
-    List<RuleType> getDefaultGlobalRules(List<RuleType> excludeRules);
+    List<RuleType> getFilteredDefaultGlobalRules(List<RuleType> excludeRulesFilter);
+
+    /**
+     * Whether the supplied RuleType has been configured as a global rule.
+     *
+     * @return true if the a default global rule has been configured for the supplied RuleType, false otherwise.
+     */
+    boolean isDefaultGlobalRuleConfigured(RuleType ruleType);
 
     /**
      * Get the default global RuleConfigurationDto for the supplied RuleType.

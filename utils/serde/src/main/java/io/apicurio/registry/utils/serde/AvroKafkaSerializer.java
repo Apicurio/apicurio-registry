@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +24,8 @@ import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
+import io.apicurio.registry.utils.serde.util.Utils;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
@@ -74,6 +77,9 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
         encoding = AvroEncoding.fromConfig(configs);
+        if (Utils.isTrue(configs.get(USE_HEADERS))) {
+            headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+        }
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
         //noinspection rawtypes
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;

@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,7 +74,7 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
             String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schema);
             long id = getGlobalIdStrategy().findId(getClient(), artifactId, artifactType(), schema);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            if (useHeader) {
+            if (headerUtils != null) {
                 headerUtils.addSchemaHeaders(headers, artifactId, id);
                 serializeData(headers, schema, data, out);
             } else {

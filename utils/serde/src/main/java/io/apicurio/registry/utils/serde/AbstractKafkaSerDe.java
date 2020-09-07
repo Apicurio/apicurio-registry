@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +61,6 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     private RegistryService client;
 
-    protected boolean useHeader = false;
     protected HeaderUtils headerUtils;
 
 
@@ -122,10 +122,6 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
                 }
                 setIdHandler(new Legacy4ByteIdHandler());
             }
-        }
-        useHeader = Utils.isTrue(configs.get(USE_HEADERS));
-        if (useHeader) {
-            headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
         }
         key = isKey;
     }

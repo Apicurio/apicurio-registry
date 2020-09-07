@@ -1,4 +1,13 @@
 :experimental:
+
+// location of module files (note the trailing slash)
+:mod-loc: ../../modules/
+
+// moved from attributes.adoc
+:toc:
+:toclevels: 4
+:numbered:
+
 include::attributes.adoc[]
 
 //:imagesdir: images

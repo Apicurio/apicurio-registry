@@ -1,5 +1,6 @@
 // Metadata created by nebel
-//
+
+include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="managing-registry-artifacts-ui"]
 = Managing {registry} content using the web console
@@ -12,6 +13,6 @@ This chapter explains how to manage artifacts stored in the registry using the {
 * xref:configuring-rules-using-console[]
 
 //INCLUDES
-include::../../modules/getting-started/proc-adding-artifacts-using-console.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-browsing-artifacts-using-console.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-configuring-rules-using-console.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-adding-artifacts-using-console.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-browsing-artifacts-using-console.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-rules-using-console.adoc[leveloffset=+1]

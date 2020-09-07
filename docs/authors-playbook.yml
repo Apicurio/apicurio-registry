@@ -1,23 +1,18 @@
 site:
-  title: Apicurio Registry
+  title: Apicurio Registry PREVIEW
   # the 404 page and sitemap files only get generated when the url property is set
   url: https://www.apicur.io/registry/docs
   start_page: apicurio-registry::index.adoc
 content:
   sources:
-  - url: ../apicurio-registry/.git
-    branches: master
-    start_path: .antora
-    edit_url: '{web_url}'
+  - url: ../
+    branches: HEAD
+    start_path: docs
 
 ui:
   bundle:
     url: https://raw.githubusercontent.com/Apicurio/apicurio-docs-ui/master/dist/ui-bundle.zip
     snapshot: true
-  output_dir: assets
-
-output:
-  dir: ./target/dist
 
 asciidoc:
   attributes:

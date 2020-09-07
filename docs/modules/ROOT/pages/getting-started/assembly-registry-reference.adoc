@@ -1,5 +1,6 @@
 // Metadata created by nebel
-//
+
+include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="artifact-and-rule-types"]
 = {registry} reference
@@ -14,5 +15,5 @@ This chapter lists the supported artifact types and content rule types that are 
 * For more detailed information on artifact and rule types, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation] 
 
 //INCLUDES
-include::../../modules/getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref-registry-rule-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-rule-types.adoc[leveloffset=+1]

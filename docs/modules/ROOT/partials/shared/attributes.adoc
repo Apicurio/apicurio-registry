@@ -1,9 +1,10 @@
 // Standard document attributes to be used in the documentation
 //
 // The following are shared by all documents
-:toc:
-:toclevels: 4
-:numbered:
+
+//:toc:
+//:toclevels: 4
+//:numbered:
 
 // Branding - toggle upstream/downstream content "on/off"
 

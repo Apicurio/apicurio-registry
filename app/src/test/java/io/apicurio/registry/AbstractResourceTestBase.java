@@ -22,7 +22,6 @@ import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 
 import javax.enterprise.inject.Instance;
@@ -30,6 +29,7 @@ import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -47,15 +47,22 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @BeforeEach
     protected void beforeEach() throws Exception {
+        prepareServiceInitializers();
+        deleteGlobalRules(0);
+    }
+
+    protected void prepareServiceInitializers() {
         RestAssured.baseURI = "http://localhost:8081/api";
-        
+
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);
+    }
 
+    protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
         given().when().delete("/rules").then().statusCode(204);
         TestUtils.retry(() -> {
-            given().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
+            given().when().get("/rules").then().statusCode(200).body("size()", is(expectedDefaultRulesCount));
         });
     }
 

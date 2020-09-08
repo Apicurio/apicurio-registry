@@ -89,4 +89,49 @@ public interface ISqlStatements {
      */
     public String updateGlobalRule();
 
+    /**
+     * A statement used to insert a row in the artifacts table.
+     */
+    public String insertArtifact();
+
+    /**
+     * A statement used to update the 'latest' column of the 'artifacts' table.
+     */
+    public String updateArtifactLatestGlobalId();
+
+    /**
+     * A statement used to insert a row in the versions table.
+     */
+    public String insertVersion(boolean firstVersion);
+
+    /**
+     * A statement used to select a single row in the versions table by globalId.
+     */
+    public String selectArtifactVersionMetaDataByGlobalId();
+
+    /**
+     * A statement to select the content of an artifact version from the versions table by globalId.
+     */
+    public String selectArtifactVersionContentByGlobalId();
+
+    /**
+     * A statement used to select all version #s for a given artifactId.
+     */
+    public String selectArtifactVersions();
+
+    /**
+     * A statement used to select artifact version metadata by artifactId and version.
+     */
+    public String selectArtifactVersionMetaData();
+
+    /**
+     * A statement to select the content of an artifact version from the versions table by artifactId + version.
+     */
+    public String selectArtifactVersionContent();
+
+    /**
+     * A statement to "upsert" a row in the "content" table.
+     */
+    public String upsertContent();
+
 }

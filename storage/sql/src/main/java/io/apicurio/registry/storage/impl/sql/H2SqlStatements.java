@@ -45,5 +45,13 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String isDatabaseInitialized() {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#upsertContent()
+     */
+    @Override
+    public String upsertContent() {
+        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (canonicalHash) VALUES(?, ?, ?);";
+    }
 
 }

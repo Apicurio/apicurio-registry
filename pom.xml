@@ -157,6 +157,7 @@
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <jdbi.version>3.14.4</jdbi.version>
+        <commons-codec.version>1.15</commons-codec.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -353,6 +354,11 @@
                 <version>${jdbi.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
             </dependency>
 
             <!-- gRPC -->

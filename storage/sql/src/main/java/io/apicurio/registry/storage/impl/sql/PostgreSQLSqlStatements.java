@@ -46,4 +46,13 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'api_designs' LIMIT 1";
     }
     
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#upsertContent()
+     */
+    @Override
+    public String upsertContent() {
+        // TODO implement upsert for postgresql!
+        throw new RuntimeException("Not yet implemented.");
+    }
+    
 }

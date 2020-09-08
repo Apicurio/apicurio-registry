@@ -128,4 +128,72 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     public String updateGlobalRule() {
         return "UPDATE globalrules SET configuration = ? WHERE type = ?";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertArtifact()
+     */
+    @Override
+    public String insertArtifact() {
+        return "INSERT INTO artifacts (artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactLatestGlobalId()
+     */
+    @Override
+    public String updateArtifactLatestGlobalId() {
+        return "UPDATE artifacts SET latest = ? WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertVersion()
+     */
+    @Override
+    public String insertVersion(boolean firstVersion) {
+        if (firstVersion) {
+            return "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
+        } else {
+            return "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties) VALUES (?, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionMetaDataByGlobalId()
+     */
+    @Override
+    public String selectArtifactVersionMetaDataByGlobalId() {
+        return "SELECT * FROM versions WHERE globalId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersions()
+     */
+    @Override
+    public String selectArtifactVersions() {
+        return "SELECT version FROM versions WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionMetaData()
+     */
+    @Override
+    public String selectArtifactVersionMetaData() {
+        return "SELECT * FROM versions WHERE artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionContentByGlobalId()
+     */
+    @Override
+    public String selectArtifactVersionContentByGlobalId() {
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.globalId = c.globalId WHERE v.globalId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionContent()
+     */
+    @Override
+    public String selectArtifactVersionContent() {
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.globalId = c.globalId WHERE v.artifactId = ? AND v.version = ?";
+    }
 }

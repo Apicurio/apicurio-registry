@@ -36,14 +36,16 @@ public class HeaderUtils {
     public static final String DEFAULT_HEADER_VALUE_VERSION = "apicurio.value.version";
     public static final String DEFAULT_HEADER_KEY_GLOBAL_ID = "apicurio.key.globalId";
     public static final String DEFAULT_HEADER_VALUE_GLOBAL_ID = "apicurio.value.globalId";
+    public static final String HEADER_KEY_ENCODING = "apicurio.key.encoding";
+    public static final String HEADER_VALUE_ENCODING = "apicurio.value.encoding";
+    
+    // Define constants to override the names of the keys stored in the header
     public static final String HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME = "apicurio.key.artifactId.name";
     public static final String HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME = "apicurio.value.artifactId.name";
     public static final String HEADER_KEY_VERSION_OVERRIDE_NAME = "apicurio.key.version.name";
     public static final String HEADER_VALUE_VERSION_OVERRIDE_NAME = "apicurio.value.version.name";
     public static final String HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME = "apicurio.key.globalId.name";
     public static final String HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME = "apicurio.value.globalId.name";
-    public static final String HEADER_KEY_ENCODING = "apicurio.key.encoding";
-    public static final String HEADER_VALUE_ENCODING = "apicurio.value.encoding";
 
 
     protected String globalIdHeaderName;

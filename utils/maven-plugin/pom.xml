@@ -15,10 +15,20 @@
     <packaging>maven-plugin</packaging>
     <name>apicurio-registry-maven-plugin</name>
 
+    <properties>
+        <resteasy-client.version>4.5.6.Final</resteasy-client.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-rest-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <version>${resteasy-client.version}</version>
         </dependency>
 
         <dependency>

@@ -24,13 +24,13 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
@@ -62,11 +62,10 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         super.configure(configs, isKey);
 
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
-        //noinspection unchecked,rawtypes
-        Consumer<AvroDatumProvider> consumer =
-            ((Consumer<AvroDatumProvider>) avroDatumProvider -> avroDatumProvider.configure(configs))
-                .andThen(this::setAvroDatumProvider);
+        //noinspection rawtypes
+        Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
         instantiate(AvroDatumProvider.class, adp, consumer);
+        avroDatumProvider.configure(configs);
     }
 
     @Override

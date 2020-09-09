@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +20,48 @@ package io.apicurio.registry.storage.impl;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.storage.*;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.SearchedVersion;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.MetaDataKeys;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -306,6 +335,22 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(String, ArtifactType, ContentHandle, EditableArtifactMetaDataDto)
+     */
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metadata)
+        throws ArtifactAlreadyExistsException, RegistryStorageException {
+        try {
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
+            updateArtifactMetaData(artifactId, metadata);
+            DtoUtil.setEditableMetaDataInArtifact(amdd, metadata);
+            return CompletableFuture.completedFuture(amdd);
+        } catch (ArtifactNotFoundException e) {
+            throw new RegistryStorageException("Invalid state", e);
+        }
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifact(java.lang.String)
      */
     @Override
@@ -345,6 +390,22 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, ArtifactType, ContentHandle, EditableArtifactMetaDataDto)
+     */
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metadata)
+        throws ArtifactNotFoundException, RegistryStorageException {
+        try {
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
+            updateArtifactMetaData(artifactId, metadata);
+            DtoUtil.setEditableMetaDataInArtifact(amdd, metadata);
+            return CompletableFuture.completedFuture(amdd);
+        } catch (ArtifactAlreadyExistsException e) {
+            throw new RegistryStorageException("Invalid state", e);
+        }
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds(Integer limit)
      */
     @Override
@@ -368,9 +429,9 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds(null)
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
-                .peek(artifactId -> itemsCount.increment())
                 .map(this::getArtifactMetadataOrNull)
                 .filter(Objects::nonNull)
+                .peek(artifactId -> itemsCount.increment())
                 .sorted(SearchUtil.comparator(order))
                 .skip(offset)
                 .limit(limit)

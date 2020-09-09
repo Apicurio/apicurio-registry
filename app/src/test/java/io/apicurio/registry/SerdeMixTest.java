@@ -34,6 +34,8 @@ import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -54,14 +56,14 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         String subject = generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         int id = confClient.register(subject, schema);
         confClient.reset();
 
         this.waitForArtifact(subject);
 
         this.waitForGlobalId(id);
-        Schema schema2 = confClient.getById(id);
+        ParsedSchema schema2 = confClient.getSchemaById(id);
         Assertions.assertNotNull(schema2);
 
         CompletionStage<ArtifactMetaData> cs = apicurioClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
@@ -120,10 +122,11 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         String subject = generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
+        ParsedSchema schema = new AvroSchema(rawSchema);
         client.register(subject + "-value", schema);
 
-        GenericData.Record record = new GenericData.Record(schema);
+        GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
         record.put("bar", "somebar");
 
         AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(supplier.get());

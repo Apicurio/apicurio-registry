@@ -1,0 +1,5 @@
+name: apicurio-registry
+title: Apicurio Registry
+version: 'latest'
+nav:
+- getting-started/master.adoc

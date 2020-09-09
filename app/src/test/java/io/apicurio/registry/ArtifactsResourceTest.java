@@ -1021,6 +1021,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(204);
         
         // Get a single rule by name (should be 404 because the artifact is gone)
+        // Also try to get the artifact itself (should be 404)
         TestUtils.retry(() -> {
             given()
                 .when()
@@ -1028,8 +1029,14 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
                 .then()
                     .statusCode(404);
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}")
+                .then()
+                    .statusCode(404);
         });
-
+        
         // Re-create the artifact
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 

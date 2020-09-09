@@ -1,0 +1,34 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-artifact-types"]
+
+= {registry} artifact types
+You can store and manage the following artifact types in {registry}:
+
+.{registry} artifact types
+[%header,cols=2*] 
+|===
+|Type
+|Description
+|`ASYNCAPI`
+|AsyncAPI specification
+|`AVRO`
+|Apache Avro schema
+|`GRAPHQL`
+|GraphQL schema
+|`JSON`
+|JSON Schema
+|`KCONNECT`
+|Apache Kafka Connect schema
+|`OPENAPI`
+|OpenAPI specification
+|`PROTOBUF`
+|Google protocol buffers schema
+|`PROTOBUF_FD`
+|Google protocol buffers file descriptor
+|`WSDL`
+|Web Services Definition Language
+|`XSD`
+|XML Schema Definition
+|===

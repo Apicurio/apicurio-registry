@@ -36,6 +36,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.ui.beans.ConfigJs;
+import io.apicurio.registry.utils.StringUtil;
 
 /**
  * Generates the 'config.js' file imported by the UI.
@@ -44,11 +45,19 @@ import io.apicurio.registry.ui.beans.ConfigJs;
 public class ConfigJsServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1624928159818173418L;
-    
+
     @Inject
     @ConfigProperty(name = "registry.ui.features.readOnly")
     Boolean featureReadOnly;
-    
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.uiUrl")
+    String uiUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.apiUrl")
+    String apiUrl;
+
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -91,8 +100,20 @@ public class ConfigJsServlet extends HttpServlet {
      */
     private String generateApiUrl(HttpServletRequest request) {
         try {
-            String url = request.getRequestURL().toString();
+            if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
+                return apiUrl;
+            }
+            
+            String url = resolveUrlFromXForwarded(request, "/api");
+            if (url != null) {
+                return url;
+            }
+            
+            url = request.getRequestURL().toString();
             url = new URI(url).resolve("/api").toString();
+            if (url.startsWith("http:") && request.isSecure()) {
+                url = url.replaceFirst("http", "https");
+            }
             return url;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
@@ -105,14 +126,42 @@ public class ConfigJsServlet extends HttpServlet {
      */
     private String generateUiUrl(HttpServletRequest request) {
         try {
-            String url = request.getRequestURL().toString();
+            if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
+                return uiUrl;
+            }
+            
+            String url = resolveUrlFromXForwarded(request, "/ui");
+            if (url != null) {
+                return url;
+            }
+
+            url = request.getRequestURL().toString();
             url = new URI(url).resolve("/ui").toString();
+            if (url.startsWith("http:") && request.isSecure()) {
+                url = url.replaceFirst("http", "https");
+            }
             return url;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
+    /**
+     * Resolves a URL path relative to the information found in X-Forwarded-Host and X-Forwarded-Proto.
+     * @param path
+     */
+    private String resolveUrlFromXForwarded(HttpServletRequest request, String path) {
+        try {
+            String fproto = request.getHeader("X-Forwarded-Proto");
+            String fhost = request.getHeader("X-Forwarded-Host");
+            if (!StringUtil.isEmpty(fproto) && !StringUtil.isEmpty(fhost)) {
+                return new URI(fproto + "://" + fhost).resolve(path).toString();
+            }
+        } catch (URISyntaxException e) {
+        }
+        return null;
+    }
+
     /**
      * Returns true if the "read only" feature is enabled.
      */

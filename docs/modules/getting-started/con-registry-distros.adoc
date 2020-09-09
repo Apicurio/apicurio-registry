@@ -1,0 +1,92 @@
+// Metadata created by nebel
+
+[id="registry-distros"]
+= Available distributions
+
+{registry} includes the following distributions: 
+
+ifdef::apicurio-registry[]
+
+.{registry} images 
+[%header,cols=2*] 
+|===
+|Distribution option
+|Container Image
+|In-memory
+|https://hub.docker.com/r/apicurio/apicurio-registry-mem
+|Java Persistence API  
+|https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+|Apache Kafka
+|https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
+|Apache Kafka Streams
+|https://hub.docker.com/r/apicurio/apicurio-registry-streams
+|Infinispan
+|https://hub.docker.com/r/apicurio/apicurio-registry-infinispan
+|{registry} Operator 
+|https://hub.docker.com/r/apicurio/apicurio-registry-operator
+|===
+
+.Additional resources
+* For details on building from source code and running Docker images, see https://github.com/Apicurio/apicurio-registry
+* For details on using the Operator to deploy, see https://github.com/Apicurio/apicurio-registry-operator
+
+endif::[]
+
+ifdef::rh-service-registry[]
+
+.{registry} Operator and images
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release
+|{registry} Operator 
+|OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for {registry} Operator 
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
+|General Availability
+|Container image for Kafka storage in AMQ Streams 
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
+|General Availability
+|Container image for embedded Infinispan storage 
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
+|Technical Preview only
+|Container image for JPA storage in PostgreSQL 
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
+|Technical Preview only
+|===
+
+ifdef::rh-service-registry[]
+[IMPORTANT]
+====
+{registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
+
+
+.{registry} zip downloads
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release
+|Example custom resource definitions for installation
+|link:{download-url-registry-custom-resources}[Software Downloads for Red Hat Integration]
+|General Availability and Technical Preview
+|Kafka Connect converters 
+|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
+|General Availability
+|Maven repository
+|link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
+|General Availability
+|Source code 
+|link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]
+|General Availability
+|===
+
+
+NOTE: You must have a subscription for Red Hat Integration and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
+endif::[]

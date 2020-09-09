@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.apicurio.registry.streams;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -27,19 +43,20 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.proto.Str;
-import io.apicurio.registry.streams.diservice.AsyncBiFunctionService;
-import io.apicurio.registry.streams.distore.ExtReadOnlyKeyValueStore;
-import io.apicurio.registry.streams.distore.FilterPredicate;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
+import io.apicurio.registry.utils.streams.diservice.AsyncBiFunctionService;
+import io.apicurio.registry.utils.streams.distore.ExtReadOnlyKeyValueStore;
+import io.apicurio.registry.utils.streams.distore.FilterPredicate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -60,6 +77,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
@@ -227,7 +245,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private static boolean metaDataContainsFilter(String filter, Collection<String> metadataValues) {
-
         return null == filter || metadataValues.stream().anyMatch(value -> stringMetadataContainsFilter(filter, value));
     }
 
@@ -349,6 +366,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifact(artifactId, artifactType, content)
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
+    }
+
+    @Override
     public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         Str.Data data = storageStore.get(artifactId);
         if (data != null) {
@@ -411,6 +435,15 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                        });
     }
 
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return updateArtifact(artifactId, artifactType, content)
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact((ArtifactMetaDataDto) amdd, metaData)));
+    }
+
+
     @Override
     public Set<String> getArtifactIds(Integer limit) {
         Set<String> ids = new ConcurrentSkipListSet<>();
@@ -432,13 +465,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
         LongAdder itemsCount = new LongAdder();
         List<SearchedArtifact> matchedArtifacts = storageStore.filter(search, searchOver.value())
-            .peek(artifactId -> itemsCount.increment())
-            .sorted((kv1, kv2) -> SearchUtil.compare(sortOrder, getArtifactMetaData(kv1.key), getArtifactMetaData(kv2.key)))
+            .peek((kv) -> itemsCount.increment())
+            .map(kv -> getArtifactMetaDataOrNull(kv.key))
+            .filter(Objects::nonNull)
+            .sorted((art1, art2) -> SearchUtil.compare(sortOrder, art1, art2))
             .skip(offset)
             .limit(limit)
-            .map(kv -> SearchUtil.buildSearchedArtifact(
-                MetaDataKeys.toArtifactMetaData(findMetadata(search, searchOver.value(), kv.value)))
-            )
+            .map(SearchUtil::buildSearchedArtifact)
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
         final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
@@ -466,6 +500,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
 
         return artifactMetaDataDto;
+    }
+
+    private ArtifactMetaDataDto getArtifactMetaDataOrNull(String artifactId) {
+        try {
+            return getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException ex) {
+            return null;
+        }
     }
 
     @Override

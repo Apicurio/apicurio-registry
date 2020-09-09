@@ -1,12 +1,29 @@
+/*
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.apicurio.registry.ibmcompat.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Date;
-import java.util.Objects;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.Date;
+import java.util.Objects;
 
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public class SchemaVersion {
@@ -49,10 +66,11 @@ public class SchemaVersion {
     }
 
     /**
-     * Timestamp for when a schema version.  When used for an overall schema, this will be the timestamp for when the most recent version was created.
+     * Timestamp for when a schema version was created.  When used for an overall schema, this will be the timestamp for when the most recent version was created.
      **/
 
     @JsonProperty("date")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     @NotNull
     public Date getDate() {
         return date;
@@ -63,7 +81,7 @@ public class SchemaVersion {
     }
 
     /**
-     *
+     * The active/deprecated state
      **/
 
     @JsonProperty("state")

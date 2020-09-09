@@ -16,18 +16,6 @@
 
 package io.apicurio.tests.serdes.confluent;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.serdes.KafkaClients;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import org.apache.avro.Schema;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import static io.apicurio.tests.Constants.CLUSTER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -35,6 +23,22 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.avro.Schema;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.serdes.KafkaClients;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 
 @Tag(CLUSTER)
 public class BasicConfluentSerDesIT extends ConfluentBaseIT {
@@ -46,8 +50,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordconfluent1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecordconfluent1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeAvroConfluentMessages(topicName, 10).get(5, TimeUnit.SECONDS);
@@ -60,8 +66,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
@@ -73,8 +81,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesTopicStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
@@ -86,8 +96,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecordconfluent4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecordconfluent4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
     }
@@ -100,14 +112,18 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.consumeAvroConfluentMessages(topicName, 10).get(5, TimeUnit.SECONDS);
 
         String schemaKey2 = "key2";
-        Schema schema2 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}");
+        String rawSchema2 = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}";
+        Schema schema2 = new Schema.Parser().parse(rawSchema2);
+//        ParsedSchema pschema2 = new AvroSchema(rawSchema2);
         updateArtifactViaApicurioClient(service, schema2, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
@@ -115,7 +131,9 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         KafkaClients.consumeAvroConfluentMessages(topicName, 20).get(5, TimeUnit.SECONDS);
 
         String schemaKey3 = "key3";
-        Schema schema3 = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + recordName +  "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}");
+        String rawSchema3 = "{\"type\":\"record\",\"name\":\"" + recordName +  "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}";
+        Schema schema3 = new Schema.Parser().parse(rawSchema3);
+//        ParsedSchema pschema3 = new AvroSchema(rawSchema3);
         updateArtifactViaApicurioClient(service, schema3, subjectName);
 
         KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema3, 10, schemaKey, schemaKey2, schemaKey3).get(5, TimeUnit.SECONDS);
@@ -136,8 +154,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         kafkaCluster.createTopic(topicName2, 1, 1);
         kafkaCluster.createTopic(topicName3, 1, 1);
 
-        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}");
-        createArtifactViaConfluentClient(schema, subjectName);
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+        Schema schema = new Schema.Parser().parse(rawSchema);
+        ParsedSchema pschema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(pschema, subjectName);
 
         KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName1, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
         KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName2, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);

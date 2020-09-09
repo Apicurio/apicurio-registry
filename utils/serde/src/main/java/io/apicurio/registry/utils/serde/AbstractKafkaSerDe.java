@@ -16,21 +16,22 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
-import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
-import io.apicurio.registry.utils.serde.strategy.IdHandler;
-import io.apicurio.registry.utils.serde.util.Utils;
-import org.apache.kafka.common.errors.SerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import org.apache.kafka.common.errors.SerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.client.CompatibleClient;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
+import io.apicurio.registry.utils.serde.strategy.IdHandler;
+import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
+import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
  * Common class for both serializer and deserializer.
@@ -41,6 +42,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
+    @Deprecated
     public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
 
     public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler";
@@ -95,12 +97,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
                 throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
             }
             try {
-                Object cached = configs.get(REGISTRY_CACHED_CONFIG_PARAM);
-                if (Utils.isTrue(cached)) {
-                    client = RegistryClient.cached(baseUrl);
-                } else {
-                    client = RegistryClient.create(baseUrl);
-                }
+                client = CompatibleClient.createCompatible(baseUrl);
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }

@@ -25,6 +25,7 @@ import java.util.function.Consumer;
  *
  * @author Ales Justin
  */
+@Deprecated
 public class GenericClient {
     private static final BiFunction<Method, Throwable, Throwable> UNWRAPPER;
 

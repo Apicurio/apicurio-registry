@@ -7,7 +7,13 @@ include::attributes.adoc[]
 = Getting Started with {registry}
 
 // Add include directives to include modules and assemblies here
-include::assemblies/getting-started/as_intro-to-the-registry.adoc[leveloffset=+1]
-include::assemblies/getting-started/as_intro-to-registry-rules.adoc[leveloffset=+1]
-include::assemblies/getting-started/as_installing-the-registry.adoc[leveloffset=+1]
-include::assemblies/getting-started/as_managing-registry-artifacts.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-intro-to-the-registry.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-intro-to-registry-rules.adoc[leveloffset=+1]
+ifdef::apicurio-registry[]
+include::assemblies/getting-started/assembly-installing-the-registry-docker.adoc[leveloffset=+1]
+endif::[]
+include::assemblies/getting-started/assembly-installing-the-registry-openshift.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-configuring-the-registry.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-managing-registry-artifacts-ui.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-managing-registry-artifacts-api.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-registry-reference.adoc[leveloffset=+1]

@@ -172,7 +172,7 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
         if (states != null) {
             String statesQuery = states
                     .stream()
-                    .map(s -> s.toString())
+                    .map(s -> String.format("'%s'",s.toString()))
                     .collect(Collectors.joining(","));
             String query = String.format(
                      "SELECT a.* " +
@@ -180,7 +180,7 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
                      "INNER JOIN " +
                      "  (SELECT artifact_id, max(version) AS MaxVersion " +
                      "  FROM meta " +
-                     "  WHERE artifact_id = '%s' AND key = '%s' AND value = ANY('{%s}'::text[]) " +
+                     "  WHERE artifact_id = '%s' AND key = '%s' AND value IN (%s) " +
                      "  GROUP BY artifact_id) b " +
                      "ON a.artifact_id = b.artifact_id AND a.version = b.MaxVersion",
                      artifactId,

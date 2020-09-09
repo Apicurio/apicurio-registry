@@ -36,6 +36,7 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
 
     @Test
+    @Tag(ACCEPTANCE)
     void compatibilityGlobalRules() throws Exception {
         GlobalRuleUtils.createGlobalCompatibilityConfig("FULL");
 

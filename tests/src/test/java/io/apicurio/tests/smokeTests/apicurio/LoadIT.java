@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,15 @@ import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 
+/**
+ * Disabled because this is too flaky and it needs to be redesigned to align better
+ * with common usage of the registry, which is frequent reads sporadic writes.
+ *
+ * @author Fabian Martinez
+ *
+ */
 @Tag(SMOKE)
+@Disabled
 public class LoadIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadIT.class);

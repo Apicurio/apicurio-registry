@@ -15,6 +15,7 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
@@ -54,6 +55,7 @@ class ArtifactsIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void createAndUpdateArtifact(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -123,6 +125,7 @@ class ArtifactsIT extends BaseIT {
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void createNonAvroArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
@@ -165,6 +168,7 @@ class ArtifactsIT extends BaseIT {
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testDuplicatedArtifact(RegistryService service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();

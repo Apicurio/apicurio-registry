@@ -22,6 +22,10 @@ If you enable one, a separate set of artifacts is produced with the persistence 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
  - *prod* - for production environment.
+ 
+### Getting started
+
+ `./mvnw quarkus:dev`
 
 ### Build Options
  

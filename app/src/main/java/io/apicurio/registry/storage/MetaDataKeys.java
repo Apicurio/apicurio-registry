@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,8 @@
 
 package io.apicurio.registry.storage;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.util.Arrays;
@@ -39,6 +42,7 @@ public class MetaDataKeys {
     public static String MODIFIED_ON = "modifiedOn";
     public static String STATE = "state";
     public static String LABELS = "labels";
+    public static String PROPERTIES = "properties";
 
     // Internal
 
@@ -70,6 +74,13 @@ public class MetaDataKeys {
         dto.setState(ArtifactStateExt.getState(content));
         if (content.get(LABELS) != null) {
             dto.setLabels(Arrays.asList(content.get(LABELS).split(",")));
+        }
+        if (content.get(PROPERTIES) != null) {
+            try {
+                dto.setProperties(new ObjectMapper().readValue(content.get(PROPERTIES), Map.class));
+            } catch (JsonProcessingException e) {
+                // If the user-defined properties cannot be parsed from a Json string to a Map<String, String>, ignore them
+            }
         }
         return dto;
     }

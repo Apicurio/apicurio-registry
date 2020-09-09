@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +17,6 @@
 
 package io.apicurio.registry;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import org.hamcrest.CustomMatcher;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
@@ -42,6 +27,25 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import org.hamcrest.CustomMatcher;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToObject;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -665,7 +669,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
         
         // Update the artifact meta-data
-        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\"}";
+        String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"properties\":{\"additionalProp1\": \"Empty API additional property\"}}";
         given()
             .when()
                 .contentType(CT_JSON)
@@ -675,8 +679,13 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204);
 
+
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {
+            List<String> expectedLabels = Arrays.asList("Empty API label 1", "Empty API label 2");
+            Map<String, String> expectedProperties = new HashMap<>();
+            expectedProperties.put("additionalProp1", "Empty API additional property");
+
             given()
                 .when()
                     .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
@@ -686,7 +695,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("id", equalTo("testGetArtifactMetaData/EmptyAPI"))
                     .body("version", anything())
                     .body("name", equalTo("Empty API Name"))
-                    .body("description", equalTo("Empty API description."));
+                    .body("description", equalTo("Empty API description."))
+                    .body("labels", equalToObject(expectedLabels))
+                    .body("properties", equalToObject(expectedProperties));
         });
         
         // Update the artifact content and then make sure the name/description meta-data is still available
@@ -714,7 +725,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("version", anything())
                 .body("name", equalTo("Empty API (Updated)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
-        
     }
     
     @Test

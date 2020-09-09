@@ -17,6 +17,15 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           metadata-file-path: '.github/project.yaml'
+      - name: Verify Metadata
+        run: |
+          if [ -z "${{steps.metadata.outputs.release-version}}" ]
+          then
+            echo "Failed to load project metadata from project.yaml!"
+            exit 1
+          else
+            echo "Releasing Apicurio Registry version ${{steps.metadata.outputs.release-version}}"
+          fi
       - name: Set up Node.js v12
         uses: actions/setup-node@v1
         with:
@@ -28,6 +37,9 @@ jobs:
             architecture: x64
       - name: Set up settings.xml
         run: |
+          pwd
+          mkdir -p /home/runner/.m2
+          chmod 755 /home/runner/.m2
           echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
           cat /home/runner/.m2/settings.xml
       - name: Set up Gren
@@ -71,14 +83,6 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }} 
-      - name: Maven Deploy
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
       - name: Create GitHub Release
         uses: actions/create-release@latest
         env:
@@ -120,22 +124,32 @@ jobs:
           docker push apicurio/apicurio-registry-asyncmem:latest
           docker push apicurio/apicurio-registry-asyncmem:latest-release
           docker push apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}}
+      - name: Maven Deploy
+        run: |
+          cd registry
+          # Retry 3 times before the steps actually fails
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "==== Maven Deploy Step Failed ====" && exit 1)
       - name: Update Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
-        run: mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-      - name: Commit Snapshot Version Change
+        run: |
+          cd registry
+          mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+      - name: Commit Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
         run: |
           cd registry
           git add .
           git commit -m"Automated update to next Snapshot Version: ${{steps.metadata.outputs.snapshot-version}}"
           git push
-      - name: Tweet About The Release
-        uses: ethomson/send-tweet-action@v1
-        with:
-          status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-          consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-          consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-          access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+      # - name: Tweet About The Release
+      #   uses: ethomson/send-tweet-action@v1
+      #   with:
+      #     status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
+      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
       - name: Updating Project Website for Release ${{steps.metadata.outputs.release-version}}
         run: |
           cd website
@@ -147,14 +161,10 @@ jobs:
           echo "********** Copying Latest Release JSON File **********"
           PUBLISHED_AT=$(cat latestRelease.json | jq '.published_at' | sed 's/"//g')
           cp latestRelease.json releases/$PUBLISHED_AT.json
-          
-          # setting up env variable to use in next step to force commit the file
-          echo "::set-env name=FILENAME::$PUBLISHED_AT" 
       - name: Commit Project Website Changes
         run: |
           cd website
           git add .
-          git add -f _data/registry/releases/$FILENAME.json    #ignored due to .gitignore config
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{steps.metadata.outputs.release-version}}"
           git push
 

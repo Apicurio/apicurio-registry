@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -338,6 +339,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getLatestArtifact(String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
+        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
         StoredArtifact artifact = storage.getArtifact(artifactId);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
@@ -425,6 +429,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
+        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(artifactId);
+        }
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
@@ -536,6 +543,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
+        dto.setProperties(data.getProperties());
         storage.updateArtifactMetaData(artifactId, dto);
     }
 

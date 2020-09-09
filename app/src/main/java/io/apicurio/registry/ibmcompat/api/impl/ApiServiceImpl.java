@@ -16,6 +16,8 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.ibmcompat.api.ApiService;
 import io.apicurio.registry.ibmcompat.model.EnabledModification;
@@ -32,6 +34,7 @@ import io.apicurio.registry.ibmcompat.model.StateModification;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.validity.InvalidContentException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -52,7 +55,9 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -77,6 +82,9 @@ public class ApiServiceImpl implements ApiService {
     @Inject
     ArtifactIdGenerator idGenerator;
 
+    private static final String SCHEMA_NAME_ADDITIONAL_PROPERTY = "ibmcompat-schema-name";
+    private static final String SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY = "ibmcompat-schema-state-comment";
+
     private List<SchemaVersion> getSchemaVersions(String schemaid) {
         return storage.getArtifactVersions(schemaid)
                       .stream()
@@ -93,7 +101,7 @@ public class ApiServiceImpl implements ApiService {
         SchemaVersion schemaVersion = null;
         try {
             ArtifactVersionMetaDataDto avmdd = storage.getArtifactVersionMetaData(schemaid, versionid);
-            schemaVersion = getSchemaVersion(avmdd.getVersion(), avmdd.getName(), avmdd.getCreatedOn(), avmdd.getState());
+            schemaVersion = getSchemaVersion(avmdd.getVersion(), avmdd.getName(), avmdd.getCreatedOn(), avmdd.getState(), avmdd.getDescription());
         } catch (ArtifactNotFoundException e) {
             // If artifact version does not exist (which may occur due to race conditions), swallow
             // the exception here and return a null result, to be filtered out
@@ -101,7 +109,7 @@ public class ApiServiceImpl implements ApiService {
         return schemaVersion;
     }
 
-    private SchemaVersion getSchemaVersion(int id, String name, long createdOn, ArtifactState state) {
+    private SchemaVersion getSchemaVersion(int id, String name, long createdOn, ArtifactState state, String description) {
         SchemaVersion schemaVersion = new SchemaVersion();
         schemaVersion.setId(id);
         schemaVersion.setDate(new Date(createdOn));
@@ -113,6 +121,9 @@ public class ApiServiceImpl implements ApiService {
         } else {
             versionState.setState(SchemaState.StateEnum.ACTIVE);
         }
+        if(description != null) {
+            versionState.setComment(description);
+        }
         schemaVersion.setState(versionState);
         return schemaVersion;
     }
@@ -121,9 +132,9 @@ public class ApiServiceImpl implements ApiService {
         List<ArtifactState> versionStates = storage.getArtifactVersions(schemaid).stream()
             .map(version -> storage.getArtifactVersionMetaData(schemaid, version).getState())
             .collect(Collectors.toList());
+        Map<String, String> properties = storage.getArtifactMetaData(schemaid).getProperties();
 
         schemaSummary.setId(schemaid);
-        schemaSummary.setName(schemaid); // TODO - add mechanism to store an artifact-level name
 
         // The schema is disabled if all versions are disabled
         boolean isSchemaDisabled = versionStates.stream().allMatch(versionState -> ArtifactState.DISABLED.equals(versionState));
@@ -138,17 +149,32 @@ public class ApiServiceImpl implements ApiService {
             schemaState.setState(SchemaState.StateEnum.ACTIVE);
         }
         schemaSummary.setState(schemaState);
+
+        if (properties != null) {
+            schemaSummary.setName(properties.getOrDefault(SCHEMA_NAME_ADDITIONAL_PROPERTY, schemaid));
+            schemaState.setComment(properties.get(SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY));
+        } else {
+            schemaSummary.setName(schemaid);
+        }
+
     }
 
     private SchemaInfo getSchemaInfo(ArtifactMetaDataDto amdd) {
         SchemaInfo schemaInfo = new SchemaInfo();
         schemaInfo.setId(amdd.getId());
-        schemaInfo.setName(amdd.getId()); // TODO - add mechanism to store an artifact-level name
         schemaInfo.setEnabled(true);
 
         SchemaState schemaState = new SchemaState();
         schemaState.setState(SchemaState.StateEnum.ACTIVE);
         schemaInfo.setState(schemaState);
+
+        Map<String, String> properties = amdd.getProperties();
+        if (properties != null) {
+            schemaInfo.setName(properties.getOrDefault(SCHEMA_NAME_ADDITIONAL_PROPERTY, amdd.getId()));
+            schemaState.setComment(properties.get(SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY));
+        } else {
+            schemaInfo.setName(amdd.getId());
+        }
 
         return schemaInfo;
     }
@@ -173,7 +199,7 @@ public class ApiServiceImpl implements ApiService {
             if (schemaVersions.isEmpty() || amdd.getVersion() != schemaVersions.get(schemaVersions.size() - 1).getId()) {
                 // Async storage types may not yet be ready to call storage.getArtifactVersionMetaData(),
                 // so add the new version to the response
-                schemaVersions.add(getSchemaVersion(amdd.getVersion(), amdd.getName(), amdd.getCreatedOn(), amdd.getState()));
+                schemaVersions.add(getSchemaVersion(amdd.getVersion(), amdd.getName(), amdd.getCreatedOn(), amdd.getState(), null));
             } else {
                 // Async storage types may not have updated the version metadata yet, so set the version name in the response
                 schemaVersions.get(schemaVersions.size() - 1).setName(amdd.getName());
@@ -181,7 +207,7 @@ public class ApiServiceImpl implements ApiService {
         } catch (ArtifactNotFoundException anfe) {
             // If this is a newly created schema, async storage types may not yet be ready to call
             // storage.getArtifactVersions(), so add the new version to the response
-            schemaVersions.add(getSchemaVersion(amdd.getVersion(), amdd.getName(), amdd.getCreatedOn(), amdd.getState()));
+            schemaVersions.add(getSchemaVersion(amdd.getVersion(), amdd.getName(), amdd.getCreatedOn(), amdd.getState(), null));
         } catch (Throwable throwable) {
             response.resume(t);
             return;
@@ -192,22 +218,39 @@ public class ApiServiceImpl implements ApiService {
     @Nullable
     private ArtifactState getPatchedArtifactState(List<SchemaModificationPatch> schemaModificationPatches) {
         ArtifactState artifactState = null;
+        boolean isEnabled = true;
+        boolean isDeprecated = false;
+
+        // Get the final enabled and deprecated states from the list of patches
         for (SchemaModificationPatch schemaModificationPatch : schemaModificationPatches) {
             if (schemaModificationPatch instanceof EnabledModification) {
-                if (((EnabledModification) schemaModificationPatch).getValue()) {
-                    artifactState = ArtifactState.ENABLED;
-                } else {
-                    artifactState = ArtifactState.DISABLED;
-                }
-            } else if (schemaModificationPatch instanceof StateModification) {
-                if (SchemaState.StateEnum.DEPRECATED.equals(((StateModification) schemaModificationPatch).getValue().getState())) {
-                    artifactState = ArtifactState.DEPRECATED;
-                } else {
-                    artifactState = ArtifactState.ENABLED;
-                }
+                isEnabled = ((EnabledModification) schemaModificationPatch).getValue();
+            } else if (schemaModificationPatch instanceof StateModification && !ArtifactState.DISABLED.equals(artifactState)) {
+                isDeprecated = SchemaState.StateEnum.DEPRECATED.equals(((StateModification) schemaModificationPatch).getValue().getState());
             }
         }
+
+        // Get the final artifact state - disabled overrides deprecated, which overrrides enabled.
+        if (!isEnabled) {
+            artifactState = ArtifactState.DISABLED;
+        } else if (isDeprecated) {
+            artifactState = ArtifactState.DEPRECATED;
+        } else {
+            artifactState = ArtifactState.ENABLED;
+        }
+
         return artifactState;
+    }
+
+    @Nullable
+    private String getPatchedArtifactStateComment(List<SchemaModificationPatch> schemaModificationPatches) {
+        String comment = null;
+        for (SchemaModificationPatch schemaModificationPatch : schemaModificationPatches) {
+            if (schemaModificationPatch instanceof StateModification) {
+                comment = ((StateModification) schemaModificationPatch).getValue().getComment();
+            }
+        }
+        return comment;
     }
 
     private void setSchemaVersionState(ArtifactState artifactState, SchemaVersion version) {
@@ -218,6 +261,29 @@ public class ApiServiceImpl implements ApiService {
         } else if(ArtifactState.DEPRECATED.equals(artifactState)) {
             version.getState().setState(SchemaState.StateEnum.DEPRECATED);
         }
+    }
+
+    private void updateArtifactVersionState(String schemaid, int versionnum, ArtifactState artifactState) {
+        ArtifactVersionMetaDataDto avmdd = storage.getArtifactVersionMetaData(schemaid, versionnum);
+        if (artifactState != null && !artifactState.equals(avmdd.getState())) {
+            // Modify the artifact version state
+            storage.updateArtifactState(schemaid, artifactState, versionnum);
+        }
+    }
+
+    /**
+     * Return the verfied schema contents as a JSON-escaped string.
+     * @param response
+     * @param content
+     */
+    private void handleVerifiedArtifact(AsyncResponse response, ContentHandle content) {
+        String verifiedContent;
+        try {
+            verifiedContent = new ObjectMapper().writeValueAsString(content.content());
+        } catch (JsonProcessingException e) {
+            throw new InvalidContentException(e);
+        }
+        response.resume(Response.ok().entity(verifiedContent).build());
     }
 
     @Override
@@ -251,16 +317,21 @@ public class ApiServiceImpl implements ApiService {
         final String artifactId;
         if (schemaName == null) {
             artifactId = idGenerator.generate();
+            schemaName = artifactId;
         } else {
-            artifactId = schemaName.toLowerCase();
+            artifactId = ApiUtil.normalizeSchemaID(schemaName);
         }
         ContentHandle content = ContentHandle.create(schema.getDefinition());
         rulesService.applyRules(artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE);
         if (verify) {
-            response.resume(Response.ok().entity(content).build());
+            handleVerifiedArtifact(response, content);
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(schema.getVersion());
+
+            Map<String, String> properties = new HashMap<>();
+            properties.put(SCHEMA_NAME_ADDITIONAL_PROPERTY, schemaName);
+            dto.setProperties(properties);
             storage.createArtifactWithMetadata(artifactId, ArtifactType.AVRO, content, dto)
                 .whenComplete((amdd, t) -> handleArtifactCreation(response, artifactId, amdd, t));
         }
@@ -290,8 +361,12 @@ public class ApiServiceImpl implements ApiService {
         if(artifactState != null) {
             // Modify all the artifact version states
             for (Long versionid : storage.getArtifactVersions(schemaid)) {
-                storage.updateArtifactState(schemaid, artifactState, versionid.intValue());
+                updateArtifactVersionState(schemaid, versionid.intValue(), artifactState);
             }
+        }
+        String schemaStateComment = getPatchedArtifactStateComment(schemaModificationPatches);
+        if (schemaStateComment != null) {
+            updateStateCommentInArtifactMetadata(schemaid, schemaStateComment);
         }
 
         // Return the updated schema info
@@ -306,6 +381,10 @@ public class ApiServiceImpl implements ApiService {
             info.setEnabled(true);
         } else if(ArtifactState.DEPRECATED.equals(artifactState)) {
             info.getState().setState(SchemaState.StateEnum.DEPRECATED);
+
+            if (schemaStateComment != null) {
+                info.getState().setComment(schemaStateComment);
+            }
             // Note: Can't be deprecated and disabled at the same time - Apicurio Registry has a single state for this.
             info.setEnabled(true);
         }
@@ -316,13 +395,29 @@ public class ApiServiceImpl implements ApiService {
         return Response.ok().entity(info).build();
     }
 
+    private void updateStateCommentInArtifactMetadata(String schemaid, String schemaStateComment) {
+        ArtifactMetaDataDto amdd = storage.getArtifactMetaData(schemaid);
+        Map<String, String> properties = amdd.getProperties();
+        if(properties == null) {
+            properties = new HashMap<>();
+        }
+        properties.put(SCHEMA_STATE_COMMENT_ADDITIONAL_PROPERTY, schemaStateComment);
+        EditableArtifactMetaDataDto dto = EditableArtifactMetaDataDto.builder()
+            .name(amdd.getName())
+            .description(amdd.getDescription())
+            .labels(amdd.getLabels())
+            .properties(properties)
+            .build();
+        storage.updateArtifactMetaData(schemaid, dto);
+    }
+
     @Override
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion newSchemaVersion, boolean verify)
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
         ContentHandle body = ContentHandle.create(newSchemaVersion.getDefinition());
         rulesService.applyRules(schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE);
         if (verify) {
-            response.resume(Response.ok().entity(body).build());
+            handleVerifiedArtifact(response, body);
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(newSchemaVersion.getVersion());
@@ -354,9 +449,16 @@ public class ApiServiceImpl implements ApiService {
     throws ArtifactNotFoundException {
 
         ArtifactState artifactState = getPatchedArtifactState(schemaModificationPatches);
-        if(artifactState != null) {
-            // Modify the artifact version state
-            storage.updateArtifactState(schemaid, artifactState, versionnum);
+        updateArtifactVersionState(schemaid, versionnum, artifactState);
+
+        String schemaVersionStateComment = getPatchedArtifactStateComment(schemaModificationPatches);
+        if (schemaVersionStateComment != null) {
+            ArtifactVersionMetaDataDto avmdd = storage.getArtifactVersionMetaData(schemaid, versionnum);
+            EditableArtifactMetaDataDto dto = EditableArtifactMetaDataDto.builder()
+                .name(avmdd.getName())
+                .description(schemaVersionStateComment)
+                .build();
+            storage.updateArtifactVersionMetaData(schemaid, versionnum, dto);
         }
 
         // Return the updated schema info

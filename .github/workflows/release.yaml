@@ -84,7 +84,7 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'${{steps.metadata.outputs.release-version}}\'/g" .antora/antora.yml
+          sed -i  "s/version\:\s.*/version: \'${{steps.metadata.outputs.release-version}}\'/g" docs/antora.yml
       - name: Build All Variants
         run: cd registry && mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
       - name: Commit Release Version Change
@@ -151,7 +151,7 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'master\'/g" .antora/antora.yml
+          sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
       - name: Commit Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
         run: |
           cd registry

@@ -33,8 +33,6 @@ import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -128,9 +126,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public Response getLatestArtifact(String artifactId) {
+    public ResponseBody getLatestArtifact(String artifactId) {
 
-        return parseResponseBody(requestHandler.execute(artifactsService.getLatestArtifact(artifactId)));
+        return requestHandler.execute(artifactsService.getLatestArtifact(artifactId));
     }
 
     @Override
@@ -185,10 +183,10 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public Response getArtifactVersion(Integer version,
+    public ResponseBody getArtifactVersion(Integer version,
                                        String artifactId) {
 
-        return parseResponseBody(requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId)));
+        return requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId));
     }
 
     @Override
@@ -261,9 +259,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public Response getArtifactByGlobalId(long globalId) {
+    public ResponseBody getArtifactByGlobalId(long globalId) {
 
-        return parseResponseBody(requestHandler.execute(idsService.getArtifactByGlobalId(globalId)));
+        return requestHandler.execute(idsService.getArtifactByGlobalId(globalId));
     }
 
     @Override
@@ -318,10 +316,5 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public void deleteAllGlobalRules() {
 
         requestHandler.execute(rulesService.deleteAllGlobalRules());
-    }
-
-    private Response parseResponseBody(ResponseBody result) {
-
-        return Response.ok(result.byteStream(), MediaType.valueOf(result.contentType().toString())).build();
     }
 }

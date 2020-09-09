@@ -18,9 +18,11 @@ package io.apicurio.registry.client;
 import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import okhttp3.ResponseBody;
 
 import javax.enterprise.inject.Vetoed;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
@@ -62,7 +64,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getLatestArtifact(String artifactId) {
-        return delegate.getLatestArtifact(artifactId);
+        return parseResponseBody(delegate.getLatestArtifact(artifactId));
     }
 
     @Override
@@ -107,7 +109,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        return delegate.getArtifactVersion(version, artifactId);
+        return parseResponseBody(delegate.getArtifactVersion(version, artifactId));
     }
 
     @Override
@@ -167,7 +169,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactByGlobalId(long globalId) {
-        return delegate.getArtifactByGlobalId(globalId);
+        return parseResponseBody(delegate.getArtifactByGlobalId(globalId));
     }
 
     @Override
@@ -223,5 +225,10 @@ public class CompatibleClient implements RegistryService {
     @Override
     public void reset() {
 
+    }
+
+    private Response parseResponseBody(ResponseBody result) {
+
+        return Response.ok(result.byteStream(), MediaType.valueOf(result.contentType().toString())).build();
     }
 }

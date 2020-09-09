@@ -29,8 +29,8 @@
             <artifactId>converter-jackson</artifactId>
             <version>${retrofit.version}</version>
         </dependency>
-        <!-- Only real usage in server-side -->
 
+        <!-- Only real usage in server-side -->
         <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-api</artifactId>

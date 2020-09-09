@@ -1,5 +1,7 @@
 // Metadata created by nebel
 
+include::{mod-loc}shared/all-attributes.adoc[]
+
 [id="configuring-the-registry"]
 = Configuring {registry} on OpenShift
 
@@ -9,5 +11,5 @@ This chapter explains how to configure optional settings for {registry} health c
 * xref:registry-liveness-env-vars[]
 
 //INCLUDES
-include::../../modules/getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
-include::../../modules/getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]

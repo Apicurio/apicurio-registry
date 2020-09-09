@@ -85,7 +85,7 @@
 :CDKProdName: Red Hat Container Development Kit
 :CDKProdNameShort: Container Development Kit
 
-:LinkCDKGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/{cdk-version}/html-single/getting_started_guide/
+// :LinkCDKGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/{cdk-version}/html-single/getting_started_guide/
 :NameOfCDKGettingStarted: Getting Started Guide
 
 // Red Hat Single Sign-On titles
@@ -139,11 +139,15 @@
 
 // AMQ Streams titles
 
+////
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using AMQ Streams on OpenShift
 
 :LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_rhel/index
 :NameStreamsRhel: Using AMQ Streams on RHEL
+////
+
+
 
 // Debezium titles
 
@@ -161,6 +165,7 @@
 
 // Debezium link attributes that are used upstream.  Add attributes as needed.
 
+////
 :link-avro-serialization: {LinkCDCUserGuide}
 :link-cloud-events: {LinkCDCUserGuide}
 :link-db2-connector: {LinkCDCUserGuide}
@@ -178,6 +183,8 @@
 :link-sqlserver-connector: {LinkCDCUserGuide}
 :link-topic-routing: {LinkCDCUserGuide}
 :link-tutorial: {LinkCDCGettingStarted}
+////
+
 
 // Data Virtualization titles
 

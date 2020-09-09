@@ -1,12 +1,14 @@
 // Metadata created by nebel
 
+include::{mod-loc}shared/all-attributes.adoc[]
+
 [id="installing-the-registry"]
 = Installing {registry} on OpenShift
 
 This chapter explains how to first install {registry} and then how to set up your chosen registry storage option: {kafka-streams}, embedded Infinispan, or PostgreSQL database. 
 
 .Prerequisites
-* xref:registry-overview[]
+* {registry-overview}
 
 .{registry} installation
 * xref:installing-registry-operatorhub[]
@@ -49,10 +51,10 @@ ifdef::apicurio-registry[]
 endif::[]
 
 //INCLUDES
-//include::../../modules/getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-installing-registry-operatorhub.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-setting-up-kafka-streams-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-setting-up-infinispan-storage.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-installing-postgresql-operatorhub.adoc[leveloffset=+1]
-include::../../modules/getting-started/proc-setting-up-postgresql-storage.adoc[leveloffset=+1]
+//include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-registry-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-infinispan-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-postgresql-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-postgresql-storage.adoc[leveloffset=+1]

@@ -29,8 +29,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Implements the {@link RulesService} interface.
@@ -73,34 +73,26 @@ public class RulesServiceImpl implements RulesService {
 
     private void applyGlobalAndArtifactRules(String artifactId, ArtifactType artifactType, ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent, List<RuleType> artifactRules) {
 
-        boolean useGlobalRules = false;
-        if (artifactRules.isEmpty()) {
-            artifactRules = storage.getGlobalRules();
-            useGlobalRules = true;
+        Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
+            .collect(Collectors.toMap(ruleType -> ruleType, ruleType -> storage.getArtifactRule(artifactId, ruleType)));
+
+        if (globalOrArtifactRulesMap.isEmpty()) {
+            List<RuleType> globalRules = storage.getGlobalRules();
+            globalOrArtifactRulesMap = globalRules.stream()
+                .collect(Collectors.toMap(ruleType -> ruleType, storage::getGlobalRule));
+
+            // Add any default global rules to the map (after filtering out any global rules from storage)
+            Map<RuleType, RuleConfigurationDto>  filteredDefaultGlobalRulesMap = rulesProperties.getFilteredDefaultGlobalRules(globalRules).stream()
+                .collect(Collectors.toMap(ruleType -> ruleType, rulesProperties::getDefaultGlobalRuleConfiguration));
+            globalOrArtifactRulesMap.putAll(filteredDefaultGlobalRulesMap);
         }
 
-        List<RuleType> filteredDefaultGlobalRules = rulesProperties.getFilteredDefaultGlobalRules(artifactRules);
-        if (!filteredDefaultGlobalRules.isEmpty()) {
-            // We have default global rules (with any storage rules filtered out) plus rules from storage, so concatenate the 2 lists
-            artifactRules = Stream.concat(artifactRules.stream(), filteredDefaultGlobalRules.stream())
-                .collect(Collectors.toList());
-        }
-
-        if (artifactRules.isEmpty()) {
+        if (globalOrArtifactRulesMap.isEmpty()) {
             return;
         }
 
-        for (RuleType ruleType : artifactRules) {
-            RuleConfigurationDto configurationDto;
-            if (filteredDefaultGlobalRules.contains(ruleType)) {
-                // This ruleType came from the default global rules with the rules from storage rules, so
-                // this rule is only in the default global rules.
-                configurationDto = rulesProperties.getDefaultGlobalRuleConfiguration(ruleType);
-            } else {
-                // This ruleType came from the storage rules
-                configurationDto = useGlobalRules ? storage.getGlobalRule(ruleType) : storage.getArtifactRule(artifactId, ruleType);
-            }
-            applyRule(artifactId, artifactType, currentArtifactContent, updatedArtifactContent, ruleType, configurationDto.getConfiguration());
+        for (RuleType ruleType : globalOrArtifactRulesMap.keySet()) {
+            applyRule(artifactId, artifactType, currentArtifactContent, updatedArtifactContent, ruleType, globalOrArtifactRulesMap.get(ruleType).getConfiguration());
         }
     }
 

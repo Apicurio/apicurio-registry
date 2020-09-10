@@ -29,7 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
 import static org.hamcrest.Matchers.equalTo;
+
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.

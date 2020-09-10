@@ -17,6 +17,9 @@
 
 package io.apicurio.registry.client;
 
+import java.util.Map;
+
+import io.apicurio.registry.auth.AuthConfig;
 import okhttp3.OkHttpClient;
 
 import java.util.Map;
@@ -26,8 +29,13 @@ import java.util.Map;
  */
 public class RegistryRestClientFactory {
 
+
     public static RegistryRestClient create(String baseUrl) {
         return new RegistryRestClientImpl(baseUrl);
+    }
+
+    public static RegistryRestClient create(String baseUrl, AuthConfig authConfig) {
+        return new RegistryRestClientImpl(baseUrl, authConfig);
     }
 
     public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {

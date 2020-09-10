@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class KeycloakResourceManager implements QuarkusTestResourceLifecycleManager {
+
 	private static final String KEYCLOAK_SERVER_URL = System.getProperty("keycloak.url", "http://localhost:8090/auth");
 	private static final String KEYCLOAK_REALM = "registry";
 	public static final String REGISTRY_APP = "registry-api";
@@ -23,8 +24,9 @@ public class KeycloakResourceManager implements QuarkusTestResourceLifecycleMana
 		RealmRepresentation realm = createRealm(KEYCLOAK_REALM);
 
 		realm.getClients().add(createClient(REGISTRY_APP));
-		realm.getUsers().add(createUser("alice", "user"));
-		realm.getUsers().add(createUser("admin", "user", "admin"));
+		realm.getUsers().add(createUser("user", "registry-user"));
+		realm.getUsers().add(createUser("admin", "registry-user", "registry-admin"));
+
 		try {
 			RestAssured
 					.given()
@@ -67,8 +69,8 @@ public class KeycloakResourceManager implements QuarkusTestResourceLifecycleMana
 		roles.setRealm(realmRoles);
 		realm.setRoles(roles);
 
-		realm.getRoles().getRealm().add(new RoleRepresentation("user", null, false));
-		realm.getRoles().getRealm().add(new RoleRepresentation("admin", null, false));
+		realm.getRoles().getRealm().add(new RoleRepresentation("registry-user", null, false));
+		realm.getRoles().getRealm().add(new RoleRepresentation("registry-admin", null, false));
 
 		return realm;
 	}

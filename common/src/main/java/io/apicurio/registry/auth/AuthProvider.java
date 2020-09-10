@@ -1,4 +1,4 @@
-package io.apicurio.registry.client.auth;
+package io.apicurio.registry.auth;
 
 public enum AuthProvider {
     KEYCLOAK

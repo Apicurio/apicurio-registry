@@ -1,8 +1,7 @@
-package io.apicurio.registry.client.auth;
+package io.apicurio.registry.client;
 
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
-import java.io.IOException;
 
 public class HeaderDecorator implements ClientRequestFilter {
 
@@ -18,7 +17,7 @@ public class HeaderDecorator implements ClientRequestFilter {
     }
 
     @Override
-    public void filter(ClientRequestContext requestContext) throws IOException {
+    public void filter(ClientRequestContext requestContext) {
         requestContext.getHeaders().add(AUTHORIZATION, getToken());
     }
 }

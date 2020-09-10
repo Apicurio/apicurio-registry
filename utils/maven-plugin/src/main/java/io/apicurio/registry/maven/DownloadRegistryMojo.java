@@ -114,11 +114,10 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
             getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
 
-            try {
-                Integer version = versions.get(id);
-                InputStream stream = (version != null) ?
-                        getClient().getArtifactVersion(version, id) :
-                        getClient().getLatestArtifact(id);
+            Integer version = versions.get(id);
+            try (InputStream stream = (version != null) ?
+                    getClient().getArtifactVersion(version, id) :
+                    getClient().getLatestArtifact(id)) {
                 if (replaceExisting) {
                     Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } else {
@@ -126,8 +125,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(
-                    String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
-                    ex
+                        String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
+                        ex
                 );
             }
         }

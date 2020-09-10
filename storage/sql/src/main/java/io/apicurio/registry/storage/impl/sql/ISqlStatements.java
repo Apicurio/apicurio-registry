@@ -179,4 +179,39 @@ public interface ISqlStatements {
      */
     public String deleteArtifactRules();
 
+    /**
+     * A statement to update the meta-data for the most recent (latest) version of an artifact.
+     */
+    public String updateArtifactMetaDataLatestVersion();
+
+    /**
+     * A statement to update the meta-data of a specific artifact version.
+     */
+    public String updateArtifactVersionMetaData();
+
+    /**
+     * A statement to delete all labels for all versions for a single artifact.
+     */
+    public String deleteLabels();
+
+    /**
+     * A statement to delete all properties for all versions for a single artifact.
+     */
+    public String deleteProperties();
+
+    /**
+     * A statement to delete all versions for a single artifact.
+     */
+    public String deleteVersions();
+
+    /**
+     * A statement to delete a single row from the artifacts table by artifactId.
+     */
+    public String deleteArtifact();
+
+    /**
+     * A statement to get all artifacts IDs.
+     */
+    public String selectArtifactIds();
+
 }

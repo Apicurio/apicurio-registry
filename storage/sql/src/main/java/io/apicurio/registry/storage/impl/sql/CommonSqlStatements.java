@@ -260,12 +260,68 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     public String deleteArtifactRule() {
         return "DELETE FROM rules WHERE artifactId = ? AND type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifactRules()
      */
     @Override
     public String deleteArtifactRules() {
         return "DELETE FROM rules WHERE artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactMetaDataLatestVersion()
+     */
+    @Override
+    public String updateArtifactMetaDataLatestVersion() {
+        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE globalId = (SELECT latest FROM artifacts WHERE artifactId = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactVersionMetaData()
+     */
+    @Override
+    public String updateArtifactVersionMetaData() {
+        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteLabels()
+     */
+    @Override
+    public String deleteLabels() {
+        return "DELETE FROM labels WHERE globalId = (SELECT globalId FROM versions WHERE artifactId = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteProperties()
+     */
+    @Override
+    public String deleteProperties() {
+        return "DELETE FROM properties WHERE globalId = (SELECT globalId FROM versions WHERE artifactId = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteVersions()
+     */
+    @Override
+    public String deleteVersions() {
+        return "DELETE FROM versions WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifact()
+     */
+    @Override
+    public String deleteArtifact() {
+        return "DELETE FROM artifacts WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactIds()
+     */
+    @Override
+    public String selectArtifactIds() {
+        return "SELECT artifactId FROM artifacts LIMIT ?";
     }
 }

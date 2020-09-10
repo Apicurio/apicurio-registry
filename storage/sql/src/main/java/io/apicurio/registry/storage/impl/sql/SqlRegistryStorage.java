@@ -294,37 +294,14 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         Date createdOn = new Date();
         try {
             return this.jdbi.withHandle( handle -> {
-                // First, create a row in the artifacts table.
-                String sql = sqlStatements.insertArtifact();
-                handle.createUpdate(sql)
-                      .bind(0, artifactId)
-                      .bind(1, artifactType.name())
-                      .bind(2, (String) null) // no createdBy (yet)
-                      .bind(3, new Date())
-                      .execute();
- 
                 // Extract meta-data from the content
                 ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
                 ContentExtractor extractor = provider.getContentExtractor();
                 EditableMetaData emd = extractor.extract(content);
+                EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties());
 
-                // Then create a row in the content and versions tables (for the content and version meta-data)
-                ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
-                        emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties(), content);
-                
-                // Update the "latest" row in the artifacts table with the globalId of the new version
-                sql = sqlStatements.updateArtifactLatestVersion();
-                handle.createUpdate(sql)
-                      .bind(0, vmdd.getGlobalId())
-                      .bind(1, artifactId)
-                      .execute();
-                
-                // Return the new artifact meta-data
-                ArtifactMetaDataDto amdd = versionToArtifactDto(artifactId, vmdd);
-                amdd.setCreatedBy(createdBy);
-                amdd.setCreatedOn(createdOn.getTime());
-                amdd.setLabels(emd.getLabels());
-                amdd.setProperties(emd.getProperties());
+                ArtifactMetaDataDto amdd = createArtifactInternal(handle, artifactId, artifactType, content,
+                        createdBy, createdOn, metaData);
                 return CompletableFuture.completedFuture(amdd);
             });
         } catch (Exception e) {
@@ -350,8 +327,8 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         Date createdOn = new Date();
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
-        String labelsStr = null; // TODO serialize labels
-        String propertiesStr = null; // TODo serialize properties
+        String labelsStr = SqlUtil.serializeLabels(labels);
+        String propertiesStr = SqlUtil.serializeProperties(properties);
         
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
         ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
@@ -435,8 +412,21 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Inserting an artifact (with meta-data) row for: {}", artifactId);
+        String createdBy = null;
+        Date createdOn = new Date();
+        try {
+            return this.jdbi.withHandle( handle -> {
+                ArtifactMetaDataDto amdd = createArtifactInternal(handle, artifactId, artifactType, content,
+                        createdBy, createdOn, metaData);
+                return CompletableFuture.completedFuture(amdd);
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new ArtifactAlreadyExistsException(artifactId);
+            }
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -445,8 +435,63 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public SortedSet<Long> deleteArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Deleting an artifact: {}", artifactId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                // Get the list of versions of the artifact (will be deleted)
+                String sql = sqlStatements.selectArtifactVersions();
+                List<Long> versions = handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .mapTo(Long.class)
+                        .list();
+                SortedSet<Long> rval = new TreeSet<Long>(versions);
+                
+                // Set the 'latest' version of an artifact to NULL
+                sql = sqlStatements.updateArtifactLatestVersion();
+                handle.createUpdate(sql)
+                      .bind(0, (Long) null)
+                      .bind(1, artifactId)
+                      .execute();
+                
+                // Delete labels
+                sql = sqlStatements.deleteLabels();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .execute();
+                
+                // Delete properties
+                sql = sqlStatements.deleteProperties();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .execute();
+
+                // Delete versions
+                sql = sqlStatements.deleteVersions();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .execute();
+
+                // Delete rules
+                sql = sqlStatements.deleteArtifactRules();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .execute();
+
+                // Delete artifact row (should be just one)
+                sql = sqlStatements.deleteArtifact();
+                int rowCount = handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .execute();
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(artifactId);
+                }
+                return rval;
+            });
+        } catch (ArtifactNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -524,8 +569,26 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Updating artifact {} with a new version (content).", artifactId);
+
+        // Get meta-data from previous (latest) version
+        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
+
+        // Create version and return
+        return this.jdbi.withHandle(handle -> {
+            String name = metaData.getName();
+            String description = metaData.getDescription();
+            List<String> labels = metaData.getLabels();
+            Map<String, String> properties = metaData.getProperties();
+
+            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content);
+            ArtifactMetaDataDto dto = versionToArtifactDto(artifactId, versionDto);
+            dto.setCreatedOn(latest.getCreatedOn());
+            dto.setCreatedBy(latest.getCreatedBy());
+            dto.setLabels(labels);
+            dto.setProperties(properties);
+            return CompletableFuture.completedFuture(dto);
+        });
     }
 
     /**
@@ -533,8 +596,19 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public Set<String> getArtifactIds(Integer limit) {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Getting the set of all artifact IDs");
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectArtifactIds();
+                List<String> ids = handle.createQuery(sql)
+                        .bind(0, limit)
+                        .mapTo(String.class)
+                        .list();
+                return new TreeSet<String>(ids);
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -591,7 +665,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(long)
      */
     @Override @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(long id)
+    public ArtifactMetaDataDto getArtifactMetaData(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.info("TBD - Please implement me!");
         return null;
@@ -603,8 +677,27 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Updating meta-data for an artifact: {}", artifactId);
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactMetaDataLatestVersion();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, metaData.getName())
+                        .bind(1, metaData.getDescription())
+                        .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
+                        .bind(4, artifactId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(artifactId);
+                }
+                return null;
+            });
+        } catch (ArtifactNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -876,8 +969,28 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public void updateArtifactVersionMetaData(String artifactId, long version,
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Updating meta-data for an artifact version: {}", artifactId);
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactVersionMetaData();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, metaData.getName())
+                        .bind(1, metaData.getDescription())
+                        .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
+                        .bind(4, artifactId)
+                        .bind(5, version)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(artifactId, version);
+                }
+                return null;
+            });
+        } catch (VersionNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -1026,6 +1139,47 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             throw new RegistryStorageException(e);
         }
         
+    }
+
+    /**
+     * Internal method to create a new artifact.
+     * @param handle
+     * @param artifactId
+     * @param artifactType
+     * @param content
+     * @param createdBy
+     * @param createdOn
+     * @param metaData
+     */
+    private ArtifactMetaDataDto createArtifactInternal(Handle handle, String artifactId, ArtifactType artifactType,
+            ContentHandle content, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData) {
+        // Create a row in the artifacts table.
+        String sql = sqlStatements.insertArtifact();
+        handle.createUpdate(sql)
+              .bind(0, artifactId)
+              .bind(1, artifactType.name())
+              .bind(2, (String) null) // no createdBy (yet)
+              .bind(3, new Date())
+              .execute();
+
+        // Then create a row in the content and versions tables (for the content and version meta-data)
+        ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
+                metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), content);
+        
+        // Update the "latest" row in the artifacts table with the globalId of the new version
+        sql = sqlStatements.updateArtifactLatestVersion();
+        handle.createUpdate(sql)
+              .bind(0, vmdd.getGlobalId())
+              .bind(1, artifactId)
+              .execute();
+        
+        // Return the new artifact meta-data
+        ArtifactMetaDataDto amdd = versionToArtifactDto(artifactId, vmdd);
+        amdd.setCreatedBy(createdBy);
+        amdd.setCreatedOn(createdOn.getTime());
+        amdd.setLabels(metaData.getLabels());
+        amdd.setProperties(metaData.getProperties());
+        return amdd;
     }
 
     /**

@@ -108,7 +108,7 @@ public interface RegistryStorage {
         throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
-     * Deletes an artifact by its unique id. Returns list of artifacts versions.
+     * Deletes an artifact by its unique id. Returns list of artifact versions.
      * @param artifactId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
@@ -187,11 +187,11 @@ public interface RegistryStorage {
     /**
      * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as
      * name and description, but also generated meta-data such as "modifedOn" and "versionId".
-     * @param id
+     * @param globalId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactMetaDataDto getArtifactMetaData(long globalId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Updates the stored meta-data for an artifact by ID.  Only the client-editable meta-data can be updated.  Client

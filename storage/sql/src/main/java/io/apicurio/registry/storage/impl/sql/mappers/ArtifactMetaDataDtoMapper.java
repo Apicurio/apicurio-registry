@@ -23,6 +23,7 @@ import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -47,8 +48,8 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setVersion(rs.getInt("version"));
-        dto.setLabels(null);
-        dto.setProperties(null);
+        dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
+        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
         dto.setType(ArtifactType.valueOf(rs.getString("type")));

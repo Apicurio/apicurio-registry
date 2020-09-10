@@ -16,7 +16,11 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 
 import javax.inject.Inject;
@@ -29,6 +33,7 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -63,6 +68,23 @@ class SqlRegistryStorageTest {
 
     @Inject
     SqlRegistryStorage storage;
+    
+
+    @Test
+    void testGetArtifactIds() throws Exception {
+        String artifactIdPrefix = "testGetArtifactIds-";
+        for (int idx = 1; idx < 10; idx++) {
+            String artifactId = artifactIdPrefix + idx;
+            ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+            ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(artifactId, dto.getId());
+        }
+        
+        Set<String> ids = storage.getArtifactIds(10);
+        Assertions.assertNotNull(ids);
+        Assertions.assertEquals(10, ids.size());
+    }
     
     @Test
     void testCreateArtifact() throws Exception {
@@ -120,6 +142,42 @@ class SqlRegistryStorageTest {
     }
 
     @Test
+    void testCreateArtifactWithMetaData() throws Exception {
+        String artifactId = "testCreateArtifactWithMetaData-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                "NAME", "DESCRIPTION", Collections.singletonList("LABEL-1"), Collections.singletonMap("KEY", "VALUE")
+        );
+        ArtifactMetaDataDto dto = this.storage.createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("NAME", dto.getName());
+        Assertions.assertEquals("DESCRIPTION", dto.getDescription());
+        Assertions.assertNotNull(dto.getLabels());
+        Assertions.assertNotNull(dto.getProperties());
+        Assertions.assertEquals(metaData.getLabels(), dto.getLabels());
+        Assertions.assertEquals(metaData.getProperties(), dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        StoredArtifact storedArtifact = this.storage.getArtifact(artifactId);
+        Assertions.assertNotNull(storedArtifact);
+        Assertions.assertEquals(OPENAPI_CONTENT, storedArtifact.getContent().content());
+        Assertions.assertEquals(dto.getGlobalId(), storedArtifact.getGlobalId());
+        Assertions.assertEquals(dto.getVersion(), storedArtifact.getVersion());
+        
+        ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(amdDto);
+        Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
+        Assertions.assertEquals("NAME", amdDto.getName());
+        Assertions.assertEquals("DESCRIPTION", amdDto.getDescription());
+        Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
+        Assertions.assertEquals(1, amdDto.getVersion());
+        Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
+        Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
+    }
+
+    @Test
     void testCreateDuplicateArtifact() throws Exception {
         String artifactId = "testCreateDuplicateArtifact-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
@@ -172,6 +230,139 @@ class SqlRegistryStorageTest {
         Assertions.assertEquals(artifactId, dtov2.getId());
         Assertions.assertEquals(2, dtov2.getVersion());
         Assertions.assertEquals(ArtifactState.ENABLED, dtov2.getState());
+
+        versions = this.storage.getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(2, versions.size());
+    }
+
+    @Test
+    void testCreateArtifactVersionWithMetaData() throws Exception {
+        String artifactId = "testCreateArtifactVersionWithMetaData-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        
+        SortedSet<Long> versions = this.storage.getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(1, versions.size());
+        
+        ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto("NAME", "DESC", Collections.singletonList("LBL"), Collections.singletonMap("K", "V"));
+        ArtifactMetaDataDto dtov2 = this.storage.updateArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, contentv2, metaData ).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        Assertions.assertEquals(artifactId, dtov2.getId());
+        Assertions.assertEquals(2, dtov2.getVersion());
+        Assertions.assertEquals(ArtifactState.ENABLED, dtov2.getState());
+        Assertions.assertEquals("NAME", dtov2.getName());
+        Assertions.assertEquals("DESC", dtov2.getDescription());
+        Assertions.assertEquals(metaData.getLabels(), dtov2.getLabels());
+        Assertions.assertEquals(metaData.getProperties(), dtov2.getProperties());
+
+        versions = this.storage.getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(2, versions.size());
+
+        ArtifactVersionMetaDataDto vmd = this.storage.getArtifactVersionMetaData(artifactId, 2);
+        Assertions.assertNotNull(vmd);
+        Assertions.assertEquals("NAME", vmd.getName());
+        Assertions.assertEquals("DESC", vmd.getDescription());
+    }
+
+    @Test
+    void testUpdateArtifactMetaData() throws Exception {
+        String artifactId = "testUpdateArtifactMetaData-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        String newName = "Updated Name";
+        String newDescription = "Updated description.";
+        List<String> newLabels = Collections.singletonList("foo");
+        Map<String, String> newProperties = new HashMap<>();
+        newProperties.put("foo", "bar");
+        newProperties.put("ting", "bin");
+        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels, newProperties);
+        this.storage.updateArtifactMetaData(artifactId, emd);
+        
+        ArtifactMetaDataDto metaData = this.storage.getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(newName, metaData.getName());
+        Assertions.assertEquals(newDescription, metaData.getDescription());
+        Assertions.assertEquals(newLabels, metaData.getLabels());
+        Assertions.assertEquals(newProperties, metaData.getProperties());
+    }
+
+    @Test
+    void testUpdateArtifactVersionMetaData() throws Exception {
+        String artifactId = "testUpdateArtifactVersionMetaData-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        String newName = "Updated Name";
+        String newDescription = "Updated description.";
+        List<String> newLabels = Collections.singletonList("foo");
+        Map<String, String> newProperties = new HashMap<>();
+        newProperties.put("foo", "bar");
+        newProperties.put("ting", "bin");
+        EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, newLabels, newProperties);
+        this.storage.updateArtifactVersionMetaData(artifactId, 1, emd);
+        
+        ArtifactVersionMetaDataDto metaData = this.storage.getArtifactVersionMetaData(artifactId, 1);
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(newName, metaData.getName());
+        Assertions.assertEquals(newDescription, metaData.getDescription());
+    }
+
+    @Test
+    void testDeleteArtifact() throws Exception {
+        String artifactId = "testDeleteArtifact-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        storage.getArtifact(artifactId);
+        
+        storage.deleteArtifact(artifactId);
+        
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifact(artifactId);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactMetaData(artifactId);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersion(artifactId, 1);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersionMetaData(artifactId, 1);
+        });
     }
     
     @Test

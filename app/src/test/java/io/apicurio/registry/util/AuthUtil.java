@@ -28,7 +28,7 @@ public class AuthUtil {
 
     public static RequestSpecification givenAuthenticated() {
         //given().auth().basic("user", "user")
-        String token = "Bearer "+ KeycloakResourceManager.getAccessToken("admin");
+        final String token = "Bearer " + KeycloakResourceManager.getAccessToken("admin");
         return given().header(new Header("Authorization", token));
     }
 }

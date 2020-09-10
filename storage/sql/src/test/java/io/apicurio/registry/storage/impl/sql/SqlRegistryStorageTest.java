@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.RuleConfigurationDto;
@@ -66,6 +67,22 @@ class SqlRegistryStorageTest {
         Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
         Assertions.assertEquals(1, dto.getVersion());
         
+        StoredArtifact storedArtifact = this.storage.getArtifact(artifactId);
+        Assertions.assertNotNull(storedArtifact);
+        Assertions.assertEquals(OPENAPI_CONTENT, storedArtifact.getContent().content());
+        Assertions.assertEquals(dto.getGlobalId(), storedArtifact.getGlobalId());
+        Assertions.assertEquals(dto.getVersion(), storedArtifact.getVersion());
+        
+        ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(amdDto);
+        Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
+        Assertions.assertEquals("Empty API", amdDto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", amdDto.getDescription());
+        Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
+        Assertions.assertEquals(1, amdDto.getVersion());
+        Assertions.assertNull(amdDto.getLabels());
+        Assertions.assertNull(amdDto.getProperties());
+        
         ArtifactVersionMetaDataDto versionMetaDataDto = this.storage.getArtifactVersionMetaData(artifactId, 1);
         Assertions.assertNotNull(versionMetaDataDto);
         Assertions.assertEquals(dto.getGlobalId(), versionMetaDataDto.getGlobalId());
@@ -89,6 +106,41 @@ class SqlRegistryStorageTest {
         SortedSet<Long> versions = this.storage.getArtifactVersions(artifactId);
         Assertions.assertNotNull(versions);
         Assertions.assertEquals(1, versions.iterator().next());
+    }
+
+    @Test
+    void testCreateDuplicateArtifact() throws Exception {
+        String artifactId = "testCreateDuplicateArtifact-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        
+        // Should throw error for duplicate artifact.
+        Assertions.assertThrows(ArtifactAlreadyExistsException.class, () -> {
+            this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        });
+    }
+
+    @Test
+    void testArtifactRules() throws Exception {
+        String artifactId = "testArtifactRules-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+
+        List<RuleType> artifactRules = storage.getArtifactRules(artifactId);
+        Assertions.assertNotNull(artifactRules);
+        Assertions.assertTrue(artifactRules.isEmpty());
+
+        RuleConfigurationDto configDto = new RuleConfigurationDto("FULL");
+        storage.createArtifactRule(artifactId, RuleType.VALIDITY, configDto);
+
+        artifactRules = storage.getArtifactRules(artifactId);
+        Assertions.assertNotNull(artifactRules);
+        Assertions.assertFalse(artifactRules.isEmpty());
+        Assertions.assertEquals(1, artifactRules.size());
+        Assertions.assertEquals(RuleType.VALIDITY, artifactRules.get(0));
     }
     
     @Test

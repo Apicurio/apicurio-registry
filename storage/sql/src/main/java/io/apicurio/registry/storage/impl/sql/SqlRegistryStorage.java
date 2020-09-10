@@ -79,6 +79,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.types.ArtifactState;
@@ -306,12 +307,12 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                 ContentExtractor extractor = provider.getContentExtractor();
                 EditableMetaData emd = extractor.extract(content);
 
-                // Then create a row in the versions table (for the content)
+                // Then create a row in the content and versions tables (for the content and version meta-data)
                 ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
                         emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties(), content);
                 
                 // Update the "latest" row in the artifacts table with the globalId of the new version
-                sql = sqlStatements.updateArtifactLatestGlobalId();
+                sql = sqlStatements.updateArtifactLatestVersion();
                 handle.createUpdate(sql)
                       .bind(0, vmdd.getGlobalId())
                       .bind(1, artifactId)
@@ -372,26 +373,49 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
         String sql = sqlStatements.upsertContent();
-        Long globalId;
+        Long contentId;
         if ("h2".equals(sqlStatements.dbType())) {
-            globalId = handle.createUpdate(sql)
+            List<Long> rval = handle.createUpdate(sql)
                     .bind(0, canonicalContentHash)
                     .bind(1, contentHash)
                     .bind(2, contentBytes)
-                    .executeAndReturnGeneratedKeys("globalId")
+                    .executeAndReturnGeneratedKeys("contentId")
                     .mapTo(Long.class)
-                    .one();
+                    .list();
+            if (rval != null && rval.size() == 1) {
+                contentId = rval.get(0);
+            } else {
+                sql = sqlStatements.selectContentIdByHash();
+                contentId = handle.createQuery(sql)
+                        .bind(0, canonicalContentHash)
+                        .mapTo(Long.class)
+                        .one();
+            }
         } else {
             // TODO handle other supported DBs here.  This needs improvement!
-            globalId = 0l;
+            contentId = 0l;
         }
 
         // Create a row in the "versions" table
         sql = sqlStatements.insertVersion(firstVersion);
-        Long version;
+        Long globalId;
         if (firstVersion) {
-            handle.createUpdate(sql)
-                    .bind(0, globalId)
+            globalId = handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, state)
+                    .bind(2, name)
+                    .bind(3, description)
+                    .bind(4, createdBy)
+                    .bind(5, createdOn)
+                    .bind(6, labelsStr)
+                    .bind(7, propertiesStr)
+                    .bind(8, contentId)
+                    .executeAndReturnGeneratedKeys("globalId")
+                    .mapTo(Long.class)
+                    .one();
+        } else {
+            globalId = handle.createUpdate(sql)
+                    .bind(0, artifactId)
                     .bind(1, artifactId)
                     .bind(2, state)
                     .bind(3, name)
@@ -400,40 +424,19 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .bind(6, createdOn)
                     .bind(7, labelsStr)
                     .bind(8, propertiesStr)
-                    .one();
-            version = 1l;
-        } else {
-            version = handle.createUpdate(sql)
-                    .bind(0, globalId)
-                    .bind(1, artifactId)
-                    .bind(2, artifactId)
-                    .bind(3, state)
-                    .bind(4, name)
-                    .bind(5, description)
-                    .bind(6, createdBy)
-                    .bind(7, createdOn)
-                    .bind(8, labelsStr)
-                    .bind(9, propertiesStr)
-                    .executeAndReturnGeneratedKeys("version")
+                    .bind(9, contentId)
+                    .executeAndReturnGeneratedKeys("globalId")
                     .mapTo(Long.class)
                     .one();
         }
+        
+        System.out.println("=============== createArtifactVersion global id: " + globalId);
 
-        ArtifactVersionMetaDataDto rval = new ArtifactVersionMetaDataDto();
-        rval.setGlobalId(globalId);
-        rval.setCreatedBy(createdBy);
-        rval.setCreatedOn(createdOn.getTime());
-        rval.setDescription(description);
-        rval.setName(name);
-        rval.setState(state);
-        rval.setType(artifactType);
-        rval.setVersion(version.intValue());
-        return rval;
-//        sql = sqlStatements.selectVersionMetaDataByGlobalId();
-//        return handle.createQuery(sql)
-//            .bind(0, globalId)
-//            .map(ArtifactVersionMetaDataDtoMapper.instance)
-//            .one();
+        sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
+        return handle.createQuery(sql)
+            .bind(0, globalId)
+            .map(ArtifactVersionMetaDataDtoMapper.instance)
+            .one();
     }
 
     /**
@@ -463,8 +466,20 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public StoredArtifact getArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectLatestArtifactContent();
+                return handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .map(StoredArtifactMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new ArtifactNotFoundException(e);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -513,8 +528,20 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Selecting artifact (latest version) meta-data: {}", artifactId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectLatestArtifactMetaData();
+                return handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .map(ArtifactMetaDataDtoMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new ArtifactNotFoundException(artifactId);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -553,8 +580,23 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public List<RuleType> getArtifactRules(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Getting a list of all artifact rules for: {}", artifactId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectArtifactRules();
+                return handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .map(new RowMapper<RuleType>() {
+                            @Override
+                            public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
+                                return RuleType.fromValue(rs.getString("type"));
+                            }
+                        })
+                        .list();
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -564,8 +606,24 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Inserting an artifact rule row for artifact: {} rule: {}", artifactId, rule.name());
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.insertArtifactRule();
+                handle.createUpdate(sql)
+                      .bind(0, artifactId)
+                      .bind(1, rule.name())
+                      .bind(2, config.getConfiguration())
+                      .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new RuleAlreadyExistsException(rule);
+            }
+            throw new RegistryStorageException(e);
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -754,7 +812,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                 String sql = sqlStatements.selectGlobalRules();
                 return handle.createQuery(sql)
                         .map(new RowMapper<RuleType>() {
-                            @Override @Transactional
+                            @Override
                             public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
                                 return RuleType.fromValue(rs.getString("type"));
                             }

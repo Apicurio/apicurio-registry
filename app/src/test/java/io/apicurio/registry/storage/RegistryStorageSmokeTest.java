@@ -99,7 +99,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
         StoredArtifact a1 = getStorage().getArtifact(ARTIFACT_ID_1);
         assertNotNull(a1);
-        assertNotNull(a1.getId());
+        assertNotNull(a1.getGlobalId());
         assertNotNull(a1.getVersion());
         assertNotNull(a1.getContent());
 

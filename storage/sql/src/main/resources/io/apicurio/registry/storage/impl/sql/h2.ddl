@@ -15,17 +15,20 @@ CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
-CREATE TABLE content (globalId BIGINT AUTO_INCREMENT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BLOB NOT NULL);
-ALTER TABLE content ADD PRIMARY KEY (globalId);
+CREATE TABLE rules (artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
+ALTER TABLE rules ADD PRIMARY KEY (artifactId, type);
+ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (artifactId) REFERENCES artifacts(artifactId);
+
+CREATE TABLE content (contentId BIGINT AUTO_INCREMENT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BLOB NOT NULL);
+ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (canonicalHash);
 CREATE INDEX IDX_content_1 ON content(canonicalHash);
 CREATE INDEX IDX_content_2 ON content(contentHash);
 
-CREATE TABLE versions (globalId BIGINT NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP NOT NULL, labels CLOB, properties CLOB);
+CREATE TABLE versions (globalId BIGINT AUTO_INCREMENT NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP NOT NULL, labels CLOB, properties CLOB, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (artifactId, version);
-ALTER TABLE artifacts ADD CONSTRAINT FK_artifacts_1 FOREIGN KEY (latest) REFERENCES versions(globalId);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (artifactId) REFERENCES artifacts(artifactId);
-ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (globalId) REFERENCES content(globalId);
+ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content(contentId);
 CREATE INDEX IDX_versions_1 ON versions(version);
 CREATE INDEX IDX_versions_2 ON versions(state);
 CREATE INDEX IDX_versions_3 ON versions(name);
@@ -33,10 +36,7 @@ CREATE INDEX IDX_versions_4 ON versions(description);
 CREATE INDEX IDX_versions_5 ON versions(createdBy);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions(globalId);
-
-CREATE TABLE rules (globalId BIGINT NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
-ALTER TABLE rules ADD PRIMARY KEY (globalId, type);
-ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
+CREATE INDEX IDX_versions_8 ON versions(contentId);
 
 CREATE TABLE properties (globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
 ALTER TABLE properties ADD CONSTRAINT FK_props_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);

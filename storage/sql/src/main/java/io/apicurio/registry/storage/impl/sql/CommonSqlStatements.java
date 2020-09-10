@@ -138,10 +138,10 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactLatestGlobalId()
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactLatestVersion()
      */
     @Override
-    public String updateArtifactLatestGlobalId() {
+    public String updateArtifactLatestVersion() {
         return "UPDATE artifacts SET latest = ? WHERE artifactId = ?";
     }
     
@@ -151,9 +151,9 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     @Override
     public String insertVersion(boolean firstVersion) {
         if (firstVersion) {
-            return "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)";
+            return "INSERT INTO versions (artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            return "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties) VALUES (?, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?)";
+            return "INSERT INTO versions (artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
     }
     
@@ -186,7 +186,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.globalId = c.globalId WHERE v.globalId = ?";
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.globalId = ?";
     }
     
     /**
@@ -194,6 +194,46 @@ public abstract class CommonSqlStatements implements ISqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.globalId = c.globalId WHERE v.artifactId = ? AND v.version = ?";
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.artifactId = ? AND v.version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectLatestArtifactContent()
+     */
+    @Override
+    public String selectLatestArtifactContent() {
+        return "SELECT v.globalId, v.version, c.content FROM artifacts a JOIN versions v ON a.latest = v.globalId JOIN content c ON v.contentId = c.contentId WHERE a.artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectLatestArtifactMetaData()
+     */
+    @Override
+    public String selectLatestArtifactMetaData() {
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE a.artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectContentIdByHash()
+     */
+    @Override
+    public String selectContentIdByHash() {
+        return "SELECT c.contentId FROM content c WHERE c.canonicalHash = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactRules()
+     */
+    @Override
+    public String selectArtifactRules() {
+        return "SELECT * FROM rules WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertArtifactRule()
+     */
+    @Override
+    public String insertArtifactRule() {
+        return "INSERT INTO rules (artifactId, type, configuration) VALUES (?, ?, ?)";
     }
 }

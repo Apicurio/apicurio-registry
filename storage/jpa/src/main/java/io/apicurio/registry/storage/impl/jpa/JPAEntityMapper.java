@@ -27,7 +27,7 @@ public class JPAEntityMapper {
 
     public StoredArtifact toStoredArtifact(Artifact artifact) {
         return StoredArtifact.builder()
-                .id(artifact.getGlobalId())
+                .globalId(artifact.getGlobalId())
                 .version(artifact.getVersion())
                 .content(ContentHandle.create(artifact.getContent()))
                 .build();

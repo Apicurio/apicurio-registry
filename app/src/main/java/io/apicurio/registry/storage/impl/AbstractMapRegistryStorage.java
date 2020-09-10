@@ -201,7 +201,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return StoredArtifact.builder()
                              .content(ContentHandle.create(MetaDataKeys.getContent(content)))
                              .version(Long.parseLong(content.get(VERSION)))
-                             .id(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
+                             .globalId(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
                              .build();
     }
 

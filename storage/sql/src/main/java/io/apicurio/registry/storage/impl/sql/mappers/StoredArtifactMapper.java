@@ -41,7 +41,8 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifact> {
         Long version = rs.getLong("version");
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
-        return StoredArtifact.builder().content(content).id(globalId).version(version).build();
+        
+        return StoredArtifact.builder().content(content).globalId(globalId).version(version).build();
     }
 
 }

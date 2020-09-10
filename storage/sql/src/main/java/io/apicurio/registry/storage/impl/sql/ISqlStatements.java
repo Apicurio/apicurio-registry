@@ -97,7 +97,7 @@ public interface ISqlStatements {
     /**
      * A statement used to update the 'latest' column of the 'artifacts' table.
      */
-    public String updateArtifactLatestGlobalId();
+    public String updateArtifactLatestVersion();
 
     /**
      * A statement used to insert a row in the versions table.
@@ -133,5 +133,30 @@ public interface ISqlStatements {
      * A statement to "upsert" a row in the "content" table.
      */
     public String upsertContent();
+
+    /**
+     * A statement to get a single artifact (latest version) content by artifactId.
+     */
+    public String selectLatestArtifactContent();
+
+    /**
+     * A statement to get a single artifact (latest version) meta-data by artifactId.
+     */
+    public String selectLatestArtifactMetaData();
+
+    /**
+     * A statement to select the contentId of a row in the content table by hash value.
+     */
+    public String selectContentIdByHash();
+
+    /**
+     * A statement used to select artifact rules by artifactId.
+     */
+    public String selectArtifactRules();
+
+    /**
+     * A statement to insert a row into the 'rules' table (artifact rule).
+     */
+    public String insertArtifactRule();
 
 }

@@ -27,7 +27,7 @@ import lombok.Value;
 @Builder
 public class StoredArtifact { // TODO rename this to ArtifactVersion
 
-    private Long id; // TODO Which ID is this?
+    private Long globalId;
 
     // TODO add artifactId
 
@@ -35,9 +35,5 @@ public class StoredArtifact { // TODO rename this to ArtifactVersion
 
     // TODO Can the CH be used multiple times?
     private ContentHandle content;
-
-    //  Assuming global
-    public Long getGlobalId() {
-        return id;
-    }
+    
 }

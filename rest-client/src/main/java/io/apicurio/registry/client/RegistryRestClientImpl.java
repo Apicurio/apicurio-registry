@@ -29,7 +29,6 @@ import io.apicurio.registry.client.service.SearchService;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
@@ -126,9 +125,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ResponseBody getLatestArtifact(String artifactId) {
+    public InputStream getLatestArtifact(String artifactId) {
 
-        return requestHandler.execute(artifactsService.getLatestArtifact(artifactId));
+        return requestHandler.execute(artifactsService.getLatestArtifact(artifactId)).byteStream();
     }
 
     @Override
@@ -183,10 +182,10 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ResponseBody getArtifactVersion(Integer version,
+    public InputStream getArtifactVersion(Integer version,
                                        String artifactId) {
 
-        return requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId));
+        return requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId)).byteStream();
     }
 
     @Override
@@ -259,9 +258,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ResponseBody getArtifactByGlobalId(long globalId) {
+    public InputStream getArtifactByGlobalId(long globalId) {
 
-        return requestHandler.execute(idsService.getArtifactByGlobalId(globalId));
+        return requestHandler.execute(idsService.getArtifactByGlobalId(globalId)).byteStream();
     }
 
     @Override

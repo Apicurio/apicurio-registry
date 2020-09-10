@@ -17,7 +17,6 @@
 
 package io.apicurio.registry.maven;
 
-import okhttp3.ResponseBody;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactExtensionType;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -117,17 +116,13 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
             try {
                 Integer version = versions.get(id);
-                ResponseBody response = (version != null) ?
-                                    getClient().getArtifactVersion(version, id) :
-                                    getClient().getLatestArtifact(id);
-                try (InputStream stream = response.byteStream()) {
-                    if (replaceExisting) {
-                        Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        Files.copy(stream, outputFile.toPath());
-                    }
-                } finally {
-                    response.close();
+                InputStream stream = (version != null) ?
+                        getClient().getArtifactVersion(version, id) :
+                        getClient().getLatestArtifact(id);
+                if (replaceExisting) {
+                    Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.copy(stream, outputFile.toPath());
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(

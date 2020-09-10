@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;

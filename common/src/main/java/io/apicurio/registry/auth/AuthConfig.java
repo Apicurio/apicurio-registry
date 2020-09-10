@@ -1,8 +1,9 @@
-package io.apicurio.registry.client.auth;
+package io.apicurio.registry.auth;
 
 import org.keycloak.admin.client.Config;
 
 public class AuthConfig extends Config {
+
     private AuthProvider provider;
 
     public AuthProvider getProvider() {
@@ -70,7 +71,7 @@ public class AuthConfig extends Config {
             return this;
         }
 
-        public AuthConfig Build(){
+        public AuthConfig build(){
             return this.config = new AuthConfig(this.serverUrl, this.realm, this.username, this.password, this.clientId, this.clientSecret, this.provider);
         }
     }

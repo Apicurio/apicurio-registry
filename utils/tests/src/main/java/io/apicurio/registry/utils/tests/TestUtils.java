@@ -33,8 +33,8 @@ import java.util.function.Function;
 
 import javax.ws.rs.WebApplicationException;
 
-import io.apicurio.registry.client.auth.AuthConfig;
-import io.apicurio.registry.client.auth.AuthProvider;
+import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.auth.AuthProvider;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -89,15 +89,15 @@ public class TestUtils {
     }
 
     public static AuthConfig getAuthConfig(AuthProvider authProvider){
-        AuthConfig config = new AuthConfig.Builder(authProvider)
+
+        return new AuthConfig.Builder(authProvider)
                 .setServerUrl(KEYCLOAK_AUTH_URL)
                 .setClientId(REGISTRY_API)
                 .setRealm(REGISTRY)
                 .setUsername(ADMIN)
                 .setPassword(ADMIN)
                 .setClientSecret(SECRET)
-                .Build();
-        return config;
+                .build();
     }
 
     public static String getRegistryApiUrl() {

@@ -1,4 +1,5 @@
-package io.apicurio.registry.client.auth;
+package io.apicurio.registry.auth;
+
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 
@@ -19,6 +20,6 @@ public class KeycloakAuth implements AuthStrategy {
 
     @Override
     public String getToken() {
-        return BEARER+this.keycloak.tokenManager().getAccessToken().getToken();
+        return BEARER + this.keycloak.tokenManager().getAccessToken().getToken();
     }
 }

@@ -18,8 +18,6 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.VersionMetaData;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -106,16 +104,4 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
         }
     }
 
-    protected Long toGlobalId(String artifactId, Integer version) {
-        if (artifactId == null) {
-            throw new RuntimeException("ArtifactId not found in headers.");
-        }
-        if (version == null) {
-            ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
-            return amd.getGlobalId();
-        } else {
-            VersionMetaData vmd = getClient().getArtifactVersionMetaData(version, artifactId);
-            return vmd.getGlobalId();
-        }
-    }
 }

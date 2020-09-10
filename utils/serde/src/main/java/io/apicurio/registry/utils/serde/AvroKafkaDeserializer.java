@@ -88,7 +88,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     @Override
     protected U readData(Headers headers, Schema schema, ByteBuffer buffer, int start, int length) {
         AvroEncoding encoding = null;
-        if (headers != null){
+        if (headers != null && headerUtils != null){
             encoding = headerUtils.getEncoding(headers);
         }
         if (encoding == null) {
@@ -97,9 +97,6 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         }
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema);
-            if (encoding == null) {
-                encoding = configEncoding;
-            }
             if( encoding == AvroEncoding.JSON) {
                 // copy the data into a new byte[]
                 byte[] msgData = new byte[length];

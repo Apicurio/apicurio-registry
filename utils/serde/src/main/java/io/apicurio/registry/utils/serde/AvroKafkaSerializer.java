@@ -114,7 +114,9 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
 
     @Override
     protected void serializeData(Headers headers, Schema schema, U data, ByteArrayOutputStream out) throws IOException {
-        headerUtils.addEncodingHeader(headers, encoding);
+        if (headerUtils != null) {
+            headerUtils.addEncodingHeader(headers, encoding);
+        }
         serializeData(schema, data, out);
     }
 

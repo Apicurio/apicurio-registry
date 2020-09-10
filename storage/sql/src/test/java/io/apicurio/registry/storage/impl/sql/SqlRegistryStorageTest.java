@@ -27,8 +27,11 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -46,6 +49,14 @@ class SqlRegistryStorageTest {
             "    \"info\": {" + 
             "        \"title\": \"Empty API\"," + 
             "        \"version\": \"1.0.0\"," + 
+            "        \"description\": \"An example API design using OpenAPI.\"" + 
+            "    }" + 
+            "}";
+    private static final String OPENAPI_CONTENT_V2 = "{" + 
+            "    \"openapi\": \"3.0.2\"," + 
+            "    \"info\": {" + 
+            "        \"title\": \"Empty API 2\"," + 
+            "        \"version\": \"1.0.1\"," + 
             "        \"description\": \"An example API design using OpenAPI.\"" + 
             "    }" + 
             "}";
@@ -122,8 +133,50 @@ class SqlRegistryStorageTest {
     }
 
     @Test
-    void testArtifactRules() throws Exception {
-        String artifactId = "testArtifactRules-1";
+    void testArtifactNotFound() throws Exception {
+        String artifactId = "testArtifactNotFound-1";
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            this.storage.getArtifact(artifactId);
+        });
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            this.storage.getArtifactMetaData(artifactId);
+        });
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            this.storage.getArtifactVersion(artifactId, 1);
+        });
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            this.storage.getArtifactVersionMetaData(artifactId, 1);
+        });
+    }
+
+    @Test
+    void testCreateArtifactVersion() throws Exception {
+        String artifactId = "testCreateArtifactVersion-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        
+        SortedSet<Long> versions = this.storage.getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(1, versions.size());
+        
+        ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactMetaDataDto dtov2 = this.storage.updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        Assertions.assertEquals(artifactId, dtov2.getId());
+        Assertions.assertEquals(2, dtov2.getVersion());
+        Assertions.assertEquals(ArtifactState.ENABLED, dtov2.getState());
+    }
+    
+    @Test
+    void testCreateArtifactRule() throws Exception {
+        String artifactId = "testCreateArtifactRule-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
         Assertions.assertNotNull(dto);
@@ -141,6 +194,76 @@ class SqlRegistryStorageTest {
         Assertions.assertFalse(artifactRules.isEmpty());
         Assertions.assertEquals(1, artifactRules.size());
         Assertions.assertEquals(RuleType.VALIDITY, artifactRules.get(0));
+    }
+
+    @Test
+    void testUpdateArtifactRule() throws Exception {
+        String artifactId = "testUpdateArtifactRule-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+
+        RuleConfigurationDto configDto = new RuleConfigurationDto("FULL");
+        storage.createArtifactRule(artifactId, RuleType.VALIDITY, configDto);
+
+        RuleConfigurationDto rule = storage.getArtifactRule(artifactId, RuleType.VALIDITY);
+        Assertions.assertNotNull(rule);
+        Assertions.assertEquals("FULL", rule.getConfiguration());
+        
+        RuleConfigurationDto updatedConfig = new RuleConfigurationDto("NONE");
+        storage.updateArtifactRule(artifactId, RuleType.VALIDITY, updatedConfig);
+
+        rule = storage.getArtifactRule(artifactId, RuleType.VALIDITY);
+        Assertions.assertNotNull(rule);
+        Assertions.assertEquals("NONE", rule.getConfiguration());
+    }
+
+    @Test
+    void testDeleteArtifactRule() throws Exception {
+        String artifactId = "testDeleteArtifactRule-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+
+        RuleConfigurationDto configDto = new RuleConfigurationDto("FULL");
+        storage.createArtifactRule(artifactId, RuleType.VALIDITY, configDto);
+
+        RuleConfigurationDto rule = storage.getArtifactRule(artifactId, RuleType.VALIDITY);
+        Assertions.assertNotNull(rule);
+        Assertions.assertEquals("FULL", rule.getConfiguration());
+        
+        storage.deleteArtifactRule(artifactId, RuleType.VALIDITY);
+
+        Assertions.assertThrows(RuleNotFoundException.class, () -> {
+            storage.getArtifactRule(artifactId, RuleType.VALIDITY);
+        });
+    }
+
+    @Test
+    void testDeleteAllArtifactRulse() throws Exception {
+        String artifactId = "testDeleteAllArtifactRulse-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+
+        RuleConfigurationDto configDto = new RuleConfigurationDto("FULL");
+        storage.createArtifactRule(artifactId, RuleType.VALIDITY, configDto);
+        storage.createArtifactRule(artifactId, RuleType.COMPATIBILITY, configDto);
+
+        List<RuleType> rules = storage.getArtifactRules(artifactId);
+        Assertions.assertEquals(2, rules.size());
+        
+        storage.deleteArtifactRules(artifactId);
+
+        Assertions.assertThrows(RuleNotFoundException.class, () -> {
+            storage.getArtifactRule(artifactId, RuleType.VALIDITY);
+        });
+        Assertions.assertThrows(RuleNotFoundException.class, () -> {
+            storage.getArtifactRule(artifactId, RuleType.COMPATIBILITY);
+        });
     }
     
     @Test
@@ -161,6 +284,33 @@ class SqlRegistryStorageTest {
         Assertions.assertFalse(globalRules.isEmpty());
         Assertions.assertEquals(globalRules.size(), 1);
         Assertions.assertEquals(globalRules.get(0), RuleType.COMPATIBILITY);
+        
+        Assertions.assertThrows(RuleAlreadyExistsException.class, () -> {
+            this.storage.createGlobalRule(RuleType.COMPATIBILITY, config);
+        });
+        
+        RuleConfigurationDto updatedConfig = new RuleConfigurationDto("FORWARD");
+        this.storage.updateGlobalRule(RuleType.COMPATIBILITY, updatedConfig);
+        
+        rule = this.storage.getGlobalRule(RuleType.COMPATIBILITY);
+        Assertions.assertEquals(rule.getConfiguration(), updatedConfig.getConfiguration());
+        
+        Assertions.assertThrows(RuleNotFoundException.class, () -> {
+            this.storage.updateGlobalRule(RuleType.VALIDITY, config);
+        });
+        
+        storage.deleteGlobalRules();
+        globalRules = this.storage.getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertTrue(globalRules.isEmpty());
+
+        this.storage.createGlobalRule(RuleType.COMPATIBILITY, config);
+        this.storage.deleteGlobalRule(RuleType.COMPATIBILITY);
+        globalRules = this.storage.getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertTrue(globalRules.isEmpty());
     }
+    
+    
 
 }

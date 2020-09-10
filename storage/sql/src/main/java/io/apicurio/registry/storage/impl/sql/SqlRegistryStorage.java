@@ -87,6 +87,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.utils.StringUtil;
 
 /**
  * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
@@ -319,21 +320,11 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                       .execute();
                 
                 // Return the new artifact meta-data
-                ArtifactMetaDataDto amdd = new ArtifactMetaDataDto();
+                ArtifactMetaDataDto amdd = versionToArtifactDto(artifactId, vmdd);
                 amdd.setCreatedBy(createdBy);
                 amdd.setCreatedOn(createdOn.getTime());
-                amdd.setGlobalId(vmdd.getGlobalId());
-                amdd.setId(artifactId);
-                amdd.setModifiedBy(vmdd.getCreatedBy());
-                amdd.setModifiedOn(vmdd.getCreatedOn());
-                amdd.setState(vmdd.getState());
-                amdd.setName(vmdd.getName());
-                amdd.setDescription(vmdd.getDescription());
-                // TODO labels and properties from the ArtifactVersionMetaDataDto
                 amdd.setLabels(emd.getLabels());
                 amdd.setProperties(emd.getProperties());
-                amdd.setType(artifactType);
-                amdd.setVersion(vmdd.getVersion());
                 return CompletableFuture.completedFuture(amdd);
             });
         } catch (Exception e) {
@@ -429,8 +420,6 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .mapTo(Long.class)
                     .one();
         }
-        
-        System.out.println("=============== createArtifactVersion global id: " + globalId);
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
@@ -488,8 +477,44 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Updating artifact {} with a new version (content).", artifactId);
+        
+        // Get meta-data from previous (latest) version
+        ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
+        
+        // Extract meta-data from the new content
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        EditableMetaData emd = extractor.extract(content);
+
+        // Create version and return
+        return this.jdbi.withHandle(handle -> {
+            // Merge latest meta-data with extracted meta-data
+            String name = latest.getName();
+            String description = latest.getDescription();
+            List<String> labels = latest.getLabels();
+            Map<String, String> properties = latest.getProperties();
+            if (!StringUtil.isEmpty(emd.getName())) {
+                name = emd.getName();
+            }
+            if (!StringUtil.isEmpty(emd.getDescription())) {
+                description = emd.getDescription();
+            }
+            if (emd.getLabels() != null) {
+                labels = emd.getLabels();
+            }
+            if (emd.getProperties() != null) {
+                properties = emd.getProperties();
+            }
+
+            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content);
+            ArtifactMetaDataDto dto = versionToArtifactDto(artifactId, versionDto);
+            dto.setCreatedOn(latest.getCreatedOn());
+            dto.setCreatedBy(latest.getCreatedBy());
+            dto.setLabels(labels);
+            dto.setProperties(properties);
+            return CompletableFuture.completedFuture(dto);
+        });
     }
 
     /**
@@ -529,6 +554,14 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.info("Selecting artifact (latest version) meta-data: {}", artifactId);
+        return this.getLatestArtifactMetaDataInternal(artifactId);
+    }
+
+    /**
+     * Internal method to retrieve the meta-data of the latest version of the given artifact.
+     * @param artifactId
+     */
+    private ArtifactMetaDataDto getLatestArtifactMetaDataInternal(String artifactId) {
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactMetaData();
@@ -632,8 +665,18 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactRules(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Deleting all artifact rules for artifact: {}", artifactId);
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.deleteArtifactRules();
+                handle.createUpdate(sql)
+                      .bind(0, artifactId)
+                      .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }        
     }
 
     /**
@@ -642,8 +685,21 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Selecting a single artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectArtifactRuleByType();
+                return handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .bind(1, rule.name())
+                        .mapToBean(RuleConfigurationDto.class)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new RuleNotFoundException(rule);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -652,8 +708,25 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Updating an artifact rule for artifact: {} and rule: {}::{}", artifactId, rule.name(), config.getConfiguration());
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactRule();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, config.getConfiguration())
+                        .bind(1, artifactId)
+                        .bind(2, rule.name())
+                        .execute();
+                if (rowCount == 0) {
+                    throw new RuleNotFoundException(rule);
+                }
+                return null;
+            });
+        } catch (RuleNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -662,8 +735,24 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Deleting an artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.deleteArtifactRule();
+                int rowCount = handle.createUpdate(sql)
+                      .bind(0, artifactId)
+                      .bind(1, rule.name())
+                      .execute();
+                if (rowCount == 0) {
+                    throw new RuleNotFoundException(rule);
+                }
+                return null;
+            });
+        } catch (RuleNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -937,6 +1026,25 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             throw new RegistryStorageException(e);
         }
         
+    }
+
+    /**
+     * Converts a version DTO to an artifact DTO.
+     * @param artifactId
+     * @param vmdd
+     */
+    private ArtifactMetaDataDto versionToArtifactDto(String artifactId, ArtifactVersionMetaDataDto vmdd) {
+        ArtifactMetaDataDto amdd = new ArtifactMetaDataDto();
+        amdd.setGlobalId(vmdd.getGlobalId());
+        amdd.setId(artifactId);
+        amdd.setModifiedBy(vmdd.getCreatedBy());
+        amdd.setModifiedOn(vmdd.getCreatedOn());
+        amdd.setState(vmdd.getState());
+        amdd.setName(vmdd.getName());
+        amdd.setDescription(vmdd.getDescription());
+        amdd.setType(vmdd.getType());
+        amdd.setVersion(vmdd.getVersion());
+        return amdd;
     }
 
 }

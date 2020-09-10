@@ -159,4 +159,24 @@ public interface ISqlStatements {
      */
     public String insertArtifactRule();
 
+    /**
+     * A statement to get a single artifact rule from the 'rules' table by artifactId and rule type.
+     */
+    public String selectArtifactRuleByType();
+
+    /**
+     * A statement to update a single artifact rule.
+     */
+    public String updateArtifactRule();
+
+    /**
+     * A statement to delete a single artifact rule.
+     */
+    public String deleteArtifactRule();
+
+    /**
+     * A statement to delete all rules for a single artifact.
+     */
+    public String deleteArtifactRules();
+
 }

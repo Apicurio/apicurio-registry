@@ -236,4 +236,36 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     public String insertArtifactRule() {
         return "INSERT INTO rules (artifactId, type, configuration) VALUES (?, ?, ?)";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactRuleByType()
+     */
+    @Override
+    public String selectArtifactRuleByType() {
+        return "SELECT * FROM rules WHERE artifactId = ? AND type = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactRule()
+     */
+    @Override
+    public String updateArtifactRule() {
+        return "UPDATE rules SET configuration = ? WHERE artifactId = ? AND type = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifactRule()
+     */
+    @Override
+    public String deleteArtifactRule() {
+        return "DELETE FROM rules WHERE artifactId = ? AND type = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifactRules()
+     */
+    @Override
+    public String deleteArtifactRules() {
+        return "DELETE FROM rules WHERE artifactId = ?";
+    }
 }

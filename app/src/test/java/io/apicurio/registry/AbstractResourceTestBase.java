@@ -16,6 +16,15 @@
 
 package io.apicurio.registry;
 
+import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
+import static org.hamcrest.Matchers.equalTo;
+
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.BeforeEach;
+
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;

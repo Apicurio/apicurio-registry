@@ -469,6 +469,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        // Check if the global rule exists.
+        this.getGlobalRule(rule);
+
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {

@@ -176,7 +176,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage
                         .getArtifactVersionMetaData(subject, parsedVersion);
-                rulesService.applyRule(subject, parsedVersion, artifact.getType(),
+                rulesService.applyRules(subject, parsedVersion, artifact.getType(),
                         ContentHandle.create(request.getSchema()));
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {

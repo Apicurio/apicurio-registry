@@ -19,8 +19,6 @@ package io.apicurio.registry.utils.serde;
 import com.fasterxml.jackson.core.JsonParser;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
 import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -152,23 +150,6 @@ public class JsonSchemaKafkaDeserializer<T> extends JsonSchemaKafkaSerDe<JsonSch
             return (Class<T>) Class.forName(msgTypeName);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Converts an artifact id and version to a global id by querying the registry.  If anything goes wrong, 
-     * throws an appropriate exception.
-     *
-     * @param artifactId artifact id
-     * @param version the artifact version
-     */
-    protected Long toGlobalId(String artifactId, Integer version) {
-        if (version == null) {
-            ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
-            return amd.getGlobalId();
-        } else {
-            VersionMetaData vmd = getClient().getArtifactVersionMetaData(version, artifactId);
-            return vmd.getGlobalId();
         }
     }
 

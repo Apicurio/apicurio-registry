@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,11 @@ import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.kafka.common.header.Headers;
 
 import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
@@ -39,7 +42,7 @@ import java.util.function.Consumer;
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U, AvroKafkaDeserializer<U>> {
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private AvroDatumProvider<U> avroDatumProvider;
-    private AvroEncoding encoding;
+    private AvroEncoding configEncoding;
 
     public AvroKafkaDeserializer() {
         this(null);
@@ -62,7 +65,9 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
-        encoding = AvroEncoding.fromConfig(configs);
+        configEncoding = AvroEncoding.fromConfig(configs);
+        // Always add headerUtils, so consumer can read both formats i.e. id stored in header or magic byte
+        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
         //noinspection rawtypes
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
@@ -77,6 +82,19 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
 
     @Override
     protected U readData(Schema schema, ByteBuffer buffer, int start, int length) {
+        return readData(null, schema, buffer, start, length);
+    }
+
+    @Override
+    protected U readData(Headers headers, Schema schema, ByteBuffer buffer, int start, int length) {
+        AvroEncoding encoding = null;
+        if (headers != null && headerUtils != null){
+            encoding = headerUtils.getEncoding(headers);
+        }
+        if (encoding == null) {
+            // no encoding in header or no headers so use config
+            encoding = configEncoding;
+        }
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema);
             if( encoding == AvroEncoding.JSON) {
@@ -87,6 +105,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
             } else {
                 return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
             }
+
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

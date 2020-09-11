@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
@@ -54,8 +56,15 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
 
     protected abstract void serializeData(T schema, U data, OutputStream out) throws IOException;
 
+    protected abstract void serializeData(Headers headers, T schema, U data, ByteArrayOutputStream out) throws IOException;
+
     @Override
     public byte[] serialize(String topic, U data) {
+        return serialize(topic, null, data);
+    }
+
+    @Override
+    public byte[] serialize(String topic, Headers headers, U data) {
         // just return null
         if (data == null) {
             return null;
@@ -65,12 +74,18 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
             String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schema);
             long id = getGlobalIdStrategy().findId(getClient(), artifactId, artifactType(), schema);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            out.write(MAGIC_BYTE);
-            getIdHandler().writeId(id, out);
-            serializeData(schema, data, out);
+            if (headerUtils != null) {
+                headerUtils.addSchemaHeaders(headers, artifactId, id);
+                serializeData(headers, schema, data, out);
+            } else {
+                out.write(MAGIC_BYTE);
+                getIdHandler().writeId(id, out);
+                serializeData(schema, data, out);
+            }
             return out.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
+
 }

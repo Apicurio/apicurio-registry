@@ -62,7 +62,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getLatestArtifact(String artifactId) {
-        return delegate.getLatestArtifact(artifactId);
+        return parseResponse(delegate.getLatestArtifact(artifactId));
     }
 
     @Override
@@ -107,7 +107,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        return delegate.getArtifactVersion(version, artifactId);
+        return parseResponse(delegate.getArtifactVersion(version, artifactId));
     }
 
     @Override
@@ -167,7 +167,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactByGlobalId(long globalId) {
-        return delegate.getArtifactByGlobalId(globalId);
+        return parseResponse(delegate.getArtifactByGlobalId(globalId));
     }
 
     @Override
@@ -223,5 +223,10 @@ public class CompatibleClient implements RegistryService {
     @Override
     public void reset() {
 
+    }
+
+    private Response parseResponse(InputStream resultStream) {
+
+        return Response.ok(resultStream).build();
     }
 }

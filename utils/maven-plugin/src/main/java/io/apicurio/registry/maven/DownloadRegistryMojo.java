@@ -31,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.ws.rs.core.Response;
 
 /**
  * Download artifacts.
@@ -115,24 +114,19 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
             getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
 
-            try {
-                Integer version = versions.get(id);
-                Response response = (version != null) ?
-                                    getClient().getArtifactVersion(version, id) :
-                                    getClient().getLatestArtifact(id);
-                try (InputStream stream = response.readEntity(InputStream.class)) {
-                    if (replaceExisting) {
-                        Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        Files.copy(stream, outputFile.toPath());
-                    }
-                } finally {
-                    response.close();
+            Integer version = versions.get(id);
+            try (InputStream stream = (version != null) ?
+                    getClient().getArtifactVersion(version, id) :
+                    getClient().getLatestArtifact(id)) {
+                if (replaceExisting) {
+                    Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.copy(stream, outputFile.toPath());
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(
-                    String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
-                    ex
+                        String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
+                        ex
                 );
             }
         }

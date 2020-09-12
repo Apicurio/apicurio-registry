@@ -324,4 +324,12 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     public String selectArtifactIds() {
         return "SELECT artifactId FROM artifacts LIMIT ?";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactMetaDataByGlobalId()
+     */
+    @Override
+    public String selectArtifactMetaDataByGlobalId() {
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE v.globalId = ?";
+    }
 }

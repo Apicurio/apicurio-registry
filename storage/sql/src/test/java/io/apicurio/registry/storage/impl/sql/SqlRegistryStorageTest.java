@@ -29,6 +29,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -274,6 +277,33 @@ class SqlRegistryStorageTest {
     }
 
     @Test
+    void testGetArtifactMetaDataByGlobalId() throws Exception {
+        String artifactId = "testGetArtifactMetaDataByGlobalId-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        long globalId = dto.getGlobalId();
+        
+        dto = storage.getArtifactMetaData(globalId);
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+    }
+    
+    @Test
     void testUpdateArtifactMetaData() throws Exception {
         String artifactId = "testUpdateArtifactMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
@@ -501,7 +531,60 @@ class SqlRegistryStorageTest {
         Assertions.assertNotNull(globalRules);
         Assertions.assertTrue(globalRules.isEmpty());
     }
-    
-    
+
+    @Test
+    void testSearchArtifacts() throws Exception {
+        String artifactIdPrefix = "testSearchArtifacts-";
+        for (int idx = 1; idx <= 50; idx++) {
+            String artifactId = artifactIdPrefix + idx;
+            ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+            List<String> labels = Collections.singletonList("label-" + idx);
+            Map<String, String> properties = Collections.singletonMap("key", "value-" + idx);
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    artifactId + "-name",
+                    artifactId + "-description",
+                    labels,
+                    properties );
+            this.storage.createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData ).toCompletableFuture().get();
+        }
+        
+        long start = System.currentTimeMillis();
+        
+        ArtifactSearchResults results = storage.searchArtifacts("testSearchArtifacts", 0, 10, SearchOver.name, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(50, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(10, results.getArtifacts().size());
+        
+        results = storage.searchArtifacts("testSearchArtifacts-19-name", 0, 10, SearchOver.name, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertEquals("testSearchArtifacts-19-name", results.getArtifacts().get(0).getName());
+        
+        results = storage.searchArtifacts("testSearchArtifacts-33-description", 0, 10, SearchOver.description, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertEquals("testSearchArtifacts-33-name", results.getArtifacts().get(0).getName());
+        
+        results = storage.searchArtifacts(null, 0, 11, SearchOver.everything, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(11, results.getArtifacts().size());
+        
+        results = storage.searchArtifacts("testSearchArtifacts", 0, 1000, SearchOver.everything, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(50, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(50, results.getArtifacts().size());
+        Assertions.assertEquals("testSearchArtifacts-1-name", results.getArtifacts().get(0).getName());
+        Assertions.assertEquals("testSearchArtifacts-10-name", results.getArtifacts().get(1).getName());
+        
+        long end = System.currentTimeMillis();
+        System.out.println("Search time: " + (end - start) + "ms");
+    }
 
 }

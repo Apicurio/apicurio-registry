@@ -214,4 +214,9 @@ public interface ISqlStatements {
      */
     public String selectArtifactIds();
 
+    /**
+     * A statement to get an artifact's meta-data by version globalId.
+     */
+    public String selectArtifactMetaDataByGlobalId();
+
 }

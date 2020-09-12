@@ -28,6 +28,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.result.ResultIterable;
+import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.StatementContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +66,7 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SearchedArtifact;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -81,6 +84,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -128,12 +132,14 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     }
     
     @PostConstruct
+    @Transactional
     protected void initialize() {
         log.info("SqlRegistryStorage constructed successfully.");
         
         jdbi = Jdbi.create(dataSource);
 
         if (initDB) {
+            // TODO create the JDBI handle once and pass it in to all these DB related methods
             synchronized (dbMutex) {
                 if (!isDatabaseInitialized()) {
                     log.info("Database not initialized.");
@@ -617,8 +623,91 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver,
             SortOrder sortOrder) {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+                StringBuilder select = new StringBuilder();
+                StringBuilder where = new StringBuilder();
+                StringBuilder orderBy = new StringBuilder();
+                StringBuilder limitOffset = new StringBuilder();
+
+                // Formulate the SELECT clause for the artifacts query
+                select.append(
+                        "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
+                        +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                        + "FROM artifacts a "
+                        + "JOIN versions v ON a.latest = v.globalId ");
+                
+                // Formulate the WHERE clause for both queries
+                if (!StringUtil.isEmpty(search)) {
+                    where.append("WHERE ");
+                    switch (searchOver) {
+                        case description:
+                            where.append("v.description LIKE ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
+                            break;
+                        case everything:
+                            where.append("(v.name LIKE ? OR v.description LIKE ?)");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
+                            // TODO not yet supported - implement label search via subselect
+                            break;
+                        case labels:
+                            // TODO not yet supported - implement via subselect
+                            break;
+                        case name:
+                            where.append("v.name LIKE ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
+                            break;
+                    }
+                }
+
+                // Add order by to artifact query
+                orderBy.append(" ORDER BY coalesce(v.name, a.artifactId) ");
+                orderBy.append(sortOrder.name());
+
+                // Add limit and offset to artifact query
+                limitOffset.append(" LIMIT ? OFFSET ?");
+
+                // Query for the artifacts
+                Query artifactsQuery = handle.createQuery(select.toString() + where.toString() + orderBy.toString() + limitOffset.toString());
+                // Query for the total row count
+                String countSelect = "SELECT count(a.artifactId) FROM artifacts a JOIN versions v ON a.latest = v.globalId ";
+                Query countQuery = handle.createQuery(countSelect + where.toString());
+
+                // Bind all query parameters
+                int idx = 0;
+                for (SqlStatementVariableBinder binder : binders) {
+                    binder.bind(artifactsQuery, idx);
+                    binder.bind(countQuery, idx);
+                    idx++;
+                }
+                artifactsQuery.bind(idx++, limit);
+                artifactsQuery.bind(idx++, offset);
+                
+                // Execute artifact query
+                List<SearchedArtifact> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
+                // Execute count query
+                Integer count = countQuery.mapTo(Integer.class).one();
+                
+                ArtifactSearchResults results = new ArtifactSearchResults();
+                results.setArtifacts(artifacts);
+                results.setCount(count);
+                return results;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -667,8 +756,20 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Getting meta-data for globalId: {}", globalId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectArtifactMetaDataByGlobalId();
+                return handle.createQuery(sql)
+                        .bind(0, globalId)
+                        .map(ArtifactMetaDataDtoMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new ArtifactNotFoundException(String.valueOf(globalId));
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**

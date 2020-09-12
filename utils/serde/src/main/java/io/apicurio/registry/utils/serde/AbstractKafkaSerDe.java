@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
@@ -55,6 +56,8 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     // Constants for using headers to store the ids
     public static final String USE_HEADERS = "apicurio.registry.use.headers";
+
+    public static final String HEADER_REQUEST_PREFIX = "apicurio.registry.request.headers.";
 
     public static final byte MAGIC_BYTE = 0x0;
     protected boolean key; // do we handle key or value with this ser/de?
@@ -108,8 +111,17 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             if (baseUrl == null) {
                 throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
             }
+            // Check if any request headers for the client have been set in the config
+            Map<String, String> requestHeaders = configs.entrySet().stream()
+                    .filter(map -> map.getKey().startsWith(HEADER_REQUEST_PREFIX))
+                    .collect(Collectors.toMap(map -> map.getKey()
+                            .replace(HEADER_REQUEST_PREFIX, ""), map -> map.getValue().toString()));
             try {
-                client = CompatibleClient.createCompatible(baseUrl);
+                if (requestHeaders.size()>0) {
+                    client = CompatibleClient.createCompatible(baseUrl, requestHeaders);
+                } else {
+                    client = CompatibleClient.createCompatible(baseUrl);
+                }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }

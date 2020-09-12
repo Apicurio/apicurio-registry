@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -46,8 +48,16 @@ public class CompatibleClient implements RegistryService {
         this.delegate = RegistryRestClientFactory.create(baseUrl);
     }
 
+    private CompatibleClient(String baseUrl, Map<String, String> requestHeaders) {
+        this.delegate = RegistryRestClientFactory.create(baseUrl, requestHeaders);
+    }
+
     public static RegistryService createCompatible(String baseUrl) {
         return new CompatibleClient(baseUrl);
+    }
+
+    public static RegistryService createCompatible(String baseUrl, Map<String, String> requestHeaders) {
+        return new CompatibleClient(baseUrl, requestHeaders);
     }
 
     @Override

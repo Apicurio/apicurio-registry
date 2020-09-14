@@ -176,11 +176,6 @@
             <artifactId>apicurio-registry-utils-tests</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-elytron-security-properties-file</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>

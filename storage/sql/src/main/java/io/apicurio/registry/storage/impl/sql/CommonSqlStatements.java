@@ -340,4 +340,60 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionState() {
         return "UPDATE versions SET state = ? WHERE globalId = ?";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersion()
+     */
+    @Override
+    public String deleteVersion() {
+        return "DELETE FROM versions WHERE artifactId = ? AND version = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabels()
+     */
+    @Override
+    public String deleteVersionLabels() {
+        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionProperties()
+     */
+    @Override
+    public String deleteVersionProperties() {
+        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertLabel()
+     */
+    @Override
+    public String insertLabel() {
+        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertProperty()
+     */
+    @Override
+    public String insertProperty() {
+        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
+     */
+    @Override
+    public String selectAllArtifactVersions() {
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON a.artifactId = v.artifactId WHERE a.artifactId = ? ORDER BY v.globalId ASC LIMIT ? OFFSET ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersionsCount()
+     */
+    @Override
+    public String selectAllArtifactVersionsCount() {
+        return "SELECT COUNT(v.globalId) FROM versions v JOIN artifacts a ON a.artifactId = v.artifactId WHERE a.artifactId = ?";
+    }
 }

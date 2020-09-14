@@ -72,6 +72,7 @@ import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -118,7 +119,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
-    ISqlStatements sqlStatements;
+    SqlStatements sqlStatements;
 
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
     boolean initDB;
@@ -276,7 +277,29 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state) {
-        log.info("TBD - Please implement me!");
+        log.info("Updating the state of artifact {} to {}", artifactId, state.name());
+        ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
+        try {
+            this.jdbi.withHandle( handle -> {
+                long globalId = dto.getGlobalId();
+                ArtifactState oldState = dto.getState();
+                ArtifactState newState = state;
+                ArtifactStateExt.applyState(s -> {
+                    String sql = sqlStatements.updateArtifactVersionState();
+                    int rowCount = handle.createUpdate(sql)
+                            .bind(0, s.name())
+                            .bind(1, globalId)
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new VersionNotFoundException(artifactId, dto.getVersion());
+                    }
+                }, oldState, newState);
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+        
         
     }
 
@@ -361,7 +384,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             } else {
                 sql = sqlStatements.selectContentIdByHash();
                 contentId = handle.createQuery(sql)
-                        .bind(0, canonicalContentHash)
+                        .bind(0, contentHash)
                         .mapTo(Long.class)
                         .one();
             }
@@ -403,6 +426,8 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .mapTo(Long.class)
                     .one();
         }
+        
+        // TODO insert rows in labels and properties tables
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
@@ -1267,7 +1292,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
                 metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), content);
         
-        // Update the "latest" row in the artifacts table with the globalId of the new version
+        // Update the "latest" column in the artifacts table with the globalId of the new version
         sql = sqlStatements.updateArtifactLatestVersion();
         handle.createUpdate(sql)
               .bind(0, vmdd.getGlobalId())

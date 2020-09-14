@@ -335,6 +335,21 @@ class SqlRegistryStorageTest {
     }
 
     @Test
+    void testUpdateArtifactState() throws Exception {
+        String artifactId = "testUpdateArtifactState-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        
+        storage.updateArtifactState(artifactId, ArtifactState.DEPRECATED);
+        
+        ArtifactMetaDataDto metaData = this.storage.getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(ArtifactState.DEPRECATED, metaData.getState());
+    }
+
+    @Test
     void testUpdateArtifactVersionMetaData() throws Exception {
         String artifactId = "testUpdateArtifactVersionMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);

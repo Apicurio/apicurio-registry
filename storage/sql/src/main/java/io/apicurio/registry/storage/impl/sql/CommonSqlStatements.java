@@ -25,7 +25,7 @@ import java.util.List;
  * Shared base class for all sql statements.
  * @author eric.wittmann@gmail.com
  */
-public abstract class CommonSqlStatements implements ISqlStatements {
+public abstract class CommonSqlStatements implements SqlStatements {
 
     /**
      * Constructor.
@@ -34,7 +34,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.hub.core.storage.jdbc.ISqlStatements#databaseInitialization()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseInitialization()
      */
     @Override
     public List<String> databaseInitialization() {
@@ -47,7 +47,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.hub.core.storage.jdbc.ISqlStatements#databaseUpgrade(int, int)
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseUpgrade(int, int)
      */
     @Override
     public List<String> databaseUpgrade(int fromVersion, int toVersion) {
@@ -66,7 +66,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#isPrimaryKeyViolation(java.lang.Exception)
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
      */
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
@@ -74,7 +74,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#getDatabaseVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getDatabaseVersion()
      */
     @Override
     public String getDatabaseVersion() {
@@ -82,7 +82,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertGlobalRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGlobalRule()
      */
     @Override
     public String insertGlobalRule() {
@@ -90,7 +90,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectGlobalRules()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalRules()
      */
     @Override
     public String selectGlobalRules() {
@@ -98,7 +98,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectGlobalRuleByType()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalRuleByType()
      */
     @Override
     public String selectGlobalRuleByType() {
@@ -106,7 +106,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteGlobalRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGlobalRule()
      */
     @Override
     public String deleteGlobalRule() {
@@ -114,7 +114,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteGlobalRules()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGlobalRules()
      */
     @Override
     public String deleteGlobalRules() {
@@ -122,7 +122,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateGlobalRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGlobalRule()
      */
     @Override
     public String updateGlobalRule() {
@@ -130,7 +130,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertArtifact()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifact()
      */
     @Override
     public String insertArtifact() {
@@ -138,7 +138,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactLatestVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestVersion()
      */
     @Override
     public String updateArtifactLatestVersion() {
@@ -146,7 +146,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
      */
     @Override
     public String insertVersion(boolean firstVersion) {
@@ -158,7 +158,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionMetaDataByGlobalId()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByGlobalId()
      */
     @Override
     public String selectArtifactVersionMetaDataByGlobalId() {
@@ -166,7 +166,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersions()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersions()
      */
     @Override
     public String selectArtifactVersions() {
@@ -174,7 +174,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionMetaData()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaData()
      */
     @Override
     public String selectArtifactVersionMetaData() {
@@ -182,7 +182,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionContentByGlobalId()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContentByGlobalId()
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
@@ -190,7 +190,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactVersionContent()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContent()
      */
     @Override
     public String selectArtifactVersionContent() {
@@ -198,7 +198,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectLatestArtifactContent()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContent()
      */
     @Override
     public String selectLatestArtifactContent() {
@@ -206,7 +206,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectLatestArtifactMetaData()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaData()
      */
     @Override
     public String selectLatestArtifactMetaData() {
@@ -214,15 +214,15 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectContentIdByHash()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHash()
      */
     @Override
     public String selectContentIdByHash() {
-        return "SELECT c.contentId FROM content c WHERE c.canonicalHash = ?";
+        return "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactRules()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRules()
      */
     @Override
     public String selectArtifactRules() {
@@ -230,7 +230,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#insertArtifactRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactRule()
      */
     @Override
     public String insertArtifactRule() {
@@ -238,7 +238,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactRuleByType()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRuleByType()
      */
     @Override
     public String selectArtifactRuleByType() {
@@ -246,7 +246,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactRule()
      */
     @Override
     public String updateArtifactRule() {
@@ -254,7 +254,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifactRule()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactRule()
      */
     @Override
     public String deleteArtifactRule() {
@@ -262,7 +262,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifactRules()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactRules()
      */
     @Override
     public String deleteArtifactRules() {
@@ -270,7 +270,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactMetaDataLatestVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactMetaDataLatestVersion()
      */
     @Override
     public String updateArtifactMetaDataLatestVersion() {
@@ -278,7 +278,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#updateArtifactVersionMetaData()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionMetaData()
      */
     @Override
     public String updateArtifactVersionMetaData() {
@@ -286,7 +286,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteLabels()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLabels()
      */
     @Override
     public String deleteLabels() {
@@ -294,7 +294,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteProperties()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteProperties()
      */
     @Override
     public String deleteProperties() {
@@ -302,7 +302,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteVersions()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersions()
      */
     @Override
     public String deleteVersions() {
@@ -310,7 +310,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#deleteArtifact()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifact()
      */
     @Override
     public String deleteArtifact() {
@@ -318,7 +318,7 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactIds()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactIds()
      */
     @Override
     public String selectArtifactIds() {
@@ -326,10 +326,18 @@ public abstract class CommonSqlStatements implements ISqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#selectArtifactMetaDataByGlobalId()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactMetaDataByGlobalId()
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
         return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE v.globalId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
+     */
+    @Override
+    public String updateArtifactVersionState() {
+        return "UPDATE versions SET state = ? WHERE globalId = ?";
     }
 }

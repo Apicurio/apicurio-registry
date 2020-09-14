@@ -31,7 +31,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#dbType()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#dbType()
      */
     @Override
     public String dbType() {
@@ -39,7 +39,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.hub.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -47,7 +47,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#upsertContent()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {

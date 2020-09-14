@@ -34,10 +34,10 @@ public class SqlStatementsProducer {
     String databaseType;
     
     /**
-     * Produces an {@link ISqlStatements} instance for injection.
+     * Produces an {@link SqlStatements} instance for injection.
      */
     @Produces @ApplicationScoped
-    public ISqlStatements createSqlStatements() {
+    public SqlStatements createSqlStatements() {
         logger.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();

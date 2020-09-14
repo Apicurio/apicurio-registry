@@ -21,7 +21,7 @@ ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (artifactId) REFERENCES 
 
 CREATE TABLE content (contentId BIGINT AUTO_INCREMENT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BLOB NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
-ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (canonicalHash);
+ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content(canonicalHash);
 CREATE INDEX IDX_content_2 ON content(contentHash);
 

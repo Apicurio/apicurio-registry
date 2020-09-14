@@ -31,7 +31,7 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#dbType()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#dbType()
      */
     @Override
     public String dbType() {
@@ -39,7 +39,7 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.hub.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -47,11 +47,11 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.ISqlStatements#upsertContent()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {
-        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (canonicalHash) VALUES(?, ?, ?);";
+        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?);";
     }
 
 }

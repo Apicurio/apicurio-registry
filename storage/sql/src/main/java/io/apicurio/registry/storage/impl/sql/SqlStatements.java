@@ -23,7 +23,7 @@ import java.util.List;
  * implementations of this interface depending on the database being used.
  * @author eric.wittmann@gmail.com
  */
-public interface ISqlStatements {
+public interface SqlStatements {
 
     /**
      * Gets the database type associated with these statements.
@@ -218,5 +218,10 @@ public interface ISqlStatements {
      * A statement to get an artifact's meta-data by version globalId.
      */
     public String selectArtifactMetaDataByGlobalId();
+
+    /**
+     * A statement to update the state of an artifact version (by globalId);
+     */
+    public String updateArtifactVersionState();
 
 }

@@ -43,6 +43,10 @@ These features provide early access to upcoming product features, enabling custo
 endif::[]
 
 .Additional resources
-* For details on how to install into your preferred storage option, see xref:installing-the-registry[].
 
-//The {registry} Operator enables you to install and configure {registry} with your selected storage implementation on OpenShift.
+For details on how to install into your preferred storage option, see: 
+
+ifdef::apicurio-registry[]
+* {installing-the-registry-docker}
+endif::[]
+* {installing-the-registry-openshift}

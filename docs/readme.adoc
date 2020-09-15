@@ -1,68 +1,83 @@
 = Apicurio Registry user documentation
 
-The Apicurio Registry user documentation is created using Asciidoc (https://asciidoc.org/). This readme file describes the documentation directory structure and explains how to use the `asciidoctor` tool to build the documentation.
+The Apicurio Registry user documentation is created using AsciiDoc (https://asciidoc.org/). This readme describes the user documentation conventions and directory structure, and explains how to build the documentation using the Antora site generator (https://antora.org/).
 
-== Explanation of the `docs` directory structure
+== How the documentation is orgainized
 
-The Apicurio Registry `docs` directory is organized for delivering flexible content, which is a framework for putting together exactly the content you need and making it easier to reuse the same content in multiple places. 
+The Apicurio Registry user documentation is organized for delivering flexible content, which is a framework for putting together exactly the content you need, and making it easier to reuse the same content in multiple places. This framework includes the following building blocks: 
 
-Apicurio Registry user content is organized into the following documents in the `apicurio-registry/docs` directory
+* _Assemblies_ are files that introduce a subject and include modules, which provide the content.
+
+* _Modules_ provide content and do not include other files. There are three kinds of modules: 
+** _Concept_ - Overview iand definitions
+** _Procedure_ - Steps on how to perform a specific task
+** _Reference_ - Supplementary information for more details
+
+For more details, see the https://redhat-documentation.github.io/modular-docs/[Modular Documentation Reference Guide]
+
+=== Explanation of the directory structure
+
+The `apicurio-registry/docs` directory structure includes the following:
 
 [options="header"]
-[cols="1,2,3"]
+[cols="1,2"]
 |===
-|Document
-|master.adoc location
-|Content location
-
-|_Getting Started with Apicurio Registry_
+|Component
+|Description
 |`getting-started`
-a|* `assemblies/getting-started`  
-  * `modules/getting-started`  
-  * `images/getting-started`
-|_Apicurio Registry REST API documentation_
-| n/a
-a|* `getting-started/files`   
+|Top-level directory for the Getting Started guide. Includes the `master.adoc` file which defines what content assembly files are included. 
+| `modules`
+a|Includes the low-level assemblies and content modules:  
 
+  * Assemblies: `modules/ROOT/pages`  
+  * Modules (concept, procedure, and reference): `modules/ROOT/partials`  
+  * Images: `modules/ROOT/assets/images`
+  * Downloads: `modules/ROOT/assets/attachments`
+| `rest-api`
+|How to build and view Apicurio Registry REST API documentation from source code.   
+| `antora.yaml`
+|Component descriptor file for Antora.
+| `local-test-playbook.yml`
+|Controls what content is included, what user interface is applied, and where the site is published. 
 |===
 
+For more details, see: 
 
-=== Asciidoc user guides
-For each Asciidoc-based guide, the `master.adoc` file includes the relevant assemblies and modules: 
+* link:https://docs.antora.org/antora/2.0/component-structure/[Organizing Your Documentation for Antora]
 
-* Assemblies are files that introduce a subject and 
-include modules, which provide the content.
-* Modules provide content and do not include other files. 
-There are three kinds of modules: 
-** Concept
-** Procedure
-** Reference
-
-The Apicurio Registry `docs` directory contains the following directories: 
-
-* `assemblies` contains folder for each category of information. These folders contain assembly files:  
-** `getting-started` 
-
-
-* `modules` contains a folder for each category of information. These folders contain concept, procedure, and reference modules:
-** `getting-started`
-
-
-* `images` contains a folder for each category of information. These folders contain image files: 
-** `getting-started`
+* https://docs.antora.org/antora/2.0/playbook/[The Antora Playbook]
 
 === REST API documentation
 The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swagger file using link:https://github.com/Redocly/redoc[ReDoc]. 
 
-== Building the documentation using Asciidoctor
+You can view the latest Apicurio Registry REST API documentation when building from the source code by following the instructions in `rest-api/readme.md`.
 
-You can perform a local build of the documentation using Asciidoctor (https://asciidoctor.org/):
+The Apicurio REST API documentation is also published in the user documentation content using the following file: `docs/modules/ROOT/assets/attachments/registry-rest-api.html`
 
-. Install the Asciidoctor tool using the following steps: https://asciidoctor.org/docs/install-toolchain/
-. In the `docs/getting-started` directory, enter the following command:
+== Tips for creating AsciiDoc content
+
+* To introduce a new feature, create a concept module, for example: `modules/ROOT/partials/getting-started/con-my-new-feature.adoc`
+* To describe the steps on how to use your new feature, create a procedure module, for example: `modules/ROOT/partials/getting-started/proc-configuring-my-new-feature.adoc`  
+* To describe optional configuration for your new feature, create a reference module, for example: `modules/ROOT/partials/getting-started/proc-my-new-feature-environment-variables.adoc`  
+* To group all the information about your new feature, create an assembly, for example: `modules/ROOT/pages/getting-started/assembly-using-my-new-feature.adoc`  
+
+For examples of how to structure your content, see the existing files in the `modules/ROOT/partials` and `modules/ROOT/pages` directories. 
+
+=== Tips for formatting and styling content
+For more details and examples of how to create technical content using AsciiDoc source files, see link:tips-for-creating-asciidoc-content.adoc[Tips for creating AsciiDoc content]
+
+== Building the documentation using Antora
+
+You can perform a local build of the documentation for test purposes using the `antora` tool as follows (https://antora.org/):
+
+. Install the Antora tool using the following steps: https://docs.antora.org/antora/2.3/install-and-run-quickstart/
+. In the `../apicurio-registry/docs` directory, enter the following command:
 +
 ----
-asciidoctor master.adoc
+$ antora local-test-playbook.yml
 ----
 +
-. Open the generated `master.html` file in your browser.  
+. Change to the `apicurio-registry/docs/build/site` directory.
+. Open the generated `index.html` file in your browser. 
+
+For details on how the Apicurio Registry project documentation website is automatically generated, see https://github.com/Apicurio/apicurio-docs-playbook.  

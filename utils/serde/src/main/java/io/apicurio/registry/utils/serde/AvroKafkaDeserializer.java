@@ -18,6 +18,7 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
@@ -30,6 +31,7 @@ import org.apache.kafka.common.header.Headers;
 import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -77,7 +79,12 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
 
     @Override
     protected Schema toSchema(Response response) {
-        return AvroSchemaUtils.parse(response.readEntity(String.class));
+        Object responseEntity = response.getEntity();
+        if (responseEntity instanceof InputStream) {
+            return AvroSchemaUtils.parse(IoUtil.toString((InputStream) responseEntity));
+        } else {
+            return AvroSchemaUtils.parse(response.readEntity(String.class));
+        }
     }
 
     @Override

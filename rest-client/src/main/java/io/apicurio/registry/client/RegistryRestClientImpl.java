@@ -27,6 +27,7 @@ import io.apicurio.registry.client.service.IdsService;
 import io.apicurio.registry.client.service.RulesService;
 import io.apicurio.registry.client.service.SearchService;
 import okhttp3.Interceptor;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import retrofit2.Retrofit;
@@ -121,7 +122,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     @Override
     public ArtifactMetaData createArtifact(ArtifactType artifactType, String artifactId, IfExistsType ifExistsType, InputStream data) {
 
-        return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(null, IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -134,7 +135,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public ArtifactMetaData updateArtifact(String artifactId,
                                            ArtifactType xRegistryArtifactType, InputStream data) {
 
-        return requestHandler.execute(artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -165,7 +166,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
                                                          InputStream data) {
 
-        return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(null, IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -178,7 +179,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public VersionMetaData createArtifactVersion(String artifactId,
                                                  ArtifactType xRegistryArtifactType, InputStream data) {
 
-        return requestHandler.execute(artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -254,7 +255,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public void testUpdateArtifact(String artifactId,
                                    ArtifactType xRegistryArtifactType, InputStream data) {
 
-        requestHandler.execute(artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(null, IoUtil.toBytes(data))));
+        requestHandler.execute(artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override

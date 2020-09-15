@@ -67,6 +67,7 @@ import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SearchedArtifact;
+import io.apicurio.registry.rest.beans.SearchedVersion;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -86,6 +87,7 @@ import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -164,7 +166,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                 log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
                 throw new RuntimeException("Database not upgraded.");
             }
-        }        
+        }
     }
 
     /**
@@ -299,8 +301,6 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
-        
-        
     }
 
     /**
@@ -308,8 +308,28 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
+        ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(artifactId, version);
+        try {
+            this.jdbi.withHandle( handle -> {
+                long globalId = dto.getGlobalId();
+                ArtifactState oldState = dto.getState();
+                ArtifactState newState = state;
+                ArtifactStateExt.applyState(s -> {
+                    String sql = sqlStatements.updateArtifactVersionState();
+                    int rowCount = handle.createUpdate(sql)
+                            .bind(0, s.name())
+                            .bind(1, globalId)
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new VersionNotFoundException(artifactId, dto.getVersion());
+                    }
+                }, oldState, newState);
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -420,8 +440,29 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .mapTo(Long.class)
                     .one();
         }
-        
-        // TODO insert rows in labels and properties tables
+
+        // Insert labels into the "labels" table
+        if (labels != null && !labels.isEmpty()) {
+            labels.forEach(label -> {
+                String sqli = sqlStatements.insertLabel();
+                handle.createUpdate(sqli)
+                      .bind(0, globalId)
+                      .bind(1, label)
+                      .execute();
+            });
+        }
+
+        // Insert properties into the "properties" table
+        if (properties != null && !properties.isEmpty()) {
+            properties.forEach((k,v) -> {
+                String sqli = sqlStatements.insertProperty();
+                handle.createUpdate(sqli)
+                      .bind(0, globalId)
+                      .bind(1, k)
+                      .bind(2, v)
+                      .execute();
+            });
+        }
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
@@ -478,6 +519,8 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                       .bind(1, artifactId)
                       .execute();
                 
+                // TODO use CASCADE when deleting rows from the "versions" table
+
                 // Delete labels
                 sql = sqlStatements.deleteLabels();
                 handle.createUpdate(sql)
@@ -495,8 +538,10 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                 handle.createUpdate(sql)
                     .bind(0, artifactId)
                     .execute();
+                
+                // TODO reap orphaned rows in the "content" table?
 
-                // Delete rules
+                // Delete artifact rules
                 sql = sqlStatements.deleteArtifactRules();
                 handle.createUpdate(sql)
                     .bind(0, artifactId)
@@ -670,17 +715,26 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                             });
                             break;
                         case everything:
-                            where.append("(v.name LIKE ? OR v.description LIKE ?)");
+                            where.append("("
+                                    + "v.name LIKE ? OR "
+                                    + "v.description LIKE ? OR "
+                                    + "v.globalId IN (SELECT l.globalId FROM labels l WHERE l.label LIKE ?)"
+                                    + ")");
                             binders.add((query, idx) -> {
                                 query.bind(idx, "%" + search + "%");
                             });
                             binders.add((query, idx) -> {
                                 query.bind(idx, "%" + search + "%");
                             });
-                            // TODO not yet supported - implement label search via subselect
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
                             break;
                         case labels:
-                            // TODO not yet supported - implement via subselect
+                            where.append("v.globalId IN (SELECT l.globalId FROM labels l WHERE l.label LIKE ?)");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
                             break;
                         case name:
                             where.append("v.name LIKE ?");
@@ -1000,8 +1054,31 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
-        log.info("TBD - Please implement me!");
-        return null;
+        log.info("Searching for versions of artifact {}", artifactId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectAllArtifactVersions();
+                List<SearchedVersion> versions = handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .bind(1, limit)
+                        .bind(2, offset)
+                        .map(SearchedVersionMapper.instance)
+                        .list();
+                VersionSearchResults rval = new VersionSearchResults();
+                rval.setVersions(versions);
+                
+                sql = sqlStatements.selectAllArtifactVersionsCount();
+                Integer count = handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .mapTo(Integer.class)
+                        .one();
+                rval.setCount(count);
+
+                return rval;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -1055,8 +1132,82 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactVersion(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
+        log.info("Deleting version {} of artifact {}", version, artifactId);
         
+        SortedSet<Long> versions = getArtifactVersions(artifactId);
+        
+        // If the version we're deleting is the *only* version, then just delete the
+        // entire artifact.
+        if (versions.size() == 1 && versions.iterator().next().equals(version)) {
+            this.deleteArtifact(artifactId);
+            return;
+        }
+
+        // If there is only one version, but it's not the version being deleted, then
+        // we can't find the version to delete!  This is an optimization.
+        if (versions.size() == 1 && !versions.iterator().next().equals(version)) {
+            throw new VersionNotFoundException(artifactId, version);
+        }
+
+        // Otherwise, delete just the one version and then reset the "latest" column on the artifacts table.
+        try {
+            this.jdbi.withHandle( handle -> {
+                // Set the 'latest' version of an artifact to NULL
+                String sql = sqlStatements.updateArtifactLatestVersion();
+                handle.createUpdate(sql)
+                      .bind(0, (Long) null)
+                      .bind(1, artifactId)
+                      .execute();
+                
+                // TODO use CASCADE when deleting rows from the "versions" table
+                
+                // Delete labels
+                sql = sqlStatements.deleteVersionLabels();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, version)
+                    .execute();
+                
+                // Delete properties
+                sql = sqlStatements.deleteVersionProperties();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, version)
+                    .execute();
+
+                // Delete version
+                sql = sqlStatements.deleteVersion();
+                int rows = handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, version)
+                    .execute();
+
+                // TODO reap orphaned rows in the "content" table?
+
+                // If the row was deleted, remove the version from the set of versions
+                if (rows == 1) {
+                    versions.remove(version);
+                }
+                
+                // Update the 'latest' version of the artifact to the highest version remaining.
+                long latestVersion = versions.last();
+                sql = sqlStatements.updateArtifactLatestVersion();
+                handle.createUpdate(sql)
+                      .bind(0, latestVersion)
+                      .bind(1, artifactId)
+                      .execute();
+                
+                if (rows == 0) {
+                    throw new VersionNotFoundException(artifactId, version);
+                }
+                
+                return null;
+            });
+        } catch (VersionNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }        
     }
 
     /**
@@ -1119,8 +1270,44 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactVersionMetaData(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
-        
+        log.info("Deleting user-defined meta-data for artifact {} version {}", artifactId, version);
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactVersionMetaData();
+                // NULL out the name, description, labels, and properties columns of the "versions" table.
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, (String) null)
+                        .bind(1, (String) null)
+                        .bind(2, (String) null)
+                        .bind(3, (String) null)
+                        .bind(4, artifactId)
+                        .bind(5, version)
+                        .execute();
+                
+                // Delete labels
+                sql = sqlStatements.deleteVersionLabels();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, version)
+                    .execute();
+                
+                // Delete properties
+                sql = sqlStatements.deleteVersionProperties();
+                handle.createUpdate(sql)
+                    .bind(0, artifactId)
+                    .bind(1, version)
+                    .execute();
+                
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(artifactId, version);
+                }
+                return null;
+            });
+        } catch (VersionNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -1258,7 +1445,6 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
-        
     }
 
     /**

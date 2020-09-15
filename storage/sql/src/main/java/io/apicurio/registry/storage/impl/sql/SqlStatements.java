@@ -120,6 +120,16 @@ public interface SqlStatements {
     public String selectArtifactVersions();
 
     /**
+     * A statement used to select all versions for a given artifactId.
+     */
+    public String selectAllArtifactVersions();
+
+    /**
+     * A statement used to count the total # of versions for an artifact.
+     */
+    public String selectAllArtifactVersionsCount();
+
+    /**
      * A statement used to select artifact version metadata by artifactId and version.
      */
     public String selectArtifactVersionMetaData();
@@ -223,5 +233,30 @@ public interface SqlStatements {
      * A statement to update the state of an artifact version (by globalId);
      */
     public String updateArtifactVersionState();
+
+    /**
+     * A statement to delete the labels for a single artifact version.
+     */
+    public String deleteVersionLabels();
+
+    /**
+     * A statement to delete the properties for a single artifact version.
+     */
+    public String deleteVersionProperties();
+
+    /**
+     * A statement to delete a single artifact version.
+     */
+    public String deleteVersion();
+
+    /**
+     * A statement to insert a row in the "labels" table.
+     */
+    public String insertLabel();
+
+    /**
+     * A statement to insert a row in the "properties" table.
+     */
+    public String insertProperty();
 
 }

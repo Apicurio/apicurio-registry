@@ -32,6 +32,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -65,6 +66,14 @@ class SqlRegistryStorageTest {
             "    \"info\": {" + 
             "        \"title\": \"Empty API 2\"," + 
             "        \"version\": \"1.0.1\"," + 
+            "        \"description\": \"An example API design using OpenAPI.\"" + 
+            "    }" + 
+            "}";
+    private static final String OPENAPI_CONTENT_TEMPLATE = "{" + 
+            "    \"openapi\": \"3.0.2\"," + 
+            "    \"info\": {" + 
+            "        \"title\": \"Empty API 2\"," + 
+            "        \"version\": \"VERSION\"," + 
             "        \"description\": \"An example API design using OpenAPI.\"" + 
             "    }" + 
             "}";
@@ -255,7 +264,7 @@ class SqlRegistryStorageTest {
         
         ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
         EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto("NAME", "DESC", Collections.singletonList("LBL"), Collections.singletonMap("K", "V"));
-        ArtifactMetaDataDto dtov2 = this.storage.updateArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, contentv2, metaData ).toCompletableFuture().get();
+        ArtifactMetaDataDto dtov2 = this.storage.updateArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, contentv2, metaData).toCompletableFuture().get();
         Assertions.assertNotNull(dtov2);
         Assertions.assertEquals(artifactId, dtov2.getId());
         Assertions.assertEquals(2, dtov2.getVersion());
@@ -350,6 +359,32 @@ class SqlRegistryStorageTest {
     }
 
     @Test
+    void testUpdateArtifactVersionState() throws Exception {
+        String artifactId = "testUpdateArtifactVersionState-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+
+        ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactMetaDataDto dtov2 = this.storage.updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        Assertions.assertEquals(artifactId, dtov2.getId());
+        Assertions.assertEquals(2, dtov2.getVersion());
+        Assertions.assertEquals(ArtifactState.ENABLED, dtov2.getState());
+        
+        storage.updateArtifactState(artifactId, ArtifactState.DISABLED, 1);
+        storage.updateArtifactState(artifactId, ArtifactState.DEPRECATED, 2);
+        
+        ArtifactVersionMetaDataDto v1 = this.storage.getArtifactVersionMetaData(artifactId, 1);
+        ArtifactVersionMetaDataDto v2 = this.storage.getArtifactVersionMetaData(artifactId, 2);
+        Assertions.assertNotNull(v1);
+        Assertions.assertNotNull(v2);
+        Assertions.assertEquals(ArtifactState.DISABLED, v1.getState());
+        Assertions.assertEquals(ArtifactState.DEPRECATED, v2.getState());
+    }
+
+    @Test
     void testUpdateArtifactVersionMetaData() throws Exception {
         String artifactId = "testUpdateArtifactVersionMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
@@ -408,6 +443,107 @@ class SqlRegistryStorageTest {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
             storage.getArtifactVersionMetaData(artifactId, 1);
         });
+    }
+
+    @Test
+    void testDeleteArtifactVersion() throws Exception {
+        // Delete the only version
+        ////////////////////////////
+        String artifactId = "testDeleteArtifactVersion-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        this.storage.deleteArtifactVersion(artifactId, 1);
+
+        final String aid1 = artifactId;
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifact(aid1);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactMetaData(aid1);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersion(aid1, 1);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersionMetaData(aid1, 1);
+        });
+        
+        // Delete one of multiple versions
+        artifactId = "testDeleteArtifactVersion-2";
+        content = ContentHandle.create(OPENAPI_CONTENT);
+        dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+
+        ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactMetaDataDto dtov2 = this.storage.updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        
+        storage.deleteArtifactVersion(artifactId, 1);
+        
+        final String aid2 = artifactId;
+        storage.getArtifact(aid2);
+        storage.getArtifactMetaData(aid2);
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersion(aid2, 1);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersionMetaData(aid2, 1);
+        });
+        
+        // Delete the latest version
+        artifactId = "testDeleteArtifactVersion-3";
+        content = ContentHandle.create(OPENAPI_CONTENT);
+        dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+
+        contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        dtov2 = this.storage.updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        
+        final String aid3 = artifactId;
+        storage.deleteArtifactVersion(artifactId, 2);
+        storage.getArtifact(aid3);
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(aid3);
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(1, metaData.getVersion());
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersion(aid3, 2);
+        });
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
+            storage.getArtifactVersionMetaData(aid3, 2);
+        });
+    }
+
+    @Test
+    void testDeleteArtifactVersionMetaData() throws Exception {
+        String artifactId = "testDeleteArtifactVersionMetaData-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+        
+        storage.deleteArtifactVersionMetaData(artifactId, 1);
+        
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(artifactId, 1);
+        Assertions.assertNotNull(metaData);
+        Assertions.assertNull(metaData.getName());
+        Assertions.assertNull(metaData.getDescription());
+        Assertions.assertEquals(ArtifactState.ENABLED, metaData.getState());
+        Assertions.assertEquals(1, metaData.getVersion());
     }
     
     @Test
@@ -559,8 +695,8 @@ class SqlRegistryStorageTest {
                     artifactId + "-name",
                     artifactId + "-description",
                     labels,
-                    properties );
-            this.storage.createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData ).toCompletableFuture().get();
+                    properties);
+            this.storage.createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
         }
         
         long start = System.currentTimeMillis();
@@ -597,9 +733,54 @@ class SqlRegistryStorageTest {
         Assertions.assertEquals(50, results.getArtifacts().size());
         Assertions.assertEquals("testSearchArtifacts-1-name", results.getArtifacts().get(0).getName());
         Assertions.assertEquals("testSearchArtifacts-10-name", results.getArtifacts().get(1).getName());
-        
+
+        results = storage.searchArtifacts("label-17", 0, 10, SearchOver.labels, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertEquals("testSearchArtifacts-17-name", results.getArtifacts().get(0).getName());
+
+        results = storage.searchArtifacts("label-17", 0, 10, SearchOver.everything, SortOrder.asc);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertNotNull(results.getArtifacts());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertEquals("testSearchArtifacts-17-name", results.getArtifacts().get(0).getName());
+
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
+    }
+
+    @Test
+    void testSearchVersions() throws Exception {
+        String artifactId = "testSearchVersions-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = this.storage.createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        
+        // Add more versions
+        for (int idx = 2; idx <= 50; idx++) {
+            content = ContentHandle.create(OPENAPI_CONTENT_TEMPLATE.replaceAll("VERSION", "1.0." + idx));
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    artifactId + "-name-" + idx,
+                    artifactId + "-description-" + idx,
+                    null,
+                    null);
+            this.storage.updateArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData);
+        }
+
+        VersionSearchResults results = storage.searchVersions(artifactId, 0, 10);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(50, results.getCount());
+        Assertions.assertEquals(10, results.getVersions().size());
+
+        results = storage.searchVersions(artifactId, 0, 1000);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(50, results.getCount());
+        Assertions.assertEquals(50, results.getVersions().size());
+
     }
 
 }

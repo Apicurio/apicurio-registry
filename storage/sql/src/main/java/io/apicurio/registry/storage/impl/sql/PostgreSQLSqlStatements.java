@@ -37,13 +37,21 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String dbType() {
         return "postgresql";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isPrimaryKeyViolation(Exception error) {
+        return error.getMessage().contains("violates unique constraint");
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
-        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'api_designs' LIMIT 1";
+        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts' LIMIT 1";
     }
     
     /**
@@ -51,8 +59,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        // TODO implement upsert for postgresql!
-        throw new RuntimeException("Not yet implemented.");
+        return "INSERT INTO content (canonicalHash, contentHash, content) VALUES (?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
     }
     
 }

@@ -371,25 +371,19 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         // If we don't find a row, we insert one and then return its globalId.
         String sql = sqlStatements.upsertContent();
         Long contentId;
-        if ("h2".equals(sqlStatements.dbType())) {
-            List<Long> rval = handle.createUpdate(sql)
+        if ("postgresql".equals(sqlStatements.dbType()) || "h2".equals(sqlStatements.dbType())) {
+            handle.createUpdate(sql)
                     .bind(0, canonicalContentHash)
                     .bind(1, contentHash)
                     .bind(2, contentBytes)
-                    .executeAndReturnGeneratedKeys("contentId")
+                    .execute();
+            sql = sqlStatements.selectContentIdByHash();
+            contentId = handle.createQuery(sql)
+                    .bind(0, contentHash)
                     .mapTo(Long.class)
-                    .list();
-            if (rval != null && rval.size() == 1) {
-                contentId = rval.get(0);
-            } else {
-                sql = sqlStatements.selectContentIdByHash();
-                contentId = handle.createQuery(sql)
-                        .bind(0, contentHash)
-                        .mapTo(Long.class)
-                        .one();
-            }
+                    .one();
         } else {
-            // TODO handle other supported DBs here.  This needs improvement!
+            // Handle other supported DBs here in the case that they handle UPSERT differently.
             contentId = 0l;
         }
 
@@ -407,7 +401,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .bind(6, labelsStr)
                     .bind(7, propertiesStr)
                     .bind(8, contentId)
-                    .executeAndReturnGeneratedKeys("globalId")
+                    .executeAndReturnGeneratedKeys("globalid")
                     .mapTo(Long.class)
                     .one();
         } else {
@@ -422,7 +416,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                     .bind(7, labelsStr)
                     .bind(8, propertiesStr)
                     .bind(9, contentId)
-                    .executeAndReturnGeneratedKeys("globalId")
+                    .executeAndReturnGeneratedKeys("globalid")
                     .mapTo(Long.class)
                     .one();
         }

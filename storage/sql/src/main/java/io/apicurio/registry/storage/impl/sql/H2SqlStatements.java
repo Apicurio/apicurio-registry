@@ -37,6 +37,14 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String dbType() {
         return "h2";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isPrimaryKeyViolation(Exception error) {
+        return error.getMessage().contains("primary key violation");
+    }
 
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
@@ -45,13 +53,13 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String isDatabaseInitialized() {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {
-        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?);";
+        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?)";
     }
 
 }

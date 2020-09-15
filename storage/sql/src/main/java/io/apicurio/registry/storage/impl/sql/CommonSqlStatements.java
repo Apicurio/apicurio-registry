@@ -40,6 +40,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public List<String> databaseInitialization() {
         DdlParser parser = new DdlParser();
         try (InputStream input = getClass().getResourceAsStream(dbType() + ".ddl")) {
+            if (input == null) {
+                throw new RuntimeException("DDL not found for dbtype: " + dbType());
+            }
             return parser.parse(input);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -63,14 +66,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
         }
         
         return statements;
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
-     */
-    @Override
-    public boolean isPrimaryKeyViolation(Exception error) {
-        return error.getMessage().contains("primary key violation");
     }
 
     /**

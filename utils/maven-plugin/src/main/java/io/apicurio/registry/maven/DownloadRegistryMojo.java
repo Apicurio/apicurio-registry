@@ -125,8 +125,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(
-                        String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
-                        ex
+                    String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
+                    ex
                 );
             }
         }

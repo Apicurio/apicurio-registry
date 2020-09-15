@@ -25,14 +25,15 @@ The `apicurio-registry/docs` directory structure includes the following:
 |Component
 |Description
 |`getting-started`
-|Top-level directory for the Getting Started guide. Includes the `master.adoc` file which defines what content assembly files are included. 
+|AsciiDoc directory for the Getting Started guide. Includes the `master.adoc` file which defines what content assembly files are included, and symlinks to the `modules` directory.  
 | `modules`
-a|Includes the low-level assemblies and content modules:  
+a|Includes all the assemblies and content modules required for Antora:  
 
   * Assemblies: `modules/ROOT/pages`  
   * Modules (concept, procedure, and reference): `modules/ROOT/partials`  
   * Images: `modules/ROOT/assets/images`
   * Downloads: `modules/ROOT/assets/attachments`
+  * Navigation: `modules/nav.adoc`
 | `rest-api`
 |How to build and view Apicurio Registry REST API documentation from source code.   
 | `antora.yaml`
@@ -44,8 +45,8 @@ a|Includes the low-level assemblies and content modules:
 For more details, see: 
 
 * link:https://docs.antora.org/antora/2.0/component-structure/[Organizing Your Documentation for Antora]
-
-* https://docs.antora.org/antora/2.0/playbook/[The Antora Playbook]
+* link:https://docs.antora.org/antora/2.0/playbook/[The Antora Playbook]
+* link:https://docs.antora.org/antora/2.0/navigation/filenames-and-locations/[Antora Navigation Files and Storage Locations]
 
 === REST API documentation
 The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swagger file using link:https://github.com/Redocly/redoc[ReDoc]. 

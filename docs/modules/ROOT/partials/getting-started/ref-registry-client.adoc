@@ -1,0 +1,17 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-client.adoc
+
+[id="registry-client-types"]
+= {registry} Java client reference
+The {registry} Java client includes the following...
+
+More TBD
+
+.{registry} Java client types
+[%header,cols=2*] 
+|===
+|Type
+|Description
+|`TBD`
+| TBD
+|===

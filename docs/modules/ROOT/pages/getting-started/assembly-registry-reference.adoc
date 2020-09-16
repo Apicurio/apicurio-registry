@@ -12,7 +12,7 @@ This chapter lists the supported artifact types and content rule types that are 
 * xref:registry-rule-types[]
 
 .Additional resources
-* For more detailed information on artifact and rule types, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation] 
+* For more detailed information on artifact and rule types, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation] 
 
 //INCLUDES
 include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]

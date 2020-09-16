@@ -1,0 +1,32 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="writing-registry-client"]
+= Writing a {registry} client application
+
+This section explains how to manage artifacts stored in {registry} using a Java client application... 
+
+More TBD 
+
+.Prerequisites
+
+* See {registry-overview}
+* {registry} must be installed and running in your environment
+
+.Procedure
+
+. Enter step one here.
++
+[source,java,subs="+quotes,attributes"]
+----
+Insert client code sample here <1>
+...
+----
+<1> Describe the client code sample here
+
+.Additional resources
+* For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
+ifdef::rh-service-registry[]
+* For details on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
+link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].
+endif::[]

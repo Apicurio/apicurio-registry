@@ -94,6 +94,6 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 ----
 
 .Additional resources
-* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 * For a demonstration based on Kafka Streams storage, see link:https://github.com/Apicurio/apicurio-registry-demo[].
 * For more details on Apache Kafka, see https://kafka.apache.org/documentation/.

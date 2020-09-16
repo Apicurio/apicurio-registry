@@ -15,7 +15,7 @@ IMPORTANT: The default values of the liveness and readiness environment variable
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
+* You must have already installed {registry} on OpenShift with your preferred storage option. See {installing-the-registry-openshift}.
 * You must have already installed and configured your chosen {registry} storage in {kafka-streams}, embedded Infinispan, or PostgreSQL. 
 
 .Procedure

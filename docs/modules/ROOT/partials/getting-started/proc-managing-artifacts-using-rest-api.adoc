@@ -4,7 +4,7 @@
 [id="managing-artifacts-using-rest-api"]
 = Managing artifacts using Registry REST API commands
 
-Client applications can use Registry REST API commands to manage artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
+Client applications can use Registry REST API commands to manage artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 This section shows a simple curl-based example of using the Registry REST API to add and retrieve an Apache Avro schema artifact in the registry. 
 
@@ -12,8 +12,8 @@ NOTE: When adding artifacts in {registry} using the REST API, if you do not spec
 
 .Prerequisites
 
-* See xref:registry-rest-api[].
-* {registry} must be installed and running in your environment. For details, see xref:installing-the-registry[].
+* See {registry-overview}
+* {registry} must be installed and running in your environment. 
 
 .Procedure
 
@@ -50,4 +50,4 @@ $ curl http://MY-REGISTRY-URL/api/artifacts/share-price
 ----
 
 .Additional resources
-* For more REST API sample requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].

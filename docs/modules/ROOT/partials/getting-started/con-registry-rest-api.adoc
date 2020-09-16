@@ -22,5 +22,5 @@ For more details, see link:https://developers.redhat.com/blog/2019/12/17/replaci
 endif::[]
 
 .Additional resources
-* For detailed information, see the link:files/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 * The Registry REST API documentation is also available from the main endpoint of your {registry} deployment, for example, on `\http://MY-REGISTRY-URL/api`.  

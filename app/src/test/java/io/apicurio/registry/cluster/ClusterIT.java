@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import io.apicurio.registry.auth.AuthProvider;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.junit.jupiter.api.AfterAll;
@@ -76,8 +77,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -175,8 +176,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();

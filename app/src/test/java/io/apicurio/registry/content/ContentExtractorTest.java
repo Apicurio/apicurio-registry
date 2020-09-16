@@ -17,8 +17,6 @@
 package io.apicurio.registry.content;
 
 import java.io.ByteArrayInputStream;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
 import javax.inject.Inject;
 
@@ -26,15 +24,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -173,16 +168,16 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(name, emd.getName());
     }
 
-    @RegistryServiceTest
-    public void testAvro(Supplier<RegistryService> supplier) throws Exception {
+    @Test
+    public void testAvroClient() throws Exception {
         String artifactId = generateArtifactId();
 
         // Avro schema names can only have letters, digits, and _
         String name = "schema_" + System.currentTimeMillis();
         String content = String.format(avroFormat, name);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.AVRO, null, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
         
         this.waitForArtifact(amd.getId());
@@ -193,8 +188,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema_" + System.currentTimeMillis();
         content = String.format(avroFormat, name);
 
-        cs = supplier.get().updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
-        amd = ConcurrentUtil.result(cs);
+        amd = client.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes()));
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -213,16 +207,16 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @RegistryServiceTest
-    public void testJsonSchema(Supplier<RegistryService> supplier) throws Exception {
+    @Test
+    public void testJsonSchemaClient() throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "schema-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.JSON, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, null, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
 
         this.waitForArtifact(amd.getId());
@@ -232,8 +226,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "schema-" + generateArtifactId();
         content = String.format(jsonFormat, name, description);
 
-        cs = supplier.get().updateArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
-        amd = ConcurrentUtil.result(cs);
+        amd = client.updateArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -252,16 +246,16 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @RegistryServiceTest
-    public void testOpenApi(Supplier<RegistryService> supplier) throws Exception {
+    @Test
+    public void testOpenApiClient() throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.OPENAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.OPENAPI, null, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
 
         this.waitForArtifact(amd.getId());
@@ -271,8 +265,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(openapiFormat, name, description);
 
-        cs = supplier.get().updateArtifact(artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
-        amd = ConcurrentUtil.result(cs);
+        amd = client.updateArtifact(artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -291,16 +285,16 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @RegistryServiceTest
-    public void testAsyncApi(Supplier<RegistryService> supplier) throws Exception {
+    @Test
+    public void testAsyncApiClient() throws Exception {
         String artifactId = generateArtifactId();
 
         String name = "api-" + generateArtifactId();
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.ASYNCAPI, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.ASYNCAPI, null, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
 
         this.waitForArtifact(amd.getId());
@@ -310,8 +304,8 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         name = "api-" + generateArtifactId();
         content = String.format(asyncapiFormat, name, description);
 
-        cs = supplier.get().updateArtifact(artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));
-        amd = ConcurrentUtil.result(cs);
+        amd = client.updateArtifact(artifactId, ArtifactType.ASYNCAPI, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals(name, amd.getName());
     }
 
@@ -328,14 +322,14 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertNull(emd.getDescription());
     }
 
-    @RegistryServiceTest
-    public void testWsdl(Supplier<RegistryService> supplier) {
+    @Test
+    public void testWsdlClient() {
         String artifactId = generateArtifactId();
 
         String content = wsdlFormat;
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.WSDL, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.WSDL, null, new ByteArrayInputStream(content.getBytes()));
+        
         Assertions.assertEquals("StockQuote", amd.getName());
         Assertions.assertNull(amd.getDescription());
     }
@@ -353,14 +347,13 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertNull(emd.getDescription());
     }
 
-    @RegistryServiceTest
-    public void testXsd(Supplier<RegistryService> supplier) {
+    @Test
+    public void testXsdClient() {
         String artifactId = generateArtifactId();
 
         String content = xsdFormat;
 
-        CompletionStage<ArtifactMetaData> cs = supplier.get().createArtifact(ArtifactType.XSD, artifactId, null, new ByteArrayInputStream(content.getBytes()));
-        ArtifactMetaData amd = ConcurrentUtil.result(cs);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.XSD, null, new ByteArrayInputStream(content.getBytes()));
         Assertions.assertEquals("http://tempuri.org/PurchaseOrderSchema.xsd", amd.getName());
         Assertions.assertNull(amd.getDescription());
     }

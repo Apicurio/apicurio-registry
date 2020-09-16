@@ -116,7 +116,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
             Integer version = versions.get(id);
             try (InputStream stream = (version != null) ?
-                    getClient().getArtifactVersion(version, id) :
+                    getClient().getArtifactVersion(id, version) :
                     getClient().getLatestArtifact(id)) {
                 if (replaceExisting) {
                     Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);

@@ -120,7 +120,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(ArtifactType artifactType, String artifactId, IfExistsType ifExistsType, InputStream data) {
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExistsType, InputStream data) {
 
         return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
@@ -132,10 +132,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId,
-                                           ArtifactType xRegistryArtifactType, InputStream data) {
+    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestHandler.execute(artifactsService.updateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.updateArtifact(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -163,8 +162,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId,
-                                                         InputStream data) {
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
 
         return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
@@ -176,39 +174,37 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String artifactId,
-                                                 ArtifactType xRegistryArtifactType, InputStream data) {
+    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestHandler.execute(artifactsService.createArtifactVersion(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestHandler.execute(artifactsService.createArtifactVersion(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public InputStream getArtifactVersion(Integer version,
-                                       String artifactId) {
+    public InputStream getArtifactVersion(String artifactId, Integer version) {
 
         return requestHandler.execute(artifactsService.getArtifactVersion(version, artifactId)).byteStream();
     }
 
     @Override
-    public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
+    public void updateArtifactVersionState(String artifactId, Integer version, UpdateState data) {
 
         requestHandler.execute(artifactsService.updateArtifactVersionState(version, artifactId, data));
     }
 
     @Override
-    public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
+    public VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) {
 
         return requestHandler.execute(artifactsService.getArtifactVersionMetaData(version, artifactId));
     }
 
     @Override
-    public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
+    public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData data) {
 
         requestHandler.execute(artifactsService.updateArtifactVersionMetaData(version, artifactId, data));
     }
 
     @Override
-    public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
+    public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
 
         requestHandler.execute(artifactsService.deleteArtifactVersionMetaData(version, artifactId));
     }
@@ -232,30 +228,27 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public Rule getArtifactRuleConfig(RuleType rule,
-                                      String artifactId) {
+    public Rule getArtifactRuleConfig(String artifactId, RuleType rule) {
 
         return requestHandler.execute(artifactsService.getArtifactRuleConfig(rule, artifactId));
     }
 
     @Override
-    public Rule updateArtifactRuleConfig(RuleType rule,
-                                         String artifactId, Rule data) {
+    public Rule updateArtifactRuleConfig(String artifactId, RuleType rule, Rule data) {
 
         return requestHandler.execute(artifactsService.updateArtifactRuleConfig(rule, artifactId, data));
     }
 
     @Override
-    public void deleteArtifactRule(RuleType rule, String artifactId) {
+    public void deleteArtifactRule(String artifactId, RuleType rule) {
 
         requestHandler.execute(artifactsService.deleteArtifactRule(rule, artifactId));
     }
 
     @Override
-    public void testUpdateArtifact(String artifactId,
-                                   ArtifactType xRegistryArtifactType, InputStream data) {
+    public void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        requestHandler.execute(artifactsService.testUpdateArtifact(artifactId, xRegistryArtifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        requestHandler.execute(artifactsService.testUpdateArtifact(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -271,7 +264,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order) {
+    public ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
 
         return requestHandler.execute(searchService.searchArtifacts(search, offset, limit, over, order));
     }

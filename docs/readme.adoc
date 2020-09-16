@@ -57,9 +57,10 @@ The Apicurio REST API documentation is also published in the user documentation 
 
 == Tips for contributing AsciiDoc content
 
-* Create a concept module to introduce your new feature, for example: `modules/ROOT/partials/getting-started/con-my-new-feature.adoc`
+* Fork Apicurio Registry to edit the documentation source files. You can then submit your changes in a pull request as you would any other contribution to the project.
+* Create a concept module to introduce a new feature, for example: `modules/ROOT/partials/getting-started/con-my-new-feature.adoc`
 * Create a procedure module to describe the steps on how to use your new feature, for example: `modules/ROOT/partials/getting-started/proc-configuring-my-new-feature.adoc`  
-* create a reference module to describe the optional configuration for your new feature, for example: `modules/ROOT/partials/getting-started/proc-my-new-feature-environment-variables.adoc`  
+* Create a reference module to describe the optional configuration for your new feature, for example: `modules/ROOT/partials/getting-started/proc-my-new-feature-environment-variables.adoc`  
 * Create an assembly to group all the information about your new feature, for example: `modules/ROOT/pages/getting-started/assembly-using-my-new-feature.adoc`  
 * Add an entry for your assembly file to `modules/ROOT/nav.adoc` to display a link for your assembly in the documentation navigation. 
 

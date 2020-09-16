@@ -717,8 +717,9 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                         case everything:
                             where.append("("
                                     + "v.name LIKE ? OR "
+                                    + "a.artifactId LIKE ? OR "
                                     + "v.description LIKE ? OR "
-                                    + "v.globalId IN (SELECT l.globalId FROM labels l WHERE l.label LIKE ?)"
+                                    + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)"
                                     + ")");
                             binders.add((query, idx) -> {
                                 query.bind(idx, "%" + search + "%");
@@ -729,15 +730,21 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                             binders.add((query, idx) -> {
                                 query.bind(idx, "%" + search + "%");
                             });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, search);
+                            });
                             break;
                         case labels:
-                            where.append("v.globalId IN (SELECT l.globalId FROM labels l WHERE l.label LIKE ?)");
+                            where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
                             binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
+                                query.bind(idx, search);
                             });
                             break;
                         case name:
-                            where.append("v.name LIKE ?");
+                            where.append("(v.name LIKE ?) OR (a.artifactId LIKE ?)");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%" + search + "%");
+                            });
                             binders.add((query, idx) -> {
                                 query.bind(idx, "%" + search + "%");
                             });

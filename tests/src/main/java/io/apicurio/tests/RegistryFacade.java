@@ -83,7 +83,7 @@ public class RegistryFacade {
         }
 
         if (RegistryUtils.REGISTRY_STORAGE == null) {
-            throw new IllegalStateException("REGISTRY_STORAGE is mandatory");
+            throw new IllegalStateException("REGISTRY_STORAGE is mandatory, have you specified a profile with the storage to test?");
         }
 
         String path = getJarPath();

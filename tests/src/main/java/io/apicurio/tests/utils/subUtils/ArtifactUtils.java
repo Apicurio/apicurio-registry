@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.concurrent.CompletionStage;
 
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -75,9 +76,14 @@ public class ArtifactUtils {
         return  BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
+    @Deprecated
     public static ArtifactMetaData createArtifact(RegistryService apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
         CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(atype, artifactId, null, artifactData);
         return ConcurrentUtil.result(csResult);
+    }
+
+    public static ArtifactMetaData createArtifact(RegistryRestClient apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
+        return apicurioService.createArtifact(artifactId, atype, null, artifactData);
     }
 
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {
@@ -92,9 +98,14 @@ public class ArtifactUtils {
         return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId, returnCode);
     }
 
+    @Deprecated
     public static ArtifactMetaData updateArtifact(RegistryService apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
         CompletionStage<ArtifactMetaData> csResult = apicurioService.updateArtifact(artifactId, atype, artifactData);
         return ConcurrentUtil.result(csResult);
+    }
+
+    public static ArtifactMetaData updateArtifact(RegistryRestClient apicurioService, ArtifactType atype, String artifactId, InputStream artifactData) {
+        return apicurioService.updateArtifact(artifactId, atype, artifactData);
     }
 
     public static Response deleteArtifact(String artifactId) {

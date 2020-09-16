@@ -127,7 +127,7 @@ Every time a commit is pushed to `master` an updated set of docker images are bu
 Hub.  There are several docker images to choose from, one for each storage option.  The images include:
 
 * [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
-* [apicurio-registry-jpa](https://hub.docker.com/r/apicurio/apicurio-registry-jps)
+* [apicurio-registry-jpa](https://hub.docker.com/r/apicurio/apicurio-registry-jpa)
 * [apicurio-registry-infinispan](https://hub.docker.com/r/apicurio/apicurio-registry-infinispan)
 * [apicurio-registry-streams](https://hub.docker.com/r/apicurio/apicurio-registry-streams)
 * [apicurio-registry-kafka](https://hub.docker.com/r/apicurio/apicurio-registry-kafka)

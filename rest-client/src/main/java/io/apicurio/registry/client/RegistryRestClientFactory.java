@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 JBoss Inc
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,11 @@
 
 package io.apicurio.registry.client;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import okhttp3.Credentials;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
 /**
@@ -26,7 +30,20 @@ import okhttp3.OkHttpClient;
 public class RegistryRestClientFactory {
 
     public static RegistryRestClient create(String baseUrl) {
-        return new RegistryRestClientImpl(baseUrl);
+        // Check if url includes user/password
+        // and add auth header if it does
+        HttpUrl url = HttpUrl.parse(baseUrl);
+        String user = url.encodedUsername();
+        String pwd = url.encodedPassword();
+        if (user != null) {
+            String credentials = Credentials.basic(user, pwd);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Authorization", credentials);
+            return new RegistryRestClientImpl(baseUrl, headers);
+        } else {
+            return new RegistryRestClientImpl(baseUrl);
+        }
+
     }
 
     public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {

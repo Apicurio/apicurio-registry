@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +24,15 @@ import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
+import io.apicurio.registry.utils.serde.util.Utils;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.kafka.common.header.Headers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
@@ -72,6 +77,9 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
         encoding = AvroEncoding.fromConfig(configs);
+        if (Utils.isTrue(configs.get(USE_HEADERS))) {
+            headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+        }
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
         //noinspection rawtypes
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
@@ -102,6 +110,14 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         DatumWriter<U> writer = avroDatumProvider.createDatumWriter(data, schema);
         writer.write(data, encoder);
         encoder.flush();
+    }
+
+    @Override
+    protected void serializeData(Headers headers, Schema schema, U data, ByteArrayOutputStream out) throws IOException {
+        if (headerUtils != null) {
+            headerUtils.addEncodingHeader(headers, encoding);
+        }
+        serializeData(schema, data, out);
     }
 
     private Encoder createEncoder(Schema schema, OutputStream os) throws IOException {

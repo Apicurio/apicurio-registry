@@ -28,6 +28,7 @@ import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -95,16 +96,19 @@ class AllArtifactTypesIT extends BaseIT {
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testAvro(RegistryService service) {
         doTest(service, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testProtobuf(RegistryService service) {
         doTest(service, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testJsonSchema(RegistryService service) {
         doTest(service, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
     }

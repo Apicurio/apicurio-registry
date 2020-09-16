@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +39,11 @@ public class HeadersInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws IOException {
 
         final Request request = chain.request();
-        final Headers requestHeaders = Headers.of(headers);
+
+
+        final Headers requestHeaders = request.headers().newBuilder()
+                .addAll(Headers.of(headers)).build();;
+
 
         final Request requestWithHeathers = request.newBuilder()
                 .headers(requestHeaders)

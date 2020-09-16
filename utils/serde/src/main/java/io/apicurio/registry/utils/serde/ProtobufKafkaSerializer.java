@@ -23,7 +23,9 @@ import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import org.apache.kafka.common.header.Headers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -71,5 +73,10 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
                                  .build();
         ref.writeDelimitedTo(out);
         data.writeTo(out);
+    }
+
+    @Override
+    protected void serializeData(Headers headers, byte[] schema, U data, ByteArrayOutputStream out) throws IOException {
+        serializeData(schema, data, out);
     }
 }

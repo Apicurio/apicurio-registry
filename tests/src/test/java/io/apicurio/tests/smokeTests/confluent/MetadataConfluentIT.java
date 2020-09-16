@@ -16,6 +16,7 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -41,6 +42,7 @@ public class MetadataConfluentIT extends ConfluentBaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);
 
     @Test
+    @Tag(ACCEPTANCE)
     void getAndUpdateMetadataOfSchema() throws IOException, RestClientException, TimeoutException {
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         String schemaSubject = TestUtils.generateArtifactId();

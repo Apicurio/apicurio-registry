@@ -248,27 +248,24 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         waitForVersion(schemaId, 2);
 
         // Patch the schema enabled state via ibmcompat API
-        // TODO - this doesn't currently work due to getArtifactMetadata calls returning ArtifactNotFound
-        //  expceptions once the artifact is in DISABLED state
-        //
-//        given()
-//            .when()
-//                .contentType(CT_JSON)
-//                .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
-//                .patch("/ibmcompat/schemas/" + schemaName)
-//            .then()
-//                .statusCode(200)
-//                .body("name", equalTo(schemaId))
-//                .body("id", equalTo(schemaId))
-//                .body("enabled", is(false))
-//                .body("state.state", equalTo("active"))
-//                .body("versions.size()", is(2))
-//                .body("versions[0].id", is(1))
-//                .body("versions[0].state.state", equalTo("active"))
-//                .body("versions[0].enabled", is(false))
-//                .body("versions[1].id", is(2))
-//                .body("versions[1].state.state", equalTo("active"))
-//                .body("versions[1].enabled", is(false));
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
+                .patch("/ibmcompat/schemas/" + schemaName)
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(schemaId))
+                .body("id", equalTo(schemaId))
+                .body("enabled", is(false))
+                .body("state.state", equalTo("active"))
+                .body("versions.size()", is(2))
+                .body("versions[0].id", is(1))
+                .body("versions[0].state.state", equalTo("active"))
+                .body("versions[0].enabled", is(false))
+                .body("versions[1].id", is(2))
+                .body("versions[1].state.state", equalTo("active"))
+                .body("versions[1].enabled", is(false));
 
 
         TestUtils.retry(() -> {

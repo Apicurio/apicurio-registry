@@ -20,6 +20,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.common.proto.Serde;
+import org.apache.kafka.common.header.Headers;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -62,6 +63,11 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
         } catch (IOException | Descriptors.DescriptorValidationException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    @Override
+    protected DynamicMessage readData(Headers headers, byte[] schema, ByteBuffer buffer, int start, int length) {
+        return readData(schema, buffer, start, length);
     }
 
     private Descriptors.FileDescriptor toFileDescriptor(Serde.Schema s) throws Descriptors.DescriptorValidationException {

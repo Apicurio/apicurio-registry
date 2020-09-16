@@ -68,8 +68,23 @@ jobs:
           git checkout master
           git branch --set-upstream-to=origin/master
           git pull
+      - name: Apicurio Website Code Checkout
+        run: |
+          mkdir docs-playbook
+          cd docs-playbook
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-docs-playbook.git"
+          git fetch
+          git checkout master
+          git branch --set-upstream-to=origin/master
+          git pull
       - name: Update Release Version ${{steps.metadata.outputs.release-version}}
-        run: cd registry && mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+        run: |
+          cd registry
+          mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+          sed -i  "s/version\:\s.*/version: \'${{steps.metadata.outputs.release-version}}\'/g" docs/antora.yml
       - name: Build All Variants
         run: cd registry && mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
       - name: Commit Release Version Change
@@ -136,20 +151,21 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+          sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
       - name: Commit Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
         run: |
           cd registry
           git add .
           git commit -m"Automated update to next Snapshot Version: ${{steps.metadata.outputs.snapshot-version}}"
           git push
-      # - name: Tweet About The Release
-      #   uses: ethomson/send-tweet-action@v1
-      #   with:
-      #     status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+      - name: Generate Project Documentation for Website
+        run: |
+          echo "********** Building Registry Documentation using Antora **********"
+          cd docs-playbook
+          docker pull apicurio/apicurio-docs-builder:latest
+          docker run -v $(pwd):/apicurio-docs-playbook apicurio/apicurio-docs-builder:latest
+          rm -rf ../website/registry/docs/*
+          cp -rf target/dist/* ../website/registry/docs/.
       - name: Updating Project Website for Release ${{steps.metadata.outputs.release-version}}
         run: |
           cd website
@@ -167,6 +183,14 @@ jobs:
           git add .
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{steps.metadata.outputs.release-version}}"
           git push
+      # - name: Tweet About The Release
+      #   uses: ethomson/send-tweet-action@v1
+      #   with:
+      #     status: "${{steps.metadata.outputs.project-name}} version ${{steps.metadata.outputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
+      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
 
   verify-release:
     runs-on: ubuntu-18.04

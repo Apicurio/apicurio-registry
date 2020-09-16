@@ -20,6 +20,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchemaCustom;
 import static io.apicurio.tests.Constants.CLUSTER;
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -71,6 +72,7 @@ import io.apicurio.tests.BaseIT;
  * @author Ales Justin
  */
 @Tag(CLUSTER)
+@Tag(ACCEPTANCE)
 public class RegistryConverterIT extends BaseIT {
 
     @RegistryServiceTest

@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package io.apicurio.registry.utils.serde;
 
 import io.apicurio.registry.client.RegistryService;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.ByteBuffer;
@@ -50,7 +52,7 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        configure(configs);
+        super.configure(configs, isKey);
     }
 
     @Override
@@ -62,6 +64,8 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
     protected abstract T toSchema(Response response);
 
     protected abstract U readData(T schema, ByteBuffer buffer, int start, int length);
+
+    protected abstract U readData(Headers headers, T schema, ByteBuffer buffer, int start, int length);
 
     @Override
     public U deserialize(String topic, byte[] data) {
@@ -76,4 +80,28 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
         int start = buffer.position() + buffer.arrayOffset();
         return readData(schema, buffer, start, length);
     }
+
+    @Override
+    public U deserialize(String topic, Headers headers, byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        // check if data contains the magic byte
+        if (data[0] == MAGIC_BYTE){
+            return deserialize(topic, data);
+        } else {
+            Long id = headerUtils.getGlobalId(headers);
+            if (id == null) {
+                String artifactId = headerUtils.getArtifactId(headers);
+                Integer version = headerUtils.getVersion(headers);
+                id = toGlobalId(artifactId, version);
+            }
+            T schema = getCache().getSchema(id);
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            int length = buffer.limit();
+            int start = buffer.position();
+            return readData(headers, schema, buffer, start, length);
+        }
+    }
+
 }

@@ -34,6 +34,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.CLUSTER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -45,6 +46,7 @@ import java.util.concurrent.TimeoutException;
 public class BasicApicurioSerDesIT extends BaseIT {
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void testAvroApicurioSerDes(RegistryService service) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";

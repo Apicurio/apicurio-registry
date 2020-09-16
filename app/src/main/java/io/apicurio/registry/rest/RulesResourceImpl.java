@@ -21,8 +21,11 @@ import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -33,8 +36,16 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
@@ -55,12 +66,19 @@ public class RulesResourceImpl implements RulesResource {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    RulesProperties rulesProperties;
+
     /**
      * @see io.apicurio.registry.rest.RulesResource#listGlobalRules()
      */
     @Override
     public List<RuleType> listGlobalRules() {
-        return storage.getGlobalRules();
+        List<RuleType> rules = storage.getGlobalRules();
+        List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
+        return Stream.concat(rules.stream(), defaultRules.stream())
+            .sorted()
+            .collect(Collectors.toList());
     }
 
     /**
@@ -87,7 +105,16 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
-        RuleConfigurationDto dto = storage.getGlobalRule(rule);
+        RuleConfigurationDto dto;
+        try {
+            dto = storage.getGlobalRule(rule);
+        } catch (RuleNotFoundException ruleNotFoundException) {
+            // Check if the rule exists in the default global rules
+            dto = rulesProperties.getDefaultGlobalRuleConfiguration(rule);
+            if (dto == null) {
+                throw ruleNotFoundException;
+            }
+        }
         Rule ruleBean = new Rule();
         ruleBean.setType(rule);
         ruleBean.setConfig(dto.getConfiguration());
@@ -101,7 +128,17 @@ public class RulesResourceImpl implements RulesResource {
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
-        storage.updateGlobalRule(rule, configDto);
+        try {
+            storage.updateGlobalRule(rule, configDto);
+        } catch (RuleNotFoundException ruleNotFoundException) {
+            // This global rule doesn't exist in storage - if the rule exists in the default
+            // global rules, override the default by creating a new global rule
+            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
+                storage.createGlobalRule(rule, configDto);
+            } else {
+                throw ruleNotFoundException;
+            }
+        }
         Rule ruleBean = new Rule();
         ruleBean.setType(rule);
         ruleBean.setConfig(data.getConfig());
@@ -113,7 +150,18 @@ public class RulesResourceImpl implements RulesResource {
      */
     @Override
     public void deleteGlobalRule(RuleType rule) {
-        storage.deleteGlobalRule(rule);
+        try {
+            storage.deleteGlobalRule(rule);
+        } catch (RuleNotFoundException ruleNotFoundException) {
+            // This global rule doesn't exist in storage - if the rule exists in
+            // the default global rules, return a DefaultRuleDeletionException.
+            // Otherwise, return the RuleNotFoundException
+            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
+                throw new DefaultRuleDeletionException(rule);
+            } else {
+                throw ruleNotFoundException;
+            }
+        }
     }
 
 }

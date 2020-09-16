@@ -41,16 +41,21 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -237,6 +242,41 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             waitForSchema(supplier.get(), bytes);
 
             GenericData.Record ir = deserializer.deserialize(subject, bytes);
+
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @RegistryServiceTest
+    public void testAvroUsingHeaders(Supplier<RegistryService> supplier) throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
+
+            serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
+            HashMap<String, String> config = new HashMap();
+            config.put(AbstractKafkaSerDe.USE_HEADERS, "true");
+            serializer.configure(config,false);
+            deserializer.configure(config, false);
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String subject = generateArtifactId();
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(subject, headers, record);
+            Assertions.assertNotNull(headers.lastHeader(HeaderUtils.DEFAULT_HEADER_VALUE_GLOBAL_ID));
+            Header globalId =  headers.lastHeader(HeaderUtils.DEFAULT_HEADER_VALUE_GLOBAL_ID);
+            long id = ByteBuffer.wrap(globalId.value()).getLong();
+
+            // wait for schema to be created
+            supplier.get().reset();
+            ArtifactMetaData amd = retry(() -> supplier.get().getArtifactMetaDataByGlobalId(id));
+            Assertions.assertNotNull(amd);
+
+
+
+            GenericData.Record ir = deserializer.deserialize(subject, headers, bytes);
 
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }

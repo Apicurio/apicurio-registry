@@ -17,7 +17,6 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,7 +41,7 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
      */
     Map<String, Integer> artifactVersions;
 
-    public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) throws IOException {
+    public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) {
         try {
             try (InputStream stream = handle.stream()) {
                 return getClient().createArtifact(artifactType, artifactId, IfExistsType.RETURN_OR_UPDATE, stream);

@@ -70,7 +70,15 @@ public abstract class ConfluentBaseIT extends BaseIT {
     protected static void clearAllConfluentSubjects() throws IOException, RestClientException {
         for (String confluentSubject : confluentService.getAllSubjects()) {
             LOGGER.info("Deleting confluent schema {}", confluentSubject);
-            confluentService.deleteSubject(confluentSubject);
+            try {
+                confluentService.deleteSubject(confluentSubject);
+            } catch (RestClientException e) {
+                if (e.getStatus() == 404) {
+                    //subjects may be already deleted
+                    continue;
+                }
+                throw e;
+            }
         }
     }
 

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -80,6 +81,7 @@ class RulesResourceIT extends BaseIT {
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void createAndValidateGlobalRules(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -114,6 +116,7 @@ class RulesResourceIT extends BaseIT {
     }
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void createAndValidateArtifactRule(RegistryService service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactExtensionType;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -29,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.ws.rs.core.Response;
 
 /**
  * Download artifacts.
@@ -54,9 +55,9 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     Map<String, Integer> versions = new LinkedHashMap<>();
 
     /**
-     * Default artifact file extension to use when writing the artifact to file-system.
+     * Overwrite artifact file extension to use when writing the artifact to the filesystem.
      */
-    @Parameter(defaultValue = ".avsc")
+    @Parameter
     String artifactExtension;
 
     /**
@@ -96,29 +97,36 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
         for (String id : ids) {
             String ext = artifactExtensions.getOrDefault(id, artifactExtension);
+            // Explicit file extension is not defined, getting it from the metadata
+            if (ext == null || ext.equals("")) {
+                try {
+                    ArtifactMetaData artifactMetaData = getClient().getArtifactMetaData(id);
+                    ext = ".".concat(ArtifactExtensionType.fromArtifactType(artifactMetaData.getType()).toString());
+                } catch (Exception ex) {
+                    throw new MojoExecutionException(
+                            String.format("Exception thrown while getting artifact [%s] metadata", id),
+                            ex
+                    );
+                }
+            }
             String fileName = String.format("%s%s", id, ext);
             File outputFile = new File(outputDirectory, fileName);
 
             getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
 
-            try {
-                Integer version = versions.get(id);
-                Response response = (version != null) ?
-                                    getClient().getArtifactVersion(version, id) :
-                                    getClient().getLatestArtifact(id);
-                try (InputStream stream = response.readEntity(InputStream.class)) {
-                    if (replaceExisting) {
-                        Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        Files.copy(stream, outputFile.toPath());
-                    }
-                } finally {
-                    response.close();
+            Integer version = versions.get(id);
+            try (InputStream stream = (version != null) ?
+                    getClient().getArtifactVersion(version, id) :
+                    getClient().getLatestArtifact(id)) {
+                if (replaceExisting) {
+                    Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.copy(stream, outputFile.toPath());
                 }
             } catch (Exception ex) {
                 throw new MojoExecutionException(
-                    String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
-                    ex
+                        String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
+                        ex
                 );
             }
         }

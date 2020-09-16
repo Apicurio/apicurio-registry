@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Implements the {@link RulesService} interface.
@@ -45,37 +48,51 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     RuleExecutorFactory factory;
 
+    @Inject
+    RulesProperties rulesProperties;
+
     /**
      * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, io.apicurio.registry.types.ArtifactType, ContentHandle, io.apicurio.registry.rules.RuleApplicationType)
      */
     @Override
     public void applyRules(String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
-                           RuleApplicationType ruleApplicationType) throws RuleViolationException {
-        boolean useGlobalRules = false;
+                          RuleApplicationType ruleApplicationType) throws RuleViolationException {
         @SuppressWarnings("unchecked")
         List<RuleType> rules = Collections.EMPTY_LIST;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             rules = storage.getArtifactRules(artifactId);
-        }
-        if (rules.isEmpty()) {
-            rules = storage.getGlobalRules();
-            useGlobalRules = true;
-        }
-        if (rules.isEmpty()) {
-            return;
         }
         ContentHandle currentArtifactContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             StoredArtifact currentArtifact = storage.getArtifact(artifactId);
             currentArtifactContent = currentArtifact.getContent();
         }
-        for (RuleType ruleType : rules) {
-            RuleConfigurationDto configurationDto = useGlobalRules ?
-                                                    storage.getGlobalRule(ruleType) : storage.getArtifactRule(artifactId, ruleType);
-            RuleExecutor executor = factory.createExecutor(ruleType);
-            RuleContext context = new RuleContext(artifactId, artifactType, configurationDto.getConfiguration(),
-                                                  currentArtifactContent, artifactContent);
-            executor.execute(context);
+
+        applyGlobalAndArtifactRules(artifactId, artifactType, currentArtifactContent, artifactContent, rules);
+    }
+
+    private void applyGlobalAndArtifactRules(String artifactId, ArtifactType artifactType, ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent, List<RuleType> artifactRules) {
+
+        Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
+            .collect(Collectors.toMap(ruleType -> ruleType, ruleType -> storage.getArtifactRule(artifactId, ruleType)));
+
+        if (globalOrArtifactRulesMap.isEmpty()) {
+            List<RuleType> globalRules = storage.getGlobalRules();
+            globalOrArtifactRulesMap = globalRules.stream()
+                .collect(Collectors.toMap(ruleType -> ruleType, storage::getGlobalRule));
+
+            // Add any default global rules to the map (after filtering out any global rules from storage)
+            Map<RuleType, RuleConfigurationDto>  filteredDefaultGlobalRulesMap = rulesProperties.getFilteredDefaultGlobalRules(globalRules).stream()
+                .collect(Collectors.toMap(ruleType -> ruleType, rulesProperties::getDefaultGlobalRuleConfiguration));
+            globalOrArtifactRulesMap.putAll(filteredDefaultGlobalRulesMap);
+        }
+
+        if (globalOrArtifactRulesMap.isEmpty()) {
+            return;
+        }
+
+        for (RuleType ruleType : globalOrArtifactRulesMap.keySet()) {
+            applyRule(artifactId, artifactType, currentArtifactContent, updatedArtifactContent, ruleType, globalOrArtifactRulesMap.get(ruleType).getConfiguration());
         }
     }
 
@@ -111,19 +128,13 @@ public class RulesServiceImpl implements RulesService {
         executor.execute(context);
     }
 
-
+    /**
+     * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, long, io.apicurio.registry.types.ArtifactType, ContentHandle)
+     */
     @Override
-    public void applyRule(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+    public void applyRules(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
             throws RuleViolationException {
         StoredArtifact versionContent = storage.getArtifactVersion(artifactId, artifactVersion);
-        // Get the rules for this artifact
-        for (RuleType ruleType : storage.getGlobalRules()) {
-            RuleConfigurationDto configurationDto = storage.getGlobalRule(ruleType);
-            applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
-        }
-        for (RuleType ruleType : storage.getArtifactRules(artifactId)) {
-            RuleConfigurationDto configurationDto = storage.getArtifactRule(artifactId, ruleType);
-            applyRule(artifactId, artifactType, versionContent.getContent(), updatedContent, ruleType, configurationDto.getConfiguration());
-        }
+        applyGlobalAndArtifactRules(artifactId, artifactType, versionContent.getContent(), updatedContent, storage.getArtifactRules(artifactId));
     }
 }

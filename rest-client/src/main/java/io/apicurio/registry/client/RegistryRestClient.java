@@ -19,7 +19,6 @@ import io.apicurio.registry.rest.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
-import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
 
@@ -34,7 +33,7 @@ public interface RegistryRestClient {
     ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, IfExistsType ifExists, InputStream data);
 
 
-    Response getLatestArtifact(String artifactId);
+    InputStream getLatestArtifact(String artifactId);
 
 
     ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
@@ -61,7 +60,7 @@ public interface RegistryRestClient {
     VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
 
 
-    Response getArtifactVersion(Integer version, String artifactId);
+    InputStream getArtifactVersion(Integer version, String artifactId);
 
 
     void updateArtifactVersionState(Integer version, String artifactId, UpdateState data);
@@ -97,7 +96,7 @@ public interface RegistryRestClient {
     void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
 
 
-    Response getArtifactByGlobalId(long globalId);
+    InputStream getArtifactByGlobalId(long globalId);
 
 
     ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId);

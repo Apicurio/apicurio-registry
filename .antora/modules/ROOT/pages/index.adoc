@@ -1,3 +1,0 @@
-= Welcome
-
-Navigate the documentation using the left hand menu.

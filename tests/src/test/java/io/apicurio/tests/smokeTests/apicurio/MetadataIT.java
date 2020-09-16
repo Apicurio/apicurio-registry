@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -45,6 +46,7 @@ class MetadataIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
     @RegistryServiceTest
+    @Tag(ACCEPTANCE)
     void getAndUpdateMetadataOfArtifact(RegistryService service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

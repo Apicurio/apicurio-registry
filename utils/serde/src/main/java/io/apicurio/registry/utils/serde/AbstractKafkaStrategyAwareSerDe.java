@@ -35,8 +35,6 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
     private ArtifactIdStrategy<T> artifactIdStrategy;
     private GlobalIdStrategy<T> globalIdStrategy;
 
-    private boolean key; // do we handle key or value with this ser/de?
-
     public AbstractKafkaStrategyAwareSerDe() {
         this(null);
     }
@@ -63,15 +61,6 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
         return globalIdStrategy;
     }
 
-    protected boolean isKey() {
-        return key;
-    }
-
-    public S setKey(boolean key) {
-        this.key = key;
-        return self();
-    }
-
     public S setArtifactIdStrategy(ArtifactIdStrategy<T> artifactIdStrategy) {
         this.artifactIdStrategy = Objects.requireNonNull(artifactIdStrategy);
         return self();
@@ -83,14 +72,12 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
     }
 
     public void configure(Map<String, ?> configs, boolean isKey) {
-        configure(configs);
+        super.configure(configs, isKey);
 
         Object ais = configs.get(REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM);
         instantiate(ArtifactIdStrategy.class, ais, this::setArtifactIdStrategy);
 
         Object gis = configs.get(REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
-
-        key = isKey;
     }
 }

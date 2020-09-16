@@ -1,1 +1,1 @@
-../shared/attributes-links.adoc
+../modules/ROOT/partials/shared/attributes-links.adoc

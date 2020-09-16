@@ -223,6 +223,7 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
 
     private void updateArtifactState(Artifact artifact, ArtifactState state) {
         if (state == ArtifactState.DELETED) {
+            deleteArtifactVersionMetaData(artifact.getArtifactId(), artifact.getVersion());
             deleteArtifactVersion(artifact.getArtifactId(), artifact.getVersion());
         } else {
             MetaData md = getMetaData(artifact.getArtifactId(), artifact.getVersion(), MetaDataKeys.STATE, Function.identity());

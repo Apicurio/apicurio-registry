@@ -97,6 +97,7 @@
         <module>docs</module>
         <module>tests</module>
         <module>rest-client</module>
+        <module>storage/panache</module>
     </modules>
 
     <properties>

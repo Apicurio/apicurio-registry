@@ -20,10 +20,12 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +45,12 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
 
     @Override
     protected byte[] toSchema(Response response) {
-        return response.readEntity(byte[].class);
+        Object responseEntity = response.getEntity();
+        if (responseEntity instanceof InputStream) {
+            return IoUtil.toBytes((InputStream) responseEntity);
+        } else {
+            return response.readEntity(byte[].class);
+        }
     }
 
     @Override

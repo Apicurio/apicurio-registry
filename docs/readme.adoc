@@ -35,7 +35,7 @@ a|Includes all the assemblies and content modules required for Antora:
   * Downloads: `modules/ROOT/assets/attachments`
   * Navigation: `modules/ROOT/nav.adoc`
 | `rest-api`
-|How to build and view Apicurio Registry REST API documentation from source code.   
+|Build Apicurio Registry REST API documentation from source code.   
 | `antora.yaml`
 |Component descriptor file for Antora.
 | `local-test-playbook.yml`
@@ -51,16 +51,16 @@ For more details, see:
 === REST API documentation
 The Apicurio REST API documentation is generated dynamically from the Apicurio Registry OpenAPI v3.0 Swagger file using link:https://github.com/Redocly/redoc[ReDoc]. 
 
-You can generate the latest Apicurio Registry REST API documentation when building from the source code by following the instructions in `rest-api/readme.md`.
+You can generate the latest Apicurio Registry REST API documentation when building from the source code by following the instructions in `rest-api/readme.adoc`.
 
 The Apicurio REST API documentation is also published in the user documentation content using the following file: `docs/modules/ROOT/assets/attachments/registry-rest-api.html`
 
 == Tips for contributing AsciiDoc content
 
-* Fork Apicurio Registry to edit the documentation source files. You can then submit your changes in a pull request as you would any other contribution to the project.
+* Fork the Apicurio Registry project to edit the documentation source files. You can then submit your changes in a pull request as you would any other contribution to the project.
 * Create a concept module to introduce a new feature, for example: `modules/ROOT/partials/getting-started/con-my-new-feature.adoc`
 * Create a procedure module to describe the steps on how to use your new feature, for example: `modules/ROOT/partials/getting-started/proc-configuring-my-new-feature.adoc`  
-* Create a reference module to describe the optional configuration for your new feature, for example: `modules/ROOT/partials/getting-started/proc-my-new-feature-environment-variables.adoc`  
+* Create a reference module to describe any optional configuration for your new feature, for example: `modules/ROOT/partials/getting-started/ref-my-new-feature-environment-variables.adoc`  
 * Create an assembly to group all the information about your new feature, for example: `modules/ROOT/pages/getting-started/assembly-using-my-new-feature.adoc`  
 * Add an entry for your assembly file to `modules/ROOT/nav.adoc` to display a link for your assembly in the documentation navigation. 
 
@@ -71,9 +71,9 @@ For more details and examples of how to create technical content using AsciiDoc 
 
 == Building the documentation using Antora
 
-You can perform a local build of the documentation for test purposes using the `antora` tool as follows (https://antora.org/):
+You can perform a local build of the documentation for test purposes using the `antora` tool (https://antora.org/):
 
-. Install the Antora tool using the following steps: https://docs.antora.org/antora/2.3/install-and-run-quickstart/
+. Install the `antora` tool using the following steps: https://docs.antora.org/antora/2.3/install-and-run-quickstart/
 . In the `apicurio-registry/docs` directory, enter the following command:
 +
 ----

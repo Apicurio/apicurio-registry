@@ -1,3 +1,5 @@
+= Building the REST API documentation from source code
+
 To build and view the latest Apicurio Registry REST API documentation from the source code:   
 
 1. Build the Apicurio Registry project: `mvn clean install`

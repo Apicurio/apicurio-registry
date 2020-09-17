@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +17,27 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.client.request.HeadersInterceptor;
 import io.apicurio.registry.client.request.RequestHandler;
 import io.apicurio.registry.client.service.ArtifactsService;
 import io.apicurio.registry.client.service.IdsService;
 import io.apicurio.registry.client.service.RulesService;
 import io.apicurio.registry.client.service.SearchService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
+import okhttp3.Credentials;
+import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -33,9 +45,36 @@ import okhttp3.RequestBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_HEADERS_PREFIX;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_TYPE;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEY_PASSWORD;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -51,17 +90,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     private IdsService idsService;
 
     RegistryRestClientImpl(String baseUrl) {
-        if (!baseUrl.endsWith("/")) {
-            baseUrl += "/";
-        }
-        this.retrofit = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(JacksonConverterFactory.create())
-                .build();
+        this(baseUrl, Collections.emptyMap());
+    }
 
-        this.requestHandler = new RequestHandler();
-
-        initServices(retrofit);
+    RegistryRestClientImpl(String baseUrl, Map<String, Object> config) {
+        this(baseUrl, createHttpClientWithConfig(baseUrl, config));
     }
 
     RegistryRestClientImpl(String baseUrl, OkHttpClient okHttpClient) {
@@ -79,31 +112,94 @@ public class RegistryRestClientImpl implements RegistryRestClient {
         initServices(retrofit);
     }
 
-    RegistryRestClientImpl(String baseUrl, Map<String, String> headers) {
-        if (!baseUrl.endsWith("/")) {
-            baseUrl += "/";
-        }
-
-        final OkHttpClient okHttpClient = createWithHeaders(headers);
-
-        this.retrofit = new Retrofit.Builder()
-                .client(okHttpClient)
-                .addConverterFactory(JacksonConverterFactory.create())
-                .baseUrl(baseUrl)
-                .build();
-
-        this.requestHandler = new RequestHandler();
-
-        initServices(retrofit);
+    private static OkHttpClient createHttpClientWithConfig(String baseUrl, Map<String, Object> configs) {
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs);
+        okHttpClientBuilder = addSSL(okHttpClientBuilder, configs);
+        return okHttpClientBuilder.build();
     }
 
-    private static OkHttpClient createWithHeaders(Map<String, String> headers) {
+    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs) {
 
-        final Interceptor headersInterceptor = new HeadersInterceptor(headers);
+        Map<String, String> requestHeaders = configs.entrySet().stream()
+            .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
+            .collect(Collectors.toMap(map -> map.getKey()
+                .replace(REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
 
-        return new OkHttpClient.Builder()
-                .addInterceptor(headersInterceptor)
-                .build();
+        if(!requestHeaders.containsKey("Authorization")) {
+            // Check if url includes user/password
+            // and add auth header if it does
+            HttpUrl url = HttpUrl.parse(baseUrl);
+            String user = url.encodedUsername();
+            String pwd = url.encodedPassword();
+            if (user != null && !user.isEmpty()) {
+                String credentials = Credentials.basic(user, pwd);
+                requestHeaders.put("Authorization", credentials);
+            }
+        }
+
+        if(!requestHeaders.isEmpty()) {
+            final Interceptor headersInterceptor = new HeadersInterceptor(requestHeaders);
+            return okHttpClientBuilder.addInterceptor(headersInterceptor);
+        } else {
+            return okHttpClientBuilder;
+        }
+    }
+
+    private static OkHttpClient.Builder addSSL(OkHttpClient.Builder okHttpClientBuilder, Map<String, Object> configs) {
+
+        try {
+            KeyManager[] keyManagers = getKeyManagers(configs);
+            TrustManager[] trustManagers = getTrustManagers(configs);
+
+            if (trustManagers != null && (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager))) {
+                throw new IllegalStateException("A single X509TrustManager is expected. Unexpected trust managers: " + Arrays.toString(trustManagers));
+            }
+
+            if (keyManagers != null || trustManagers != null) {
+                SSLContext sslContext = SSLContext.getInstance("SSL");
+                sslContext.init(keyManagers, trustManagers, new SecureRandom());
+                return okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustManagers[0]);
+            } else {
+                return okHttpClientBuilder;
+            }
+        }
+        catch(IOException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException | KeyManagementException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private static TrustManager[] getTrustManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+        TrustManager[] trustManagers = null;
+
+        if (configs.containsKey(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)) {
+            String truststoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_TYPE, "JKS");
+            KeyStore truststore = KeyStore.getInstance(truststoreType);
+            String truststorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_PASSWORD, "");
+            truststore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)), truststorePwd.toCharArray());
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(truststore);
+            trustManagers = trustManagerFactory.getTrustManagers();
+        }
+        return trustManagers;
+    }
+
+    private static KeyManager[] getKeyManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
+        KeyManager[] keyManagers = null;
+
+        if (configs.containsKey(REGISTRY_REQUEST_KEYSTORE_LOCATION)) {
+            String keystoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_TYPE, "JKS");
+            KeyStore keystore = KeyStore.getInstance(keystoreType);
+            String keyStorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_PASSWORD, "");
+            keystore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_KEYSTORE_LOCATION)), keyStorePwd.toCharArray());
+
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            // If no key password provided, try using the keystore password
+            String keyPwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEY_PASSWORD, keyStorePwd);
+            keyManagerFactory.init(keystore, keyPwd.toCharArray());
+            keyManagers = keyManagerFactory.getKeyManagers();
+        }
+        return keyManagers;
     }
 
     private void initServices(Retrofit retrofit) {

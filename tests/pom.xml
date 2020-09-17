@@ -26,7 +26,7 @@
         <debezium.version>1.2.3.Final</debezium.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
-        <vertx.version>3.9.2</vertx.version>
+        <vertx.version>3.9.3</vertx.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <logback.version>1.2.3</logback.version>

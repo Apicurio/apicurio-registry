@@ -27,7 +27,9 @@ import io.apicurio.tests.RegistryStorageType;
 public class RegistryUtils {
 
     public static final RegistryStorageType REGISTRY_STORAGE =
-            RegistryStorageType.valueOf(Optional.ofNullable(System.getProperty("test.storage")).orElse(RegistryStorageType.inmemory.name()));
+            Optional.ofNullable(System.getProperty("test.storage"))
+                .map(RegistryStorageType::valueOf)
+                .orElse(null);
 
     private RegistryUtils() {
         //utils class

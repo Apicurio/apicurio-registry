@@ -17,13 +17,14 @@
 
 package io.apicurio.registry.storage;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.types.ArtifactType;
-
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
@@ -47,9 +48,12 @@ public class MetaDataKeys {
     // Internal
 
     public static String DELETED = "_deleted";
+    
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // Helpers
 
+    @SuppressWarnings("unchecked")
     public static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
 
@@ -77,7 +81,7 @@ public class MetaDataKeys {
         }
         if (content.get(PROPERTIES) != null) {
             try {
-                dto.setProperties(new ObjectMapper().readValue(content.get(PROPERTIES), Map.class));
+                dto.setProperties(MAPPER.readValue(content.get(PROPERTIES), Map.class));
             } catch (JsonProcessingException e) {
                 // If the user-defined properties cannot be parsed from a Json string to a Map<String, String>, ignore them
             }
@@ -85,6 +89,7 @@ public class MetaDataKeys {
         return dto;
     }
 
+    @SuppressWarnings("unchecked")
     public static ArtifactVersionMetaDataDto toArtifactVersionMetaData(Map<String, String> content) {
         ArtifactVersionMetaDataDto dto = new ArtifactVersionMetaDataDto();
         String createdOn = content.get(CREATED_ON);
@@ -98,6 +103,16 @@ public class MetaDataKeys {
         dto.setVersion(Integer.parseInt(content.get(VERSION)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         dto.setState(ArtifactStateExt.getState(content));
+        if (content.get(LABELS) != null) {
+            dto.setLabels(Arrays.asList(content.get(LABELS).split(",")));
+        }
+        if (content.get(PROPERTIES) != null) {
+            try {
+                dto.setProperties(MAPPER.readValue(content.get(PROPERTIES), Map.class));
+            } catch (JsonProcessingException e) {
+                // If the user-defined properties cannot be parsed from a Json string to a Map<String, String>, ignore them
+            }
+        }
         return dto;
     }
 

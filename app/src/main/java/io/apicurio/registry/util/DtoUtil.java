@@ -82,6 +82,8 @@ public final class DtoUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
+        metaData.setLabels(dto.getLabels());
+        metaData.setProperties(dto.getProperties());
         return metaData;
     }
 
@@ -104,6 +106,8 @@ public final class DtoUtil {
         metaData.setVersion(amd.getVersion());
         metaData.setGlobalId(amd.getGlobalId());
         metaData.setState(amd.getState());
+        metaData.setLabels(amd.getLabels());
+        metaData.setProperties(amd.getProperties());
         return metaData;
     }
 
@@ -126,6 +130,8 @@ public final class DtoUtil {
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
+        metaData.setLabels(dto.getLabels());
+        metaData.setProperties(dto.getProperties());
         return metaData;
     }
 

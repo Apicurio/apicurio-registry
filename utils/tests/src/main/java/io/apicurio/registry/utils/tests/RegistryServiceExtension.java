@@ -41,7 +41,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
 
     private static final String REGISTRY_CLIENT_CREATE = "create";
     private static final String REGISTRY_CLIENT_CACHED = "cached";
-    private static final String REGISTRY_CLIENT_CUSTOM = "createCompatible";
+    private static final String REGISTRY_CLIENT_COMPATIBLE = "createCompatible";
     private static final String REGISTRY_CLIENT_ALL = "all";
 
     private enum ParameterType {
@@ -103,15 +103,15 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
             invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(plain, context.getRequiredTestMethod()));
         }
 
-        if (testRegistryClient(REGISTRY_CLIENT_CUSTOM)) {
+        if (testRegistryClient(REGISTRY_CLIENT_COMPATIBLE)) {
 
             //Since Retrofit needs the base path to end with a slash, we need to add it here
-            RegistryServiceWrapper custom = store.getOrComputeIfAbsent(
-                    "custom",
-                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_CUSTOM, registryUrl + "/"),
+            RegistryServiceWrapper compatible = store.getOrComputeIfAbsent(
+                    "compatible_client",
+                    k -> new RegistryServiceWrapper(k, REGISTRY_CLIENT_COMPATIBLE, registryUrl + "/"),
                     RegistryServiceWrapper.class
             );
-            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(custom, context.getRequiredTestMethod()));
+            invocationCtxts.add(new RegistryServiceTestTemplateInvocationContext(compatible, context.getRequiredTestMethod()));
         }
 
         if (testRegistryClient(REGISTRY_CLIENT_CACHED)) {
@@ -198,7 +198,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
                         case REGISTRY_CLIENT_CACHED:
                         case REGISTRY_CLIENT_CREATE:
                             return getSupplier(RegistryClient.class.getName());
-                        case REGISTRY_CLIENT_CUSTOM:
+                        case REGISTRY_CLIENT_COMPATIBLE:
                             return getSupplier(CompatibleClient.class.getName());
                     }
                 }
@@ -231,7 +231,7 @@ public class RegistryServiceExtension implements TestTemplateInvocationContextPr
             switch (wrapper.method) {
                 case REGISTRY_CLIENT_CREATE:
                     return RegistryClient.create(wrapper.registryUrl);
-                case REGISTRY_CLIENT_CUSTOM:
+                case REGISTRY_CLIENT_COMPATIBLE:
                     return CompatibleClient.createCompatible(wrapper.registryUrl);
                 case REGISTRY_CLIENT_CACHED:
                     return RegistryClient.cached(wrapper.registryUrl);

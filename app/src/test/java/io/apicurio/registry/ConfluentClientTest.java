@@ -28,7 +28,6 @@ import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -38,12 +37,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -56,7 +54,6 @@ import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
@@ -271,10 +268,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
      * @param supplier
      * @throws Exception
      */
-    @RegistryServiceTest
-    public void testGlobalRule(Supplier<RegistryService> supplier) throws Exception {
+    @Test
+    public void testGlobalRule() throws Exception {
+        RegistryRestClient apicurioClient = client;
         SchemaRegistryClient client = buildClient();
-        RegistryService apicurioClient = supplier.get();
         
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
@@ -367,8 +364,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         AvroConverter converter = new AvroConverter(client);
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "dummy");
-        config.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegister);
+        config.put("schema.registry.url", "dummy");
+        config.put("auto.register.schemas", autoRegister);
         converter.configure(config, false);
 
         byte[] bytes = converter.fromConnectData(subject, cs, struct);

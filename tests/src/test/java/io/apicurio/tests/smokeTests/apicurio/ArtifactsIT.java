@@ -15,7 +15,6 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
@@ -200,7 +199,11 @@ class ArtifactsIT extends BaseIT {
         service.updateArtifactState(artifactId, data);
 
         // Verify (expect 404)
-        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId), true);
+        TestUtils.retry(() -> {
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            TestUtils.assertWebError(404, () -> service.getLatestArtifact(artifactId), true);
+        });
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
@@ -241,8 +244,8 @@ class ArtifactsIT extends BaseIT {
         // Verify artifact
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
-            assertEquals(ArtifactState.ENABLED, actualMD.getState());
-            assertEquals(2, actualMD.getVersion()); // version 2 is active (3 is disabled)
+            assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            assertEquals(3, actualMD.getVersion());
 
             // Verify v1
             VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);

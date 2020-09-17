@@ -67,7 +67,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
-        return CompletableFuture.completedFuture(delegate.createArtifact(xRegistryArtifactType, xRegistryArtifactId, ifExists, data));
+        return CompletableFuture.completedFuture(delegate.createArtifact(xRegistryArtifactId, xRegistryArtifactType, ifExists, data));
     }
 
     @Override
@@ -117,27 +117,27 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        return parseResponse(delegate.getArtifactVersion(version, artifactId));
+        return parseResponse(delegate.getArtifactVersion(artifactId, version));
     }
 
     @Override
     public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
-        delegate.updateArtifactVersionState(version, artifactId, data);
+        delegate.updateArtifactVersionState(artifactId, version, data);
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        return delegate.getArtifactVersionMetaData(version, artifactId);
+        return delegate.getArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
-        delegate.updateArtifactVersionMetaData(version, artifactId, data);
+        delegate.updateArtifactVersionMetaData(artifactId, version, data);
     }
 
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        delegate.deleteArtifactVersionMetaData(version, artifactId);
+        delegate.deleteArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
@@ -157,17 +157,17 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Rule getArtifactRuleConfig(RuleType rule, String artifactId) {
-        return delegate.getArtifactRuleConfig(rule, artifactId);
+        return delegate.getArtifactRuleConfig(artifactId, rule);
     }
 
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data) {
-        return delegate.updateArtifactRuleConfig(rule, artifactId, data);
+        return delegate.updateArtifactRuleConfig(artifactId, rule, data);
     }
 
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
-        delegate.deleteArtifactRule(rule, artifactId);
+        delegate.deleteArtifactRule(artifactId, rule);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order) {
-        return delegate.searchArtifacts(search, offset, limit, over, order);
+        return delegate.searchArtifacts(search, over, order, offset, limit);
     }
 
     @Override

@@ -35,6 +35,10 @@
     content: ')';
 }
 
+.artifact-list .artifact-list-item .content-cell .artifact-title .status-badge {
+    margin-left: 10px;
+    border: 1px solid #ccc;
+}
 
 .artifact-list .artifact-list-item .content-cell .artifact-description {
     font-size: 13px;

@@ -22,12 +22,12 @@ import {
     DataListAction,
     DataListCell,
     DataListItemCells,
-    DataListItemRow
+    DataListItemRow,
+    Label
 } from '@patternfly/react-core';
 import {SearchedArtifact} from "@apicurio/registry-models";
 import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {Services} from "@apicurio/registry-services";
 import {ArtifactName} from "./artifactName";
 
 /**
@@ -68,6 +68,11 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                         <DataListCell key="main content" className="content-cell">
                                             <div className="artifact-title">
                                                 <ArtifactName id={artifact.id} name={artifact.name} />
+                                                {
+                                                    this.statuses(artifact).map( status =>
+                                                        <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>
+                                                    )
+                                                }
                                             </div>
                                             <div className="artifact-description">{this.description(artifact)}</div>
                                             <div className="artifact-tags">
@@ -100,6 +105,17 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
 
     private labels(artifact: SearchedArtifact): string[] {
         return artifact.labels ? artifact.labels : [];
+    }
+
+    private statuses(artifact: SearchedArtifact): string[] {
+        const rval: string[] = [];
+        if (artifact.state === "DISABLED") {
+            rval.push("Disabled");
+        }
+        if (artifact.state === "DEPRECATED") {
+            rval.push("Deprecated");
+        }
+        return rval;
     }
 
     private artifactLink(artifact: SearchedArtifact): string {

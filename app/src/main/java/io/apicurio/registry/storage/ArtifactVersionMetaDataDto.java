@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.List;
+import java.util.Map;
+
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
@@ -40,6 +43,8 @@ public class ArtifactVersionMetaDataDto {
     private long createdOn;
     private ArtifactType type;
     private ArtifactState state;
+    private List<String> labels;
+    private Map<String, String> properties;
 
     /**
      * Constructor.
@@ -157,5 +162,33 @@ public class ArtifactVersionMetaDataDto {
      */
     public void setVersion(int version) {
         this.version = version;
+    }
+
+    /**
+     * @return the labels
+     */
+    public List<String> getLabels() {
+        return labels;
+    }
+
+    /**
+     * @param labels the labels to set
+     */
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
+    }
+
+    /**
+     * @return the user-defined properties
+     */
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param properties the user-defined properties to set
+     */
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 }

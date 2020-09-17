@@ -686,7 +686,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             Map<String, String> expectedProperties = new HashMap<>();
             expectedProperties.put("additionalProp1", "Empty API additional property");
 
-            given()
+            int version = given()
                 .when()
                     .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                     .get("/artifacts/{artifactId}/meta")
@@ -697,7 +697,22 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("name", equalTo("Empty API Name"))
                     .body("description", equalTo("Empty API description."))
                     .body("labels", equalToObject(expectedLabels))
-                    .body("properties", equalToObject(expectedProperties));
+                    .body("properties", equalToObject(expectedProperties))
+                .extract().body().path("version");
+            
+            // Make sure the version specific meta-data also returns all the custom meta-data
+            given()
+                .when()
+                    .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                    .pathParam("version", version)
+                    .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200)
+                    .body("name", equalTo("Empty API Name"))
+                    .body("description", equalTo("Empty API description."))
+                    .body("labels", equalToObject(expectedLabels))
+                    .body("properties", equalToObject(expectedProperties))
+                .extract().body().path("version");
         });
         
         // Update the artifact content and then make sure the name/description meta-data is still available

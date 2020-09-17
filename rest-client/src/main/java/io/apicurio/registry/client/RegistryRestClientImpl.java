@@ -149,34 +149,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     private static OkHttpClient.Builder addSSL(OkHttpClient.Builder okHttpClientBuilder, Map<String, Object> configs) {
 
         try {
-            KeyManager[] keyManagers = null;
-            TrustManager[] trustManagers = null;
+            KeyManager[] keyManagers = getKeyManagers(configs);
+            TrustManager[] trustManagers = getTrustManagers(configs);
 
-            if (configs.containsKey(REGISTRY_REQUEST_KEYSTORE_LOCATION)) {
-                String keystoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_TYPE, "JKS");
-                KeyStore keystore = KeyStore.getInstance(keystoreType);
-                String keyStorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_PASSWORD, "");
-                keystore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_KEYSTORE_LOCATION)), keyStorePwd.toCharArray());
-
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                // If no key password provided, try using the keystore password
-                String keyPwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEY_PASSWORD, keyStorePwd);
-                keyManagerFactory.init(keystore, keyPwd.toCharArray());
-                keyManagers = keyManagerFactory.getKeyManagers();
-            }
-
-            if (configs.containsKey(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)) {
-                String truststoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_TYPE, "JKS");
-                KeyStore truststore = KeyStore.getInstance(truststoreType);
-                String truststorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_PASSWORD, "");
-                truststore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)), truststorePwd.toCharArray());
-                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                trustManagerFactory.init(truststore);
-
-                trustManagers = trustManagerFactory.getTrustManagers();
-                if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
-                    throw new IllegalStateException("Unexpected default trust managers:" + Arrays.toString(trustManagers));
-                }
+            if (trustManagers != null && (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager))) {
+                throw new IllegalStateException("A single X509TrustManager is expected. Unexpected trust managers: " + Arrays.toString(trustManagers));
             }
 
             if (keyManagers != null || trustManagers != null) {
@@ -190,6 +167,39 @@ public class RegistryRestClientImpl implements RegistryRestClient {
         catch(IOException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException | KeyManagementException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    private static TrustManager[] getTrustManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+        TrustManager[] trustManagers = null;
+
+        if (configs.containsKey(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)) {
+            String truststoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_TYPE, "JKS");
+            KeyStore truststore = KeyStore.getInstance(truststoreType);
+            String truststorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_PASSWORD, "");
+            truststore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)), truststorePwd.toCharArray());
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(truststore);
+            trustManagers = trustManagerFactory.getTrustManagers();
+        }
+        return trustManagers;
+    }
+
+    private static KeyManager[] getKeyManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
+        KeyManager[] keyManagers = null;
+
+        if (configs.containsKey(REGISTRY_REQUEST_KEYSTORE_LOCATION)) {
+            String keystoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_TYPE, "JKS");
+            KeyStore keystore = KeyStore.getInstance(keystoreType);
+            String keyStorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_PASSWORD, "");
+            keystore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_KEYSTORE_LOCATION)), keyStorePwd.toCharArray());
+
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            // If no key password provided, try using the keystore password
+            String keyPwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEY_PASSWORD, keyStorePwd);
+            keyManagerFactory.init(keystore, keyPwd.toCharArray());
+            keyManagers = keyManagerFactory.getKeyManagers();
+        }
+        return keyManagers;
     }
 
     private void initServices(Retrofit retrofit) {

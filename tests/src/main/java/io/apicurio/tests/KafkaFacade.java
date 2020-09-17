@@ -20,6 +20,10 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.output.OutputFrame.OutputType;
+
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.utils.RegistryUtils;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -27,21 +31,55 @@ import java.util.Properties;
 /**
  * Facade class for simulate Kafka cluster
  */
-public class KafkaFacade {
+public class KafkaFacade implements RegistryTestProcess {
     static final Logger LOGGER = LoggerFactory.getLogger(KafkaFacade.class);
 
-    protected static KafkaContainer kafkaContainer;
-    protected static AdminClient client;
+    private KafkaContainer kafkaContainer;
+    private AdminClient client;
+
+    private static KafkaFacade instance;
+
+    public static KafkaFacade getInstance() {
+        if (instance == null) {
+            instance = new KafkaFacade();
+        }
+        return instance;
+    }
+
+    private KafkaFacade() {
+        //hidden constructor, singleton class
+    }
 
     public void createTopic(String topic, int partitions, int replicationFactor) {
         adminClient().createTopics(Arrays.asList(new NewTopic(topic, partitions, (short) replicationFactor)));
     }
 
-    public static String bootstrapServers() {
+    public String bootstrapServers() {
         if (kafkaContainer != null) {
             return kafkaContainer.getBootstrapServers();
         }
         return null;
+    }
+
+    public void startIfNeeded() {
+        if (!TestUtils.isExternalRegistry() &&
+                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams) &&
+                kafkaContainer != null) {
+            LOGGER.info("Skipping deployment of kafka, because it's already deployed as registry storage");
+        } else {
+            start();
+        }
+    }
+
+    public void stopIfPossible() throws Exception {
+        if (!TestUtils.isExternalRegistry() &&
+                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams)) {
+            LOGGER.info("Skipping stopping of kafka, because it's needed for registry storage");
+        } else {
+            if (kafkaContainer != null) {
+                close();
+            }
+        }
     }
 
     public void start() {
@@ -50,16 +88,6 @@ public class KafkaFacade {
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         kafkaContainer.start();
-    }
-
-    public void stop() {
-        LOGGER.info("Stopping kafka container");
-        if (client != null) {
-            client.close();
-        }
-        if (kafkaContainer != null) {
-            kafkaContainer.stop();
-        }
     }
 
     private AdminClient adminClient() {
@@ -71,6 +99,34 @@ public class KafkaFacade {
             client = AdminClient.create(properties);
         }
         return client;
+    }
+
+    @Override
+    public String getName() {
+        return "kafka";
+    }
+
+    @Override
+    public void close() throws Exception {
+        LOGGER.info("Stopping kafka container");
+        if (client != null) {
+            client.close();
+            client = null;
+        }
+        if (kafkaContainer != null) {
+            kafkaContainer.stop();
+            kafkaContainer = null;
+        }
+    }
+
+    @Override
+    public String getStdOut() {
+        return kafkaContainer.getLogs(OutputType.STDOUT);
+    }
+
+    @Override
+    public String getStdErr() {
+        return kafkaContainer.getLogs(OutputType.STDERR);
     }
 
 }

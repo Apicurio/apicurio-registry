@@ -170,12 +170,12 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
     @BeforeAll
     static void setupEnvironment() {
-        kafkaCluster.start();
+        kafkaCluster.startIfNeeded();
     }
 
     @AfterAll
-    static void teardownEnvironment() {
-        kafkaCluster.stop();
+    static void teardownEnvironment() throws Exception {
+        kafkaCluster.stopIfPossible();
     }
 }
 

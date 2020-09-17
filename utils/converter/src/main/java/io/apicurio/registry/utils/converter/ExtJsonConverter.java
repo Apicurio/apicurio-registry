@@ -77,8 +77,15 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
             cache = new SchemaCache<JsonNode>(getClient()) {
                 @Override
                 protected JsonNode toSchema(Response response) {
-                    try (InputStream stream = response.readEntity(InputStream.class)) {
-                        return mapper.readTree(stream);
+                    try {
+                        Object responseEntity = response.getEntity();
+                        if (responseEntity instanceof InputStream) {
+                            return mapper.readTree((InputStream) responseEntity);
+                        } else {
+                            try (InputStream stream = response.readEntity(InputStream.class)) {
+                                return mapper.readTree(stream);
+                            }
+                        }
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }

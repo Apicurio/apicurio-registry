@@ -105,6 +105,16 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/detect"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create artifact with empty content (should fail)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyContent")
+                .body("")
+                .post("/artifacts")
+            .then()
+                .statusCode(400);
     }
 
     @Test
@@ -176,6 +186,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .put("/artifacts/{artifactId}")
             .then()
                 .statusCode(404);
+
+        // Try to update an artifact with empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body("")
+                .put("/artifacts/{artifactId}")
+            .then()
+                .statusCode(400);
     }
     
     @Test
@@ -321,6 +342,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(404);
+        
+        // Try to create a new version of the artifact with empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body("")
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(400);
+
     }
     
     @Test
@@ -434,6 +467,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Should return the same meta-data
         Assertions.assertEquals(globalId1, globalId2);
+
+        // Get meta-data by empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .body("")
+                .post("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(400);
+        
     }
 
     @Test

@@ -73,6 +73,7 @@ public class SearchUtil {
         searchedVersion.setState(artifactVersionMetaData.getState());
         searchedVersion.setType(artifactVersionMetaData.getType());
         searchedVersion.setVersion(artifactVersionMetaData.getVersion());
+        searchedVersion.setLabels(artifactVersionMetaData.getLabels());
 
         return searchedVersion;
     }

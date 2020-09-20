@@ -44,7 +44,7 @@ jobs:
           cat /home/runner/.m2/settings.xml
       - name: Set up Gren
         run: npm install github-release-notes -g
-      - name: Apicurio Registry Code Checkout
+      - name: Apicurio Registry Checkout
         run: |
           mkdir registry
           cd registry
@@ -56,7 +56,7 @@ jobs:
           git checkout master
           git branch --set-upstream-to=origin/master
           git pull
-      - name: Apicurio Website Code Checkout
+      - name: Apicurio Website Checkout
         run: |
           mkdir website
           cd website
@@ -68,7 +68,7 @@ jobs:
           git checkout master
           git branch --set-upstream-to=origin/master
           git pull
-      - name: Apicurio Website Code Checkout
+      - name: Apicurio Playbook Checkout
         run: |
           mkdir docs-playbook
           cd docs-playbook
@@ -85,6 +85,7 @@ jobs:
           cd registry
           mvn versions:set -DnewVersion=${{steps.metadata.outputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           sed -i  "s/version\:\s.*/version: \'${{steps.metadata.outputs.release-version}}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{steps.metadata.outputs.release-version}}\"/g" common/src/main/resources/META-INF/openapi.json
       - name: Build All Variants
         run: cd registry && mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
       - name: Commit Release Version Change

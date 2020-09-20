@@ -74,6 +74,7 @@ import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -351,7 +352,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getLatestArtifact(String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
-        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+        if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(artifactId);
         }
         StoredArtifact artifact = storage.getArtifact(artifactId);
@@ -446,9 +447,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
-        if(ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new ArtifactNotFoundException(artifactId);
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(artifactId, version);
+        if (ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new VersionNotFoundException(artifactId, version);
         }
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 

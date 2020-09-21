@@ -34,7 +34,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.CLUSTER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -231,12 +230,12 @@ public class BasicApicurioSerDesIT extends BaseIT {
 
     @BeforeAll
     static void setupEnvironment() {
-        kafkaCluster.start();
+        kafkaCluster.startIfNeeded();
     }
 
     @AfterAll
-    static void teardownEnvironment() {
-        kafkaCluster.stop();
+    static void teardownEnvironment() throws Exception {
+        kafkaCluster.stopIfPossible();
     }
 }
 

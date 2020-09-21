@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 public abstract class BaseIT implements TestSeparator, Constants {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
-    protected static KafkaFacade kafkaCluster = new KafkaFacade();
+    protected static KafkaFacade kafkaCluster = KafkaFacade.getInstance();
 
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {

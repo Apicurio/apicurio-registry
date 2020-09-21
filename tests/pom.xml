@@ -377,6 +377,13 @@
             </properties>
         </profile>
 
+        <profile>
+            <id>disableSerdesTest</id>
+            <properties>
+                <exclude.integration.tests>**/BasicApicurioSerDesIT.java</exclude.integration.tests>
+            </properties>
+        </profile>
+
         <!-- Profiles to set test.storage system property, in case EXTERNAL_REGISTRY env var is set to false
         this property will be used by the test suite to locally deploy the registry using the indicated storage variant
          -->

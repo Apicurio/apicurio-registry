@@ -40,7 +40,6 @@ import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
@@ -143,23 +142,15 @@ public class RegistryFacade {
                 return database.getLogs(OutputType.STDERR);
             }
         });
-//        }
     }
 
     private void setupKafkaStorage(Map<String, String> appEnv) throws TimeoutException, InterruptedException, ExecutionException {
-        KafkaContainer kafka = new KafkaContainer();
-        kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
-        kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-        kafka.start();
 
-        TestUtils.waitFor("Kafka is running",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, kafka::isRunning);
-
-        String bootstrapServers = String.format("%s:%s", kafka.getContainerIpAddress(), kafka.getMappedPort(KafkaContainer.KAFKA_PORT));
-        LOGGER.info("Bootstrap servers {}", bootstrapServers);
+        KafkaFacade kafkaFacade = KafkaFacade.getInstance();
+        kafkaFacade.start();
 
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", bootstrapServers);
+        properties.put("bootstrap.servers", kafkaFacade.bootstrapServers());
         properties.put("connections.max.idle.ms", 10000);
         properties.put("request.timeout.ms", 5000);
         try (AdminClient client = KafkaAdminClient.create(properties)) {
@@ -171,32 +162,11 @@ public class RegistryFacade {
             LOGGER.info("Topics created");
         }
 
-        appEnv.put("KAFKA_BOOTSTRAP_SERVERS", bootstrapServers);
+        appEnv.put("KAFKA_BOOTSTRAP_SERVERS", kafkaFacade.bootstrapServers());
         if (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams) {
             appEnv.put("APPLICATION_ID", "test-application");
         }
-        processes.add(new RegistryTestProcess() {
-
-            @Override
-            public String getName() {
-                return "kafka";
-            }
-
-            @Override
-            public void close() throws Exception {
-                kafka.close();
-            }
-
-            @Override
-            public String getStdOut() {
-                return kafka.getLogs(OutputType.STDOUT);
-            }
-
-            @Override
-            public String getStdErr() {
-                return kafka.getLogs(OutputType.STDERR);
-            }
-        });
+        processes.add(kafkaFacade);
     }
 
     private void runRegistry(String path, Map<String, String> appEnv) {

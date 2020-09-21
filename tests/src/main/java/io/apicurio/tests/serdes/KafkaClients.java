@@ -74,7 +74,7 @@ public class KafkaClients {
     private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
     private static String bootstrapServers() {
-        String bootsrapServers = KafkaFacade.bootstrapServers();
+        String bootsrapServers = KafkaFacade.getInstance().bootstrapServers();
         if (bootsrapServers == null) {
             return BOOTSTRAP_SERVERS;
         }

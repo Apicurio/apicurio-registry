@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.panache.repository;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SearchedArtifact;
@@ -29,6 +30,28 @@ public class VersionRepository implements PanacheRepository<Version> {
         return find("artifactId = ?1 where version = max(version)", artifactId)
                 .firstResult()
                 .version;
+    }
+
+    public ArtifactMetaData getArtifactMetadata(String artifactId) {
+
+        final Version version = find("artifactId = :artifactId and globalId = (select latest from Artifact a where a.artifactId = :artifactId)", Parameters.with("artifactId", artifactId))
+                .firstResult();
+
+        final ArtifactMetaData artifactMetaData = new ArtifactMetaData();
+
+        artifactMetaData.setGlobalId(version.globalId);
+        artifactMetaData.setId(version.artifact.artifactId);
+        artifactMetaData.setModifiedBy(version.createdBy);
+        artifactMetaData.setModifiedOn(version.createdOn.getTime());
+        artifactMetaData.setState(ArtifactState.fromValue(version.state));
+        artifactMetaData.setName(version.name);
+        artifactMetaData.setDescription(version.description);
+        artifactMetaData.setType(ArtifactType.fromValue(version.artifact.artifactType));
+        artifactMetaData.setVersion(version.version.intValue());
+        artifactMetaData.setCreatedBy(version.artifact.createdBy);
+        artifactMetaData.setCreatedOn(version.artifact.createdOn.getTime());
+
+        return artifactMetaData;
     }
 
     public Version createVersion(boolean firstVersion, Artifact artifact, String name, String description, ArtifactState state,

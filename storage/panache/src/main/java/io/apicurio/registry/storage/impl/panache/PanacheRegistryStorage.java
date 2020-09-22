@@ -6,6 +6,7 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -32,7 +33,6 @@ import io.apicurio.registry.storage.impl.panache.repository.ContentRepository;
 import io.apicurio.registry.storage.impl.panache.repository.LabelRepository;
 import io.apicurio.registry.storage.impl.panache.repository.PropertyRepository;
 import io.apicurio.registry.storage.impl.panache.repository.VersionRepository;
-import io.apicurio.registry.storage.impl.panache.result.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -283,9 +283,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
         log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
 
         try {
-
             return versionRepository.searchArtifacts(search, offset, limit, searchOver, sortOrder);
-
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -310,20 +308,20 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
      */
     private ArtifactMetaDataDto getLatestArtifactMetaDataInternal(String artifactId) {
 
-        final ArtifactMetaData metaData = artifactRepository.getArtifactMetadata(artifactId);
+        final ArtifactMetaData metaData = versionRepository.getArtifactMetadata(artifactId);
         final ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
 
-        dto.setDescription(metaData.description);
-        dto.setGlobalId(metaData.globalId);
-        dto.setId(metaData.artifactId);
-        dto.setLabels(SqlUtil.deserializeLabels(metaData.labels));
-        dto.setModifiedBy(metaData.modifiedBy);
-        dto.setModifiedOn(metaData.modifiedOn.toInstant().toEpochMilli());
-        dto.setName(metaData.name);
-        dto.setType(ArtifactType.fromValue(metaData.artifactType));
-        dto.setState(ArtifactState.fromValue(metaData.state));
-        dto.setProperties(SqlUtil.deserializeProperties(metaData.properties));
-        dto.setVersion(metaData.version.intValue());
+        dto.setDescription(metaData.getDescription());
+        dto.setGlobalId(metaData.getGlobalId());
+        dto.setId(metaData.getId());
+        dto.setLabels(metaData.getLabels());
+        dto.setModifiedBy(metaData.getModifiedBy());
+        dto.setModifiedOn(metaData.getModifiedOn());
+        dto.setName(metaData.getName());
+        dto.setType(metaData.getType());
+        dto.setState(metaData.getState());
+        dto.setProperties(metaData.getProperties());
+        dto.setVersion(metaData.getVersion());
 
         return dto;
     }

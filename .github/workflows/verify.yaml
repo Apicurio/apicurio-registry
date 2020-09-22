@@ -61,4 +61,19 @@ jobs:
           docker push apicurio/apicurio-registry-kafka:latest-snapshot
           docker push apicurio/apicurio-registry-streams:latest-snapshot
           docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
+
+      - name: Kubernetes Tests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: ./.github/scripts/test_apicurio_kubernetes.sh
+
+      - name: Collect logs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && failure()
+        run: ./.github/scripts/collect_kubernetes_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
           

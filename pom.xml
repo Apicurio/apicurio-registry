@@ -97,7 +97,6 @@
         <module>docs</module>
         <module>tests</module>
         <module>rest-client</module>
-        <module>storage/panache</module>
     </modules>
 
     <properties>
@@ -716,6 +715,12 @@
             <id>asyncmem</id>
             <modules>
                 <module>storage/asyncmem</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>panache</id>
+            <modules>
+                <module>storage/panache</module>
             </modules>
         </profile>
         <profile>

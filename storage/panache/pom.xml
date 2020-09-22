@@ -11,6 +11,10 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
+    <properties>
+        <maven.compiler.parameters>true</maven.compiler.parameters>
+    </properties>
+
     <artifactId>apicurio-registry-storage-panache</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-panache</name>
@@ -26,6 +30,10 @@
         </dependency>
 
         <!-- Persistence -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-orm-panache</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-h2</artifactId>

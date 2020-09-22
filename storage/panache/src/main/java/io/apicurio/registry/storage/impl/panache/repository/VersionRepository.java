@@ -124,34 +124,39 @@ public class VersionRepository implements PanacheRepository<Version> {
 
     private ArtifactSearchResults findByName(String search, int offset, int limit) {
 
-        final PanacheQuery<Version> nameSearch = find("from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)", Parameters.with("nameSearch", "%" + search + "%"))
+        Parameters searchParams = Parameters.with("nameSearch", "%" + search + "%");
+
+        final PanacheQuery<Version> nameSearch = find(VersionQueries.searchName, searchParams)
                 .range(offset, limit - 1);
 
-
-        return buildSearchResult(nameSearch.list(), Long.valueOf(nameSearch.count()).intValue());
+        return buildSearchResult(nameSearch.list(), Long.valueOf(count(VersionQueries.searchNameCount, searchParams)).intValue());
     }
 
     private ArtifactSearchResults findByDescription(String search, int offset, int limit) {
 
-        final PanacheQuery<Version> descriptionSearch = find("from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)", Parameters.with("descriptionSearch", "%" + search + "%"))
+        Parameters searchParams = Parameters.with("descriptionSearch", "%" + search + "%");
+
+        final PanacheQuery<Version> descriptionSearch = find(VersionQueries.searchDescription, searchParams)
                 .range(offset, limit - 1);
 
-        return buildSearchResult(descriptionSearch.list(), Long.valueOf(descriptionSearch.count()).intValue());
+        return buildSearchResult(descriptionSearch.list(), Long.valueOf(count(VersionQueries.searchDescriptionCount, searchParams)).intValue());
     }
 
     private ArtifactSearchResults findByLabels(String search, int offset, int limit) {
 
-        final PanacheQuery<Version> labelSearch = find("from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)", Parameters.with("labelSearch", "%" + search + "%"))
+        Parameters searchParams = Parameters.with("labelSearch", "%" + search + "%");
+
+        final PanacheQuery<Version> labelSearch = find(VersionQueries.searchLabels, searchParams)
                 .range(offset, limit - 1);
 
-        return buildSearchResult(labelSearch.list(), Long.valueOf(labelSearch.count()).intValue());
+        return buildSearchResult(labelSearch.list(), Long.valueOf(count(VersionQueries.searchLabelsCount, searchParams)).intValue());
     }
 
     private ArtifactSearchResults searchEverything(String search, int offset, int limit) {
 
         final Parameters searchParams = Parameters.with("nameSearch", "%" + search + "%")
                 .and("descriptionSearch", "%" + search + "%")
-                .and("labelSearch",  "%" + search + "%");
+                .and("labelSearch", "%" + search + "%");
 
         final PanacheQuery<Version> matchedVersions = find(VersionQueries.searchEverything, searchParams)
                 .range(offset, limit - 1);
@@ -195,6 +200,24 @@ public class VersionRepository implements PanacheRepository<Version> {
 
 
     private static class VersionQueries {
+
+        protected static final String searchNameCount = "from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)";
+
+        protected static final String searchName = "from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)" +
+                " group by v.artifact" +
+                " order by(COALESCE(v.artifact, v.name))";
+
+        protected static final String searchDescriptionCount = "from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)";
+
+        protected static final String searchDescription = "from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)" +
+                " group by v.artifact" +
+                " order by(COALESCE(v.artifact, v.name))";
+
+        protected static final String searchLabels = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)" +
+                " group by v.artifact" +
+                " order by(COALESCE(v.artifact, v.name))";
+
+        protected static final String searchLabelsCount = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)";
 
         protected static final String searchEverything = "from Version v where (v.name like :nameSearch" +
                 " OR v.description like :descriptionSearch" +

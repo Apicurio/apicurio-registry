@@ -137,7 +137,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @PostConstruct
     @Transactional
     protected void initialize() {
-        log.info("SqlRegistryStorage constructed successfully.");
+        log.debug("SqlRegistryStorage constructed successfully.");
         
         jdbi = Jdbi.create(dataSource);
 
@@ -194,16 +194,16 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         log.info("\tDatabase type: " + this.sqlStatements.dbType());
         
         final List<String> statements = this.sqlStatements.databaseInitialization();
-        log.info("---");
+        log.debug("---");
         
         this.jdbi.withHandle( handle -> {
             statements.forEach( statement -> {
-                log.info(statement);
+                log.debug(statement);
                 handle.createUpdate(statement).execute();
             });
             return null;
         });
-        log.info("---");
+        log.debug("---");
     }
 
     /**
@@ -221,10 +221,10 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         log.info("\tTo Version:    {}", toVersion);
 
         final List<String> statements = this.sqlStatements.databaseUpgrade(fromVersion, toVersion);
-        log.info("---");
+        log.debug("---");
         this.jdbi.withHandle( handle -> {
             statements.forEach( statement -> {
-                log.info(statement);
+                log.debug(statement);
                 
                 if (statement.startsWith("UPGRADER:")) {
                     String cname = statement.substring(9).trim();
@@ -235,7 +235,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             });
             return null;
         });
-        log.info("---");
+        log.debug("---");
     }
     
     /**
@@ -279,7 +279,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state) {
-        log.info("Updating the state of artifact {} to {}", artifactId, state.name());
+        log.debug("Updating the state of artifact {} to {}", artifactId, state.name());
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
         try {
             this.jdbi.withHandle( handle -> {
@@ -308,7 +308,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        log.info("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
+        log.debug("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(artifactId, version);
         try {
             this.jdbi.withHandle( handle -> {
@@ -338,7 +338,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting an artifact row for: {}", artifactId);
+        log.debug("Inserting an artifact row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
         try {
@@ -478,7 +478,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting an artifact (with meta-data) row for: {}", artifactId);
+        log.debug("Inserting an artifact (with meta-data) row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
         try {
@@ -501,7 +501,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public SortedSet<Long> deleteArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Deleting an artifact: {}", artifactId);
+        log.debug("Deleting an artifact: {}", artifactId);
         try {
             return this.jdbi.withHandle( handle -> {
                 // Get the list of versions of the artifact (will be deleted)
@@ -570,7 +570,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public StoredArtifact getArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
+        log.debug("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactContent();
@@ -592,7 +592,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Updating artifact {} with a new version (content).", artifactId);
+        log.debug("Updating artifact {} with a new version (content).", artifactId);
         
         // Get meta-data from previous (latest) version
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
@@ -639,7 +639,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Updating artifact {} with a new version (content).", artifactId);
+        log.debug("Updating artifact {} with a new version (content).", artifactId);
 
         // Get meta-data from previous (latest) version
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
@@ -666,7 +666,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public Set<String> getArtifactIds(Integer limit) {
-        log.info("Getting the set of all artifact IDs");
+        log.debug("Getting the set of all artifact IDs");
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactIds();
@@ -687,7 +687,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver,
             SortOrder sortOrder) {
-        log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
+        log.debug("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
         try {
             return this.jdbi.withHandle( handle -> {
                 List<SqlStatementVariableBinder> binders = new LinkedList<>();
@@ -796,7 +796,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Selecting artifact (latest version) meta-data: {}", artifactId);
+        log.debug("Selecting artifact (latest version) meta-data: {}", artifactId);
         return this.getLatestArtifactMetaDataInternal(artifactId);
     }
 
@@ -826,7 +826,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
+        log.debug("TBD - Please implement me!");
         return null;
     }
 
@@ -836,7 +836,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Getting meta-data for globalId: {}", globalId);
+        log.debug("Getting meta-data for globalId: {}", globalId);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactMetaDataByGlobalId();
@@ -858,7 +858,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Updating meta-data for an artifact: {}", artifactId);
+        log.debug("Updating meta-data for an artifact: {}", artifactId);
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactMetaDataLatestVersion();
@@ -887,7 +887,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public List<RuleType> getArtifactRules(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Getting a list of all artifact rules for: {}", artifactId);
+        log.debug("Getting a list of all artifact rules for: {}", artifactId);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactRules();
@@ -913,7 +913,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting an artifact rule row for artifact: {} rule: {}", artifactId, rule.name());
+        log.debug("Inserting an artifact rule row for artifact: {} rule: {}", artifactId, rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.insertArtifactRule();
@@ -939,7 +939,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactRules(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Deleting all artifact rules for artifact: {}", artifactId);
+        log.debug("Deleting all artifact rules for artifact: {}", artifactId);
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRules();
@@ -959,7 +959,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
+        log.debug("Selecting a single artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactRuleByType();
@@ -982,7 +982,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("Updating an artifact rule for artifact: {} and rule: {}::{}", artifactId, rule.name(), config.getConfiguration());
+        log.debug("Updating an artifact rule for artifact: {} and rule: {}::{}", artifactId, rule.name(), config.getConfiguration());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactRule();
@@ -1009,7 +1009,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactRule(String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.info("Deleting an artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
+        log.debug("Deleting an artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRule();
@@ -1035,7 +1035,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public SortedSet<Long> getArtifactVersions(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Getting a list of versions for an artifact");
+        log.debug("Getting a list of versions for an artifact");
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersions();
@@ -1061,7 +1061,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
-        log.info("Searching for versions of artifact {}", artifactId);
+        log.debug("Searching for versions of artifact {}", artifactId);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectAllArtifactVersions();
@@ -1094,7 +1094,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public StoredArtifact getArtifactVersion(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact version by globalId: {}", globalId);
+        log.debug("Selecting a single artifact version by globalId: {}", globalId);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContentByGlobalId();
@@ -1116,7 +1116,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public StoredArtifact getArtifactVersion(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact version by artifactId: {} and version {}", artifactId, version);
+        log.debug("Selecting a single artifact version by artifactId: {} and version {}", artifactId, version);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContent();
@@ -1139,7 +1139,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactVersion(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Deleting version {} of artifact {}", version, artifactId);
+        log.debug("Deleting version {} of artifact {}", version, artifactId);
         
         SortedSet<Long> versions = getArtifactVersions(artifactId);
         
@@ -1223,7 +1223,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Selecting artifact version meta-data: {} version {}", artifactId, version);
+        log.debug("Selecting artifact version meta-data: {} version {}", artifactId, version);
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();
@@ -1247,7 +1247,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     public void updateArtifactVersionMetaData(String artifactId, long version,
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Updating meta-data for an artifact version: {}", artifactId);
+        log.debug("Updating meta-data for an artifact version: {}", artifactId);
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactVersionMetaData();
@@ -1277,7 +1277,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void deleteArtifactVersionMetaData(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Deleting user-defined meta-data for artifact {} version {}", artifactId, version);
+        log.debug("Deleting user-defined meta-data for artifact {} version {}", artifactId, version);
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactVersionMetaData();
@@ -1322,7 +1322,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
-        log.info("Getting a list of all Global Rules");
+        log.debug("Getting a list of all Global Rules");
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectGlobalRules();
@@ -1346,7 +1346,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting a global rule row for: {}", rule.name());
+        log.debug("Inserting a global rule row for: {}", rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.insertGlobalRule();
@@ -1369,7 +1369,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void deleteGlobalRules() throws RegistryStorageException {
-        log.info("Deleting all Global Rules");
+        log.debug("Deleting all Global Rules");
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteGlobalRules();
@@ -1388,7 +1388,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public RuleConfigurationDto getGlobalRule(RuleType rule)
             throws RuleNotFoundException, RegistryStorageException {
-        log.info("Selecting a single global rule: {}", rule.name());
+        log.debug("Selecting a single global rule: {}", rule.name());
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectGlobalRuleByType();
@@ -1410,7 +1410,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleNotFoundException, RegistryStorageException {
-        log.info("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
+        log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateGlobalRule();
@@ -1435,7 +1435,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override @Transactional
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        log.info("Deleting a global rule: {}", rule.name());
+        log.debug("Deleting a global rule: {}", rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteGlobalRule();

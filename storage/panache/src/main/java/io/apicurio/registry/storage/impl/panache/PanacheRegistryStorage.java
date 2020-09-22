@@ -108,7 +108,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Override
     @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state) {
-        log.info("Updating the state of artifact {} to {}", artifactId, state.name());
+        log.debug("Updating the state of artifact {} to {}", artifactId, state.name());
 
     }
 
@@ -118,7 +118,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Override
     @Transactional
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        log.info("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
+        log.debug("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
     }
 
     /**
@@ -128,7 +128,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
                                                                ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting an artifact row for: {}", artifactId);
+        log.debug("Inserting an artifact row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
 
@@ -202,7 +202,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
                                                                            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        log.info("Inserting an artifact (with meta-data) row for: {}", artifactId);
+        log.debug("Inserting an artifact (with meta-data) row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
         ArtifactMetaDataDto amdd = createArtifactInternal(artifactId, artifactType, content,
@@ -218,7 +218,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public SortedSet<Long> deleteArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Deleting an artifact: {}", artifactId);
+        log.debug("Deleting an artifact: {}", artifactId);
         return null;
     }
 
@@ -230,7 +230,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     public StoredArtifact getArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
 
-        log.info("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
+        log.debug("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
 
         final Version version = versionRepository.getArtifactLatestVersion(artifactId);
 
@@ -248,7 +248,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
                                                                ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Updating artifact {} with a new version (content).", artifactId);
+        log.debug("Updating artifact {} with a new version (content).", artifactId);
         return null;
     }
 
@@ -269,7 +269,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Override
     @Transactional
     public Set<String> getArtifactIds(Integer limit) {
-        log.info("Getting the set of all artifact IDs");
+        log.debug("Getting the set of all artifact IDs");
         return null;
     }
 
@@ -280,7 +280,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver,
                                                  SortOrder sortOrder) {
-        log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
+        log.debug("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
 
         try {
             return versionRepository.searchArtifacts(search, offset, limit, searchOver, sortOrder);
@@ -296,7 +296,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Selecting artifact (latest version) meta-data: {}", artifactId);
+        log.debug("Selecting artifact (latest version) meta-data: {}", artifactId);
 
         return this.getLatestArtifactMetaDataInternal(artifactId);
     }
@@ -353,7 +353,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("TBD - Please implement me!");
+        log.debug("TBD - Please implement me!");
         return null;
     }
 
@@ -364,7 +364,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Getting meta-data for globalId: {}", globalId);
+        log.debug("Getting meta-data for globalId: {}", globalId);
         return null;
     }
 
@@ -445,7 +445,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public SortedSet<Long> getArtifactVersions(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Getting a list of versions for an artifact");
+        log.debug("Getting a list of versions for an artifact");
         return new TreeSet<>(versionRepository.getArtifactVersions(artifactId));
 
     }
@@ -466,7 +466,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public StoredArtifact getArtifactVersion(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact version by globalId: {}", globalId);
+        log.debug("Selecting a single artifact version by globalId: {}", globalId);
 
         final Version version = versionRepository.findById(globalId);
 
@@ -484,7 +484,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public StoredArtifact getArtifactVersion(String artifactId, long numVersion)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Selecting a single artifact version by artifactId: {} and version {}", artifactId, numVersion);
+        log.debug("Selecting a single artifact version by artifactId: {} and version {}", artifactId, numVersion);
 
         final Version version = versionRepository.getVersion(artifactId, numVersion);
 
@@ -512,7 +512,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.info("Selecting artifact version meta-data: {} version {}", artifactId, version);
+        log.debug("Selecting artifact version meta-data: {} version {}", artifactId, version);
         try {
             return this.getArtifactVersionMetaDataInternal(artifactId, version);
         } catch (IllegalStateException e) {

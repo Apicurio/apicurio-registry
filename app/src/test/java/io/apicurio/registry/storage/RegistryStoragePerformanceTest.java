@@ -40,7 +40,7 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class RegistryStoragePerformanceTest {
     
-    private static final int NUM_ARTIFACTS = 10000;
+    private static final int NUM_ARTIFACTS = 50000;
 //    private static final int NUM_VERSIONS = 5;
     
     private static final String OPENAPI_CONTENT_TEMPLATE = "{" + 
@@ -95,6 +95,11 @@ public class RegistryStoragePerformanceTest {
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
                     properties);
             storage.createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+            
+            System.out.print(".");
+            if (idx % 100 == 0) {
+                System.out.println(" " + idx);
+            }
         }
         long endCreate = System.currentTimeMillis();
         
@@ -127,10 +132,10 @@ public class RegistryStoragePerformanceTest {
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
 
         long startLabelSearch = System.currentTimeMillis();
-        results = storage.searchArtifacts("label-17", 0, 10, SearchOver.labels, SortOrder.asc);
+        results = storage.searchArtifacts("label-" + (NUM_ARTIFACTS-1), 0, 10, SearchOver.labels, SortOrder.asc);
         long endLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
-        Assertions.assertTrue(results.getCount() < 200);
+        Assertions.assertEquals(1, results.getCount());
 
         long startAllLabelSearch = System.currentTimeMillis();
         results = storage.searchArtifacts("the-label", 0, 10, SearchOver.labels, SortOrder.asc);

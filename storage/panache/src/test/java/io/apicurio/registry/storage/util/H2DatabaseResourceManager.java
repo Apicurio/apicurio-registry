@@ -39,7 +39,7 @@ public class H2DatabaseResourceManager implements QuarkusTestResourceLifecycleMa
 
 
         try {
-            tcpServer = Server.createTcpServer("-tcpPort", "9092");
+            tcpServer = Server.createTcpServer("-tcpPort", "9123");
             tcpServer.start();
             System.out.println("[INFO] H2 database started in TCP server mode");
         } catch (SQLException e) {

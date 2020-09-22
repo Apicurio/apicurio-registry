@@ -103,13 +103,13 @@ public class VersionRepository implements PanacheRepository<Version> {
         if (!StringUtil.isEmpty(search)) {
             switch (searchOver) {
                 case description:
-                    return findByDescription(search, offset, limit);
+                    return findByDescription(search, offset, limit, sortOrder);
                 case everything:
-                    return searchEverything(search, offset, limit);
+                    return searchEverything(search, offset, limit, sortOrder);
                 case labels:
-                    return findByLabels(search, offset, limit);
+                    return findByLabels(search, offset, limit, sortOrder);
                 case name:
-                    return findByName(search, offset, limit);
+                    return findByName(search, offset, limit, sortOrder);
                 default:
                     throw new IllegalStateException("No valid search over value");
             }
@@ -122,43 +122,43 @@ public class VersionRepository implements PanacheRepository<Version> {
 
     }
 
-    private ArtifactSearchResults findByName(String search, int offset, int limit) {
+    private ArtifactSearchResults findByName(String search, int offset, int limit, SortOrder sortOrder) {
 
-        Parameters searchParams = Parameters.with("nameSearch", "%" + search + "%");
+        final Parameters searchParams = Parameters.with("nameSearch", "%" + search + "%");
 
-        final PanacheQuery<Version> nameSearch = find(VersionQueries.searchName, searchParams)
+        final PanacheQuery<Version> nameSearch = find(VersionQueries.searchName + sortOrder.value(), searchParams)
                 .range(offset, limit - 1);
 
         return buildSearchResult(nameSearch.list(), Long.valueOf(count(VersionQueries.searchNameCount, searchParams)).intValue());
     }
 
-    private ArtifactSearchResults findByDescription(String search, int offset, int limit) {
+    private ArtifactSearchResults findByDescription(String search, int offset, int limit, SortOrder sortOrder) {
 
-        Parameters searchParams = Parameters.with("descriptionSearch", "%" + search + "%");
+        final Parameters searchParams = Parameters.with("descriptionSearch", "%" + search + "%");
 
-        final PanacheQuery<Version> descriptionSearch = find(VersionQueries.searchDescription, searchParams)
+        final PanacheQuery<Version> descriptionSearch = find(VersionQueries.searchDescription + sortOrder.value(), searchParams)
                 .range(offset, limit - 1);
 
         return buildSearchResult(descriptionSearch.list(), Long.valueOf(count(VersionQueries.searchDescriptionCount, searchParams)).intValue());
     }
 
-    private ArtifactSearchResults findByLabels(String search, int offset, int limit) {
+    private ArtifactSearchResults findByLabels(String search, int offset, int limit, SortOrder sortOrder) {
 
-        Parameters searchParams = Parameters.with("labelSearch", "%" + search + "%");
+        final Parameters searchParams = Parameters.with("labelSearch", "%" + search + "%");
 
-        final PanacheQuery<Version> labelSearch = find(VersionQueries.searchLabels, searchParams)
+        final PanacheQuery<Version> labelSearch = find(VersionQueries.searchLabels + sortOrder.value(), searchParams)
                 .range(offset, limit - 1);
 
         return buildSearchResult(labelSearch.list(), Long.valueOf(count(VersionQueries.searchLabelsCount, searchParams)).intValue());
     }
 
-    private ArtifactSearchResults searchEverything(String search, int offset, int limit) {
+    private ArtifactSearchResults searchEverything(String search, int offset, int limit, SortOrder sortOrder) {
 
         final Parameters searchParams = Parameters.with("nameSearch", "%" + search + "%")
                 .and("descriptionSearch", "%" + search + "%")
                 .and("labelSearch", "%" + search + "%");
 
-        final PanacheQuery<Version> matchedVersions = find(VersionQueries.searchEverything, searchParams)
+        final PanacheQuery<Version> matchedVersions = find(VersionQueries.searchEverything + sortOrder.value(), searchParams)
                 .range(offset, limit - 1);
 
         return buildSearchResult(matchedVersions.list(), Long.valueOf(count(VersionQueries.searchEverythingCount, searchParams)).intValue());
@@ -205,7 +205,7 @@ public class VersionRepository implements PanacheRepository<Version> {
 
         protected static final String searchName = "from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)" +
                 " group by v.artifact" +
-                " order by(COALESCE(v.artifact, v.name))";
+                " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchDescriptionCount = "from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)";
 
@@ -215,7 +215,7 @@ public class VersionRepository implements PanacheRepository<Version> {
 
         protected static final String searchLabels = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)" +
                 " group by v.artifact" +
-                " order by(COALESCE(v.artifact, v.name))";
+                " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchLabelsCount = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)";
 
@@ -225,7 +225,7 @@ public class VersionRepository implements PanacheRepository<Version> {
                 ")" +
                 " AND v.globalId IN (select a.latest from Artifact a)" +
                 " group by v.artifact" +
-                " order by(COALESCE(v.artifact, v.name))";
+                " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchEverythingCount = "from Version v where (v.name like :nameSearch" +
                 " OR v.description like :descriptionSearch" +

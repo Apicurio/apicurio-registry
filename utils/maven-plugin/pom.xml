@@ -16,7 +16,7 @@
     <name>apicurio-registry-maven-plugin</name>
 
     <properties>
-        <resteasy-client.version>4.5.7.Final</resteasy-client.version>
+        <resteasy-client.version>4.5.8.Final</resteasy-client.version>
     </properties>
 
     <dependencies>

@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public interface RegistryRestClient {
+public interface RegistryRestClient extends AutoCloseable {
 
     List<String> listArtifacts();
 

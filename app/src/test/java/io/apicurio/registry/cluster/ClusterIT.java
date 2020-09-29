@@ -17,10 +17,16 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.quarkus.runtime.configuration.QuarkusConfigFactory;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.config.SmallRyeConfig;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
@@ -32,8 +38,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -43,6 +52,7 @@ import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProper
  * @author Ales Justin
  */
 
+@QuarkusTest
 public class ClusterIT {
 
     @BeforeAll
@@ -151,8 +161,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/api/ccompat", 3);
-        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
+        SchemaRegistryClient client1 = buildClient("http://localhost:8080/api/ccompat");
+        SchemaRegistryClient client2 = buildClient("http://localhost:8081/api/ccompat");
 
         String subject = UUID.randomUUID().toString();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
@@ -229,5 +239,20 @@ public class ClusterIT {
 
         client1.close();
         client2.close();
+    }
+
+    /**
+     * Creates a confluent schema registry client with authentication
+     */
+    private SchemaRegistryClient buildClient(String registryUrl) {
+
+        final List<SchemaProvider> schemaProviders = Arrays
+                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
+
+        final Auth auth = new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
+
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", auth.getAuthStrategy().getToken());
+        return new CachedSchemaRegistryClient(new RestService(registryUrl), 3, schemaProviders, null, headers);
     }
 }

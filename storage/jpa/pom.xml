@@ -320,7 +320,7 @@
                                     <goal>exec</goal>
                                 </goals>
                                 <configuration>
-                                    <executable>${parent.basedir}/.github/scripts/docker-prune.sh</executable>
+                                    <executable>${basedir}/../../.github/scripts/docker-prune.sh</executable>
                                 </configuration>
                             </execution>
                         </executions>

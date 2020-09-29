@@ -111,7 +111,7 @@
             <plugin>
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
-                <version>0.34.0</version>
+                <version>0.34.1</version>
                 <executions>
                     <execution>
                         <id>docker-build</id>
@@ -159,7 +159,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>
@@ -204,7 +204,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>
@@ -248,7 +248,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>
@@ -292,7 +292,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>
@@ -336,7 +336,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>
@@ -380,7 +380,7 @@
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.0</version>
+                        <version>0.34.1</version>
                         <executions>
                             <execution>
                                 <id>docker-build</id>

@@ -26,9 +26,6 @@ import java.util.Map;
  */
 public class RegistryRestClientFactory {
 
-
-
-
     public static RegistryRestClient create(String baseUrl) {
         return new RegistryRestClientImpl(baseUrl);
     }
@@ -40,5 +37,4 @@ public class RegistryRestClientFactory {
     public static RegistryRestClient create(String baseUrl, Map<String, Object> configs) {
         return new RegistryRestClientImpl(baseUrl, configs);
     }
-
 }

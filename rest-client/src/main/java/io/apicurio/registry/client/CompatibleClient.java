@@ -236,7 +236,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public void close() throws Exception {
-
+        delegate.close();
     }
 
     @Override

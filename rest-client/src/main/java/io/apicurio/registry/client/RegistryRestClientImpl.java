@@ -81,8 +81,8 @@ import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTS
  */
 public class RegistryRestClientImpl implements RegistryRestClient {
 
-    private final Retrofit retrofit;
     private final RequestHandler requestHandler;
+    private final OkHttpClient httpClient;
 
     private ArtifactsService artifactsService;
     private RulesService rulesService;
@@ -101,7 +101,10 @@ public class RegistryRestClientImpl implements RegistryRestClient {
         if (!baseUrl.endsWith("/")) {
             baseUrl += "/";
         }
-        this.retrofit = new Retrofit.Builder()
+
+        this.httpClient = okHttpClient;
+
+        Retrofit retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
                 .addConverterFactory(JacksonConverterFactory.create())
                 .baseUrl(baseUrl)
@@ -122,11 +125,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs) {
 
         Map<String, String> requestHeaders = configs.entrySet().stream()
-            .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
-            .collect(Collectors.toMap(map -> map.getKey()
-                .replace(REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
+                .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
+                .collect(Collectors.toMap(map -> map.getKey()
+                        .replace(REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
 
-        if(!requestHeaders.containsKey("Authorization")) {
+        if (!requestHeaders.containsKey("Authorization")) {
             // Check if url includes user/password
             // and add auth header if it does
             HttpUrl url = HttpUrl.parse(baseUrl);
@@ -138,7 +141,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
             }
         }
 
-        if(!requestHeaders.isEmpty()) {
+        if (!requestHeaders.isEmpty()) {
             final Interceptor headersInterceptor = new HeadersInterceptor(requestHeaders);
             return okHttpClientBuilder.addInterceptor(headersInterceptor);
         } else {
@@ -163,8 +166,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
             } else {
                 return okHttpClientBuilder;
             }
-        }
-        catch(IOException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException | KeyManagementException ex) {
+        } catch (IOException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException | KeyManagementException ex) {
             throw new IllegalStateException(ex);
         }
     }
@@ -405,5 +407,14 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     public void deleteAllGlobalRules() {
 
         requestHandler.execute(rulesService.deleteAllGlobalRules());
+    }
+
+    @Override
+    public void close() throws Exception {
+        httpClient.dispatcher().executorService().shutdown();
+        httpClient.connectionPool().evictAll();
+        if (httpClient.cache() != null) {
+            httpClient.cache().close();
+        }
     }
 }

@@ -17,15 +17,14 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,13 +32,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
  */
 @QuarkusTest
 public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
+
     RegisterRegistryMojo mojo;
 
     @BeforeEach
@@ -48,9 +47,8 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
         this.mojo.registryUrl = "http://localhost:8081/api";
     }
 
-    @RegistryServiceTest
-    public void testRegister(Supplier<RegistryService> supplier) throws IOException, MojoFailureException, MojoExecutionException {
-        RegistryService client = supplier.get();
+    @Test
+    public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
 
         Map<String, Integer> expectedVersions = new LinkedHashMap<>();
 

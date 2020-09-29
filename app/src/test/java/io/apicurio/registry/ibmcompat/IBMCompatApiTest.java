@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -51,7 +51,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String versionName = "testversion_1.0.0";
 
         // Create Avro artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
@@ -72,7 +72,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         waitForArtifact(schemaId);
 
         // Try to create the same Avro artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
@@ -93,7 +93,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         String versionName = "testversion_1.0.0";
 
         // Verify Avro artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .queryParam("verify", "true")
                 .contentType(CT_JSON)
@@ -117,7 +117,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         SchemaListItem schema;
         int page = 0;
         while (true) {
-            List<SchemaListItem> schemas = given()
+            List<SchemaListItem> schemas = givenAuthenticated()
                     .when()
                     .get("/ibmcompat/schemas?page=" + page)
                     .then()
@@ -161,7 +161,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
 
         // Get the artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .get("/ibmcompat/schemas/" + schemaName)
             .then()
@@ -178,7 +178,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .body("versions[0].date", notNullValue());
 
         // schema ID in path can be the name or the id (which is the lower-cased name)
-        given()
+        givenAuthenticated()
             .when()
                 .get("/ibmcompat/schemas/" + schemaId)
             .then()
@@ -206,7 +206,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
 
         // Delete the artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .delete("/ibmcompat/schemas/" + schemaName)
             .then()
@@ -214,7 +214,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             // Try to get the artifact via ibmcompat API
-            given()
+            givenAuthenticated()
                 .when()
                     .get("/ibmcompat/schemas/" + schemaName)
                 .then()
@@ -236,7 +236,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Create Avro artifact via the artifact API
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
         // Add the new version via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
@@ -248,7 +248,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         waitForVersion(schemaId, 2);
 
         // Patch the schema enabled state via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
@@ -270,7 +270,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             // Patch the schame deprecated state via ibmcompat API
-            given()
+            givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\",\"comment\":\"this schema is deprecated\"}}]")
@@ -304,7 +304,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
 
         // Get the list of artifacts via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .get("/ibmcompat/schemas/" + schemaName + "/versions/1")
             .then()
@@ -337,7 +337,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
 
         // Add the new version via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
@@ -374,7 +374,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
 
         // Verify the new version definition via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .queryParam("verify", true)
                 .contentType(CT_JSON)
@@ -399,7 +399,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Create Avro artifact via the artifact API
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
         // Add the new version via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
@@ -411,7 +411,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         waitForVersion(schemaId, 2);
 
         // Delete the artifact via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .delete("/ibmcompat/schemas/" + schemaName+ "/versions/2")
             .then()
@@ -419,7 +419,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             // Try to get the artifact via ibmcompat API
-            given()
+            givenAuthenticated()
                 .when()
                     .get("/ibmcompat/schemas/" + schemaName + "/versions/2")
                 .then()
@@ -442,7 +442,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Create Avro artifact via the artifact API
         createArtifact(schemaId, ArtifactType.AVRO, artifactContent);
         // Add the new version via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
@@ -454,7 +454,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         waitForVersion(schemaId, 2);
 
         // Patch the schema enabled state via ibmcompat API
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
@@ -475,7 +475,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             // Patch the schame deprecated state via ibmcompat API
-            given()
+            givenAuthenticated()
                 .when()
                     .contentType(CT_JSON)
                     .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\",\"comment\":\"this version is deprecated\"}}]")

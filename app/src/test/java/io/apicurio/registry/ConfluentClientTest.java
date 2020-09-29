@@ -16,26 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.Rule;
@@ -45,15 +25,9 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
@@ -63,19 +37,29 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 
 @QuarkusTest
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class ConfluentClientTest extends AbstractResourceTestBase {
-
-    private SchemaRegistryClient buildClient() {
-
-        final List<SchemaProvider> schemaProviders = Arrays
-                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
-
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/api/ccompat"), 3, schemaProviders, null, null);
-    }
 
     @Test
     public void testSmoke() throws Exception {
@@ -91,7 +75,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = client.register(subject, schema1);
-        
+
         // Reset the client cache so that the next line actually does what we want.
         client.reset();
 
@@ -151,7 +135,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
-        
+
         String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ParsedSchema schema = new AvroSchema(rawSchema);
         int id = client.register(subject + "-value", schema);
@@ -191,7 +175,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
 
         try (KafkaJsonSchemaSerializer serializer = new KafkaJsonSchemaSerializer(client, new HashMap(config));
-                KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config, SchemaContent.class )){
+             KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config, SchemaContent.class)) {
 
             byte[] bytes = serializer.serialize(subject, schemaContent);
             Object deserialized = deserializer.deserialize(subject, bytes);
@@ -212,7 +196,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
 
         try (KafkaProtobufSerializer serializer = new KafkaProtobufSerializer(client, new HashMap(config));
-                KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)){
+             KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)) {
 
             byte[] bytes = serializer.serialize(subject, record);
             Object deserialized = deserializer.deserialize(subject, bytes);
@@ -262,9 +246,10 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             return null;
         });
     }
-    
+
     /**
      * Test for issue: https://github.com/Apicurio/apicurio-registry/issues/536
+     *
      * @param supplier
      * @throws Exception
      */
@@ -272,7 +257,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testGlobalRule() throws Exception {
         RegistryRestClient apicurioClient = client;
         SchemaRegistryClient client = buildClient();
-        
+
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
@@ -289,7 +274,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             Assertions.assertNotNull(schema2);
             return schema2;
         });
-        
+
         // try to register an incompatible schema
         Assertions.assertThrows(RestClientException.class, () -> {
             ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
@@ -297,31 +282,30 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             client.reset();
         });
     }
-    
-    
+
 
     @Test
     public void testConverter_PreRegisterSchema() {
         String subject = generateArtifactId();
         String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
         testConverter(
-            subject,
-            name,
-            false,
-            (client) -> {
-                try {
-                    ParsedSchema schema = new AvroSchema(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
-                    int id = client.register(subject + "-value", schema);
-                    client.reset();
-                    // can be async ...
-                    ParsedSchema retry = retry(() -> client.getSchemaById(id));
-                    Assertions.assertNotNull(retry);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
+                subject,
+                name,
+                false,
+                (client) -> {
+                    try {
+                        ParsedSchema schema = new AvroSchema(String.format("{\"type\":\"record\",\"name\":\"%s\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}],\"connect.name\":\"%s\"}", name, name));
+                        int id = client.register(subject + "-value", schema);
+                        client.reset();
+                        // can be async ...
+                        ParsedSchema retry = retry(() -> client.getSchemaById(id));
+                        Assertions.assertNotNull(retry);
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                },
+                (c, b) -> {
                 }
-            },
-            (c, b) -> {
-            }
         );
     }
 
@@ -329,25 +313,25 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testConverter_AutoRegisterSchema() {
         String name = "myr" + ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE);
         testConverter(
-            generateArtifactId(),
-            name,
-            true,
-            (c) -> {
-            },
-            (client, bytes) -> {
-                try {
-                    client.reset();
-                    ParsedSchema retry = retry(() -> {
-                        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                        buffer.get(); // magic-byte
-                        int id = buffer.getInt();
-                        return client.getSchemaById(id);
-                    });
-                    Assertions.assertNotNull(retry);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
+                generateArtifactId(),
+                name,
+                true,
+                (c) -> {
+                },
+                (client, bytes) -> {
+                    try {
+                        client.reset();
+                        ParsedSchema retry = retry(() -> {
+                            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                            buffer.get(); // magic-byte
+                            int id = buffer.getInt();
+                            return client.getSchemaById(id);
+                        });
+                        Assertions.assertNotNull(retry);
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
                 }
-            }
         );
     }
 
@@ -357,8 +341,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         pre.accept(client);
 
         org.apache.kafka.connect.data.Schema cs =
-            org.apache.kafka.connect.data.SchemaBuilder.struct()
-                                                       .name(name).field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
+                org.apache.kafka.connect.data.SchemaBuilder.struct()
+                        .name(name).field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA);
         Struct struct = new Struct(cs);
         struct.put("bar", "somebar");
 

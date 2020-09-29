@@ -17,17 +17,15 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import io.apicurio.registry.utils.ConcurrentUtil;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+
+import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Register artifacts against registry.
@@ -49,9 +47,9 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
             }
         } catch (Exception e) {
             throw new IllegalStateException(String.format(
-                "Error [%s] registering artifact: %s",
-                e.getMessage(),
-                artifactId)
+                    "Error [%s] registering artifact: %s",
+                    e.getMessage(),
+                    artifactId)
             );
         }
     }
@@ -73,18 +71,18 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
 
                 ArtifactMetaData amd = register(kvp.getKey(), at, kvp.getValue());
                 getLog().info(
-                    String.format(
-                        "Registered artifact [%s] with global id %s, version %s",
-                        kvp.getKey(),
-                        amd.getGlobalId(),
-                        amd.getVersion()
-                    ));
+                        String.format(
+                                "Registered artifact [%s] with global id %s, version %s",
+                                kvp.getKey(),
+                                amd.getGlobalId(),
+                                amd.getVersion()
+                        ));
                 artifactVersions.put(kvp.getKey(), amd.getVersion());
             } catch (Exception e) {
                 errors++;
                 getLog().error(
-                    String.format("Exception while registering id [%s]", kvp.getKey()),
-                    e
+                        String.format("Exception while registering id [%s]", kvp.getKey()),
+                        e
                 );
             }
         }

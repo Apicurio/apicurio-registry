@@ -1,23 +1,7 @@
 package io.apicurio.registry.cluster;
 
-import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-
+import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.AuthProvider;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.cluster.support.ClusterUtils;
@@ -38,10 +22,27 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.quarkus.runtime.configuration.QuarkusConfigFactory;
 import io.smallrye.config.SmallRyeConfig;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+
+import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 /**
  * @author Ales Justin
  */
+
 public class ClusterIT {
 
     @BeforeAll
@@ -77,8 +78,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -176,8 +177,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api", new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api", new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();

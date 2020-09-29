@@ -278,7 +278,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.NONE.name());
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -289,7 +289,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get a single rule by name
         TestUtils.retry(() -> {
-            given()
+            givenAuthenticated()
                 .when()
                     .get("/rules/COMPATIBILITY")
                 .then()

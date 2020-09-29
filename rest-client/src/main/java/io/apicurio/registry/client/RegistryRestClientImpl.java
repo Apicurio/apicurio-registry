@@ -17,13 +17,6 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.client.request.AuthenticationInterceptor;
-import io.apicurio.registry.rest.beans.*;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.client.request.HeadersInterceptor;
 import io.apicurio.registry.client.request.RequestHandler;
 import io.apicurio.registry.client.service.ArtifactsService;

@@ -107,7 +107,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Create artifact with empty content (should fail)
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyContent")
@@ -188,7 +188,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
 
         // Try to update an artifact with empty content
-        given()
+        givenAuthenticated()
             .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())

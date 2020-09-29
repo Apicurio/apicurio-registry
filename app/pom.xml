@@ -375,9 +375,8 @@
         <profile>
             <id>docker-keycloak</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
-                    <name>docker</name>
+                    <name>!skipTests</name>
                 </property>
             </activation>
             <properties>
@@ -460,6 +459,5 @@
                 </plugins>
             </build>
         </profile>
-
     </profiles>
 </project>

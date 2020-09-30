@@ -78,6 +78,8 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
             Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
             this.validationEnabled = Utils.isTrue(ve);
         }
+        
+        // TODO allow the schema to be configured here
     }
 
     protected SchemaCache<SchemaValidator> getSchemaCache() {

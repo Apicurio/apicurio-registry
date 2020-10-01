@@ -13,6 +13,8 @@
 // * Downstream-only content agged with ifdef::rh-service-registry[]...endif::[]
 // Untagged content is common
 
+
+
 // upstream
 :apicurio-registry:
 :registry: Apicurio Registry
@@ -22,10 +24,12 @@
 // downstream 
 //:rh-service-registry:
 //:registry: Service Registry
+//:ServiceRegistryName: Apicurio Registry
 //:kafka-streams: AMQ Streams
 //:registry-version: 1.0
-:registry-ocp-version: 4.4
-:version: 2020-Q2
+:registry-ocp-version: 4.5
+:version: 2020-Q3
+:context: registry
 
 //integration products
 :fuse-version: 7.7

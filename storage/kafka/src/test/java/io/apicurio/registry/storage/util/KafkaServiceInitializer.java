@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.util;
 
+import io.apicurio.registry.auth.KeycloakResourceManager;
 import io.apicurio.registry.test.utils.KafkaTestContainerManager;
 import io.apicurio.registry.util.ClusterInitializer;
 import io.apicurio.registry.util.ServiceInitializer;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -21,10 +23,12 @@ import java.util.Set;
  * @author Ales Justin
  */
 @QuarkusTestResource(KafkaTestContainerManager.class)
+@QuarkusTestResource(KeycloakResourceManager.class)
 public class KafkaServiceInitializer implements ServiceInitializer, ClusterInitializer {
     private static final Logger log = LoggerFactory.getLogger(KafkaServiceInitializer.class);
 
     private KafkaTestContainerManager manager;
+    private KeycloakResourceManager keycloakResourceManager;
 
     @Override
     public void beforeAll(@Observes @Initialized(ApplicationScoped.class) Object event) throws Exception {
@@ -44,14 +48,21 @@ public class KafkaServiceInitializer implements ServiceInitializer, ClusterIniti
 
     @Override
     public Map<String, String> startCluster() {
+        final Map<String, String> properties = new HashMap<>();
         manager = new KafkaTestContainerManager();
-        return manager.start();
+        keycloakResourceManager = new KeycloakResourceManager();
+        properties.putAll(manager.start());
+        properties.putAll(keycloakResourceManager.start());
+        return properties;
     }
 
     @Override
     public void stopCluster() {
         if (manager != null) {
             manager.stop();
+        }
+        if (keycloakResourceManager != null) {
+            keycloakResourceManager.stop();
         }
     }
 }

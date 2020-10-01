@@ -26,7 +26,6 @@ import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.quarkus.runtime.configuration.QuarkusConfigFactory;
-import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.config.SmallRyeConfig;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
@@ -52,7 +51,6 @@ import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProper
  * @author Ales Justin
  */
 
-@QuarkusTest
 public class ClusterIT {
 
     @BeforeAll

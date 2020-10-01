@@ -1,6 +1,5 @@
 // Module included in the following assemblies:
-//
-// assembly-service-registry.adoc
+//  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-register-{context}']
 = Registering a schema to {registry}

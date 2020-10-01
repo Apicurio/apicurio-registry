@@ -105,6 +105,16 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/detect"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create artifact with empty content (should fail)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyContent")
+                .body("")
+                .post("/artifacts")
+            .then()
+                .statusCode(400);
     }
 
     @Test
@@ -176,6 +186,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .put("/artifacts/{artifactId}")
             .then()
                 .statusCode(404);
+
+        // Try to update an artifact with empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body("")
+                .put("/artifacts/{artifactId}")
+            .then()
+                .statusCode(400);
     }
     
     @Test
@@ -321,6 +342,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(404);
+        
+        // Try to create a new version of the artifact with empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body("")
+                .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(400);
+
     }
     
     @Test
@@ -434,6 +467,17 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
 
         // Should return the same meta-data
         Assertions.assertEquals(globalId1, globalId2);
+
+        // Get meta-data by empty content
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .body("")
+                .post("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(400);
+        
     }
 
     @Test
@@ -686,7 +730,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             Map<String, String> expectedProperties = new HashMap<>();
             expectedProperties.put("additionalProp1", "Empty API additional property");
 
-            given()
+            int version = given()
                 .when()
                     .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                     .get("/artifacts/{artifactId}/meta")
@@ -697,7 +741,22 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("name", equalTo("Empty API Name"))
                     .body("description", equalTo("Empty API description."))
                     .body("labels", equalToObject(expectedLabels))
-                    .body("properties", equalToObject(expectedProperties));
+                    .body("properties", equalToObject(expectedProperties))
+                .extract().body().path("version");
+            
+            // Make sure the version specific meta-data also returns all the custom meta-data
+            given()
+                .when()
+                    .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                    .pathParam("version", version)
+                    .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200)
+                    .body("name", equalTo("Empty API Name"))
+                    .body("description", equalTo("Empty API description."))
+                    .body("labels", equalToObject(expectedLabels))
+                    .body("properties", equalToObject(expectedProperties))
+                .extract().body().path("version");
         });
         
         // Update the artifact content and then make sure the name/description meta-data is still available

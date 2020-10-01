@@ -16,6 +16,8 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
@@ -23,6 +25,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import javax.enterprise.inject.Instance;
@@ -44,11 +47,20 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @Inject
     Instance<ServiceInitializer> initializers;
+    
+    protected static String registryUrl;
+    protected static RegistryRestClient client;
+    
+    @BeforeAll
+    protected static void beforeAll() throws Exception {
+        registryUrl = "http://localhost:8081/api";
+        client = RegistryRestClientFactory.create(registryUrl);
+    }
 
     @BeforeEach
     protected void beforeEach() throws Exception {
-        RestAssured.baseURI = "http://localhost:8081/api";
-        
+        RestAssured.baseURI = registryUrl;
+
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);
 

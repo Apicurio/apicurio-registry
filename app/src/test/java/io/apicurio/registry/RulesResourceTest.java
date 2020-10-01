@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -264,6 +265,34 @@ public class RulesResourceTest extends AbstractResourceTestBase {
                     .contentType(ContentType.JSON)
                     .body("error_code", equalTo(404))
                     .body("message", equalTo("No rule named 'VALIDITY' was found."));
+        });
+    }
+    
+    @Test
+    public void testCompatilibityLevelNone() throws Exception {
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.NONE.name());
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .post("/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get a single rule by name
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("NONE"));
         });
     }
 

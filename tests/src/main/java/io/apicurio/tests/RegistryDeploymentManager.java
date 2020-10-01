@@ -82,8 +82,10 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
+        if (context.getExecutionException().isPresent()) {
+            LOGGER.error("Test failed with error:", context.getExecutionException().get());
+        }
         if (!TestUtils.isExternalRegistry() && context.getExecutionException().isPresent()) {
-            LOGGER.info("Test failed");
             Path logsPath = RegistryUtils.getLogsPath(context.getRequiredTestClass(), context.getDisplayName());
             registry.stopAndCollectLogs(logsPath);
         }

@@ -16,11 +16,13 @@
 
 package io.apicurio.tests;
 
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.tests.RegistryRestClientExtension;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.interfaces.TestSeparator;
@@ -50,10 +52,11 @@ import java.util.stream.Collectors;
 
 @DisplayNameGeneration(SimpleDisplayName.class)
 @ExtendWith(RegistryDeploymentManager.class)
+@ExtendWith(RegistryRestClientExtension.class)
 public abstract class BaseIT implements TestSeparator, Constants {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
-    protected static KafkaFacade kafkaCluster = new KafkaFacade();
+    protected static KafkaFacade kafkaCluster = KafkaFacade.getInstance();
 
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
@@ -80,7 +83,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         }
     }
 
-    protected Map<String, String> createMultipleArtifacts(RegistryService apicurioService, int count) throws Exception {
+    protected Map<String, String> createMultipleArtifacts(RegistryRestClient apicurioService, int count) throws Exception {
         Map<String, String> idMap = new HashMap<>();
 
         for (int x = 0; x < count; x++) {
@@ -89,10 +92,9 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.AVRO, artifactId, null, artifactData);
+            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, ArtifactType.AVRO, null, artifactData);
 
             // Make sure artifact is fully registered
-            ArtifactMetaData amd = ConcurrentUtil.result(csResult);
             TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
             LOGGER.info("Created record with name: {} and ID: {}", amd.getName(), amd.getId());
@@ -102,7 +104,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
         return idMap;
     }
 
-    protected void deleteMultipleArtifacts(RegistryService apicurioService, Map<String, String> idMap) {
+    protected void deleteMultipleArtifacts(RegistryRestClient apicurioService, Map<String, String> idMap) {
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
             apicurioService.deleteArtifact(entry.getValue());
             LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());

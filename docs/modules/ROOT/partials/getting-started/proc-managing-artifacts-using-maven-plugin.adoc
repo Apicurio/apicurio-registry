@@ -8,6 +8,7 @@
 
 .Prerequisites
 
+* See {registry-overview}
 * {registry} must be installed and running in your environment
 * Maven must be installed and configured in your environment
 

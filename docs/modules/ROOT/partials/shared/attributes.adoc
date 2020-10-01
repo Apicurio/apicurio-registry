@@ -50,3 +50,12 @@ include::attributes-links.adoc[]
 :download-url-registry-source-code: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2 
 :download-url-registry-kafka-connect: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
 :download-url-registry-custom-resources: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
+
+// internal links
+:registry-overview: xref:registry-overview[]
+:registry-rules: xref:registry-rules[]
+:registry-artifact-types: xref:registry-artifact-types[]
+:registry-rule-types: xref:registry-rule-types[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui[]
+:installing-the-registry-docker: xref:installing-the-registry-docker[]
+:installing-the-registry-openshift: xref:installing-the-registry[]

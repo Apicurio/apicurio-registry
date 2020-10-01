@@ -25,30 +25,30 @@ import java.util.List;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public interface RegistryRestClient {
+public interface RegistryRestClient extends AutoCloseable {
 
     List<String> listArtifacts();
 
 
-    ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, IfExistsType ifExists, InputStream data);
+    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExists, InputStream data);
 
 
     InputStream getLatestArtifact(String artifactId);
 
 
-    ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
+    ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data);
 
 
     void deleteArtifact(String artifactId);
 
 
-    void updateArtifactState(String artifactId, UpdateState data);
+    void updateArtifactState(String artifactId, UpdateState newState);
 
 
     ArtifactMetaData getArtifactMetaData(String artifactId);
 
 
-    void updateArtifactMetaData(String artifactId, EditableMetaData data);
+    void updateArtifactMetaData(String artifactId, EditableMetaData metaData);
 
 
     ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data);
@@ -57,43 +57,43 @@ public interface RegistryRestClient {
     List<Long> listArtifactVersions(String artifactId);
 
 
-    VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
+    VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data);
 
 
-    InputStream getArtifactVersion(Integer version, String artifactId);
+    InputStream getArtifactVersion(String artifactId, Integer version);
 
 
-    void updateArtifactVersionState(Integer version, String artifactId, UpdateState data);
+    void updateArtifactVersionState(String artifactId, Integer version, UpdateState newState);
 
 
-    VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId);
+    VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version);
 
 
-    void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data);
+    void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData metaData);
 
 
-    void deleteArtifactVersionMetaData(Integer version, String artifactId);
+    void deleteArtifactVersionMetaData(String artifactId, Integer version);
 
 
     List<RuleType> listArtifactRules(String artifactId);
 
 
-    void createArtifactRule(String artifactId, Rule data);
+    void createArtifactRule(String artifactId, Rule ruleConfig);
 
 
     void deleteArtifactRules(String artifactId);
 
 
-    Rule getArtifactRuleConfig(RuleType rule, String artifactId);
+    Rule getArtifactRuleConfig(String artifactId, RuleType ruleType);
 
 
-    Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data);
+    Rule updateArtifactRuleConfig(String artifactId, RuleType ruleType, Rule ruleConfig);
 
 
-    void deleteArtifactRule(RuleType rule, String artifactId);
+    void deleteArtifactRule(String artifactId, RuleType ruleType);
 
 
-    void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data);
+    void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data);
 
 
     InputStream getArtifactByGlobalId(long globalId);
@@ -102,13 +102,13 @@ public interface RegistryRestClient {
     ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId);
 
 
-    Rule getGlobalRuleConfig(RuleType rule);
+    Rule getGlobalRuleConfig(RuleType ruleType);
 
 
-    Rule updateGlobalRuleConfig(RuleType rule, Rule data);
+    Rule updateGlobalRuleConfig(RuleType ruleType, Rule data);
 
 
-    void deleteGlobalRule(RuleType rule);
+    void deleteGlobalRule(RuleType ruleType);
 
 
     List<RuleType> listGlobalRules();
@@ -120,7 +120,7 @@ public interface RegistryRestClient {
     void deleteAllGlobalRules();
 
 
-    ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order);
+    ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit);
 
 
     VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit);

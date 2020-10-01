@@ -1,0 +1,16 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="using-the-registry-client"]
+= Using the {registry} Java client
+
+This chapter explains how to use the {registry} Java client:
+
+* xref:registry-client-intro[]
+* xref:writing-registry-client[]
+* xref:registry-client-types[]
+
+//INCLUDES
+include::{mod-loc}getting-started/con-registry-client.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-writing-registry-client.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-client.adoc[leveloffset=+1]

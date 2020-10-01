@@ -16,7 +16,16 @@
  */
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -48,16 +57,16 @@ public class CompatibleClient implements RegistryService {
         this.delegate = RegistryRestClientFactory.create(baseUrl);
     }
 
-    private CompatibleClient(String baseUrl, Map<String, String> requestHeaders) {
-        this.delegate = RegistryRestClientFactory.create(baseUrl, requestHeaders);
+    private CompatibleClient(String baseUrl, Map<String, Object> configs) {
+        this.delegate = RegistryRestClientFactory.create(baseUrl, configs);
     }
 
     public static RegistryService createCompatible(String baseUrl) {
         return new CompatibleClient(baseUrl);
     }
 
-    public static RegistryService createCompatible(String baseUrl, Map<String, String> requestHeaders) {
-        return new CompatibleClient(baseUrl, requestHeaders);
+    public static RegistryService createCompatible(String baseUrl, Map<String, Object> configs) {
+        return new CompatibleClient(baseUrl, configs);
     }
 
     @Override
@@ -67,7 +76,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType, String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
-        return CompletableFuture.completedFuture(delegate.createArtifact(xRegistryArtifactType, xRegistryArtifactId, ifExists, data));
+        return CompletableFuture.completedFuture(delegate.createArtifact(xRegistryArtifactId, xRegistryArtifactType, ifExists, data));
     }
 
     @Override
@@ -117,27 +126,27 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        return parseResponse(delegate.getArtifactVersion(version, artifactId));
+        return parseResponse(delegate.getArtifactVersion(artifactId, version));
     }
 
     @Override
     public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
-        delegate.updateArtifactVersionState(version, artifactId, data);
+        delegate.updateArtifactVersionState(artifactId, version, data);
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        return delegate.getArtifactVersionMetaData(version, artifactId);
+        return delegate.getArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
-        delegate.updateArtifactVersionMetaData(version, artifactId, data);
+        delegate.updateArtifactVersionMetaData(artifactId, version, data);
     }
 
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        delegate.deleteArtifactVersionMetaData(version, artifactId);
+        delegate.deleteArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
@@ -157,17 +166,17 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public Rule getArtifactRuleConfig(RuleType rule, String artifactId) {
-        return delegate.getArtifactRuleConfig(rule, artifactId);
+        return delegate.getArtifactRuleConfig(artifactId, rule);
     }
 
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data) {
-        return delegate.updateArtifactRuleConfig(rule, artifactId, data);
+        return delegate.updateArtifactRuleConfig(artifactId, rule, data);
     }
 
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
-        delegate.deleteArtifactRule(rule, artifactId);
+        delegate.deleteArtifactRule(artifactId, rule);
     }
 
     @Override
@@ -217,7 +226,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver over, SortOrder order) {
-        return delegate.searchArtifacts(search, offset, limit, over, order);
+        return delegate.searchArtifacts(search, over, order, offset, limit);
     }
 
     @Override
@@ -227,7 +236,7 @@ public class CompatibleClient implements RegistryService {
 
     @Override
     public void close() throws Exception {
-
+        delegate.close();
     }
 
     @Override

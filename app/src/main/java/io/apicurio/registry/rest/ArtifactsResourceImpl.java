@@ -17,6 +17,40 @@
 
 package io.apicurio.registry.rest;
 
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -40,6 +74,7 @@ import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -50,38 +85,6 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ProtoUtil;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
-
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -98,6 +101,8 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     private static final Logger log = LoggerFactory.getLogger(ArtifactsResourceImpl.class);
+
+    private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
 
     @Inject
     @Current
@@ -281,6 +286,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
+
         String ct = getContentType();
         if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
@@ -297,6 +306,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
                                                             String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
+        
         String ct = getContentType();
         final ContentHandle finalContent = content;
         try {
@@ -339,7 +352,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Response getLatestArtifact(String artifactId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
-        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+        if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(artifactId);
         }
         StoredArtifact artifact = storage.getArtifact(artifactId);
@@ -382,6 +395,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
         return updateArtifactInternal(artifactId, xRegistryArtifactType, content, getContentType())
                 .thenCompose(amdd -> indexArtifact(artifactId, content, amdd));
     }
@@ -410,6 +426,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
         String ct = getContentType();
         if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
@@ -428,9 +447,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
-        if(ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new ArtifactNotFoundException(artifactId);
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(artifactId, version);
+        if (ArtifactState.DISABLED.equals(metaData.getState())) {
+            throw new VersionNotFoundException(artifactId, version);
         }
         StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
 
@@ -526,6 +545,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
         if (ContentTypeUtil.isApplicationYaml(getContentType())) {
             content = ContentTypeUtil.yamlToJson(content);
         }

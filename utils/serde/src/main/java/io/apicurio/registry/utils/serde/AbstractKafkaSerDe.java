@@ -17,26 +17,26 @@
 
 package io.apicurio.registry.utils.serde;
 
-import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.utils.serde.util.HeaderUtils;
-import org.apache.kafka.common.errors.SerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.client.CompatibleClient;
 import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.request.Config;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
 import io.apicurio.registry.utils.serde.strategy.IdHandler;
 import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
+import org.apache.kafka.common.errors.SerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Common class for both serializer and deserializer.
@@ -57,7 +57,15 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
     // Constants for using headers to store the ids
     public static final String USE_HEADERS = "apicurio.registry.use.headers";
 
-    public static final String HEADER_REQUEST_PREFIX = "apicurio.registry.request.headers.";
+    // Copy the RestClient config keys here so all config keys can be accessed from this class
+    public static final String REGISTRY_REQUEST_HEADERS_PREFIX = Config.REGISTRY_REQUEST_HEADERS_PREFIX;
+    public static final String REGISTRY_REQUEST_TRUSTSTORE_LOCATION = Config.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+    public static final String REGISTRY_REQUEST_TRUSTSTORE_TYPE = Config.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+    public static final String REGISTRY_REQUEST_TRUSTSTORE_PASSWORD = Config.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+    public static final String REGISTRY_REQUEST_KEYSTORE_LOCATION = Config.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+    public static final String REGISTRY_REQUEST_KEYSTORE_TYPE = Config.REGISTRY_REQUEST_KEYSTORE_TYPE;
+    public static final String REGISTRY_REQUEST_KEYSTORE_PASSWORD = Config.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+    public static final String REGISTRY_REQUEST_KEY_PASSWORD = Config.REGISTRY_REQUEST_KEY_PASSWORD;
 
     public static final byte MAGIC_BYTE = 0x0;
     protected boolean key; // do we handle key or value with this ser/de?
@@ -111,17 +119,9 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             if (baseUrl == null) {
                 throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
             }
-            // Check if any request headers for the client have been set in the config
-            Map<String, String> requestHeaders = configs.entrySet().stream()
-                    .filter(map -> map.getKey().startsWith(HEADER_REQUEST_PREFIX))
-                    .collect(Collectors.toMap(map -> map.getKey()
-                            .replace(HEADER_REQUEST_PREFIX, ""), map -> map.getValue().toString()));
+
             try {
-                if (requestHeaders.size()>0) {
-                    client = CompatibleClient.createCompatible(baseUrl, requestHeaders);
-                } else {
-                    client = CompatibleClient.createCompatible(baseUrl);
-                }
+                client = CompatibleClient.createCompatible(baseUrl, new HashMap<>(configs));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -139,6 +139,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         }
         key = isKey;
     }
+
 
     protected <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
         if (value != null) {

@@ -1,0 +1,8 @@
+// Metadata created by nebel
+
+[id="registry-client-intro"]
+= {registry} Java client overview
+
+You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes...  
+
+More TBD

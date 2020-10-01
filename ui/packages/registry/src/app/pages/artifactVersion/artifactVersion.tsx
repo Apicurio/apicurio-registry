@@ -66,6 +66,20 @@ export interface ArtifactVersionPageState extends PageState {
     invalidContentError: any | null;
 }
 
+function is404(e: any) {
+    if (typeof e === "string") {
+        try {
+            const eo: any = JSON.parse(e);
+            if (eo && eo.error_code && eo.error_code === 404) {
+                return true;
+            }
+        } catch (e) {
+            // Do nothing
+        }
+    }
+    return false;
+}
+
 /**
  * The artifacts page.
  */
@@ -198,7 +212,17 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
         return [
             Services.getArtifactsService().getArtifactMetaData(artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
-            Services.getArtifactsService().getArtifactContent(artifactId, this.version()).then(content => this.setSingleState("artifactContent", content)),
+            Services.getArtifactsService().getArtifactContent(artifactId, this.version())
+                .then(content => this.setSingleState("artifactContent", content))
+                .catch(e => {
+                    Services.getLoggerService().warn("Failed to get artifact content: ", e);
+                    if (is404(e)) {
+                        this.setSingleState("artifactContent", "Artifact version content not available (404 Not Found).");
+                    } else {
+                        throw e;
+                    }
+                }
+            ),
             Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules)),
             Services.getArtifactsService().getArtifactVersions(artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
         ];
@@ -222,7 +246,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private showDocumentationTab(): boolean {
         if (this.state.artifact) {
-            return this.state.artifact.type === "OPENAPI";
+            return this.state.artifact.type === "OPENAPI" && this.state.artifact.state !== "DISABLED";
         } else {
             return false;
         }

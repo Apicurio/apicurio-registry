@@ -15,7 +15,6 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
@@ -26,14 +25,14 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -41,9 +40,7 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
@@ -54,9 +51,9 @@ class ArtifactsIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
-    @RegistryServiceTest
+    @Test
     @Tag(ACCEPTANCE)
-    void createAndUpdateArtifact(RegistryService service) throws Exception {
+    void createAndUpdateArtifact(RegistryRestClient service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
@@ -76,7 +73,7 @@ class ArtifactsIT extends BaseIT {
         ArtifactMetaData amd1 = metaData;
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
-        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
+        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.getString("name"), response);
 
@@ -95,7 +92,7 @@ class ArtifactsIT extends BaseIT {
         ArtifactMetaData amd2 = metaData;
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
+        response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
@@ -104,15 +101,15 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems(1L, 2L));
 
-        response = new JsonObject(service.getArtifactVersion(1, artifactId).readEntity(String.class));
+        response = new JsonObject(IoUtil.toString(service.getArtifactVersion(artifactId, 1)));
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
 
         assertThat(response.getJsonArray("fields").getJsonObject(0).getString("name"), is("foo"));
     }
 
-    @RegistryServiceTest
-    void createAndDeleteMultipleArtifacts(RegistryService service) throws Exception {
+    @Test
+    void createAndDeleteMultipleArtifacts(RegistryRestClient service) throws Exception {
         LOGGER.info("Creating some artifacts...");
         Map<String, String> idMap = createMultipleArtifacts(service, 10);
         LOGGER.info("Created  {} artifacts", idMap.size());
@@ -124,28 +121,27 @@ class ArtifactsIT extends BaseIT {
         }
     }
 
-    @RegistryServiceTest
+    @Test
     @Tag(ACCEPTANCE)
-    void createNonAvroArtifact(RegistryService service) throws Exception {
+    void createNonAvroArtifact(RegistryRestClient service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        CompletionStage<ArtifactMetaData> csResult = service.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+        ArtifactMetaData amd = service.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
         // Make sure artifact is fully registered
-        ArtifactMetaData amd = ConcurrentUtil.result(csResult);
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        JsonObject response = new JsonObject(service.getLatestArtifact(artifactId).readEntity(String.class));
+        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
         assertThat(response.getString("type"), is("INVALID"));
         assertThat(response.getString("config"), is("invalid"));
     }
 
-    @RegistryServiceTest
-    void createArtifactSpecificVersion(RegistryService service) throws Exception {
+    @Test
+    void createArtifactSpecificVersion(RegistryRestClient service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
@@ -167,9 +163,9 @@ class ArtifactsIT extends BaseIT {
         assertThat(artifactVersions, hasItems(1L, 2L));
     }
 
-    @RegistryServiceTest
+    @Test
     @Tag(ACCEPTANCE)
-    void testDuplicatedArtifact(RegistryService service) throws Exception {
+    void testDuplicatedArtifact(RegistryRestClient service) throws Exception {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
@@ -179,8 +175,9 @@ class ArtifactsIT extends BaseIT {
         TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, iad), true);
     }
 
-    @RegistryServiceTest
-    void testDisableEnableArtifact(RegistryService service) throws Exception {
+    @Test
+    @Tag(ACCEPTANCE)
+    void testDisableEnableArtifact(RegistryRestClient service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
@@ -200,7 +197,11 @@ class ArtifactsIT extends BaseIT {
         service.updateArtifactState(artifactId, data);
 
         // Verify (expect 404)
-        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId), true);
+        TestUtils.retry(() -> {
+            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            TestUtils.assertWebError(404, () -> service.getLatestArtifact(artifactId), true);
+        });
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
@@ -213,8 +214,8 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest
-    void testDisableEnableArtifactVersion(RegistryService service) throws Exception {
+    @Test
+    void testDisableEnableArtifactVersion(RegistryRestClient service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -236,28 +237,28 @@ class ArtifactsIT extends BaseIT {
         // Disable v3
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        service.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(artifactId, v3MD.getVersion(), data);
 
         // Verify artifact
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
-            assertEquals(ArtifactState.ENABLED, actualMD.getState());
-            assertEquals(2, actualMD.getVersion()); // version 2 is active (3 is disabled)
+            assertEquals(ArtifactState.DISABLED, actualMD.getState());
+            assertEquals(3, actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
-        service.updateArtifactVersionState(v3MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(artifactId, v3MD.getVersion(), data);
 
         TestUtils.retry(() -> {
             // Verify artifact (now v3)
@@ -266,19 +267,19 @@ class ArtifactsIT extends BaseIT {
             assertEquals(3, actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
 
-    @RegistryServiceTest
-    void testDeprecateArtifact(RegistryService service) throws Exception {
+    @Test
+    void testDeprecateArtifact(RegistryRestClient service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
@@ -306,8 +307,8 @@ class ArtifactsIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest
-    void testDeprecateArtifactVersion(RegistryService service) throws Exception {
+    @Test
+    void testDeprecateArtifactVersion(RegistryRestClient service) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactDataV2 = "{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -329,7 +330,7 @@ class ArtifactsIT extends BaseIT {
         // Deprecate v2
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        service.updateArtifactVersionState(v2MD.getVersion(), artifactId, data);
+        service.updateArtifactVersionState(artifactId, v2MD.getVersion(), data);
 
         TestUtils.retry(() -> {
             // Verify artifact
@@ -337,24 +338,24 @@ class ArtifactsIT extends BaseIT {
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(v1MD.getVersion(), artifactId);
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(v2MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(v3MD.getVersion(), artifactId);
+            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
 
-    @RegistryServiceTest
-    void deleteNonexistingSchema(RegistryService service) {
+    @Test
+    void deleteNonexistingSchema(RegistryRestClient service) {
         TestUtils.assertWebError(404, () -> service.deleteArtifact("non-existing"));
     }
 
     @AfterEach
-    void deleteRules(RegistryService service) throws Exception {
+    void deleteRules(RegistryRestClient service) throws Exception {
         service.deleteAllGlobalRules();
         TestUtils.retry(() -> {
             List<RuleType> rules = service.listGlobalRules();

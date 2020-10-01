@@ -17,12 +17,9 @@
 
 package io.apicurio.registry.client;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import okhttp3.Credentials;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -30,28 +27,14 @@ import okhttp3.OkHttpClient;
 public class RegistryRestClientFactory {
 
     public static RegistryRestClient create(String baseUrl) {
-        // Check if url includes user/password
-        // and add auth header if it does
-        HttpUrl url = HttpUrl.parse(baseUrl);
-        String user = url.encodedUsername();
-        String pwd = url.encodedPassword();
-        if (user != null) {
-            String credentials = Credentials.basic(user, pwd);
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Authorization", credentials);
-            return new RegistryRestClientImpl(baseUrl, headers);
-        } else {
-            return new RegistryRestClientImpl(baseUrl);
-        }
-
+        return new RegistryRestClientImpl(baseUrl);
     }
 
     public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {
         return new RegistryRestClientImpl(baseUrl, okHttpClient);
     }
 
-    public static RegistryRestClient create(String baseUrl, Map<String, String> headers) {
-        return new RegistryRestClientImpl(baseUrl, headers);
+    public static RegistryRestClient create(String baseUrl, Map<String, Object> configs) {
+        return new RegistryRestClientImpl(baseUrl, configs);
     }
-
 }

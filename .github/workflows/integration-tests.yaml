@@ -8,6 +8,14 @@ on:
       - 'README*'
       - 'docs/**'
     branches: [master]
+  pull_request:
+    paths-ignore:
+      - '.github/project.yaml'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [master]
 
 jobs:
   integration-tests:
@@ -33,11 +41,11 @@ jobs:
       - name: Build All Variants
         run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -pl !tests
       - name: Run Integration Tests - kafka streams
-        run: mvn verify -Psmoke -Pstreams -pl tests -Dmaven.javadoc.skip=true
+        run: mvn verify -Pacceptance -Pstreams -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress -PdisableSerdesTest
       - name: Run Integration Tests - jpa
-        run: mvn verify -Psmoke -Pjpa -pl tests -Dmaven.javadoc.skip=true
+        run: mvn verify -Pacceptance -Pjpa -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress -PdisableSerdesTest
       - name: Run Integration Tests - infinispan
-        run: mvn verify -Psmoke -Pinfinispan -pl tests -Dmaven.javadoc.skip=true
+        run: mvn verify -Pacceptance -Pinfinispan -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress -PdisableSerdesTest
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh

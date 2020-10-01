@@ -146,7 +146,7 @@ endif::[]
 . Enter `oc status` to view your {registry} installation on OpenShift. 
 
 .Additional resources
-* For sample REST API requests, see the link:files/registry-rest-api.htm[Registry REST API documentation].
+* For sample REST API requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 * For details on example client applications: 
 ** https://github.com/Apicurio/apicurio-registry-demo
 ifdef::rh-service-registry[]

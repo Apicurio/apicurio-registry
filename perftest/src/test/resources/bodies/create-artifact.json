@@ -1,0 +1,51 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Empty API",
+    "version": "1.0.7",
+    "description": "An example API design using OpenAPI."
+  },
+  "paths": {
+    "/widgets": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "description": "All widgets"
+          }
+        },
+        "summary": "Get widgets"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Widget": {
+        "title": "Root Type for Widget",
+        "description": "A sample data type.",
+        "type": "object",
+        "properties": {
+          "property-1": {
+            "type": "string"
+          },
+          "property-2": {
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "property-1": "value1",
+          "property-2": true
+        }
+      }
+    }
+  }
+}

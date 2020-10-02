@@ -1,0 +1,57 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-serde-{context}']
+= Kafka client applications and {registry}
+Using {registry} decouples schema management from client application configuration. You can enable an application to use a schema from the registry by specifying its URL in the client code.
+
+For example, you can store the schemas to serialize and deserialize messages in the registry, which are then referenced from the applications that use them to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
+
+Schemas can evolve, so you can define rules in {registry}, for example, to ensure that changes to a schema are valid and do not break previous versions used by applications. {registry} checks for compatibility by comparing a modified schema with previous schema versions.
+
+{registry} provides full schema registry support for Avro schemas,
+which are used by client applications through Kafka client serializer/deserializer (SerDe) services provided by {registry}.
+
+= Producer schema configuration
+
+A producer client application uses a serializer to put the messages that it sends to a specific broker topic into the correct data format.
+
+To enable a producer to use {registry} for serialization:
+
+* xref:registry-serdes-register-{context}[Define and register your schema with {registry}]
+* xref:registry-serdes-config-producer-{context}[Configure the producer client code]:
+
+** URL of {registry}
+** {registry} serializer to use with the messages
+** _Strategy_ to look up the schema used for serialization in {registry}
+
+After registering your schema, when you start Kafka and {registry},
+you can access the schema to format messages sent to the Kafka broker topic by the producer.
+
+If a schema already exists, you can create a new version using the REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves.An artifact ID and schema version represents a unique tuple that identifies a schema.
+
+= Consumer schema configuration
+A consumer client application uses a deserializer to get the messages that it consumes from a specific broker topic into the correct data format.
+
+To enable a consumer to use {registry} for deserialization:
+
+* xref:service-registry-register-{context}[Define and register your schema with {registry}]
+* xref:service-registry-config-consumer-{context}[Configure the consumer client code]:
+** URL of {registry}
+** {registry} deserializer to use with the messages
+** Input data stream for deserialization
+
+The schema is then retrieved by the deserializer using a global ID written into the message being consumed.
+The message received must, therefore, include a global ID as well as the message data.
+
+For example:
+
+[source,shell,subs="+quotes,attributes"]
+----
+# ...
+[MAGIC_BYTE]
+[GLOBAL_ID]
+[MESSAGE DATA]
+----
+
+Now, when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.

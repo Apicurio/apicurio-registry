@@ -3,7 +3,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="intro-to-registry-rules"]
-= Introduction to {registry} rules
+= {registry} content rules
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 This chapter introduces the optional rules used to govern registry content and provides details on the available rule types:

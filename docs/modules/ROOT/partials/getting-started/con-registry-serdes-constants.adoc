@@ -1,0 +1,74 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-constants-{context}']
+= {registry} serializer/deserializer constants
+
+You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly into a client using the constants outlined in this section.
+
+Alternatively, you can use specify the constants in a properties file, or a properties instance.
+
+[discrete]
+== Constants for serializer/deserializer services
+
+[source,java,subs="+quotes,attributes"]
+----
+public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implements AutoCloseable {
+   protected final Logger log = LoggerFactory.getLogger(getClass());
+
+   public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url"; <1>
+   public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached"; <2>
+   public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler"; <3>
+   public static final String REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.as-confluent"; <4>
+----
+<1> (Required) The URL of {registry}.
+<2> Allows the client to make the request and look up the information from a cache of previous results, to improve processing time.
+If the cache is empty, the lookup is performed from {registry}.
+<3> Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
+For example, changing the ID format from `Long` to `Integer` supports the Confluent ID format.
+<4> A flag to simplify the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
+
+[discrete]
+== Constants for lookup strategies
+
+[source,java,subs="+quotes,attributes"]
+----
+public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafkaStrategyAwareSerDe<T, S>> extends AbstractKafkaSerDe<S> {
+   public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id"; <1>
+   public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id"; <2>
+----
+<1> xref:service-registry-concepts-artifactid-{context}[ArtifactId strategy].
+<2> xref:service-registry-concepts-globalid-{context}[Global ID strategy].
+
+[discrete]
+== Constants for converters
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConverter<T>> implements Converter {
+   public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer"; <1>
+   public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer"; <2>
+----
+<1> (Required) Serializer to use with the converter.
+<2> (Required) Deserializer to use with the converter.
+
+[discrete]
+== Constants for Avro data providers
+
+[source,java,subs="+quotes,attributes"]
+----
+public interface AvroDatumProvider<T> {
+   String REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM = "apicurio.registry.avro-datum-provider"; <1>
+   String REGISTRY_USE_SPECIFIC_AVRO_READER_CONFIG_PARAM = "apicurio.registry.use-specific-avro-reader"; <2>
+----
+<1> Avro Datum provider to write data to a schema, with or without reflection.
+<2> Flag to set to use an Avro-specific datum reader.
+
+[discrete]
+[source,java,subs="+quotes,attributes"]
+----
+DefaultAvroDatumProvider (io.apicurio.registry.utils.serde.avro) <1>
+ReflectAvroDatumProvider (io.apicurio.registry.utils.serde.avro) <2>
+----
+<1> Default datum reader.
+<2> Datum reader using reflection.

@@ -15,30 +15,30 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.RegistryRestClientTest;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+
 @Tag(SMOKE)
 class AllArtifactTypesIT extends BaseIT {
 
-    void doTest(RegistryService service, String v1Resource, String v2Resource, ArtifactType atype) {
+    void doTest(RegistryRestClient client, String v1Resource, String v2Resource, ArtifactType atype) {
         String artifactId = TestUtils.generateArtifactId();
         try {
             // Load/Assert resources exist.
@@ -49,95 +49,95 @@ class AllArtifactTypesIT extends BaseIT {
             Rule rule = new Rule();
             rule.setType(RuleType.VALIDITY);
             rule.setConfig("SYNTAX_ONLY");
-            service.createGlobalRule(rule);
+            client.createGlobalRule(rule);
 
             // Make sure we have rule
-            TestUtils.retry(() -> service.getGlobalRuleConfig(rule.getType()));
+            TestUtils.retry(() -> client.getGlobalRuleConfig(rule.getType()));
 
             // Create artifact
-            ArtifactMetaData amd = ArtifactUtils.createArtifact(service, atype, artifactId, IoUtil.toStream(v1Content));
+            ArtifactMetaData amd = ArtifactUtils.createArtifact(client, atype, artifactId, IoUtil.toStream(v1Content));
             // Make sure artifact is fully registered
-            TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
             // Test update (valid content)
-            service.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
+            client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            TestUtils.assertWebError(400, () -> service.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            TestUtils.assertWebError(400, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
-            ArtifactUtils.updateArtifact(service, atype, artifactId, IoUtil.toStream(v2Content));
+            ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
 
             // Find artifact by content
-            ArtifactMetaData byContent = service.getArtifactMetaDataByContent(artifactId, IoUtil.toStream(v1Content));
+            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, IoUtil.toStream(v1Content));
             assertNotNull(byContent);
             assertNotNull(byContent.getGlobalId());
             assertEquals(artifactId, byContent.getId());
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            TestUtils.assertWebError(400, () -> ArtifactUtils.updateArtifact(service, atype, artifactId, IoUtil.toStream("This is not valid content.")));
+            TestUtils.assertWebError(400, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");
-            service.createArtifactRule(artifactId, rule);
+            client.createArtifactRule(artifactId, rule);
 
             // Make sure we have rule
-            TestUtils.retry(() -> service.getArtifactRuleConfig(rule.getType(), artifactId));
+            TestUtils.retry(() -> client.getArtifactRuleConfig(artifactId, rule.getType()));
 
             // Update artifact (invalid content) - should work now
-            ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(service, atype, artifactId, IoUtil.toStream("This is not valid content."));
+            ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content."));
             // Make sure artifact is fully registered
-            TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
         } catch (Exception e) {
             LOGGER.error("Error on AllArtifactTypesIT", e);
             throw new IllegalStateException(e);
         }
     }
 
-    @RegistryServiceTest
+    @RegistryRestClientTest
     @Tag(ACCEPTANCE)
-    void testAvro(RegistryService service) {
-        doTest(service, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
+    void testAvro(RegistryRestClient client) {
+        doTest(client, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
     }
 
-    @RegistryServiceTest
+    @RegistryRestClientTest
     @Tag(ACCEPTANCE)
-    void testProtobuf(RegistryService service) {
-        doTest(service, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
+    void testProtobuf(RegistryRestClient client) {
+        doTest(client, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
     }
 
-    @RegistryServiceTest
+    @RegistryRestClientTest
     @Tag(ACCEPTANCE)
-    void testJsonSchema(RegistryService service) {
-        doTest(service, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
+    void testJsonSchema(RegistryRestClient client) {
+        doTest(client, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
     }
 
-    @RegistryServiceTest
-    void testKafkaConnect(RegistryService service) {
-        doTest(service, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
+    @RegistryRestClientTest
+    void testKafkaConnect(RegistryRestClient client) {
+        doTest(client, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
     }
 
-    @RegistryServiceTest
-    void testOpenApi30(RegistryService service) {
-        doTest(service, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
+    @RegistryRestClientTest
+    void testOpenApi30(RegistryRestClient client) {
+        doTest(client, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
     }
 
-    @RegistryServiceTest
-    void testAsyncApi(RegistryService service) {
-        doTest(service, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
+    @RegistryRestClientTest
+    void testAsyncApi(RegistryRestClient client) {
+        doTest(client, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
     }
 
-    @RegistryServiceTest
-    void testGraphQL(RegistryService service) {
-        doTest(service, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
+    @RegistryRestClientTest
+    void testGraphQL(RegistryRestClient client) {
+        doTest(client, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
     }
 
     @AfterEach
-    void deleteRules(RegistryService service) throws Exception {
-        service.deleteAllGlobalRules();
+    void deleteRules(RegistryRestClient client) throws Exception {
+        client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            List<RuleType> rules = service.listGlobalRules();
+            List<RuleType> rules = client.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

@@ -16,21 +16,6 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import org.hamcrest.number.OrderingComparison;
-import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -40,23 +25,38 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.hamcrest.number.OrderingComparison;
+import org.junit.jupiter.api.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.RegistryRestClientTest;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.BaseIT;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+
 @Tag(SMOKE)
 class MetadataIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
-    @RegistryServiceTest
+    @RegistryRestClientTest
     @Tag(ACCEPTANCE)
-    void getAndUpdateMetadataOfArtifact(RegistryService service) throws Exception {
+    void getAndUpdateMetadataOfArtifact(RegistryRestClient client) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, artifactData);
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
+        ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
         assertThat(artifactMetaData.getCreatedOn(), OrderingComparison.greaterThan(0L));
@@ -70,10 +70,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        service.updateArtifactMetaData(artifactId, emd);
+        client.updateArtifactMetaData(artifactId, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -84,26 +84,26 @@ class MetadataIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest
-    void getAndUpdateMetadataOfArtifactSpecificVersion(RegistryService service) throws Exception {
+    @RegistryRestClientTest
+    void getAndUpdateMetadataOfArtifactSpecificVersion(RegistryRestClient client) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
+        ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, artifactData);
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactUpdateData);
+        metaData = ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        VersionMetaData versionMetaData = service.getArtifactVersionMetaData(2, artifactId);
+        VersionMetaData versionMetaData = client.getArtifactVersionMetaData(artifactId, 2);
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -115,10 +115,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        service.updateArtifactVersionMetaData(2, artifactId, emd);
+        client.updateArtifactVersionMetaData(artifactId, 2, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData artifactMetaData = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is(2));
             assertThat(artifactMetaData.getType().value(), is("AVRO"));
@@ -127,7 +127,7 @@ class MetadataIT extends BaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        versionMetaData = service.getArtifactVersionMetaData(1, artifactId);
+        versionMetaData = client.getArtifactVersionMetaData(artifactId, 1);
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is(1));

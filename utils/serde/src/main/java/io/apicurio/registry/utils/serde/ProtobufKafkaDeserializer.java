@@ -16,20 +16,21 @@
 
 package io.apicurio.registry.utils.serde;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.common.proto.Serde;
-import io.apicurio.registry.utils.IoUtil;
-import org.apache.kafka.common.header.Headers;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import javax.ws.rs.core.Response;
+
+import org.apache.kafka.common.header.Headers;
+
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -39,18 +40,13 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<byte[],
     public ProtobufKafkaDeserializer() {
     }
 
-    public ProtobufKafkaDeserializer(RegistryService client) {
+    public ProtobufKafkaDeserializer(RegistryRestClient client) {
         super(client);
     }
 
     @Override
-    protected byte[] toSchema(Response response) {
-        Object responseEntity = response.getEntity();
-        if (responseEntity instanceof InputStream) {
-            return IoUtil.toBytes((InputStream) responseEntity);
-        } else {
-            return response.readEntity(byte[].class);
-        }
+    protected byte[] toSchema(InputStream schemaData) {
+        return IoUtil.toBytes(schemaData);
     }
 
     @Override

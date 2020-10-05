@@ -17,8 +17,18 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.CompatibleClient;
-import io.apicurio.registry.client.RegistryService;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+import org.apache.kafka.common.errors.SerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.client.request.Config;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
@@ -28,15 +38,6 @@ import io.apicurio.registry.utils.serde.strategy.IdHandler;
 import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
 import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
-import org.apache.kafka.common.errors.SerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Common class for both serializer and deserializer.
@@ -72,7 +73,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     private IdHandler idHandler;
 
-    private RegistryService client;
+    private RegistryRestClient client;
 
     protected HeaderUtils headerUtils;
 
@@ -80,7 +81,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
     public AbstractKafkaSerDe() {
     }
 
-    public AbstractKafkaSerDe(RegistryService client) {
+    public AbstractKafkaSerDe(RegistryRestClient client) {
         this.client = client;
     }
 
@@ -121,7 +122,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             }
 
             try {
-                client = CompatibleClient.createCompatible(baseUrl, new HashMap<>(configs));
+                client = RegistryRestClientFactory.create(baseUrl, new HashMap<>(configs));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -178,14 +179,11 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         }
     }
 
-    protected RegistryService getClient() {
+    protected RegistryRestClient getClient() {
         return client;
     }
 
     public void reset() {
-        if (client != null) {
-            client.reset();
-        }
     }
 
     public void close() {
@@ -215,7 +213,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
             return amd.getGlobalId();
         } else {
-            VersionMetaData vmd = getClient().getArtifactVersionMetaData(version, artifactId);
+            VersionMetaData vmd = getClient().getArtifactVersionMetaData(artifactId, version);
             return vmd.getGlobalId();
         }
     }

@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
@@ -18,8 +17,8 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.client.RegistryClient;
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.cluster.support.ClusterUtils;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
@@ -31,7 +30,6 @@ import io.apicurio.registry.support.HealthResponse;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -78,8 +76,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryService client1 = RegistryClient.create("http://localhost:8080/api");
-        RegistryService client2 = RegistryClient.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -87,7 +85,7 @@ public class ClusterIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-        CompletionStage<ArtifactMetaData> cs = client1.createArtifact(ArtifactType.JSON, artifactId, null, stream);
+        long globalId = client1.createArtifact(artifactId, ArtifactType.JSON, null, stream).getGlobalId();
         try {
             TestUtils.retry(() -> {
                 ArtifactMetaData amd = client2.getArtifactMetaData(artifactId);
@@ -103,7 +101,7 @@ public class ClusterIT {
             client1.updateArtifactMetaData(artifactId, emd);
 
             TestUtils.retry(() -> {
-                ArtifactMetaData amd = client2.getArtifactMetaDataByGlobalId(ConcurrentUtil.result(cs).getGlobalId());
+                ArtifactMetaData amd = client2.getArtifactMetaDataByGlobalId(globalId);
                 Assertions.assertEquals(name, amd.getName());
                 Assertions.assertEquals(desc, amd.getDescription());
             });
@@ -114,7 +112,7 @@ public class ClusterIT {
             client1.createArtifactRule(artifactId, rule);
 
             TestUtils.retry(() -> {
-                Rule config = client2.getArtifactRuleConfig(RuleType.VALIDITY, artifactId);
+                Rule config = client2.getArtifactRuleConfig(artifactId, RuleType.VALIDITY);
                 Assertions.assertEquals(rule.getConfig(), config.getConfig());
             });
 
@@ -177,8 +175,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryService client1 = RegistryClient.create("http://localhost:8080/api");
-        RegistryService client2 = RegistryClient.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -186,7 +184,7 @@ public class ClusterIT {
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(ArtifactType.JSON, artifactId, null, stream);
+        client1.createArtifact(artifactId, ArtifactType.JSON, null, stream);
         try {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
@@ -199,7 +197,7 @@ public class ClusterIT {
             });
 
             TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(name, 0, 2, SearchOver.name, SortOrder.asc);
+                ArtifactSearchResults results = client2.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- name");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- name");
@@ -208,7 +206,7 @@ public class ClusterIT {
             });
             TestUtils.retry(() -> {
                 // client 1 !
-                ArtifactSearchResults results = client1.searchArtifacts(desc, 0, 2, SearchOver.description, SortOrder.desc);
+                ArtifactSearchResults results = client1.searchArtifacts(desc, SearchOver.description, SortOrder.desc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- description");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- description");
@@ -216,7 +214,7 @@ public class ClusterIT {
                 Assertions.assertEquals(desc, results.getArtifacts().get(0).getDescription());
             });
             TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(desc, 0, 2, SearchOver.everything, SortOrder.desc);
+                ArtifactSearchResults results = client2.searchArtifacts(desc, SearchOver.everything, SortOrder.desc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- everything");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- everything");

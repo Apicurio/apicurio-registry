@@ -18,7 +18,8 @@ package io.apicurio.registry.utils.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.client.RegistryService;
+
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
@@ -36,7 +37,6 @@ import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
@@ -52,7 +52,7 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
         this(null);
     }
 
-    public ExtJsonConverter(RegistryService client) {
+    public ExtJsonConverter(RegistryRestClient client) {
         super(client);
         this.jsonConverter = new JsonConverter();
         this.mapper = new ObjectMapper();
@@ -76,16 +76,9 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
         if (cache == null) {
             cache = new SchemaCache<JsonNode>(getClient()) {
                 @Override
-                protected JsonNode toSchema(Response response) {
+                protected JsonNode toSchema(InputStream schemaData) {
                     try {
-                        Object responseEntity = response.getEntity();
-                        if (responseEntity instanceof InputStream) {
-                            return mapper.readTree((InputStream) responseEntity);
-                        } else {
-                            try (InputStream stream = response.readEntity(InputStream.class)) {
-                                return mapper.readTree(stream);
-                            }
-                        }
+                        return mapper.readTree(schemaData);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }

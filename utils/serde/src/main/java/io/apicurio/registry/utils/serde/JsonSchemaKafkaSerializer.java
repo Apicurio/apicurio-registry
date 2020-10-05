@@ -16,19 +16,21 @@
 
 package io.apicurio.registry.utils.serde;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.worldturner.medeia.schema.validation.SchemaValidator;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -55,7 +57,7 @@ public class JsonSchemaKafkaSerializer<T>
      * @param client            the client
      * @param validationEnabled the validation enabled flag
      */
-    public JsonSchemaKafkaSerializer(RegistryService client, Boolean validationEnabled) {
+    public JsonSchemaKafkaSerializer(RegistryRestClient client, Boolean validationEnabled) {
         super(client, validationEnabled);
         setGlobalIdStrategy(new FindLatestIdStrategy<>()); // the default is get latest
     }

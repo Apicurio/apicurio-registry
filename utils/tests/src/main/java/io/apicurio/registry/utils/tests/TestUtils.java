@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -297,11 +297,11 @@ public class TestUtils {
 
     // some impl details ...
 
-    public static void waitForSchema(RegistryService service, byte[] bytes) throws Exception {
+    public static void waitForSchema(RegistryRestClient service, byte[] bytes) throws Exception {
         waitForSchema(service, bytes, ByteBuffer::getLong);
     }
 
-    public static void waitForSchema(RegistryService service, byte[] bytes, Function<ByteBuffer, Long> fn) throws Exception {
+    public static void waitForSchema(RegistryRestClient service, byte[] bytes, Function<ByteBuffer, Long> fn) throws Exception {
         waitForSchemaCustom(service, bytes, input -> {
             ByteBuffer buffer = ByteBuffer.wrap(input);
             buffer.get(); // magic byte
@@ -310,8 +310,7 @@ public class TestUtils {
     }
 
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
-    public static void waitForSchemaCustom(RegistryService service, byte[] bytes, Function<byte[], Long> fn) throws Exception {
-        service.reset(); // clear any cache
+    public static void waitForSchemaCustom(RegistryRestClient service, byte[] bytes, Function<byte[], Long> fn) throws Exception {
         long id = fn.apply(bytes);
         ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
         Assertions.assertNotNull(amd); // wait for global id to populate

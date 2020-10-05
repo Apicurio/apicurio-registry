@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * A {@link GlobalIdStrategy} is used by the Kafka serializer/deserializer
@@ -35,13 +35,13 @@ public interface GlobalIdStrategy<T> {
      * For a given topic and message, returns the artifact id under which the
      * schema should be registered in the registry.
      *
-     * @param service the registry service
+     * @param client the registry rest client
      * @param artifactId the schema artifact id
      * @param artifactType the artifact type
      * @param schema the schema of the message being serialized/deserialized
      * @return the global id under which the schema is registered.
      */
-    long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema);
+    long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema);
 
     /**
      * Create InputStream from schema.
@@ -53,6 +53,8 @@ public interface GlobalIdStrategy<T> {
     default InputStream toStream(T schema) {
         if (schema instanceof byte[]) {
             return new ByteArrayInputStream((byte[]) schema);
+        } else if (schema instanceof InputStream) {
+            return (InputStream) schema;
         } else {
             // TODO Calling "toString()" here will work for Avro, but is unlikely to work for other schemas
             return new ByteArrayInputStream(IoUtil.toBytes(schema.toString()));

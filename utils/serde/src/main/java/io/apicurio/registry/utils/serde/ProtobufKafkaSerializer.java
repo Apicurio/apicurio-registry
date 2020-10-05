@@ -16,18 +16,20 @@
 
 package io.apicurio.registry.utils.serde;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+import org.apache.kafka.common.header.Headers;
+
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
-import io.apicurio.registry.client.RegistryService;
+
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
-import org.apache.kafka.common.header.Headers;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * @author Ales Justin
@@ -37,11 +39,11 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     public ProtobufKafkaSerializer() {
     }
 
-    public ProtobufKafkaSerializer(RegistryService client) {
+    public ProtobufKafkaSerializer(RegistryRestClient client) {
         super(client);
     }
 
-    public ProtobufKafkaSerializer(RegistryService client, ArtifactIdStrategy<byte[]> artifactIdStrategy, GlobalIdStrategy<byte[]> idStrategy) {
+    public ProtobufKafkaSerializer(RegistryRestClient client, ArtifactIdStrategy<byte[]> artifactIdStrategy, GlobalIdStrategy<byte[]> idStrategy) {
         super(client, artifactIdStrategy, idStrategy);
     }
 

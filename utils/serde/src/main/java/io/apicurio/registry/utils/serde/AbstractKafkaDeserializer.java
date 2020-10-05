@@ -17,13 +17,14 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.Map;
+
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.nio.ByteBuffer;
-import java.util.Map;
-import javax.ws.rs.core.Response;
+import io.apicurio.registry.client.RegistryRestClient;
 
 /**
  * @author Ales Justin
@@ -34,7 +35,7 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
     public AbstractKafkaDeserializer() {
     }
 
-    public AbstractKafkaDeserializer(RegistryService client) {
+    public AbstractKafkaDeserializer(RegistryRestClient client) {
         super(client);
     }
 
@@ -42,8 +43,8 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
         if (cache == null) {
             cache = new SchemaCache<T>(getClient()) {
                 @Override
-                protected T toSchema(Response artifactResponse) {
-                    return AbstractKafkaDeserializer.this.toSchema(artifactResponse);
+                protected T toSchema(InputStream schemaData) {
+                    return AbstractKafkaDeserializer.this.toSchema(schemaData);
                 }
             };
         }
@@ -61,7 +62,7 @@ public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDes
         super.reset();
     }
 
-    protected abstract T toSchema(Response response);
+    protected abstract T toSchema(InputStream schemaData);
 
     protected abstract U readData(T schema, ByteBuffer buffer, int start, int length);
 

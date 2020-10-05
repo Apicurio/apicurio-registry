@@ -16,11 +16,9 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
-
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
@@ -28,9 +26,8 @@ import java.util.concurrent.CompletionStage;
 public class AutoRegisterIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     @Override
-    protected long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
-        CompletionStage<ArtifactMetaData> cs = service.updateArtifact(artifactId, artifactType, toStream(schema));
-        ArtifactMetaData amd = unwrap(cs);
+    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+        ArtifactMetaData amd = client.updateArtifact(artifactId, artifactType, toStream(schema));
         return amd.getGlobalId();
     }
 

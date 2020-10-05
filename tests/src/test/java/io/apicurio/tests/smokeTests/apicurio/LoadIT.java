@@ -38,11 +38,10 @@ import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 
@@ -61,8 +60,8 @@ public class LoadIT extends BaseIT {
 
     private String base = TestUtils.generateArtifactId();
 
-    @RegistryServiceTest
-    void concurrentLoadTest(RegistryService apicurioService) throws Exception {
+    @RegistryRestClientTest
+    void concurrentLoadTest(RegistryRestClient client) throws Exception {
 
         Queue<String> artifactsQueue = new ConcurrentLinkedQueue<>();
         AtomicBoolean deleteLoopFlag = new AtomicBoolean(true);
@@ -75,8 +74,8 @@ public class LoadIT extends BaseIT {
                 try {
                     if (artifactId != null) {
                         LOGGER.info("Delete artifact {} START", artifactId);
-                        apicurioService.deleteArtifact(artifactId);
-                        TestUtils.assertWebError(404, () -> apicurioService.getArtifactMetaData(artifactId), true);
+                        client.deleteArtifact(artifactId);
+                        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId), true);
                         LOGGER.info("Delete artifact {} FINISH", artifactId);
                     } else if (allCreatedFlag.get()) {
                         return null;
@@ -93,7 +92,7 @@ public class LoadIT extends BaseIT {
 
         try {
             List<CompletionStage<Void>> createResults = IntStream.range(0, 250).mapToObj(i -> {
-                return createArtifactAsync(apicurioService, i)
+                return createArtifactAsync(client, i)
                         .thenAccept(m ->
                             artifactsQueue.offer(m.getId())
                         );
@@ -116,15 +115,15 @@ public class LoadIT extends BaseIT {
                 throw new IllegalStateException("Error deleteing artifacts", result);
             }
         } catch (TimeoutException e) {
-            LOGGER.info("Artifacts not deleted are {}", apicurioService.listArtifacts().toString());
+            LOGGER.info("Artifacts not deleted are {}", client.listArtifacts().toString());
             throw e;
         }
 
-        assertEquals(0, apicurioService.listArtifacts().size());
+        assertEquals(0, client.listArtifacts().size());
 
     }
 
-    CompletionStage<ArtifactMetaData> createArtifactAsync(RegistryService apicurioService, int i) {
+    CompletionStage<ArtifactMetaData> createArtifactAsync(RegistryRestClient client, int i) {
         return CompletableFuture.supplyAsync(() -> {
             String artifactId = base + i;
 
@@ -133,11 +132,10 @@ public class LoadIT extends BaseIT {
             String artifactDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             try {
-                CompletionStage<ArtifactMetaData> csResult = apicurioService.createArtifact(ArtifactType.JSON, artifactId, null, artifactData);
+                ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
 
                 // Make sure artifact is fully registered
-                ArtifactMetaData amd = ConcurrentUtil.result(csResult);
-                TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+                TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
                 LOGGER.info("Create artifact {} FINISH", amd.getId());
                 assertEquals(artifactId, amd.getId());

@@ -16,43 +16,37 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
+import java.net.HttpURLConnection;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.ConcurrentUtil;
-
-import java.net.HttpURLConnection;
-import java.util.concurrent.CompletionStage;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 
 /**
  * @author Ales Justin
  */
 public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
 
-    protected <R> R unwrap(CompletionStage<R> cs) {
-        return ConcurrentUtil.result(cs);
-    }
-
     protected boolean isNotFound(Response response) {
         return response.getStatus() == HttpURLConnection.HTTP_NOT_FOUND;
     }
 
-    protected abstract long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema);
+    protected abstract long initialLookup(RegistryRestClient service, String artifactId, ArtifactType artifactType, T schema);
 
     protected void afterCreateArtifact(T schema, ArtifactMetaData amd) {
     }
 
     @Override
-    public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
+    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         try {
-            return initialLookup(service, artifactId, artifactType, schema);
+            return initialLookup(client, artifactId, artifactType, schema);
         } catch (WebApplicationException e) {
             if (isNotFound(e.getResponse())) {
-                CompletionStage<ArtifactMetaData> cs = service.createArtifact(artifactType, artifactId, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
-                ArtifactMetaData amd = unwrap(cs);
+                ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
                 afterCreateArtifact(schema, amd);
                 return amd.getGlobalId();
             } else {

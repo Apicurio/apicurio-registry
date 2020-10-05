@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -25,8 +25,8 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public class FindLatestIdStrategy<T> implements GlobalIdStrategy<T> {
     @Override
-    public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
-        ArtifactMetaData amd = service.getArtifactMetaData(artifactId);
+    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+        ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
         return amd.getGlobalId();
     }
 }

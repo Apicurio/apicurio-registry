@@ -17,17 +17,18 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 
 /**
  * @author Ales Justin
@@ -38,12 +39,12 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
         this(null);
     }
 
-    public AbstractKafkaSerializer(RegistryService client) {
+    public AbstractKafkaSerializer(RegistryRestClient client) {
         super(client);
     }
 
     public AbstractKafkaSerializer(
-        RegistryService client,
+        RegistryRestClient client,
         ArtifactIdStrategy<T> artifactIdStrategy,
         GlobalIdStrategy<T> globalIdStrategy
     ) {

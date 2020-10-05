@@ -16,17 +16,19 @@
 
 package io.apicurio.registry.utils.serde;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.IoUtil;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
+import com.fasterxml.jackson.core.JsonParser;
+import com.worldturner.medeia.schema.validation.SchemaValidator;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -44,7 +46,7 @@ public class JsonSchemaKafkaDeserializer<T> extends JsonSchemaKafkaSerDe<JsonSch
     /**
      * Constructor.
      */
-    public JsonSchemaKafkaDeserializer(RegistryService client, Boolean validationEnabled) {
+    public JsonSchemaKafkaDeserializer(RegistryRestClient client, Boolean validationEnabled) {
         super(client, validationEnabled);
     }
 

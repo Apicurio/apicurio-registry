@@ -55,9 +55,9 @@ import io.apicurio.registry.utils.converter.json.CompactFormatStrategy;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
+import io.apicurio.registry.utils.serde.SerdeConfig;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
@@ -90,10 +90,10 @@ public class RegistryConverterIT extends BaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, RestAssured.baseURI);
+        config.put(SerdeConfig.REGISTRY_URL, RestAssured.baseURI);
         config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
-        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
+        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
         SchemalessConverter<GenericData.Record> converter = new SchemalessConverter<>();
 

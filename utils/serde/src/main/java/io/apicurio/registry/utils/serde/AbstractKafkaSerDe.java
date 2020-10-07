@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.client.request.Config;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
@@ -47,26 +46,6 @@ import io.apicurio.registry.utils.serde.util.Utils;
 public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implements AutoCloseable {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    public static final String REGISTRY_URL_CONFIG_PARAM = "apicurio.registry.url";
-    @Deprecated
-    public static final String REGISTRY_CACHED_CONFIG_PARAM = "apicurio.registry.cached";
-
-    public static final String REGISTRY_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.id-handler";
-    public static final String REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM = "apicurio.registry.as-confluent";
-
-    // Constants for using headers to store the ids
-    public static final String USE_HEADERS = "apicurio.registry.use.headers";
-
-    // Copy the RestClient config keys here so all config keys can be accessed from this class
-    public static final String REGISTRY_REQUEST_HEADERS_PREFIX = Config.REGISTRY_REQUEST_HEADERS_PREFIX;
-    public static final String REGISTRY_REQUEST_TRUSTSTORE_LOCATION = Config.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
-    public static final String REGISTRY_REQUEST_TRUSTSTORE_TYPE = Config.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
-    public static final String REGISTRY_REQUEST_TRUSTSTORE_PASSWORD = Config.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
-    public static final String REGISTRY_REQUEST_KEYSTORE_LOCATION = Config.REGISTRY_REQUEST_KEYSTORE_LOCATION;
-    public static final String REGISTRY_REQUEST_KEYSTORE_TYPE = Config.REGISTRY_REQUEST_KEYSTORE_TYPE;
-    public static final String REGISTRY_REQUEST_KEYSTORE_PASSWORD = Config.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
-    public static final String REGISTRY_REQUEST_KEY_PASSWORD = Config.REGISTRY_REQUEST_KEY_PASSWORD;
 
     public static final byte MAGIC_BYTE = 0x0;
     protected boolean key; // do we handle key or value with this ser/de?
@@ -116,9 +95,9 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
 
     protected void configure(Map<String, ?> configs, boolean isKey) {
         if (client == null) {
-            String baseUrl = (String) configs.get(REGISTRY_URL_CONFIG_PARAM);
+            String baseUrl = (String) configs.get(SerdeConfig.REGISTRY_URL);
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + REGISTRY_URL_CONFIG_PARAM);
+                throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
             }
 
             try {
@@ -128,10 +107,10 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             }
         }
         if (idHandler == null) {
-            Object idh = configs.get(REGISTRY_ID_HANDLER_CONFIG_PARAM);
+            Object idh = configs.get(SerdeConfig.ID_HANDLER);
             instantiate(IdHandler.class, idh, this::setIdHandler);
 
-            if (Utils.isTrue(configs.get(REGISTRY_CONFLUENT_ID_HANDLER_CONFIG_PARAM))) {
+            if (Utils.isTrue(configs.get(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER))) {
                 if (idHandler != null && !(idHandler instanceof Legacy4ByteIdHandler)) {
                     log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh, "as-confluent"));
                 }

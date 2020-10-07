@@ -78,7 +78,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
         encoding = AvroEncoding.fromConfig(configs);
-        if (Utils.isTrue(configs.get(USE_HEADERS))) {
+        if (Utils.isTrue(configs.get(SerdeConfig.USE_HEADERS))) {
             headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
         }
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);

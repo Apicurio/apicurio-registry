@@ -15,7 +15,7 @@
  */
 package io.apicurio.registry.client.request;
 
-public class Config {
+public class RestClientConfig {
     public static final String REGISTRY_REQUEST_HEADERS_PREFIX = "apicurio.registry.request.headers.";
     public static final String REGISTRY_REQUEST_TRUSTSTORE_PREFIX = "apicurio.registry.request.ssl.truststore";
     public static final String REGISTRY_REQUEST_TRUSTSTORE_LOCATION = REGISTRY_REQUEST_TRUSTSTORE_PREFIX + ".location";

@@ -28,6 +28,7 @@ import com.worldturner.medeia.schema.validation.SchemaValidator;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
@@ -40,6 +41,7 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
 
     private Boolean validationEnabled;
     private SchemaCache<SchemaValidator> schemaCache;
+    protected HeaderUtils headerUtils;
 
     /**
      * Constructor.
@@ -71,15 +73,18 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
     /**
      * @see Serializer#configure(Map, boolean)
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
 
         if (validationEnabled == null) {
-            Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
+            Object ve = configs.get(SerdeConfig.VALIDATION_ENABLED);
             this.validationEnabled = Utils.isTrue(ve);
         }
         
+        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+
         // TODO allow the schema to be configured here
     }
 

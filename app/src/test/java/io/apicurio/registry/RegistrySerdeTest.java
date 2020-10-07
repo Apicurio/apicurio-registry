@@ -44,13 +44,13 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.AvroEncoding;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
 import io.apicurio.registry.utils.serde.ProtobufKafkaSerializer;
+import io.apicurio.registry.utils.serde.SerdeConfig;
+import io.apicurio.registry.utils.serde.SerdeHeaders;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider;
@@ -61,7 +61,6 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -138,9 +137,9 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://localhost:8081/api");
-        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
-        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, new FindLatestIdStrategy<>());
+        config.put(SerdeConfig.REGISTRY_URL, "http://localhost:8081/api");
+        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
+        config.put(SerdeConfig.GLOBAL_ID_STRATEGY, new FindLatestIdStrategy<>());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
         Serializer<GenericData.Record> serializer = (Serializer<GenericData.Record>) getClass().getClassLoader()
                                                                                                .loadClass(AvroKafkaSerializer.class.getName())
@@ -156,8 +155,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record = deserializer.deserialize(artifactId, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class);
-        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class);
+        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class);
+        config.put(SerdeConfig.GLOBAL_ID_STRATEGY, FindLatestIdStrategy.class);
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class);
         serializer.configure(config, true);
         bytes = serializer.serialize(artifactId, record);
@@ -165,8 +164,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record = deserializer.deserialize(artifactId, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, TopicRecordIdStrategy.class.getName());
-        config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName());
+        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(SerdeConfig.GLOBAL_ID_STRATEGY, FindLatestIdStrategy.class.getName());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class.getName());
         serializer.configure(config, true);
         bytes = serializer.serialize(artifactId, record);
@@ -208,7 +207,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
             HashMap<String, String> config = new HashMap<>();
-            config.put(AvroEncoding.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
+            config.put(SerdeConfig.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
             serializer.configure(config,false);
             deserializer.configure(config, false);
 
@@ -242,7 +241,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             HashMap<String, String> config = new HashMap<>();
-            config.put(AbstractKafkaSerDe.USE_HEADERS, "true");
+            config.put(SerdeConfig.USE_HEADERS, "true");
             serializer.configure(config,false);
             deserializer.configure(config, false);
 
@@ -252,8 +251,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             String subject = generateArtifactId();
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(subject, headers, record);
-            Assertions.assertNotNull(headers.lastHeader(HeaderUtils.DEFAULT_HEADER_VALUE_GLOBAL_ID));
-            Header globalId =  headers.lastHeader(HeaderUtils.DEFAULT_HEADER_VALUE_GLOBAL_ID);
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
+            Header globalId =  headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
             long id = ByteBuffer.wrap(globalId.value()).getLong();
 
             waitForGlobalId(id);

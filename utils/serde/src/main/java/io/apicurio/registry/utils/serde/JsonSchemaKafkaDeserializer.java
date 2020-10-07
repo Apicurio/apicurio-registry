@@ -18,9 +18,7 @@ package io.apicurio.registry.utils.serde;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -28,7 +26,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -70,13 +67,13 @@ public class JsonSchemaKafkaDeserializer<T> extends JsonSchemaKafkaSerDe<JsonSch
         try {
             JsonParser parser = mapper.getFactory().createParser(data);
             if (isValidationEnabled()) {
-                Long globalId = getGlobalId(headers);
+                Long globalId = headerUtils.getGlobalId(headers);
                 
                 // If no globalId is provided, check the alternative - which is to check for artifactId and 
                 // (optionally) version.  If these are found, then convert that info to globalId.
                 if (globalId == null) {
-                    String artifactId = getArtifactId(headers);
-                    Integer version = getVersion(headers);
+                    String artifactId = headerUtils.getArtifactId(headers);
+                    Integer version = headerUtils.getVersion(headers);
                     globalId = toGlobalId(artifactId, version);
                 }
                 
@@ -93,56 +90,13 @@ public class JsonSchemaKafkaDeserializer<T> extends JsonSchemaKafkaSerDe<JsonSch
     }
 
     /**
-     * Gets the global id from the headers.  Returns null if not found.
-     *
-     * @param headers the headers
-     */
-    protected Long getGlobalId(Headers headers) {
-        Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID);
-        if (header == null) {
-            return null;
-        }
-        return ByteBuffer.wrap(header.value()).getLong();
-    }
-
-    /**
-     * Gets the artifact id from the headers.  Throws if not found.
-     *
-     * @param headers the headers
-     */
-    protected String getArtifactId(Headers headers) {
-        Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID);
-        if (header == null) {
-            throw new RuntimeException("ArtifactId not found in headers.");
-        }
-        return IoUtil.toString(header.value());
-    }
-
-    /**
-     * Gets the artifact version from the headers.  Returns null if not found.
-     *
-     * @param headers the headers
-     */
-    protected Integer getVersion(Headers headers) {
-        Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_VERSION);
-        if (header == null) {
-            return null;
-        }
-        return ByteBuffer.wrap(header.value()).getInt();
-    }
-
-    /**
      * Gets the message type from the headers.  Throws if not found.
      *
      * @param headers the headers
      */
     @SuppressWarnings("unchecked")
     protected Class<T> getMessageType(Headers headers) {
-        Header header = headers.lastHeader(JsonSchemaSerDeConstants.HEADER_MSG_TYPE);
-        if (header == null) {
-            throw new RuntimeException("Message Type not found in headers.");
-        }
-        String msgTypeName = IoUtil.toString(header.value());
+        String msgTypeName = headerUtils.getMessageType(headers);
         
         try {
             return (Class<T>) Thread.currentThread().getContextClassLoader().loadClass(msgTypeName);

@@ -130,7 +130,7 @@
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Storage types -->
-        <infinispan.version>12.0.0.Dev3</infinispan.version>
+        <infinispan.version>12.0.0.Dev04</infinispan.version>
 
         <!-- gRPC -->
         <grpc.version>1.32.1</grpc.version>

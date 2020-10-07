@@ -23,7 +23,8 @@ import okhttp3.OkHttpClient;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_HEADER_AUTHORIZATION;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_HEADER_AUTHORIZATION;
+
 
 /**
  * @author eric.wittmann@gmail.com

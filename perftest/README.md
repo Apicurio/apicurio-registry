@@ -2,8 +2,8 @@
 
 ## Running the Perf Test
 
-    mvn gatling:test -Dgatling.simulationClass=SimpleSimulation
+    mvn gatling:test -Dgatling.simulationClass=simulations.BasicSimulation
 
 Possible values for the simulation class:
 
-* SimpleSimulation
+* BasicSimulation

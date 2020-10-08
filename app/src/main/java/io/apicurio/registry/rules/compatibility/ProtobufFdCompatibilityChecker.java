@@ -19,6 +19,7 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
 
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -28,20 +29,20 @@ import static java.util.Objects.requireNonNull;
  */
 public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
     @Override
-    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
         try {
             Serde.Schema.parseFrom(proposedArtifact.bytes());
-            return true;
+            return new CompatibilityExecutionResult(true, Collections.emptySet());
         } catch (Exception ignore) {
         }
-        return false;
+        return new CompatibilityExecutionResult(false, Collections.emptySet());
     }
 
     @Override
-    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         throw new UnsupportedOperationException("String content not supported!"); // should not be called ...
     }
 }

@@ -18,10 +18,13 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
+
+import java.util.Set;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
@@ -67,5 +70,9 @@ public class JsonSchemaDiffLibrary {
 
     public static boolean isCompatible(String original, String updated) {
         return findDifferences(original, updated).foundAllDifferencesAreCompatible();
+    }
+
+    public static Set<Difference> getIncompatibleDifferences(String original, String updated) {
+        return findDifferences(original, updated).getIncompatibleDifferences();
     }
 }

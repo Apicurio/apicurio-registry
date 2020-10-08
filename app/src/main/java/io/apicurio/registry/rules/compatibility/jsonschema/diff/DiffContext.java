@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -110,6 +111,10 @@ public class DiffContext {
      */
     public boolean foundIncompatibleDifference() {
         return diff.stream().anyMatch(d -> !d.getDiffType().isBackwardsCompatible());
+    }
+
+    public Set<Difference> getIncompatibleDifferences() {
+        return diff.stream().filter(d -> !d.getDiffType().isBackwardsCompatible()).collect(Collectors.toSet());
     }
 
     public boolean foundAllDifferencesAreCompatible() {

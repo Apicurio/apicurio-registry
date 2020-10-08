@@ -25,5 +25,6 @@ include::assemblies/getting-started/assembly-installing-the-registry-openshift.a
 include::assemblies/getting-started/assembly-configuring-the-registry.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-managing-registry-artifacts-ui.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-managing-registry-artifacts-api.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-using-kafka-client-serdes.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-using-the-registry-client.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-registry-reference.adoc[leveloffset=+1]

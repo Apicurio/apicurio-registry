@@ -1,0 +1,57 @@
+// Module included in the following assemblies:
+// assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-strategy-{context}']
+= Strategies to lookup a schema
+
+The Kafka client serializer/deserializer uses a lookup _strategy_ to determine the artifact ID or global ID under which the message schema is registered in {registry}.
+
+For a given topic and message, you can use implementations of the following Java classes:
+
+* `ArtifactIdStrategy` to return an artifact ID
+* `GlobalIdStrategy` to return a global ID
+
+The artifact ID returned depends on whether the _key_ or _value_ in the message is being serialized.
+
+The classes for each strategy are organized in the `io.apicurio.registry.utils.serde.strategy` package.
+
+The default strategy is `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
+
+.Example
+
+[source,java,subs="+quotes,attributes"]
+----
+public String artifactId(String topic, boolean isKey, T schema) {
+    return String.format("%s-%s", topic, isKey ? "key" : "value");
+}
+----
+
+* The `topic` parameter is the name of the Kafka topic receiving the message.
+* The `isKey` parameter is _true_ when the message key is being serialized, and _false_ when the message value is being serialized.
+* The `schema` parameter is the schema of the message being serialized/deserialized.
+* The `artifactID` returned is the ID under which the schema is registered in {registry}.
+
+What lookup strategy you use depends on how and where you store your schema.
+For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.
+
+[discrete]
+[id='service-registry-concepts-artifactid-{context}']
+== Strategies to return an artifact ID
+
+Strategies to return an artifact ID based on an implementation of `ArtifactIdStrategy`:
+
+`RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
+`TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
+`TopicIdStrategy`:: (Default) strategy that uses the topic name and `key` or `value` suffix.
+`SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
+
+[discrete]
+[id='service-registry-concepts-globalid-{context}']
+== Strategies to return a global ID
+
+Strategies to return a global ID based on an implementation of `GlobalIdStrategy`:
+
+`FindLatestIdStrategy`:: Strategy that returns the global ID of the latest schema version, based on an artifact ID.
+`FindBySchemaIdStrategy`:: Strategy that matches schema content, based on an artifact ID, to return a global ID.
+`GetOrCreateIdStrategy`:: Strategy that tries to get the latest schema, based on an artifact ID, and if it does not exist, it creates a new schema.
+`AutoRegisterIdStrategy`:: Strategy that updates the schema, and uses the global ID of the updated schema.

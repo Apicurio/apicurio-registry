@@ -27,7 +27,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -63,9 +62,9 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
                 existingArtifacts,
                 context.getUpdatedContent());
         if (!compatibilityExecutionResult.isCompatible()) {
-            throw new RuleViolationException(String.format("Incompatible artifact: %s [%s] {%s}",
+            throw new RuleViolationException(String.format("Incompatible artifact: %s [%s], num of incompatible diffs: {%s}",
                 context.getArtifactId(), context.getArtifactType(),
-                    Arrays.toString(compatibilityExecutionResult.getIncompatibleDifferences().toArray())),
+                    compatibilityExecutionResult.getIncompatibleDifferences().size()),
                 RuleType.COMPATIBILITY, context.getConfiguration(), compatibilityExecutionResult.getIncompatibleDifferences());
         }
     }

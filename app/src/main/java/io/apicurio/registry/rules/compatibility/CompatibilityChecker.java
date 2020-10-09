@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 
 /**
- * An interface that is used to determine whether a proposed artifact's content is compatible
+ * An interface that is used to determine whether a proposed artifact's content is compatible and return a set of
+ * incompatible differences
  * with older version(s) of the same content, based on a given compatibility level.
  *
  * @author Ales Justin

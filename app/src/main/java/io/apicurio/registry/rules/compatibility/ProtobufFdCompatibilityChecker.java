@@ -19,9 +19,9 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
 
-import java.util.Collections;
 import java.util.List;
 
+import static io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult.empty;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -35,10 +35,10 @@ public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
         try {
             Serde.Schema.parseFrom(proposedArtifact.bytes());
-            return new CompatibilityExecutionResult(true, Collections.emptySet());
+            return empty(true);
         } catch (Exception ignore) {
         }
-        return new CompatibilityExecutionResult(false, Collections.emptySet());
+        return empty(false);
     }
 
     @Override

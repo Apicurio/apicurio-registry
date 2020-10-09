@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -31,5 +32,9 @@ public class CompatibilityExecutionResult {
 
     public void setIncompatibleDifferences(Set<Difference> incompatibleDifferences) {
         this.incompatibleDifferences = incompatibleDifferences;
+    }
+
+    public static CompatibilityExecutionResult empty(boolean isCompatible) {
+        return new CompatibilityExecutionResult(isCompatible, Collections.emptySet());
     }
 }

@@ -3,5 +3,9 @@ import ReactDOM from "react-dom";
 import "@patternfly/react-core/dist/styles/base.css";
 import App from "./app/app";
 import "./app/app.css";
+import {Services} from "@apicurio/registry-services";
 
-ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
+
+const renderApp = () => ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
+Services.getAuthService().initKeycloak(renderApp);
+

@@ -20,12 +20,14 @@ import {LoggerService} from "./logger";
 import {GlobalsService} from "./globals";
 import {Service} from "./baseService";
 import {DownloaderService} from "./downloader";
+import {AuthService} from "./auth";
 
 interface AllServices {
     artifacts: ArtifactsService;
     config: ConfigService;
     globals: GlobalsService;
     logger: LoggerService;
+    auth: AuthService;
 }
 
 /**
@@ -53,12 +55,17 @@ export class Services {
         return Services.all.globals;
     }
 
+    public static getAuthService() {
+        return Services.all.auth;
+    }
+
     private static all: any = {
         artifacts: new ArtifactsService(),
         config: new ConfigService(),
         downloader: new DownloaderService(),
         globals: new GlobalsService(),
-        logger: new LoggerService()
+        logger: new LoggerService(),
+        auth: new AuthService()
     };
 
     // tslint:disable-next-line:member-ordering member-access

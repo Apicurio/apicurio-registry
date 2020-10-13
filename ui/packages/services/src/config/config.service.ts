@@ -26,6 +26,12 @@ const DEFAULT_CONFIG: ConfigType = {
     features: {
         readOnly: false
     },
+    auth: {
+        url: 'http://localhost:8090/auth',
+        realm: 'registry',
+        clientId:'registry-ui',
+        onLoad: 'login-required'
+    },
     mode: "dev",
     ui: {
         contextPath: null,
@@ -97,4 +103,31 @@ export class ConfigService implements Service {
         return this.config.features.readOnly;
     }
 
+    public authUrl(): string {
+        if (!this.config.auth || !this.config.auth.url) {
+            return "";
+        }
+        return this.config.auth.url;
+    }
+
+    public authRealm(): string {
+        if (!this.config.auth || !this.config.auth.realm) {
+            return "";
+        }
+        return this.config.auth.realm;
+    }
+
+    public authClientId(): string {
+        if (!this.config.auth || !this.config.auth.clientId) {
+            return "";
+        }
+        return this.config.auth.clientId;
+    }
+
+    public authOnLoad(): string {
+        if (!this.config.auth || !this.config.auth.onLoad) {
+            return "";
+        }
+        return this.config.auth.onLoad;
+    }
 }

@@ -17,17 +17,30 @@
 
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.auth.Auth;
 import okhttp3.OkHttpClient;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_HEADER_AUTHORIZATION;
+
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class RegistryRestClientFactory {
 
+
     public static RegistryRestClient create(String baseUrl) {
         return new RegistryRestClientImpl(baseUrl);
+    }
+
+    public static RegistryRestClient create(String baseUrl, Auth auth) {
+        final Map<String, Object> config = new HashMap<>();
+        //TODO carnalca for now we only support bearer auth here
+        config.put(REGISTRY_REQUEST_HEADER_AUTHORIZATION, auth.getAuthStrategy().getToken());
+        return new RegistryRestClientImpl(baseUrl, config);
     }
 
     public static RegistryRestClient create(String baseUrl, OkHttpClient okHttpClient) {

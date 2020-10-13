@@ -91,7 +91,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = client.register(subject, schema1);
-        
+
         // Reset the client cache so that the next line actually does what we want.
         client.reset();
 
@@ -151,7 +151,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
 
         String subject = generateArtifactId();
-        
+
         String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ParsedSchema schema = new AvroSchema(rawSchema);
         int id = client.register(subject + "-value", schema);
@@ -262,7 +262,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             return null;
         });
     }
-    
+
     /**
      * Test for issue: https://github.com/Apicurio/apicurio-registry/issues/536
      * @throws Exception
@@ -271,7 +271,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testGlobalRule() throws Exception {
         RegistryRestClient apicurioClient = client;
         SchemaRegistryClient client = buildClient();
-        
+
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
@@ -288,7 +288,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             Assertions.assertNotNull(schema2);
             return schema2;
         });
-        
+
         // try to register an incompatible schema
         Assertions.assertThrows(RestClientException.class, () -> {
             ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
@@ -296,8 +296,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
             client.reset();
         });
     }
-    
-    
+
+
 
     @Test
     public void testConverter_PreRegisterSchema() {

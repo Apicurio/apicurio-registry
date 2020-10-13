@@ -1,5 +1,6 @@
-/*
- * Copyright 2020 Red Hat
+/**
+ * @license
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +15,4 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-
-import org.junit.jupiter.api.Test;
-
-import io.quarkus.test.junit.QuarkusTest;
-
-@QuarkusTest
-public class SubjectsResourceTest extends AbstractResourceTestBase {
-
-    @Test
-    public void testListSubjectsEndpoint() {
-        given()
-            .when().contentType(CT_JSON).get("/ccompat/subjects")
-            .then()
-            .statusCode(200)
-            .body(anything());
-    }
-
-}
+export * from "./auth.service";

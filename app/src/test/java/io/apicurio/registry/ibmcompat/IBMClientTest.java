@@ -24,13 +24,13 @@ import io.apicurio.registry.AbstractResourceTestBase;
 // TODO re-enable once I figure out what this is doing.
 public class IBMClientTest extends AbstractResourceTestBase {
 
-    private SchemaRegistryRestAPIClient buildAPIClient() throws Exception {
+    private SchemaRegistryRestAPIClient buildClient() throws Exception {
         return new SchemaRegistryRestAPIClient("http://localhost:8081/api/ibmcompat", "<API_KEY>", true);
     }
 
 //    @Test
     public void testSmoke() throws Exception {
-        SchemaRegistryRestAPIClient client = buildAPIClient();
+        SchemaRegistryRestAPIClient client = buildClient();
 
         String id = generateArtifactId();
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";

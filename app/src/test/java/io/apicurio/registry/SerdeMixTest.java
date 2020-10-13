@@ -16,6 +16,13 @@
 
 package io.apicurio.registry;
 
+import java.io.ByteArrayInputStream;
+import java.util.List;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.junit.jupiter.api.Assertions;
+
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -26,19 +33,18 @@ import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.junit.jupiter.api.Assertions;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
 
 @QuarkusTest
 public class SerdeMixTest extends AbstractResourceTestBase {
+
+    private SchemaRegistryClient buildClient() {
+        return new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
+    }
 
     @RegistryRestClientTest
     public void testVersions(RegistryRestClient restClient) throws Exception {

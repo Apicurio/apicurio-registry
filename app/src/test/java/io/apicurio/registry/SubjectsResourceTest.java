@@ -16,7 +16,7 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 
 import org.junit.jupiter.api.Test;
@@ -28,11 +28,11 @@ public class SubjectsResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testListSubjectsEndpoint() {
-        givenAuthenticated()
-                .when().contentType(CT_JSON).get("/ccompat/subjects")
-                .then()
-                .statusCode(200)
-                .body(anything());
+        given()
+            .when().contentType(CT_JSON).get("/ccompat/subjects")
+            .then()
+            .statusCode(200)
+            .body(anything());
     }
 
 }

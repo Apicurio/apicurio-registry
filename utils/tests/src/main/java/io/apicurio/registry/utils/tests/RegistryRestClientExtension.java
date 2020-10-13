@@ -1,17 +1,14 @@
 package io.apicurio.registry.utils.tests;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.AuthProvider;
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 /**
  * @author famartin
@@ -22,7 +19,7 @@ public class RegistryRestClientExtension implements ParameterResolver {
     
     private static final RegistryRestClient getRestClient() {
         if (CLIENT == null) {
-            CLIENT = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl(), new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
+            CLIENT = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
         }
         return CLIENT;
     }

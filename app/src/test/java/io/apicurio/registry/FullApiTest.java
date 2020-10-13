@@ -16,7 +16,7 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -37,7 +37,6 @@ import io.restassured.http.ContentType;
  * usage scenarios than the more unit-test focused {@link RulesResourceTest}
  * and {@link ArtifactsResourceTest}.
  * @author eric.wittmann@gmail.com
- * @author Carles Arnal <carnalca@redhat.com>
  */
 @QuarkusTest
 public class FullApiTest extends AbstractResourceTestBase {
@@ -54,8 +53,8 @@ public class FullApiTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
             .then()
@@ -64,8 +63,8 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -77,8 +76,8 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
@@ -103,8 +102,8 @@ public class FullApiTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
             .then()
@@ -113,8 +112,8 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -125,9 +124,9 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationProtobuf/InvalidAPI";
-        givenAuthenticated()
-                .config(RestAssured.config().encoderConfig(new EncoderConfig().encodeContentTypeAs(CT_PROTO, ContentType.TEXT)))
-                .when()
+        given()
+            .config(RestAssured.config().encoderConfig(new EncoderConfig().encodeContentTypeAs(CT_PROTO, ContentType.TEXT)))
+            .when()
                 .contentType(CT_PROTO)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())

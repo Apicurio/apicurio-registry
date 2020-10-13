@@ -23,7 +23,7 @@ import static io.restassured.RestAssured.given;
 public class BaseHttpUtils {
 
     public static Response getRequest(String contentType, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .contentType(contentType)
                 .get(endpoint)
             .then()
@@ -33,7 +33,7 @@ public class BaseHttpUtils {
     }
 
     public static Response postRequest(String contentType, String body, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .body(body)
@@ -45,7 +45,7 @@ public class BaseHttpUtils {
     }
 
     public static Response putRequest(String contentType, String body, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .body(body)
@@ -57,7 +57,7 @@ public class BaseHttpUtils {
     }
 
     public static Response deleteRequest(String contentType, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .delete(endpoint)
@@ -68,7 +68,7 @@ public class BaseHttpUtils {
     }
 
     public static Response rulesPostRequest(String contentType, String rule, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .body(rule)
@@ -80,7 +80,7 @@ public class BaseHttpUtils {
     }
 
     public static Response rulesGetRequest(String contentType, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .get(endpoint)
@@ -91,7 +91,7 @@ public class BaseHttpUtils {
     }
 
     public static Response rulesPutRequest(String contentType, String rule, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .body(rule)
@@ -103,7 +103,7 @@ public class BaseHttpUtils {
     }
 
     public static Response rulesDeleteRequest(String contentType, String endpoint, int returnCode) {
-        return given().auth().basic("user", "user")
+        return given()
                 .when()
                 .contentType(contentType)
                 .delete(endpoint)
@@ -112,5 +112,4 @@ public class BaseHttpUtils {
                 .extract()
                 .response();
     }
-
 }

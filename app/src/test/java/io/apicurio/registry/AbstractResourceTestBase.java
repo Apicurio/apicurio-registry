@@ -16,21 +16,12 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.AuthProvider;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.confluent.kafka.schemaregistry.SchemaProvider;
-import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.RestService;
-import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.CoreMatchers;
@@ -39,18 +30,12 @@ import org.junit.jupiter.api.BeforeEach;
 
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
- *
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
@@ -69,7 +54,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     @BeforeAll
     protected static void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
-        client = RegistryRestClientFactory.create(registryUrl, new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK)));
+        client = RegistryRestClientFactory.create(registryUrl);
     }
 
     @BeforeEach
@@ -80,29 +65,28 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         initializers.stream().forEach(ServiceInitializer::beforeEach);
 
         // Delete all global rules
-        givenAuthenticated().when().delete("/rules").then().statusCode(204);
+        given().when().delete("/rules").then().statusCode(204);
         TestUtils.retry(() -> {
-            givenAuthenticated().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
+            given().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
         });
     }
 
     /**
      * Called to create an artifact by invoking the appropriate JAX-RS operation.
-     *
      * @param artifactId
      * @param artifactType
      * @param artifactContent
      * @throws Exception
      */
     protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
-        ValidatableResponse response = givenAuthenticated()
-                .when()
+        ValidatableResponse response = given()
+            .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-                .post("/artifacts")
-                .then()
+            .post("/artifacts")
+            .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
@@ -114,81 +98,76 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     /**
      * Wait for an artifact to be created.
-     *
      * @param artifactId
      * @throws Exception
      */
     protected void waitForArtifact(String artifactId) throws Exception {
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/meta")
-                    .then()
+                .get("/artifacts/{artifactId}/meta")
+                .then()
                     .statusCode(200);
         });
     }
 
     /**
      * Wait for an artifact version to be created.
-     *
      * @param artifactId
      * @param version
      * @throws Exception
      */
     protected void waitForVersion(String artifactId, int version) throws Exception {
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                    .get("/artifacts/{artifactId}/versions/{version}/meta")
-                    .then()
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
                     .statusCode(200);
         });
     }
 
     /**
      * Wait for an artifact version to be created.
-     *
      * @param globalId
      * @throws Exception
      */
     protected void waitForGlobalId(long globalId) throws Exception {
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                    .get("/ids/{globalId}/meta")
-                    .then()
+                .get("/ids/{globalId}/meta")
+                .then()
                     .statusCode(200);
         });
     }
 
     /**
      * Wait for an artifact's state to change.
-     *
      * @param artifactId
      * @param state
      * @throws Exception
      */
     protected void waitForArtifactState(String artifactId, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(givenAuthenticated()
-                    .when()
+            validateMetaDataResponseState(given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/meta")
-                    .then(), state, false);
+                .get("/artifacts/{artifactId}/meta")
+                .then(), state, false);
         });
     }
 
     /**
      * Wait for an artifact version's state to change.
-     *
      * @param artifactId
      * @param version
      * @param state
@@ -196,59 +175,41 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      */
     protected void waitForVersionState(String artifactId, int version, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(givenAuthenticated()
-                    .when()
+            validateMetaDataResponseState(given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                    .get("/artifacts/{artifactId}/versions/{version}/meta")
-                    .then(), state, true);
+                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .then(), state, true);
         });
     }
 
     /**
      * Wait for an artifact version's state to change (by global id).
-     *
      * @param globalId
      * @param state
      * @throws Exception
      */
     protected void waitForVersionState(long globalId, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
-            validateMetaDataResponseState(givenAuthenticated()
-                    .when()
+            validateMetaDataResponseState(given()
+                .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                    .get("/ids/{globalId}/meta")
-                    .then(), state, true);
+                .get("/ids/{globalId}/meta")
+                .then(), state, true);
         });
     }
 
     /**
      * Ensures the state of the meta-data response is what we expect.
-     *
      * @param response
      * @param state
      */
     protected void validateMetaDataResponseState(ValidatableResponse response, ArtifactState state, boolean version) {
         response.statusCode(200);
         response.body("state", equalTo(state.name()));
-    }
-
-
-    /**
-     * Creates a confluent schema registry client with authentication
-     */
-    protected SchemaRegistryClient buildClient() {
-
-        final List<SchemaProvider> schemaProviders = Arrays
-                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
-
-        final Auth auth = new Auth(TestUtils.getAuthConfig(AuthProvider.KEYCLOAK));
-
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", auth.getAuthStrategy().getToken());
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/api/ccompat"), 3, schemaProviders, null, headers);
     }
 }
 

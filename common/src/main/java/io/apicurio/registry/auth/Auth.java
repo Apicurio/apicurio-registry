@@ -15,6 +15,4 @@ public class Auth {
         }
         return null;
     }
-
-
 }

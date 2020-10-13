@@ -17,7 +17,6 @@
 package io.apicurio.registry.metrics;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -38,8 +37,8 @@ public class LivenessUtil {
     private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
 
     @Inject
-    @ConfigProperty(name = "registry.liveness.errors.ignored", defaultValue = "")
-    Optional<List<String>> ignored;
+    @ConfigProperty(name = "registry.liveness.errors.ignored")
+    List<String> ignored;
 
     public boolean isIgnoreError(Throwable ex) {
         boolean ignored = this.isIgnored(ex);
@@ -54,8 +53,7 @@ public class LivenessUtil {
         if (ignoredClasses.contains(ex.getClass())) {
             return true;
         }
-        return this.ignored.map(ignoredList -> ignoredList.contains(ex.getClass().getName()))
-                .orElse(false);
+        return this.ignored != null && this.ignored.contains(ex.getClass().getName());
     }
 
 }

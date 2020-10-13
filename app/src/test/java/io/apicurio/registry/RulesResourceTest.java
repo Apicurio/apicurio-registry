@@ -16,7 +16,7 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.util.AuthUtil.givenAuthenticated;
+import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
@@ -34,15 +34,14 @@ import io.restassured.http.ContentType;
 
 /**
  * @author eric.wittmann@gmail.com
- * @author Carles Arnal <carnalca@redhat.com>
  */
 @QuarkusTest
 public class RulesResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRulesEndpoint() {
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON)
                 .get("/rules")
             .then()
@@ -58,8 +57,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON).body(rule)
                 .post("/rules")
             .then()
@@ -68,8 +67,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Verify the rule was added.
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -80,8 +79,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Try to add the rule again - should get a 409
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .contentType(CT_JSON).body(rule)
                     .post("/rules")
                 .then()
@@ -93,8 +92,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .post("/rules")
@@ -104,8 +103,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get the list of rules (should be 2 of them)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules")
                 .then()
                     .statusCode(200)
@@ -116,8 +115,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         });
 
         // Get a single rule by name
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .get("/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
@@ -128,8 +127,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         // Update a rule's config
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("FULL");
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .put("/rules/COMPATIBILITY")
@@ -141,8 +140,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get a single (updated) rule by name
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/COMPATIBILITY")
                 .then()
                     .statusCode(200)
@@ -154,7 +153,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         // Try to update a rule's config for a rule that doesn't exist.
 //        rule.setType("RuleDoesNotExist");
 //        rule.setConfig("rdne-config");
-//        givenAuthenticated()
+//        given()
 //            .when().contentType(CT_JSON).body(rule).put("/rules/RuleDoesNotExist")
 //            .then()
 //            .statusCode(404)
@@ -163,8 +162,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 //            .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
 
         // Delete a rule
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .delete("/rules/COMPATIBILITY")
             .then()
                 .statusCode(204)
@@ -172,8 +171,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get a single (deleted) rule by name (should fail with a 404)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/COMPATIBILITY")
                 .then()
                     .statusCode(404)
@@ -184,8 +183,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get the list of rules (should be 1 of them)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules")
                 .then()
                 .log().all()
@@ -196,16 +195,16 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         });
 
         // Delete all rules
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .delete("/rules")
             .then()
                 .statusCode(204);
 
         // Get the list of rules (no rules now)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules")
                 .then()
                     .statusCode(200)
@@ -214,8 +213,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         });
 
         // Get the other (deleted) rule by name (should fail with a 404)
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .get("/rules/VALIDITY")
             .then()
                 .statusCode(404)
@@ -231,8 +230,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .post("/rules")
@@ -242,8 +241,8 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get a single rule by name
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(200)
@@ -253,16 +252,16 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         });
 
         // Delete all rules
-        givenAuthenticated()
-                .when()
+        given()
+            .when()
                 .delete("/rules")
             .then()
                 .statusCode(204);
 
         // Get the (deleted) rule by name (should fail with a 404)
         TestUtils.retry(() -> {
-            givenAuthenticated()
-                    .when()
+            given()
+                .when()
                     .get("/rules/VALIDITY")
                 .then()
                     .statusCode(404)
@@ -278,7 +277,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.NONE.name());
-        givenAuthenticated()
+        given()
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
@@ -289,7 +288,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
 
         // Get a single rule by name
         TestUtils.retry(() -> {
-            givenAuthenticated()
+            given()
                 .when()
                     .get("/rules/COMPATIBILITY")
                 .then()

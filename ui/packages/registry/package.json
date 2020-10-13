@@ -63,18 +63,19 @@
     "@patternfly/react-icons": "3.15.13",
     "@types/react-router": "^5.0.3",
     "@types/react-router-dom": "^4.3.4",
-    "apicurio-data-models": "1.1.2",
-    "yaml": "^1.10.0",
-    "mobx": "^4.3.1",
     "ace-builds": "1.4.8",
-    "styled-components": "^4.2.0",
-    "react-moment": "0.9.7",
+    "apicurio-data-models": "1.1.2",
+    "keycloak-js": "^10.0.2",
+    "mobx": "^4.3.1",
     "moment": "2.24.0",
-    "redoc": "2.0.0-rc.25",
     "react": "16.13.1",
     "react-ace": "8.1.0",
     "react-dom": "16.13.1",
+    "react-moment": "0.9.7",
     "react-router": "5.1.2",
-    "react-router-dom": "5.1.2"
+    "react-router-dom": "5.1.2",
+    "redoc": "2.0.0-rc.25",
+    "styled-components": "^4.2.0",
+    "yaml": "^1.10.0"
   }
 }

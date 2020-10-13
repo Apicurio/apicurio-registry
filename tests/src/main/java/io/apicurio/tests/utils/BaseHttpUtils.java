@@ -24,7 +24,6 @@ public class BaseHttpUtils {
 
     public static Response getRequest(String contentType, String endpoint, int returnCode) {
         return given()
-            .when()
                 .contentType(contentType)
                 .get(endpoint)
             .then()
@@ -35,7 +34,7 @@ public class BaseHttpUtils {
 
     public static Response postRequest(String contentType, String body, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .body(body)
                 .post(endpoint)
@@ -47,7 +46,7 @@ public class BaseHttpUtils {
 
     public static Response putRequest(String contentType, String body, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .body(body)
                 .put(endpoint)
@@ -59,7 +58,7 @@ public class BaseHttpUtils {
 
     public static Response deleteRequest(String contentType, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .delete(endpoint)
             .then()
@@ -70,7 +69,7 @@ public class BaseHttpUtils {
 
     public static Response rulesPostRequest(String contentType, String rule, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .body(rule)
                 .post(endpoint)
@@ -82,7 +81,7 @@ public class BaseHttpUtils {
 
     public static Response rulesGetRequest(String contentType, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .get(endpoint)
             .then()
@@ -93,7 +92,7 @@ public class BaseHttpUtils {
 
     public static Response rulesPutRequest(String contentType, String rule, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .body(rule)
                 .put(endpoint)
@@ -105,7 +104,7 @@ public class BaseHttpUtils {
 
     public static Response rulesDeleteRequest(String contentType, String endpoint, int returnCode) {
         return given()
-            .when()
+                .when()
                 .contentType(contentType)
                 .delete(endpoint)
             .then()
@@ -113,5 +112,4 @@ public class BaseHttpUtils {
                 .extract()
                 .response();
     }
-
 }

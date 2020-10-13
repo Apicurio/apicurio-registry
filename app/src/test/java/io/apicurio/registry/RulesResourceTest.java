@@ -48,11 +48,11 @@ public class RulesResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
     }
-    
+
     @Test
     public void testGlobalRules() throws Exception {
         this.createArtifact(this.generateArtifactId(), ArtifactType.JSON, "{}");
-        
+
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -76,7 +76,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
                     .body("type", equalTo("VALIDITY"))
                     .body("config", equalTo("FULL"));
         });
-        
+
         // Try to add the rule again - should get a 409
         TestUtils.retry(() -> {
             given()
@@ -88,7 +88,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
                     .body("error_code", equalTo(409))
                     .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         });
-        
+
         // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
@@ -113,7 +113,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
                     .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                     .body("[2]", nullValue());
         });
-        
+
         // Get a single rule by name
         given()
             .when()
@@ -238,7 +238,7 @@ public class RulesResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get a single rule by name
         TestUtils.retry(() -> {
             given()

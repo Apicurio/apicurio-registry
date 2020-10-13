@@ -15,7 +15,16 @@
  */
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 

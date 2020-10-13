@@ -126,7 +126,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = restClient.createArtifact(
             artifactId + "-myrecord3",
             ArtifactType.AVRO,
-            null, 
+            null,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)
@@ -184,7 +184,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-            
+
             GenericData.Record record = new GenericData.Record(schema);
             record.put("bar", "somebar");
 
@@ -223,7 +223,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
             JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
             Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
-            
+
             // some impl details ...
             waitForSchema(restClient, bytes);
 
@@ -271,7 +271,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             serializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
             deserializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
-            
+
             String artifactId = generateArtifactId();
 
             Tester tester = new Tester("Apicurio");

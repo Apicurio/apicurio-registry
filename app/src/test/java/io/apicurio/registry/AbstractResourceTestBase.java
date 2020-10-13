@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.equalTo;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
-    
+
     protected static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
@@ -47,10 +47,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @Inject
     Instance<ServiceInitializer> initializers;
-    
+
     protected static String registryUrl;
     protected static RegistryRestClient client;
-    
+
     @BeforeAll
     protected static void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
@@ -90,12 +90,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
-        
+
         waitForArtifact(artifactId);
-        
+
         return response.extract().body().path("globalId");
     }
-    
+
     /**
      * Wait for an artifact to be created.
      * @param artifactId

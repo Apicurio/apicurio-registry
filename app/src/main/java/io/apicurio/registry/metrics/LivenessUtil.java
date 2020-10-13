@@ -47,7 +47,7 @@ public class LivenessUtil {
         }
         return ignored;
     }
-    
+
     private boolean isIgnored(Throwable ex) {
         Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapper.getIgnored();
         if (ignoredClasses.contains(ex.getClass())) {

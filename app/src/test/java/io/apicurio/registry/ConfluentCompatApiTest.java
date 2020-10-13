@@ -60,7 +60,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private static final String SCHEMA_2_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
             "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
             "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\"}\"";
-    
+
     private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
     /**
@@ -79,9 +79,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         /*int id = */res.extract().jsonPath().getInt("id");
-        
+
         this.waitForArtifact(SUBJECT);
-        
+
         // Verify
         given()
             .when()
@@ -107,7 +107,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id1 = res.extract().jsonPath().getInt("id");
-        
+
         this.waitForGlobalId(id1);
 
         // POST content2
@@ -133,7 +133,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id3 = res.extract().jsonPath().getInt("id");
-        
+
         // ID1 and ID3 should be the same because they are the same content within the same subject.
         Assertions.assertEquals(id1, id3);
     }
@@ -162,7 +162,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body(anything());
-        
+
         // POST
         TestUtils.retry(() -> {
             given()
@@ -183,7 +183,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .body("is_compatible", equalTo(false));
         });
     }
-    
+
     @Test
     public void testDisabledStateCheck() throws Exception {
         final String SUBJECT = "subject3";
@@ -206,7 +206,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
-        
+
         //Update state
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DISABLED);
@@ -217,7 +217,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                .put("/artifacts/{artifactId}/state", SUBJECT)
            .then()
                .statusCode(204);
-        
+
         // GET - shouldn't return as the state has been changed to DISABLED
         TestUtils.retry(() -> {
             given()
@@ -238,7 +238,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(404);
         });
     }
-    
+
     @Test
     public void testDeletedStateCheck() throws Exception {
         final String SUBJECT = "subject4";
@@ -261,7 +261,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
-        
+
         //Update state
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DELETED);
@@ -272,7 +272,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                .put("/artifacts/{artifactId}/state", SUBJECT)
            .then()
                .statusCode(204);
-        
+
         // GET - shouldn't return as the state has been changed to DELETED
         TestUtils.retry(() -> {
             given()
@@ -280,7 +280,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                 .then()
-                    .statusCode(404); 
+                    .statusCode(404);
         });
     }
 

@@ -266,7 +266,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public List<String> listArtifacts() {
     	return new ArrayList<>(storage.getArtifactIds(GET_ARTIFACT_IDS_LIMIT));
-    }    
+    }
 
     /**
      * @see io.apicurio.registry.rest.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.beans.UpdateState)
@@ -309,7 +309,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        
+
         String ct = getContentType();
         final ContentHandle finalContent = content;
         try {

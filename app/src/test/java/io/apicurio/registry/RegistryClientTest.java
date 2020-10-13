@@ -289,7 +289,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
 
             retry((() -> {
-                ArtifactSearchResults results = client
+                ArtifactSearchResults results = restClient
                         .searchArtifacts("open api", SearchOver.labels, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());

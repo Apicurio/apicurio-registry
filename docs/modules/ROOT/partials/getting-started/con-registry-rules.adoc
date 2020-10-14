@@ -32,4 +32,4 @@ Each rule has a name and optional configuration information. The registry storag
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 .Additional resources
-For more details, see {registry-rule-types}.
+For more details, see {registry-rule-types} and {registry-rule-maturity-matrix}.

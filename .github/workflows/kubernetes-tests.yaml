@@ -1,0 +1,61 @@
+name: Kubernetes Tests Workflow
+on:
+
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run tests on'
+        required: true
+        default: 'master'
+      apicurio-tests-profile:
+        description: 'Apicurio Tests Profile to be used, determines what tests are executed from tests module'
+        required: true
+        default: 'smoke'
+
+jobs:
+  kubernetes-tests:
+    name: Kubernetes Tests
+    runs-on: ubuntu-18.04
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up JDK 1.8
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: '8'
+          architecture: x64
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build All Variants
+        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pstreams -pl !tests
+        
+      - name: Build The Tagged Docker Images
+        run: |
+          cd distro/docker
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+
+      - name: Kubernetes Tests
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-snapshot" E2E_APICURIO_TESTS_PROFILE=${{ github.event.inputs.apicurio-tests-profile }} ./.github/scripts/test_apicurio_kubernetes.sh
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_kubernetes_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts

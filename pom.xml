@@ -116,7 +116,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.8.2.Final</quarkus.version>
+        <quarkus.version>1.9.0.CR1</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
@@ -133,7 +133,7 @@
         <infinispan.version>12.0.0.Dev04</infinispan.version>
 
         <!-- gRPC -->
-        <grpc.version>1.32.1</grpc.version>
+        <grpc.version>1.32.2</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>5.5.1</confluent.version>
@@ -142,7 +142,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.5</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.6</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>15.0</graphql.version>
@@ -153,7 +153,7 @@
         <jackson-datatype-json-org.version>2.11.3</jackson-datatype-json-org.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.12</lombok.version>
+        <lombok.version>1.18.14</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
 
@@ -179,7 +179,7 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.10.2</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.10.3</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.36.2</version.puppycrawl>

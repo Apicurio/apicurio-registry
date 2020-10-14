@@ -325,6 +325,8 @@ components:
             Useful when the client is using a framework that doesn't allow direct access to the HTTP response.
         message:
           type: string
+        ruleViolationCauses:
+          type: array
       required:
         - message
 
@@ -356,6 +358,12 @@ components:
             $ref: '#/components/schemas/Error'
     UnauthorizedError:
       description: API key missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Invalid request
       content:
         application/json:
           schema:
@@ -570,6 +578,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SchemaDefinition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':

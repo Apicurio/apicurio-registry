@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
@@ -41,17 +40,17 @@ public class RuleViolationException extends RegistryException {
     private final Optional<String> ruleConfiguration;
 
     @Getter
-    private final Set incompatibleDiffs;
+    private final Set<RuleViolationCause> ruleViolationCauses;
 
     /**
      * Constructor.
      * @param ruleConfiguration is optional, can be null
      */
-    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<Difference> incompatibleDiffs) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolationCause> ruleViolationCauses) {
         super(message);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
-        this.incompatibleDiffs = incompatibleDiffs;
+        this.ruleViolationCauses = ruleViolationCauses;
     }
 
     /**
@@ -63,6 +62,6 @@ public class RuleViolationException extends RegistryException {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
-        this.incompatibleDiffs = Collections.emptySet();
+        this.ruleViolationCauses = Collections.emptySet();
     }
 }

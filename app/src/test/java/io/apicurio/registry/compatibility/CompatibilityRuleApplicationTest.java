@@ -16,24 +16,22 @@
 
 package io.apicurio.registry.compatibility;
 
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
+import graphql.Assert;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.RuleApplicationType;
-import io.apicurio.registry.rules.RuleContext;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import javax.inject.Inject;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -65,10 +63,28 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     public void testAvroCompatibility() {
         String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
         String v2Schema = "{\"type\": \"string\"}";
-        
+
         Assertions.assertThrows(RuleViolationException.class, () -> {
             RuleContext context = new RuleContext("Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
             compatibility.execute(context);
         });
+    }
+
+    @Test
+    public void testJsonSchemaCompatibility() {
+        String v1Schema = "{ \"$id\": \"https://example.com/person.schema.json\", \"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Person\", \"type\": \"object\", \"properties\": { \"age\": { \"description\": \"Age in years which must be equal to or greater than zero.\", \"type\": \"integer\", \"minimum\": 0 } } }";
+        String v2Schema = "{ \"$id\": \"https://example.com/person.schema.json\", \"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Person\", \"type\": \"object\", \"properties\": { \"age\": { \"description\": \"Age in years which must be equal to or greater than zero.\", \"type\": \"string\", \"minimum\": 0 } } }";
+
+        RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
+            RuleContext context = new RuleContext("TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            compatibility.execute(context);
+        });
+
+        CompatibilityRuleViolationCause compatibilityRuleViolationCause = (CompatibilityRuleViolationCause) ruleViolationException.getRuleViolationCauses().iterator().next();
+        Assert.assertTrue(compatibilityRuleViolationCause.getCause().equals("SUBSCHEMA_TYPE_CHANGED"));
+        Difference difference = compatibilityRuleViolationCause.getIncompatibleDiff();
+        Assert.assertTrue(difference.getDiffType().toString().equals("SUBSCHEMA_TYPE_CHANGED"));
+        Assert.assertTrue(difference.getPathUpdated().equals("/properties/age"));
+
     }
 }

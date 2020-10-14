@@ -110,7 +110,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     public Response toResponse(Throwable t) {
         Response.ResponseBuilder builder;
         int code;
-        Set incompatibleDiffs = Collections.emptySet();
+        Set ruleViolationCauses = Collections.emptySet();
         if (t instanceof WebApplicationException) {
             WebApplicationException wae = (WebApplicationException) t;
             Response response = wae.getResponse();
@@ -120,7 +120,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             RuleViolationException re = (RuleViolationException) t;
             code = CODE_MAP.getOrDefault(t.getClass(), HTTP_BAD_REQUEST);
             builder = Response.status(code);
-            incompatibleDiffs = re.getIncompatibleDiffs();
+            ruleViolationCauses = re.getRuleViolationCauses();
         } else {
             code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
             builder = Response.status(code);
@@ -139,7 +139,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             }
         }
 
-        Error error = toError(t, code, incompatibleDiffs);
+        Error error = toError(t, code, ruleViolationCauses);
         if (isCompatEndpoint()) {
             error.setDetail(null);
         }
@@ -160,12 +160,12 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         return false;
     }
 
-    private static Error toError(Throwable t, int code, Set incompatibleDiffs) {
+    private static Error toError(Throwable t, int code, Set ruleViolationCauses) {
         Error error = new Error();
         error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
         error.setDetail(getStackTrace(t));
-        error.setIncompatibleDiffs(incompatibleDiffs);
+        error.setRuleViolationCauses(ruleViolationCauses);
         return error;
     }
     

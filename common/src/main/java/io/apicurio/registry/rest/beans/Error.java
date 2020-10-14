@@ -28,8 +28,8 @@ public class Error {
     private Integer errorCode;
     @JsonProperty(value = "detail", required = false)
     private String detail;
-    @JsonProperty(value = "incompatibleDiffs", required = false)
-    private Set incompatibleDiffs;
+    @JsonProperty(value = "ruleViolationCauses", required = false)
+    private Set ruleViolationCauses;
 
     @JsonProperty("message")
     public String getMessage() {
@@ -61,9 +61,9 @@ public class Error {
         this.detail = detail;
     }
 
-    @JsonProperty(value = "incompatibleDiffs")
-    public Set getIncompatibleDiffs() { return incompatibleDiffs; }
+    @JsonProperty(value = "ruleViolationCauses")
+    public Set getRuleViolationCauses() { return ruleViolationCauses; }
 
-    @JsonProperty(value = "incompatibleDiffs")
-    public void setIncompatibleDiffs(Set incompatibleDiffs) { this.incompatibleDiffs = incompatibleDiffs; }
+    @JsonProperty(value = "ruleViolationCauses")
+    public void setRuleViolationCauses(Set ruleViolationCauses) { this.ruleViolationCauses = ruleViolationCauses; }
 }

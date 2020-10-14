@@ -1497,6 +1497,9 @@
                         },
                         "description": "The artifact version was successfully created."
                     },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
@@ -1922,6 +1925,10 @@
                     "detail": {
                         "description": "Full details about the error.  This might contain a server stack trace, for example.",
                         "type": "string"
+                    },
+                    "ruleViolationCauses": {
+                        "description": "Set of Rule Violation Cause",
+                        "type": "array"
                     }
                 },
                 "example": {

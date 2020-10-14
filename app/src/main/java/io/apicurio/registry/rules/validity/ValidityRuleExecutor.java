@@ -19,7 +19,7 @@ package io.apicurio.registry.rules.validity;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
-import io.apicurio.registry.rules.RuleViolationCause;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -50,7 +50,7 @@ public class ValidityRuleExecutor implements RuleExecutor {
             validator.validate(level, context.getUpdatedContent());
         } catch (InvalidContentException e) {
             throw new RuleViolationException(e.getMessage(), RuleType.VALIDITY, context.getConfiguration(),
-                    RuleViolationCause.transformValiditySet(e));
+                    RuleViolation.transformValiditySet(e));
         }
     }
 

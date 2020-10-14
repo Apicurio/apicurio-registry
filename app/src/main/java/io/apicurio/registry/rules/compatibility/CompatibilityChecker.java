@@ -38,14 +38,14 @@ public interface CompatibilityChecker {
      *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
      * @param proposedArtifact   MUST NOT be null
      */
-    default CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+    default CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
         if (existingArtifacts.contains(null)) {
             throw new IllegalStateException("existingArtifacts contains null element(s)");
         }
-        return getIncompatibleDifferences(
+        return testCompatibility(
             compatibilityLevel,
             existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
             proposedArtifact.content()
@@ -59,5 +59,5 @@ public interface CompatibilityChecker {
      *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
      * @param proposedArtifact   MUST NOT be null
      */
-    CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);
+    CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);
 }

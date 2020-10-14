@@ -44,9 +44,9 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString).isCompatible());
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2).isCompatible());
     }
 
     @Test
@@ -56,8 +56,8 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString).isCompatible());
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString).isCompatible());
     }
 
     @Test
@@ -83,7 +83,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.emptyList(), data).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data).isCompatible());
 
         String data2 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -105,7 +105,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertTrue(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2).isCompatible());
 
         String data3 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -124,6 +124,6 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertFalse(checker.getIncompatibleDifferences(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3).isCompatible());
+        Assertions.assertFalse(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3).isCompatible());
     }
 }

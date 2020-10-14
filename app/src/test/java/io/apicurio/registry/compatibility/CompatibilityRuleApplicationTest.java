@@ -80,7 +80,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             compatibility.execute(context);
         });
 
-        CompatibilityRuleViolationCause compatibilityRuleViolationCause = (CompatibilityRuleViolationCause) ruleViolationException.getRuleViolationCauses().iterator().next();
+        CompatibilityRuleViolation compatibilityRuleViolationCause = (CompatibilityRuleViolation) ruleViolationException.getRuleViolations().iterator().next();
         Assert.assertTrue(compatibilityRuleViolationCause.getCause().equals("SUBSCHEMA_TYPE_CHANGED"));
         Difference difference = compatibilityRuleViolationCause.getIncompatibleDiff();
         Assert.assertTrue(difference.getDiffType().toString().equals("SUBSCHEMA_TYPE_CHANGED"));

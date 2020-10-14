@@ -120,7 +120,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             RuleViolationException re = (RuleViolationException) t;
             code = CODE_MAP.getOrDefault(t.getClass(), HTTP_BAD_REQUEST);
             builder = Response.status(code);
-            ruleViolationCauses = re.getRuleViolationCauses();
+            ruleViolationCauses = re.getRuleViolations();
         } else {
             code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
             builder = Response.status(code);

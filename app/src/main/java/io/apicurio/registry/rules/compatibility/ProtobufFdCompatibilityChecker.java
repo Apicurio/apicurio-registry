@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
     @Override
-    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
@@ -42,7 +42,7 @@ public class ProtobufFdCompatibilityChecker implements CompatibilityChecker {
     }
 
     @Override
-    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         throw new UnsupportedOperationException("String content not supported!"); // should not be called ...
     }
 }

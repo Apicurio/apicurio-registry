@@ -35,10 +35,10 @@ import static java.util.Objects.requireNonNull;
 public class AvroCompatibilityChecker implements CompatibilityChecker {
 
     /**
-     * @see CompatibilityChecker#getIncompatibleDifferences(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
-    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingSchemaStrings, "existingSchemaStrings MUST NOT be null");
         requireNonNull(proposedSchemaString, "proposedSchemaString MUST NOT be null");

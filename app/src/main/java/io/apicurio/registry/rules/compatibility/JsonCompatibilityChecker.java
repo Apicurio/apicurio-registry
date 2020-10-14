@@ -38,7 +38,7 @@ public class JsonCompatibilityChecker implements CompatibilityChecker { // TODO 
      * @see CompatibilityChecker#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
-    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingSchemas, "existingSchemas MUST NOT be null");
         requireNonNull(proposedSchema, "proposedSchema MUST NOT be null");

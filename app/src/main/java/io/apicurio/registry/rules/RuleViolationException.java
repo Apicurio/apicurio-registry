@@ -40,17 +40,17 @@ public class RuleViolationException extends RegistryException {
     private final Optional<String> ruleConfiguration;
 
     @Getter
-    private final Set<RuleViolationCause> ruleViolationCauses;
+    private final Set<RuleViolation> ruleViolations;
 
     /**
      * Constructor.
      * @param ruleConfiguration is optional, can be null
      */
-    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolationCause> ruleViolationCauses) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolation> ruleViolations) {
         super(message);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
-        this.ruleViolationCauses = ruleViolationCauses;
+        this.ruleViolations = ruleViolations;
     }
 
     /**
@@ -62,6 +62,6 @@ public class RuleViolationException extends RegistryException {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
-        this.ruleViolationCauses = Collections.emptySet();
+        this.ruleViolations = Collections.emptySet();
     }
 }

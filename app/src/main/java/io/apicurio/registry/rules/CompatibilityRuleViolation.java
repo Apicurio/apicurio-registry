@@ -6,9 +6,9 @@ import lombok.Getter;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CompatibilityRuleViolationCause extends RuleViolationCause {
+public class CompatibilityRuleViolation extends RuleViolation {
 
-    public CompatibilityRuleViolationCause(String cause, Difference incompatibleDiff) {
+    public CompatibilityRuleViolation(String cause, Difference incompatibleDiff) {
         super(cause);
         this.incompatibleDiff = incompatibleDiff;
     }
@@ -16,15 +16,15 @@ public class CompatibilityRuleViolationCause extends RuleViolationCause {
     @Getter
     private Difference incompatibleDiff;
 
-    public static Set<RuleViolationCause> transformCompatibilitySet(Set<Difference> incompatibleDiffs) {
-        Set<RuleViolationCause> ruleViolationCauses = new HashSet<>();
+    public static Set<RuleViolation> transformCompatibilitySet(Set<Difference> incompatibleDiffs) {
+        Set<RuleViolation> ruleViolations = new HashSet<>();
 
         for (Difference diff : incompatibleDiffs) {
-            ruleViolationCauses.add(new CompatibilityRuleViolationCause(
+            ruleViolations.add(new CompatibilityRuleViolation(
                     diff.getDiffType().toString(), diff
             ));
         }
 
-        return ruleViolationCauses;
+        return ruleViolations;
     }
 }

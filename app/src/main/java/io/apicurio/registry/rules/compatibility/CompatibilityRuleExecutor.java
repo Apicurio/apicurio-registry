@@ -29,7 +29,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.List;
 
-import static io.apicurio.registry.rules.CompatibilityRuleViolationCause.transformCompatibilitySet;
+import static io.apicurio.registry.rules.CompatibilityRuleViolation.transformCompatibilitySet;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -58,7 +58,7 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
         List<ContentHandle> existingArtifacts = context.getCurrentContent() != null
             ? singletonList(context.getCurrentContent()) : emptyList();
 
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.getIncompatibleDifferences(
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(
                 level,
                 existingArtifacts,
                 context.getUpdatedContent());

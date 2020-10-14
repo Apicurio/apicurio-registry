@@ -28,10 +28,10 @@ public class NoopCompatibilityChecker implements CompatibilityChecker {
     public static CompatibilityChecker INSTANCE = new NoopCompatibilityChecker();
 
     /**
-     * @see CompatibilityChecker#getIncompatibleDifferences(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
-    public CompatibilityExecutionResult getIncompatibleDifferences(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingSchemas, "existingSchemas MUST NOT be null");
         requireNonNull(proposedSchema, "proposedSchema MUST NOT be null");

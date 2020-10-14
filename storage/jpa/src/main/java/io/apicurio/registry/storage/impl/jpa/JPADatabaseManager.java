@@ -31,7 +31,7 @@ public class JPADatabaseManager {
 
     private static Logger log = LoggerFactory.getLogger(JPADatabaseManager.class);
 
-    @ConfigProperty(name = "quarkus.datasource.url")
+    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
     Optional<String> dsUrl;
 
     @ConfigProperty(name = "quarkus.datasource.username")

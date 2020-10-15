@@ -24,11 +24,9 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class RulesPropertiesImpl implements RulesProperties {
-    private final Properties properties;
     private final Map<RuleType, String> defaultGlobalRules;
 
     public RulesPropertiesImpl(Properties properties) {
-        this.properties = properties;
         this.defaultGlobalRules = properties.stringPropertyNames().stream()
             .collect(Collectors.toMap(rulePropertyName -> RuleType.fromValue(rulePropertyName.toUpperCase()), properties::getProperty));
     }

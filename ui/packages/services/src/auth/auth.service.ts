@@ -1,6 +1,24 @@
 import Keycloak from "keycloak-js";
 import {ConfigService} from "../config";
 import {Service} from "../baseService";
+import {AxiosRequestConfig} from "axios";
+
+const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId"];
+const KC_INIT_OPTIONS: string[] = [
+    "useNonce", "adapter", "onLoad", "token", "refreshToken", "idToken", "timeSkew", "checkLoginIframe",
+    "checkLoginIframeInterval", "responseMode", "redirectUri", "silentCheckSsoRedirectUri", "flow",
+    "pkceMethod", "enableLogging"
+];
+
+function only(items: string[], allOptions: any): any {
+    const rval: any = {};
+    items.forEach(item => {
+        if (allOptions[item] !== undefined) {
+            rval[item] = allOptions[item];
+        }
+    });
+    return rval;
+}
 
 
 /**
@@ -12,24 +30,19 @@ import {Service} from "../baseService";
 export class AuthService implements Service {
 
     private config: ConfigService = null;
-    private _kc: Keycloak.KeycloakInstance;
+    private keycloak: Keycloak.KeycloakInstance;
 
     public init = () => {
+        // no init?
     }
 
-    // @ts-ignore
-    public initKeycloak = (onAuthenticatedCallback) => {
+    public authenticateUsingKeycloak = (onAuthenticatedCallback: () => void) => {
+        const configOptions: any = only(KC_CONFIG_OPTIONS, this.config.authOptions());
+        const initOptions: any = only(KC_INIT_OPTIONS, this.config.authOptions());
 
-        let initOptions = {
-            url: this.config.authUrl(),
-            realm: this.config.authRealm(),
-            clientId: this.config.authClientId(),
-            onLoad: this.config.authOnLoad()
-        };
+        this.keycloak = Keycloak(configOptions)
 
-        this._kc = Keycloak(initOptions)
-
-        this._kc.init({onLoad: 'login-required'})
+        this.keycloak.init(initOptions)
             .then((authenticated) => {
                 if (authenticated) {
                     onAuthenticatedCallback();
@@ -40,15 +53,38 @@ export class AuthService implements Service {
             })
     };
 
-    public doLogin = () => this._kc.login;
+    public doLogin = () => this.keycloak.login;
 
-    public doLogout = () =>  this._kc.logout;
+    public doLogout = () =>  this.keycloak.logout;
 
-    public getToken = () => this._kc.token;
+    public getToken = () => this.keycloak.token;
+
+    public authenticateAndRender(render: () => void): void {
+        if (this.config.authType() === "keycloakjs") {
+            this.authenticateUsingKeycloak(render);
+        } else {
+            render();
+        }
+    }
+
+    public getAuthInterceptor(): (config: AxiosRequestConfig) => Promise<any> {
+        const self: AuthService = this;
+        const interceptor = (config: AxiosRequestConfig) => {
+            if (self.config.authType() === "keycloakjs") {
+                return self.updateKeycloakToken(() => {
+                    config.headers.Authorization = `Bearer ${this.getToken()}`;
+                    return Promise.resolve(config);
+                });
+            } else {
+                return Promise.resolve(config);
+            }
+        };
+        return interceptor;
+    }
 
     // @ts-ignore
-    public updateToken = (successCallback) => {
-        return this._kc.updateToken(5)
+    private updateKeycloakToken = (successCallback) => {
+        return this.keycloak.updateToken(5)
             .then(successCallback)
             .catch(this.doLogin)
     };

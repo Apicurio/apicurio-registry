@@ -1,6 +1,5 @@
-/**
- * @license
- * Copyright 2020 JBoss Inc
+/*
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +14,22 @@
  * limitations under the License.
  */
 
-export interface FeaturesConfig {
-    readOnly?: boolean
-}
+package io.apicurio.registry.ui.beans;
 
-export interface ArtifactsConfig {
-    url: string;
-    type: string;
-}
+import java.util.Map;
 
-export interface UiConfig {
-    url: string;
-    contextPath: string;
-}
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public class ConfigJsAuth {
+    
+    public String type;
+    public Map<String, Object> options;
+    
+    /**
+     * Constructor.
+     */
+    public ConfigJsAuth() {
+    }
 
-export interface AuthConfig {
-    type: string;
-    options: any;
-}
-
-export interface ConfigType {
-    mode: string;
-    artifacts: ArtifactsConfig;
-    auth: AuthConfig;
-    features?: FeaturesConfig;
-    ui: UiConfig;
 }

@@ -7,5 +7,5 @@ import {Services} from "@apicurio/registry-services";
 
 
 const renderApp = () => ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
-Services.getAuthService().initKeycloak(renderApp);
+Services.getAuthService().authenticateAndRender(renderApp);
 

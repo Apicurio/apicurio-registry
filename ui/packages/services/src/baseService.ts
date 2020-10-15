@@ -22,7 +22,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import {ContentTypes} from "@apicurio/registry-models";
 import {AuthService} from "./auth";
 
-const _axios = axios.create();
+const AXIOS = axios.create();
 
 /**
  * Interface implemented by all services.
@@ -52,14 +52,7 @@ export abstract class BaseService implements Service {
     }
 
     public initAuthInterceptor() {
-         // @ts-ignore
-        _axios.interceptors.request.use((config) => {
-            const cb = () => {
-                config.headers.Authorization = `Bearer ${this.auth.getToken()}`;
-                return Promise.resolve(config);
-            };
-            return this.auth.updateToken(cb);
-        });
+        AXIOS.interceptors.request.use(this.auth.getAuthInterceptor());
     }
 
     /**
@@ -118,7 +111,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("get", url, options);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: T = response.data;
                 if (successCallback) {
@@ -146,7 +139,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 if (successCallback) {
                     return successCallback();
@@ -173,7 +166,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: O = response.data;
                 if (successCallback) {
@@ -201,7 +194,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 if (successCallback) {
                     return successCallback();
@@ -228,7 +221,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: O = response.data;
                 if (successCallback) {
@@ -254,7 +247,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("delete", url, options);
-        return _axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;
             }).catch(error => {

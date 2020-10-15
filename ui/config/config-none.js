@@ -9,10 +9,7 @@ var ApicurioRegistryConfig = {
         url: "http://localhost:8888/ui"
     },
     auth: {
-        url: 'http://localhost:8090/auth',
-        realm: 'registry',
-        clientId:'registry-ui',
-        onLoad: 'login-required'
+        type: "none"
     },
     features: {
         readOnly: false

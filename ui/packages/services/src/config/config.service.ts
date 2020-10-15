@@ -23,14 +23,17 @@ const DEFAULT_CONFIG: ConfigType = {
         type: "rest",
         url: "http://localhost:8080/api/"
     },
+    auth: {
+        options: {
+            clientId:'registry-ui',
+            onLoad: 'login-required',
+            realm: 'registry',
+            url: 'http://localhost:8090/auth'
+        },
+        type: "keycloakjs"
+    },
     features: {
         readOnly: false
-    },
-    auth: {
-        url: 'http://localhost:8090/auth',
-        realm: 'registry',
-        clientId:'registry-ui',
-        onLoad: 'login-required'
     },
     mode: "dev",
     ui: {
@@ -103,31 +106,17 @@ export class ConfigService implements Service {
         return this.config.features.readOnly;
     }
 
-    public authUrl(): string {
-        if (!this.config.auth || !this.config.auth.url) {
+    public authType(): string {
+        if (!this.config.auth || !this.config.auth.type) {
             return "";
         }
-        return this.config.auth.url;
+        return this.config.auth.type;
     }
 
-    public authRealm(): string {
-        if (!this.config.auth || !this.config.auth.realm) {
+    public authOptions(): any {
+        if (!this.config.auth || !this.config.auth.options) {
             return "";
         }
-        return this.config.auth.realm;
-    }
-
-    public authClientId(): string {
-        if (!this.config.auth || !this.config.auth.clientId) {
-            return "";
-        }
-        return this.config.auth.clientId;
-    }
-
-    public authOnLoad(): string {
-        if (!this.config.auth || !this.config.auth.onLoad) {
-            return "";
-        }
-        return this.config.auth.onLoad;
+        return this.config.auth.options;
     }
 }

@@ -1,11 +1,15 @@
 package io.apicurio.registry.client.request;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import retrofit2.Call;
 import retrofit2.Callback;
 
 import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,11 +50,29 @@ public class RequestHandler {
 
         public T getResult() {
             try {
-                return ConcurrentUtil.get(result);
+                final T callResult = ConcurrentUtil.get(result);
+                handleResult(callResult);
+                return callResult;
             } catch (RuntimeException e) {
                 handleError(e);
             }
             return null;
+        }
+
+        private static void handleResult(Object result) {
+            if (result instanceof ArtifactMetaData) {
+                ArtifactMetaData amd = (ArtifactMetaData) result;
+                checkIfDeprecated(amd::getState, amd.getId(), amd.getVersion());
+            } else if (result instanceof VersionMetaData) {
+                VersionMetaData vmd = (VersionMetaData) result;
+                checkIfDeprecated(vmd::getState, vmd.getId(), vmd.getVersion());
+            }
+        }
+
+        private static void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Object version) {
+            if (stateSupplier.get() == ArtifactState.DEPRECATED) {
+                logger.warning(String.format("Artifact %s [%s] is deprecated", artifactId, version));
+            }
         }
 
         private void handleError(Throwable e) {

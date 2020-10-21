@@ -19,6 +19,7 @@ import static io.apicurio.tests.Constants.UI;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -73,7 +74,7 @@ public class DeleteArtifactIT extends BaseIT {
 
         page.deleteArtifact(artifactId1);
 
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
             try {
                 return page.getArtifactsList().size() == 1;
             } catch (Exception e) {
@@ -86,7 +87,7 @@ public class DeleteArtifactIT extends BaseIT {
 
         page.deleteArtifact(artifactId2);
 
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
             try {
                 return page.getArtifactsList().size() == 0;
             } catch (Exception e) {

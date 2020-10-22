@@ -1,14 +1,12 @@
 package io.apicurio.registry.client.request;
 
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import retrofit2.Call;
 import retrofit2.Callback;
 
 import javax.ws.rs.WebApplicationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,16 +66,10 @@ public class RequestHandler {
 
         private static void checkIfDeprecated(okhttp3.Headers headers) {
             String isDeprecated = headers.get(Headers.DEPRECATED);
-            if (isDeprecated != null) {
+            if (isDeprecated != null && Boolean.getBoolean(isDeprecated)) {
                 String id = headers.get(Headers.ARTIFACT_ID);
                 String version = headers.get(Headers.VERSION);
-                logIfDeprecated(() -> ArtifactState.DEPRECATED, id, version);
-            }
-        }
-
-        private static void logIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Object version) {
-            if (stateSupplier.get() == ArtifactState.DEPRECATED) {
-                logger.warning(String.format("Artifact %s [%s] is deprecated", artifactId, version));
+                logger.warning(String.format("Artifact %s [%s] is deprecated", id, version));
             }
         }
     }

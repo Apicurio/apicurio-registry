@@ -204,17 +204,17 @@ public class VersionRepository implements PanacheRepository<Version> {
         protected static final String searchNameCount = "from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)";
 
         protected static final String searchName = "from Version v where v.name like :nameSearch and v.globalId IN (select a.latest from Artifact a)" +
-                " group by v.artifact" +
+                " group by v.artifact, v.globalId" +
                 " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchDescriptionCount = "from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)";
 
         protected static final String searchDescription = "from Version v where v.description like :descriptionSearch and v.globalId IN (select a.latest from Artifact a)" +
-                " group by v.artifact" +
+                " group by v.artifact, v.globalId" +
                 " order by(COALESCE(v.artifact, v.name))";
 
         protected static final String searchLabels = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)" +
-                " group by v.artifact" +
+                " group by v.artifact, v.globalId" +
                 " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchLabelsCount = "from Version v where v.labelsStr like :labelSearch and v.globalId IN (select a.latest from Artifact a)";
@@ -224,7 +224,7 @@ public class VersionRepository implements PanacheRepository<Version> {
                 " OR v.labelsStr like :labelSearch" +
                 ")" +
                 " AND v.globalId IN (select a.latest from Artifact a)" +
-                " group by v.artifact" +
+                " group by v.artifact, v.globalId" +
                 " order by(COALESCE(v.artifact, v.name)) ";
 
         protected static final String searchEverythingCount = "from Version v where (v.name like :nameSearch" +

@@ -27,9 +27,11 @@ import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,6 +48,7 @@ class RulesResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
 
+    @Test
     void createAndDeleteGlobalRules(RegistryRestClient service) throws Exception {
         // Create a global rule
         Rule rule = new Rule();
@@ -78,6 +81,7 @@ class RulesResourceIT extends BaseIT {
     }
 
     @Tag(ACCEPTANCE)
+    @Test
     void createAndValidateGlobalRules(RegistryRestClient service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -112,6 +116,7 @@ class RulesResourceIT extends BaseIT {
     }
 
     @Tag(ACCEPTANCE)
+    @Test
     void createAndValidateArtifactRule(RegistryRestClient service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -167,6 +172,7 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
+    @Test
     void testRulesDeletedWithArtifact(RegistryRestClient service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

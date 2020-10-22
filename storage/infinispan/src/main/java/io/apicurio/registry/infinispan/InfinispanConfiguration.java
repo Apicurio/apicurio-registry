@@ -28,6 +28,7 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
+import java.util.HashMap;
 import java.util.Properties;
 
 /**
@@ -48,11 +49,12 @@ public class InfinispanConfiguration {
 
         gConf.serialization()
                 .marshaller(new JavaSerializationMarshaller())
-                .whiteList()
+                .allowList()
                 .addRegexps(
                         "io.apicurio.registry.storage.",
                         TupleId.class.getName(),
-                        MapValue.class.getName()
+                        MapValue.class.getName(),
+                        HashMap.class.getName()
                 );
 
         TransportConfigurationBuilder tConf = gConf.transport();

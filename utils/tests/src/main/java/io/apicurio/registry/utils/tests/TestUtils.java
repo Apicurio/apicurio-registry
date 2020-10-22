@@ -233,7 +233,7 @@ public class TestUtils {
     }
 
     public static <T> T retry(Callable<T> callable) throws Exception {
-        return retry(callable, "Action #" + System.currentTimeMillis(), 5);
+        return retry(callable, "Action #" + System.currentTimeMillis(), 15);
     }
 
     public static void retry(RunnableExc runnable, String name, int maxRetries) throws Exception {

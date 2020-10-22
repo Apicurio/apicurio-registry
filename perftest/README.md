@@ -7,3 +7,4 @@
 Possible values for the simulation class:
 
 * BasicSimulation
+* PersistenceSimulation

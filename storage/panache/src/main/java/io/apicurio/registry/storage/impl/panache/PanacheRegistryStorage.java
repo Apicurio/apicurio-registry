@@ -50,6 +50,7 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -549,7 +550,7 @@ public class PanacheRegistryStorage extends AbstractRegistryStorage {
     @Override
     @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
-        return null;
+        return Collections.EMPTY_LIST;
     }
 
     /**

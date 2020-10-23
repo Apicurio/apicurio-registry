@@ -159,7 +159,6 @@
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
-        <infinispan.version>10.0.1.Final</infinispan.version>
         
         <!-- Specifications -->
         <annotation-api.version>1.3.2</annotation-api.version>

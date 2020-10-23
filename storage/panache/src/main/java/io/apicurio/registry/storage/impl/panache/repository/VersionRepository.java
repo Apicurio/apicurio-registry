@@ -90,6 +90,10 @@ public class VersionRepository implements PanacheRepository<Version> {
         return find("artifactId = ?1 and version = ?2", artifactId, version)
                 .firstResult();
     }
+    
+    public Version getVersion(long globalId) {
+        return find("globalId = ?1", globalId).firstResult();
+    }
 
     public List<Long> getArtifactVersions(String artifactId) {
         return list("artifactId = ?1", artifactId)
@@ -233,4 +237,5 @@ public class VersionRepository implements PanacheRepository<Version> {
                 ")" +
                 " AND v.globalId IN (select a.latest from Artifact a)";
     }
+
 }

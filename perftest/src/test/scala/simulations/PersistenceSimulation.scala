@@ -21,7 +21,7 @@ class PersistenceSimulation extends Simulation {
       .get("/rules")
     )
     .pause(1)
-    .repeat(20)(
+    .repeat(200)(
       exec(session => session.set("idx", "" + counter.getAndIncrement()))
       .exec(http("create_artifact")
         .post("/artifacts")
@@ -63,6 +63,6 @@ class PersistenceSimulation extends Simulation {
     )
 
   setUp(
-      scn.inject(rampUsers(20) during (10 seconds))
+      scn.inject(rampUsers(200) during (60 seconds))
   ).protocols(httpProtocol)
 }

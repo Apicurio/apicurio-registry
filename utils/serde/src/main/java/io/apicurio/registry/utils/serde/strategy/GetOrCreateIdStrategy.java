@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -25,8 +25,8 @@ import io.apicurio.registry.types.ArtifactType;
 public class GetOrCreateIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     @Override
-    protected long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
-        return service.getArtifactMetaData(artifactId).getGlobalId();
+    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+        return client.getArtifactMetaData(artifactId).getGlobalId();
     }
 
 }

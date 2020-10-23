@@ -16,19 +16,19 @@
 
 package io.apicurio.registry.utils.serde;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
+
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.worldturner.medeia.schema.validation.SchemaValidator;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -38,9 +38,7 @@ import java.nio.ByteBuffer;
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  */
-public class JsonSchemaKafkaSerializer<T>
-    extends JsonSchemaKafkaSerDe<JsonSchemaKafkaSerializer<T>>
-    implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T> extends JsonSchemaKafkaSerDe<JsonSchemaKafkaSerializer<T>> implements Serializer<T> {
 
     /**
      * Constructor.
@@ -55,7 +53,7 @@ public class JsonSchemaKafkaSerializer<T>
      * @param client            the client
      * @param validationEnabled the validation enabled flag
      */
-    public JsonSchemaKafkaSerializer(RegistryService client, Boolean validationEnabled) {
+    public JsonSchemaKafkaSerializer(RegistryRestClient client, Boolean validationEnabled) {
         super(client, validationEnabled);
         setGlobalIdStrategy(new FindLatestIdStrategy<>()); // the default is get latest
     }
@@ -65,7 +63,7 @@ public class JsonSchemaKafkaSerializer<T>
      */
     @Override
     public byte[] serialize(String topic, T data) {
-        // Headers are required when sending data using this serdes impl
+        // Headers are required when sending data using this serde impl
         throw new UnsupportedOperationException();
     }
 
@@ -85,12 +83,12 @@ public class JsonSchemaKafkaSerializer<T>
             if (isValidationEnabled()) {
                 String artifactId = getArtifactId(topic, data);
                 long globalId = getGlobalId(artifactId, topic, data);
-                addSchemaHeaders(headers, artifactId, globalId);
+                headerUtils.addSchemaHeaders(headers, artifactId, globalId);
 
                 SchemaValidator schemaValidator = getSchemaCache().getSchema(globalId);
                 generator = api.decorateJsonGenerator(schemaValidator, generator);
             }
-            addTypeHeaders(headers, data);
+            headerUtils.addMessageTypeHeader(headers, data.getClass().getName());
 
             mapper.writeValue(generator, data);
 
@@ -121,34 +119,6 @@ public class JsonSchemaKafkaSerializer<T>
     protected long getGlobalId(String artifactId, String topic, T data) {
         // Note - for JSON Schema, we don't yet have the schema so we pass null to the strategy.
         return getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.JSON, null);
-    }
-
-    /**
-     * Adds appropriate information to the Headers so that the deserializer can function properly.
-     *
-     * @param headers    msg headers
-     * @param artifactId artifact id
-     * @param globalId   global id
-     */
-    protected void addSchemaHeaders(Headers headers, String artifactId, long globalId) {
-        // we never actually set this requirement for the globalId to be non-negative ... but it mostly is ...
-        if (globalId >= 0) {
-            ByteBuffer buff = ByteBuffer.allocate(8);
-            buff.putLong(globalId);
-            headers.add(JsonSchemaSerDeConstants.HEADER_GLOBAL_ID, buff.array());
-        } else {
-            headers.add(JsonSchemaSerDeConstants.HEADER_ARTIFACT_ID, IoUtil.toBytes(artifactId));
-        }
-    }
-
-    /**
-     * Adds appropriate information to the Headers so that the deserializer can function properly.
-     *
-     * @param headers the headers
-     * @param data the msg data
-     */
-    protected void addTypeHeaders(Headers headers, T data) {
-        headers.add(JsonSchemaSerDeConstants.HEADER_MSG_TYPE, IoUtil.toBytes(data.getClass().getName()));
     }
 
 }

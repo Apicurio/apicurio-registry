@@ -1,0 +1,67 @@
+// Metadata created by nebel
+
+[id="registry-artifact-metadata"]
+= {registry} artifact metadata
+
+Whenever an item is added to {registry}, a set of metadata properties is stored along with the item content.  This
+metadata consists of a set of generated, read-only properties along with some properties that can be set by the user.
+
+.{registry} metadata properties
+[%header,cols=3*]
+|===
+|Property
+|Type
+|Editable
+|*id*
+a| string
+a| false
+|*type*
+a| ArtifactType
+a| false
+|*state*
+a| ArtifactState
+a| true
+|*version*
+a| integer
+a| false
+|*createdBy*
+a| string
+a| false
+|*createdOn*
+a| date
+a| false
+|*modifiedBy*
+a| string
+a| false
+|*modifiedOn*
+a| date
+a| false
+|*name*
+a| string
+a| true
+|*description*
+a| string
+a| true
+|*labels*
+a| array of string
+a| true
+|*properties*
+a| map
+a| true
+|===
+
+== Updating artifact metadata
+
+The set of editable properties can be updated via the REST API, using the metadata endpoint(s).  Please see the
+`/artifacts/{artifactId}/meta` section of the REST API reference for details.
+
+== Updating artifact state
+
+It is important to note that the *state* property is editable only by using the state transition API, which allows
+users to, for example, mark an artifact as *deprecated* or *disabled*.  Please see the `/artifacts/{artifactId}/meta`
+section of the REST API reference for details.
+
+== Custom key-value properties
+
+{registry} allows users to set arbitrary key-value properties on any artifact.  The `properties` property above is
+the mechanism that allows this.  As a result, any custom metadata properties can be stored with an artifact.

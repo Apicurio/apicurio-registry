@@ -12,4 +12,5 @@
 project-name: Apicurio Registry
 release-version: 1.3.1.Final
 snapshot-version: 1.3.2-SNAPSHOT
+branch: master
 attempt: 1

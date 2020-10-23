@@ -40,7 +40,7 @@ public class ConcurrentUtil {
                     if (t instanceof RuntimeException)
                         throw (RuntimeException) t;
                     if (t instanceof Error) throw (Error) t;
-                    throw new RuntimeException(t);
+                    throw new RuntimeException(e);
                 }
             }
         } finally {

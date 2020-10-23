@@ -201,6 +201,7 @@ class RulesResourceIT extends BaseIT {
 
     @AfterEach
     void clearRules(RegistryService service) throws Exception {
+        LOGGER.info("Removing all global rules");
         service.deleteAllGlobalRules();
         TestUtils.retry(() -> {
             List<RuleType> rules = service.listGlobalRules();

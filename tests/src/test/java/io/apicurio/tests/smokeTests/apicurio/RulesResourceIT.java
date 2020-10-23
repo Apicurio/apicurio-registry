@@ -16,18 +16,18 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryService;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.RegistryServiceTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +48,8 @@ class RulesResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
 
-    @Test
-    void createAndDeleteGlobalRules(RegistryRestClient service) throws Exception {
+    @RegistryServiceTest
+    void createAndDeleteGlobalRules(RegistryService service) throws Exception {
         // Create a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -80,9 +80,9 @@ class RulesResourceIT extends BaseIT {
         TestUtils.assertWebError(404, () -> service.getGlobalRuleConfig(RuleType.VALIDITY));
     }
 
+    @RegistryServiceTest
     @Tag(ACCEPTANCE)
-    @Test
-    void createAndValidateGlobalRules(RegistryRestClient service) throws Exception {
+    void createAndValidateGlobalRules(RegistryService service) throws Exception {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
@@ -115,9 +115,9 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
+    @RegistryServiceTest
     @Tag(ACCEPTANCE)
-    @Test
-    void createAndValidateArtifactRule(RegistryRestClient service) throws Exception {
+    void createAndValidateArtifactRule(RegistryService service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
@@ -172,8 +172,8 @@ class RulesResourceIT extends BaseIT {
         });
     }
 
-    @Test
-    void testRulesDeletedWithArtifact(RegistryRestClient service) throws Exception {
+    @RegistryServiceTest
+    void testRulesDeletedWithArtifact(RegistryService service) throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
@@ -196,11 +196,11 @@ class RulesResourceIT extends BaseIT {
         assertThat(0, is(service.listArtifacts().size()));
 
         TestUtils.assertWebError(404, () -> service.listArtifactRules(artifactId1));
-        TestUtils.assertWebError(404, () -> service.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
+        TestUtils.assertWebError(404, () -> service.getArtifactRuleConfig(RuleType.VALIDITY, artifactId1));
     }
 
     @AfterEach
-    void clearRules(RegistryRestClient service) throws Exception {
+    void clearRules(RegistryService service) throws Exception {
         LOGGER.info("Removing all global rules");
         service.deleteAllGlobalRules();
         TestUtils.retry(() -> {

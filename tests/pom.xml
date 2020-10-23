@@ -23,6 +23,8 @@
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
+        <junit.version>5.7.0</junit.version>
+        <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
         <debezium.version>1.3.0.Final</debezium.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
@@ -33,6 +35,9 @@
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>
+
+        <!--junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
+        <junit4.version>4.12</junit4.version>
     </properties>
 
     <repositories>
@@ -85,16 +90,19 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
+            <version>${junit.platform-launcher.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -203,6 +211,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <version>${test-containers.version}</version>
+        </dependency>
+        <dependency>
+             <groupId>junit</groupId>
+             <artifactId>junit</artifactId>
+             <version>${junit4.version}</version>
+             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>

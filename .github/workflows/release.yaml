@@ -1,7 +1,7 @@
 name: Release Workflow
 on:
   pull_request:
-    branches: [master]
+    branches: [master, 1.3.x]
     types: [closed]
     paths:
       - '.github/project.yaml'
@@ -53,8 +53,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout ${{steps.metadata.outputs.branch}}
+          git branch --set-upstream-to=origin/${{steps.metadata.outputs.branch}}
           git pull
       - name: Apicurio Website Checkout
         run: |
@@ -65,8 +65,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout ${{steps.metadata.outputs.branch}}
+          git branch --set-upstream-to=origin/${{steps.metadata.outputs.branch}}
           git pull
       - name: Apicurio Playbook Checkout
         run: |
@@ -77,8 +77,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-docs-playbook.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout ${{steps.metadata.outputs.branch}}
+          git branch --set-upstream-to=origin/${{steps.metadata.outputs.branch}}
           git pull
       - name: Update Release Version ${{steps.metadata.outputs.release-version}}
         run: |
@@ -152,7 +152,7 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{steps.metadata.outputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
+          sed -i  "s/version\:\s.*/version: \'${{steps.metadata.outputs.branch}}\'/g" docs/antora.yml
       - name: Commit Snapshot Version ${{steps.metadata.outputs.snapshot-version}}
         run: |
           cd registry
@@ -223,7 +223,8 @@ jobs:
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-jpa:latest apicurio/apicurio-registry-jpa:latest-release 
       - name: Verify Docker Release For infinispan
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
-      - name: Verify Maven Release
-        run: |
-          cd .github/test-mvn-deploy
-          mvn clean install "-Dversion.apicurio=${{steps.metadata.outputs.release-version}}" # Passing the latest version at run-time
+# Commented out because artifacts are not immediately available in central
+#      - name: Verify Maven Release
+#        run: |
+#          cd .github/test-mvn-deploy
+#          mvn clean install "-Dversion.apicurio=${{steps.metadata.outputs.release-version}}" # Passing the latest version at run-time

@@ -23,6 +23,8 @@
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
+        <junit.version>5.7.0</junit.version>
+        <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
         <debezium.version>1.3.0.Final</debezium.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
@@ -85,16 +87,19 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
+            <version>${junit.platform-launcher.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

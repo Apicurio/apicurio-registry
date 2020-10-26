@@ -27,18 +27,19 @@ This section explains how to manage artifacts stored in {registry} using a Java 
 ----
 public class ClientExample {
 
-    private static final RegistryRestClient service;
+    private static final RegistryRestClient client;
 
      public static void main(String[] args) throws Exception {
         // Create a Service Registry client
         String registryUrl = "http://localhost:8080/api/";
-        RegistryRestClient service = RegistryRestClientFactory.create(registryUrl); <1>
+        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl); <1>
     }
 }
 ----
 <1> For more options on how to create a {registry} client, see {registry-client-types}.
 
-. Once created, all the operations are available through the client, like create an artifact, update, or delete it.
+. Once created, all the operations from the {registry} REST API are available through the client.  For details about the available
+operations, see the REST API documentation.
 
 
 The {registry} Java client extends the interface Autocloseable.

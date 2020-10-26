@@ -3,7 +3,7 @@
 
 [id="registry-client-types"]
 = {registry} Java client reference
-The {registry} Java client includes the following options when creating, based on the client factory.
+The {registry} Java client includes the following configuration options, based on the client factory.
 
 .{registry} Java client options
 [%header,cols=3*]

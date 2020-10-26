@@ -172,23 +172,23 @@ public class JPARegistryStorage extends AbstractRegistryStorage {
         requireNonNull(artifactId);
         List<Artifact> artifacts;
         if (states != null) {
-            String statesQuery = states
+            List<String> statesQuery = states
                     .stream()
-                    .map(s -> String.format("'%s'",s.toString()))
-                    .collect(Collectors.joining(","));
-            String query = String.format(
+                    .map(s -> s.name())
+                    .collect(Collectors.toList());
+            String query =
                      "SELECT a.* " +
                      "FROM artifacts a " +
                      "INNER JOIN " +
                      "  (SELECT artifact_id, max(version) AS MaxVersion " +
                      "  FROM meta " +
-                     "  WHERE artifact_id = '%s' AND key = '%s' AND value IN (%s) " +
+                     "  WHERE artifact_id = :artifact_id AND key = :key AND value IN :states" +
                      "  GROUP BY artifact_id) b " +
-                     "ON a.artifact_id = b.artifact_id AND a.version = b.MaxVersion",
-                     artifactId,
-                     MetaDataKeys.STATE,
-                     statesQuery);
+                     "ON a.artifact_id = b.artifact_id AND a.version = b.MaxVersion";
             artifacts = entityManager.createNativeQuery(query, Artifact.class)
+                    .setParameter("artifact_id", artifactId)
+                    .setParameter("key", MetaDataKeys.STATE)
+                    .setParameter("states", statesQuery)
                     .setMaxResults(1)
                     .getResultList();
         } else {

@@ -4,28 +4,47 @@
 [id="writing-registry-client"]
 = Writing a {registry} client application
 
-This section explains how to manage artifacts stored in {registry} using a Java client application... 
-
-More TBD 
+This section explains how to manage artifacts stored in {registry} using a Java client application.
 
 .Prerequisites
-
 * See {registry-overview}
-* {registry} must be installed and running in your environment
+* {registry} must be installed and running in your environment.
+* Add the following dependency to your project:
+
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-rest-client</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
 
 .Procedure
-
-. Enter step one here.
+. Create a registry client
 +
 [source,java,subs="+quotes,attributes"]
 ----
-Insert client code sample here <1>
-...
+public class ClientExample {
+
+    private static final RegistryRestClient service;
+
+     public static void main(String[] args) throws Exception {
+        // Create a Service Registry client
+        String registryUrl = "http://localhost:8080/api/";
+        RegistryRestClient service = RegistryRestClientFactory.create(registryUrl); <1>
+    }
+}
 ----
-<1> Describe the client code sample here
+<1> For more options on how to create a {registry} client, see {registry-client-types}.
+
+. Once created, all the operations are available through the client, like create an artifact, update, or delete it.
+
+. The {registry} Java client extends the interface Autocloseable.
 
 .Additional resources
-* For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
+* For more examples on how to use or customize the {registry} client see https://github.com/Apicurio/apicurio-registry-examples/blob/master/rest-client
+
 ifdef::rh-service-registry[]
 * For details on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
 link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].

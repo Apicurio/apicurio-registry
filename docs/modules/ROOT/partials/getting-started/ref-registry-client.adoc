@@ -3,15 +3,21 @@
 
 [id="registry-client-types"]
 = {registry} Java client reference
-The {registry} Java client includes the following...
+The {registry} Java client includes the following options when creating, based on the client factory.
 
-More TBD
-
-.{registry} Java client types
-[%header,cols=2*] 
+.{registry} Java client options
+[%header,cols=3*]
 |===
-|Type
+|Option
 |Description
-|`TBD`
-| TBD
+|Arguments
+|Plain Client
+|Basic rest client used to interact with a running registry.
+|baseUrl
+|Custom HTTP client
+|Registry client using an OkHttpClient provided by the user.
+|baseUrl, okhttpClient
+|Custom Configuration
+|Registry client that accepts a map containing custom configuration. This is useful, for example, to add custom headers to the calls.
+|baseUrl, configs
 |===

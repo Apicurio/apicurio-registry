@@ -19,15 +19,13 @@ package io.apicurio.tests.serdes;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.utils.serde.JsonSchemaSerDeConstants;
 import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
 import io.apicurio.registry.utils.serde.ProtobufKafkaSerializer;
+import io.apicurio.registry.utils.serde.SerdeConfig;
 import io.apicurio.registry.utils.serde.strategy.RecordIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
@@ -98,8 +96,8 @@ public class KafkaClients {
             props.putIfAbsent(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy);
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryApiUrl());
-            props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, artifactIdStrategy);
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryApiUrl());
+            props.putIfAbsent(SerdeConfig.ARTIFACT_ID_STRATEGY, artifactIdStrategy);
         }
 
         return new KafkaProducer<>(props);
@@ -123,7 +121,7 @@ public class KafkaClients {
         if (valueDeserializer.contains("confluent")) {
             props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat");
         } else {
-            props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryApiUrl());
         }
         return new KafkaConsumer<>(props);
     }
@@ -241,7 +239,7 @@ public class KafkaClients {
             int messageCount) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             Properties props = new Properties();
-            props.put(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, Boolean.TRUE);
+            props.put(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
             Producer<Object, Msg> producer = (Producer<Object, Msg>) KafkaClients.createProducer(props, StringSerializer.class.getName(),
                     JsonSchemaKafkaSerializer.class.getName(), topicName, SimpleTopicIdStrategy.class.getName());
             LOGGER.debug("++++++++++++++++++ Producer created.");
@@ -285,7 +283,7 @@ public class KafkaClients {
     public static CompletableFuture<Integer> consumeJsonSchemaApicurioMessages(String topicName, int messageCount) {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
             Properties props = new Properties();
-            props.put(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, Boolean.TRUE);
+            props.put(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
             final Consumer<Long, Msg> consumer = (Consumer<Long, Msg>) KafkaClients.createConsumer(
                     StringDeserializer.class.getName(), JsonSchemaKafkaDeserializer.class.getName(), topicName);
             consumer.subscribe(Collections.singletonList(topicName));

@@ -15,55 +15,47 @@
  */
 package io.apicurio.registry.utils.serde.util;
 
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.AvroEncoding;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeader;
-
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
+
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.AvroEncoding;
+import io.apicurio.registry.utils.serde.SerdeConfig;
+import io.apicurio.registry.utils.serde.SerdeHeaders;
+
+/**
+ * Class used to add header information to Kafka messages when passing artifactId/globalId information
+ * from the serializer to the deserializer via message headers instead of via the message payload.
+ */
 public class HeaderUtils {
 
-
-    public static final String DEFAULT_HEADER_KEY_ARTIFACT_ID = "apicurio.key.artifactId";
-    public static final String DEFAULT_HEADER_VALUE_ARTIFACT_ID = "apicurio.value.artifactId";
-    public static final String DEFAULT_HEADER_KEY_VERSION = "apicurio.key.version";
-    public static final String DEFAULT_HEADER_VALUE_VERSION = "apicurio.value.version";
-    public static final String DEFAULT_HEADER_KEY_GLOBAL_ID = "apicurio.key.globalId";
-    public static final String DEFAULT_HEADER_VALUE_GLOBAL_ID = "apicurio.value.globalId";
-    public static final String HEADER_KEY_ENCODING = "apicurio.key.encoding";
-    public static final String HEADER_VALUE_ENCODING = "apicurio.value.encoding";
-    
-    // Define constants to override the names of the keys stored in the header
-    public static final String HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME = "apicurio.key.artifactId.name";
-    public static final String HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME = "apicurio.value.artifactId.name";
-    public static final String HEADER_KEY_VERSION_OVERRIDE_NAME = "apicurio.key.version.name";
-    public static final String HEADER_VALUE_VERSION_OVERRIDE_NAME = "apicurio.value.version.name";
-    public static final String HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME = "apicurio.key.globalId.name";
-    public static final String HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME = "apicurio.value.globalId.name";
-
-
-    protected String globalIdHeaderName;
-    protected String artifactIdHeaderName;
-    protected String versionHeaderName;
-    protected String encodingName;
+    private final String globalIdHeaderName;
+    private final String artifactIdHeaderName;
+    private final String versionHeaderName;
+    private final String encodingHeaderName;
+    private final String messageTypeHeaderName;
 
     public HeaderUtils(Map<String,Object> configs, boolean isKey) {
         if (isKey) {
-            artifactIdHeaderName = (String) configs.getOrDefault(HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, DEFAULT_HEADER_KEY_ARTIFACT_ID);
-            globalIdHeaderName = (String) configs.getOrDefault(HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, DEFAULT_HEADER_KEY_GLOBAL_ID);
-            versionHeaderName = (String) configs.getOrDefault(HEADER_KEY_VERSION_OVERRIDE_NAME, DEFAULT_HEADER_KEY_VERSION);
-            encodingName = HEADER_KEY_ENCODING;
+            artifactIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_ARTIFACT_ID);
+            globalIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_GLOBAL_ID);
+            versionHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_VERSION_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_VERSION);
+            encodingHeaderName = SerdeHeaders.HEADER_KEY_ENCODING;
+            messageTypeHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_MESSAGE_TYPE_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_MESSAGE_TYPE);
+            
         } else {
-            artifactIdHeaderName = (String) configs.getOrDefault(HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, DEFAULT_HEADER_VALUE_ARTIFACT_ID);
-            globalIdHeaderName = (String) configs.getOrDefault(HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, DEFAULT_HEADER_VALUE_GLOBAL_ID);
-            versionHeaderName = (String) configs.getOrDefault(HEADER_VALUE_VERSION_OVERRIDE_NAME, DEFAULT_HEADER_VALUE_VERSION);
-            encodingName = HEADER_VALUE_ENCODING;
+            artifactIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_ARTIFACT_ID);
+            globalIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            versionHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_VERSION_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_VERSION);
+            encodingHeaderName = SerdeHeaders.HEADER_VALUE_ENCODING;
+            messageTypeHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_MESSAGE_TYPE);
         }
     }
 
@@ -89,11 +81,18 @@ public class HeaderUtils {
     }
 
     public void addEncodingHeader(Headers headers, AvroEncoding encoding) {
-        headers.add(new RecordHeader(encodingName,encoding.name().getBytes()));
+        headers.add(new RecordHeader(encodingHeaderName, encoding.name().getBytes()));
+    }
+
+    public void addMessageTypeHeader(Headers headers, String messageType) {
+        if (headers == null) {
+            headers = createHeaders();
+        }
+        headers.add(messageTypeHeaderName, IoUtil.toBytes(messageType));
     }
 
     public AvroEncoding getEncoding(Headers headers) {
-        Header encodingHeader = headers.lastHeader(encodingName);
+        Header encodingHeader = headers.lastHeader(encodingHeaderName);
         AvroEncoding encoding = null;
         if (encodingHeader != null) {
             encoding = AvroEncoding.valueOf(IoUtil.toString(encodingHeader.value()));
@@ -125,6 +124,14 @@ public class HeaderUtils {
         else {
             return ByteBuffer.wrap(header.value()).getLong();
         }
+    }
+
+    public String getMessageType(Headers headers) {
+        Header header = headers.lastHeader(messageTypeHeaderName);
+        if (header == null) {
+            throw new RuntimeException("Message Type not found in headers.");
+        }
+        return IoUtil.toString(header.value());
     }
 
     /**

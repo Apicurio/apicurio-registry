@@ -16,18 +16,20 @@
 
 package io.apicurio.registry.utils.serde;
 
+import java.io.InputStream;
+import java.util.Map;
+
+import org.apache.kafka.common.serialization.Serializer;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worldturner.medeia.api.StringSchemaSource;
 import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
 import com.worldturner.medeia.schema.validation.SchemaValidator;
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.util.Utils;
-import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.InputStream;
-import java.util.Map;
-import javax.ws.rs.core.Response;
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.util.HeaderUtils;
+import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
  * @author Ales Justin
@@ -39,6 +41,7 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
 
     private Boolean validationEnabled;
     private SchemaCache<SchemaValidator> schemaCache;
+    protected HeaderUtils headerUtils;
 
     /**
      * Constructor.
@@ -53,7 +56,7 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
      * @param client            the registry client
      * @param validationEnabled validation enabled flag
      */
-    public JsonSchemaKafkaSerDe(RegistryService client, Boolean validationEnabled) {
+    public JsonSchemaKafkaSerDe(RegistryRestClient client, Boolean validationEnabled) {
         super(client);
         this.validationEnabled = validationEnabled;
     }
@@ -70,15 +73,18 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
     /**
      * @see Serializer#configure(Map, boolean)
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
 
         if (validationEnabled == null) {
-            Object ve = configs.get(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED);
+            Object ve = configs.get(SerdeConfig.VALIDATION_ENABLED);
             this.validationEnabled = Utils.isTrue(ve);
         }
         
+        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+
         // TODO allow the schema to be configured here
     }
 
@@ -86,14 +92,8 @@ public class JsonSchemaKafkaSerDe<S extends JsonSchemaKafkaSerDe<S>> extends Abs
         if (schemaCache == null) {
             schemaCache = new SchemaCache<SchemaValidator>(getClient()) {
                 @Override
-                protected SchemaValidator toSchema(Response response) {
-                    Object responseEntity = response.getEntity();
-                    String schema;
-                    if (responseEntity instanceof InputStream) {
-                        schema = IoUtil.toString((InputStream) responseEntity);
-                    } else {
-                        schema = response.readEntity(String.class);
-                    }
+                protected SchemaValidator toSchema(InputStream schemaData) {
+                    String schema = IoUtil.toString(schemaData);
                     return api.loadSchema(new StringSchemaSource(schema));
                 }
             };

@@ -67,14 +67,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_HEADERS_PREFIX;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_LOCATION;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEYSTORE_TYPE;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_KEY_PASSWORD;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
-import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>

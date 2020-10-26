@@ -19,15 +19,16 @@ import static io.apicurio.tests.Constants.UI;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryServiceTest;
+import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.Constants;
@@ -42,25 +43,25 @@ public class DeleteArtifactIT extends BaseIT {
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 
     @AfterEach
-    void cleanArtifacts(RegistryService service, ExtensionContext ctx) {
+    void cleanArtifacts(RegistryRestClient client, ExtensionContext ctx) {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }
     }
 
-    @RegistryServiceTest
-    void testDeleteArtifacts(RegistryService service) throws Exception {
+    @RegistryRestClientTest
+    void testDeleteArtifacts(RegistryRestClient client) throws Exception {
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, service.listArtifacts().size());
+        assertEquals(1, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
         String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, service.listArtifacts().size());
+        assertEquals(2, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
@@ -73,7 +74,7 @@ public class DeleteArtifactIT extends BaseIT {
 
         page.deleteArtifact(artifactId1);
 
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
             try {
                 return page.getArtifactsList().size() == 1;
             } catch (Exception e) {
@@ -86,7 +87,7 @@ public class DeleteArtifactIT extends BaseIT {
 
         page.deleteArtifact(artifactId2);
 
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
             try {
                 return page.getArtifactsList().size() == 0;
             } catch (Exception e) {
@@ -96,19 +97,19 @@ public class DeleteArtifactIT extends BaseIT {
         });
     }
 
-    @RegistryServiceTest
-    void testDeleteViaApi(RegistryService service) throws Exception {
+    @RegistryRestClientTest
+    void testDeleteViaApi(RegistryRestClient client) throws Exception {
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, service.listArtifacts().size());
+        assertEquals(1, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
         String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, service.listArtifacts().size());
+        assertEquals(2, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
@@ -119,8 +120,8 @@ public class DeleteArtifactIT extends BaseIT {
         });
         assertTrue(webArtifacts.isEmpty());
 
-        service.deleteArtifact(artifactId1);
-        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId1), true);
+        client.deleteArtifact(artifactId1);
+        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId1), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -134,8 +135,8 @@ public class DeleteArtifactIT extends BaseIT {
         webArtifacts = page.getArtifactsList();
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
-        service.deleteArtifact(artifactId2);
-        TestUtils.assertWebError(404, () -> service.getArtifactMetaData(artifactId2), true);
+        client.deleteArtifact(artifactId2);
+        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId2), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

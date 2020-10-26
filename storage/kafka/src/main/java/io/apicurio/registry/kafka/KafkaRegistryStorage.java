@@ -211,7 +211,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         try {
             switch (vt) {
                 case ARTIFACT: {
-                    consumeArtifact(tf, rv, type, artifactId, version);
+                    consumeArtifact(tf, rv, type, artifactId, version, record.timestamp());
                     break;
                 }
                 case METADATA: {
@@ -329,7 +329,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
         cf.complete(Void.class);
     }
 
-    private void consumeArtifact(CompletableFuture<Object> cf, Str.StorageValue rv, Str.ActionType type, String artifactId, long version) {
+    private void consumeArtifact(CompletableFuture<Object> cf, Str.StorageValue rv, Str.ActionType type, String artifactId, long version, long recordTimestamp) {
         Str.ArtifactValue artifact = rv.getArtifact();
         if (type == Str.ActionType.CREATE || type == Str.ActionType.UPDATE) {
             byte[] content = artifact.getContent().toByteArray();
@@ -338,7 +338,7 @@ public class KafkaRegistryStorage extends SimpleMapRegistryStorage implements Ka
                 ArtifactType.values()[artifact.getArtifactType()],
                 ContentHandle.create(content),
                 Str.ActionType.CREATE == type,
-                offset));
+                offset, recordTimestamp));
         } else if (type == Str.ActionType.DELETE) {
             if (version >= 0) {
                 super.deleteArtifactVersion(artifactId, version);

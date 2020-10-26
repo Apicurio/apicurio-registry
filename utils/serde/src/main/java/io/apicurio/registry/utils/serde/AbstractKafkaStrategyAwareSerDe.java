@@ -16,21 +16,19 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
+import java.util.Map;
+import java.util.Objects;
+
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicIdStrategy;
 
-import java.util.Map;
-import java.util.Objects;
-
 /**
  * @author Ales Justin
  */
 public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafkaStrategyAwareSerDe<T, S>> extends AbstractKafkaSerDe<S> {
-    public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
-    public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
 
     private ArtifactIdStrategy<T> artifactIdStrategy;
     private GlobalIdStrategy<T> globalIdStrategy;
@@ -39,12 +37,12 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
         this(null);
     }
 
-    public AbstractKafkaStrategyAwareSerDe(RegistryService client) {
+    public AbstractKafkaStrategyAwareSerDe(RegistryRestClient client) {
         this(client, new TopicIdStrategy<>(), new FindBySchemaIdStrategy<>());
     }
 
     public AbstractKafkaStrategyAwareSerDe(
-        RegistryService client,
+        RegistryRestClient client,
         ArtifactIdStrategy<T> artifactIdStrategy,
         GlobalIdStrategy<T> globalIdStrategy
     ) {
@@ -74,10 +72,10 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
 
-        Object ais = configs.get(REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM);
+        Object ais = configs.get(SerdeConfig.ARTIFACT_ID_STRATEGY);
         instantiate(ArtifactIdStrategy.class, ais, this::setArtifactIdStrategy);
 
-        Object gis = configs.get(REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
+        Object gis = configs.get(SerdeConfig.GLOBAL_ID_STRATEGY);
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
     }
 }

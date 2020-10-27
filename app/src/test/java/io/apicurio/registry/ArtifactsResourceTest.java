@@ -119,7 +119,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testCreateArtifactInvalidSyntax() {
+    public void testCreateArtifactInvalidSyntax() throws Exception {
         String invalidArtifactContent = resourceToString("openapi-invalid-syntax.json");
 
         // Add a global rule
@@ -133,6 +133,20 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(204)
                 .body(anything());
+
+        // Verify the rule was added.
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .get("/rules/VALIDITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
+        Thread.sleep(2000);
 
         // Create OpenAPI artifact - invalid syntax
         given()

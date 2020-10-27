@@ -51,9 +51,7 @@ public class JsonSchemaDiffLibrary {
                     .schemaJson(originalJson)
                     .build().load().build();
 
-            Schema updatedSchema = SchemaLoader.builder()
-                    .schemaJson(updatedJson)
-                    .build().load().build();
+            Schema updatedSchema = SchemaLoader.builder().schemaJson(updatedJson).build().load().build();
 
             return findDifferences(originalSchema, updatedSchema);
 

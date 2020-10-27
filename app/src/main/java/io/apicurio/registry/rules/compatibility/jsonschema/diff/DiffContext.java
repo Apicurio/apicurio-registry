@@ -86,12 +86,12 @@ public class DiffContext {
 
     public void addDifference(DiffType type, Object originalSubchema, Object updatedSubchema) {
         Difference difference = Difference.builder()
-                .diffType(type)
-                .pathOriginal("")
-                .pathUpdated(pathUpdated)
-                .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
-                .subSchemaUpdated(Objects.toString(updatedSubchema))
-                .build();
+             .diffType(type)
+             .pathOriginal("")
+             .pathUpdated(pathUpdated)
+             .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
+             .subSchemaUpdated(Objects.toString(updatedSubchema))
+             .build();
         addToDifferenceSets(difference);
 //        if(!type.isBackwardsCompatible())
 //            log.warn("New incompatible difference found: " + difference);

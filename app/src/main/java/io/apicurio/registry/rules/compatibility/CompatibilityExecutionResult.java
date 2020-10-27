@@ -7,6 +7,9 @@ import java.util.Set;
 
 /**
  * Created by aohana
+ *
+ * Holds the result for compatibility check
+ * incompatibleDifferences set will have values only schema types which have information regarding difference type
  */
 public class CompatibilityExecutionResult {
 

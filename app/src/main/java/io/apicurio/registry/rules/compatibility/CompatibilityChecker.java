@@ -45,10 +45,9 @@ public interface CompatibilityChecker {
         if (existingArtifacts.contains(null)) {
             throw new IllegalStateException("existingArtifacts contains null element(s)");
         }
-        return testCompatibility(
-                compatibilityLevel,
-                existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
-                proposedArtifact.content()
+        return testCompatibility(compatibilityLevel,
+             existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
+             proposedArtifact.content()
         );
     }
 

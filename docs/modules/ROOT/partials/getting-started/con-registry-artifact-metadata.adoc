@@ -12,40 +12,40 @@ metadata consists of a set of generated, read-only properties along with some pr
 |Property
 |Type
 |Editable
-|*id*
+|`id`
 a| string
 a| false
-|*type*
+|`type`
 a| ArtifactType
 a| false
-|*state*
+|`state`
 a| ArtifactState
 a| true
-|*version*
+|`version`
 a| integer
 a| false
-|*createdBy*
+|`createdBy`
 a| string
 a| false
-|*createdOn*
+|`createdOn`
 a| date
 a| false
-|*modifiedBy*
+|`modifiedBy`
 a| string
 a| false
-|*modifiedOn*
+|`modifiedOn`
 a| date
 a| false
-|*name*
+|`name`
 a| string
 a| true
-|*description*
+|`description`
 a| string
 a| true
-|*labels*
+|`labels`
 a| array of string
 a| true
-|*properties*
+|`properties`
 a| map
 a| true
 |===
@@ -57,8 +57,8 @@ The set of editable properties can be updated via the REST API, using the metada
 
 == Updating artifact state
 
-It is important to note that the *state* property is editable only by using the state transition API, which allows
-users to, for example, mark an artifact as *deprecated* or *disabled*.  Please see the `/artifacts/{artifactId}/meta`
+It is important to note that the `state` property is editable only by using the state transition API, which allows
+users to, for example, mark an artifact as `deprecated` or `disabled`.  Please see the `/artifacts/{artifactId}/meta`
 section of the REST API reference for details.
 
 == Custom key-value properties

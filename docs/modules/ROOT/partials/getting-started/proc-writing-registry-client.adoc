@@ -9,7 +9,7 @@ This section explains how to manage artifacts stored in {registry} using a Java 
 .Prerequisites
 * See {registry-overview}
 * {registry} must be installed and running in your environment.
-* Add the following dependency to your project:
+* Add the following dependency to your Maven project:
 
 [source,xml,subs="+quotes,attributes"]
 ----
@@ -43,9 +43,6 @@ operations, see the REST API documentation.
 
 
 The {registry} Java client extends the interface Autocloseable.
-
-In order to configure custom headers, the prefix *apicurio.registry.request.headers* must be added to the map key, for example, a key *apicurio.registry.request.headers.Authorization* with value Basic: xxxxx would result in a header of *Authorization* with value Basic: xxxxx.
-
 
 .Additional resources
 * For more examples on how to use or customize the {registry} client see https://github.com/Apicurio/apicurio-registry-examples/blob/master/rest-client

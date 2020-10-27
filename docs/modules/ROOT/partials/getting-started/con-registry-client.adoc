@@ -13,7 +13,7 @@ usage by, for example, adding custom headers or enabling TLS auth support.
 
 == Enabling TLS support in the client
 
-The TLS auth support can be enabled and configured using the following properties:
+You can configure TLS authentication using the following properties:
 
 * apicurio.registry.request.ssl.truststore.location
 * apicurio.registry.request.ssl.truststore.password

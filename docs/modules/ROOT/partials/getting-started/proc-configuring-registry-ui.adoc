@@ -1,29 +1,29 @@
 
 [id="configuring-registry-ui"]
-= Configuring {registry} User Interface
+= Configuring {registry} web console
 
-You may configure the {registry} User Interface in a number of ways, either to customize its behavior or to properly
+You may configure the {registry} web console in a number of ways, either to customize its behavior or to properly
 configure it for your deployment environment.
 
-== Configuring {registry} UI for Deployment Environment
+== Configuring {registry} web console for Deployment Environment
 
-When a user navigates their browser to the {registry} User Interface, some initial configuration settings are loaded.
+When a user navigates their browser to the {registry} web console, some initial configuration settings are loaded.
 Two important configuration properties are:
 
 * URL of the back-end API
-* URL of the front-end user interface
+* URL of the front-end web console
 
 Typically {registry} will automatically detect and generate these settings, but there are some deployment environments
 where this automatic detection may fail.  When this happens, you can configure the following environment variables to
 explicitly set them:
 
 * *_REGISTRY_UI_CONFIG_APIURL_* : set to override the URL to the back-end API (e.g. https://registry.my-domain.com/api)
-* *_REGISTRY_UI_CONFIG_UIURL_* : set to override the URL to the front-end user interface (e.g. https://registry.my-domain.com/ui)
+* *_REGISTRY_UI_CONFIG_UIURL_* : set to override the URL to the front-end web console (e.g. https://registry.my-domain.com/ui)
 
-== Configuring {registry} UI for Read-Only Mode
+== Configuring {registry} console for read-only mode
 
-An optional feature that can be enabled in {registry} is the ability to put the User Interface into "Read Only"
-mode.  This mode disables all of the features in the User Interface that would allow a user to make changes to
+An optional feature that can be enabled in {registry} is the ability to put the web console into "Read Only"
+mode.  This mode disables all of the features in the web console that would allow a user to make changes to
 registered artifacts.  This includes (but is not limited to):
 
 * Creating an artifact
@@ -31,6 +31,6 @@ registered artifacts.  This includes (but is not limited to):
 * Updating an artifact's meta-data
 * Deleting an artifact
 
-To put the User Interface into "Read Only" mode, set the following environment variable:
+To put the web console into "Read Only" mode, set the following environment variable:
 
 * *_REGISTRY_UI_FEATURES_READONLY_* : set to `true` to enable "Read Only" mode (default `false`)

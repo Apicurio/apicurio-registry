@@ -19,6 +19,7 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -56,7 +57,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testCreateArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        
+
         // Create OpenAPI artifact - indicate the type via a header param
         createArtifact("testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent);
 
@@ -115,6 +116,37 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts")
             .then()
                 .statusCode(400);
+    }
+
+    @Test
+    public void testCreateArtifactInvalidSyntax() {
+        String invalidArtifactContent = resourceToString("openapi-invalid-syntax.json");
+
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+                .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Create OpenAPI artifact - invalid syntax
+        given()
+                .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI/invalidSyntax")
+                .body(invalidArtifactContent)
+                .post("/artifacts")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("Syntax violation for OpenAPI artifact."))
+                .body("causes[0].description", equalTo("Syntax violation for OpenAPI artifact."))
+                .body("causes[0].context", equalTo("FULL"));
     }
 
     @Test
@@ -353,6 +385,108 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(400);
+
+    }
+
+    @Test
+    public void testCreateArtifactVersionValidityRuleViolation() throws Exception {
+        String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
+        String artifactContentInvalidSyntax = resourceToString("rules/validity/jsonschema-invalid.json");
+        String artifactId = "testCreateArtifact/ValidityRuleViolation";
+        createArtifact(artifactId, ArtifactType.JSON, artifactContent);
+
+        // Add a rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
+        // Create a new version of the artifact with invalid syntax
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .pathParam("artifactId", artifactId)
+                .body(artifactContentInvalidSyntax)
+                .post("/artifacts/{artifactId}/versions")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("Syntax violation for JSON Schema artifact."))
+                .body("causes[0].description", equalTo("Syntax violation for JSON Schema artifact."))
+                .body("causes[0].context", equalTo("FULL"));
+
+    }
+
+    @Test
+    public void testCreateArtifactVersionCompatibilityRuleViolation() throws Exception {
+        String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
+        String artifactContentInvalidSyntax = resourceToString("rules/validity/jsonschema-valid-incompatible.json");
+        String artifactId = "testCreateArtifact/ValidJson";
+        createArtifact(artifactId, ArtifactType.JSON, artifactContent);
+
+        // Add a rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("BACKWARD"));
+        });
+
+        // Create a new version of the artifact with invalid syntax
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .pathParam("artifactId", artifactId)
+                .body(artifactContentInvalidSyntax)
+                .post("/artifacts/{artifactId}/versions")
+                .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num of incompatible diffs: {1}"))
+                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
+                .body("causes[0].context", equalTo("/properties/age"));
 
     }
     

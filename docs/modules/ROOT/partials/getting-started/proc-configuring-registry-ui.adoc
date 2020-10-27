@@ -2,10 +2,10 @@
 [id="configuring-registry-ui"]
 = Configuring {registry} web console
 
-You may configure the {registry} web console in a number of ways, either to customize its behavior or to properly
+You can configure the {registry} web console in a number of ways, either to customize its behavior or to properly
 configure it for your deployment environment.
 
-== Configuring {registry} web console for Deployment Environment
+== Configuring {registry} web console for deployment environment
 
 When a user navigates their browser to the {registry} web console, some initial configuration settings are loaded.
 Two important configuration properties are:
@@ -14,11 +14,11 @@ Two important configuration properties are:
 * URL of the front-end web console
 
 Typically {registry} will automatically detect and generate these settings, but there are some deployment environments
-where this automatic detection may fail.  When this happens, you can configure the following environment variables to
+where this automatic detection can fail.  When this happens, you can configure the following environment variables to
 explicitly set them:
 
-* *_REGISTRY_UI_CONFIG_APIURL_* : set to override the URL to the back-end API (e.g. https://registry.my-domain.com/api)
-* *_REGISTRY_UI_CONFIG_UIURL_* : set to override the URL to the front-end web console (e.g. https://registry.my-domain.com/ui)
+* *_REGISTRY_UI_CONFIG_APIURL_* : set to override the URL to the back-end API (example https://registry.my-domain.com/api)
+* *_REGISTRY_UI_CONFIG_UIURL_* : set to override the URL to the front-end web console (example https://registry.my-domain.com/ui)
 
 == Configuring {registry} console for read-only mode
 
@@ -28,9 +28,9 @@ registered artifacts.  This includes (but is not limited to):
 
 * Creating an artifact
 * Uploading a new version of an artifact
-* Updating an artifact's meta-data
+* Updating an artifact's metadata
 * Deleting an artifact
 
-To put the web console into "Read Only" mode, set the following environment variable:
+To put the web console into read only mode, set the following environment variable:
 
 * *_REGISTRY_UI_FEATURES_READONLY_* : set to `true` to enable "Read Only" mode (default `false`)

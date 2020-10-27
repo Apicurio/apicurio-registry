@@ -2,7 +2,7 @@
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-register-{context}']
-= Registering a schema to {registry}
+= Registering a schema in {registry}
 
 After you have defined a schema in the appropriate format, such as _Apache Avro_, you can add the schema to {registry}.
 

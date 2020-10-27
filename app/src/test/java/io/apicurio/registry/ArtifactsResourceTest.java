@@ -146,8 +146,6 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("config", equalTo("FULL"));
         });
 
-        Thread.sleep(2000);
-
         // Create OpenAPI artifact - invalid syntax
         given()
                 .when()

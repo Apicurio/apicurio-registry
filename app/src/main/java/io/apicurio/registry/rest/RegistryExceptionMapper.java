@@ -18,13 +18,20 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.exception.AlreadyExistsException;
+import io.apicurio.registry.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.exception.ArtifactNotFoundException;
+import io.apicurio.registry.exception.InvalidArtifactStateException;
+import io.apicurio.registry.exception.InvalidArtifactTypeException;
+import io.apicurio.registry.exception.NotFoundException;
+import io.apicurio.registry.exception.RuleAlreadyExistsException;
+import io.apicurio.registry.exception.RuleNotFoundException;
+import io.apicurio.registry.exception.VersionNotFoundException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.rest.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.storage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +52,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
 /**
  * @author eric.wittmann@gmail.com

@@ -29,7 +29,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.ProtobufFile;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import io.apicurio.registry.exception.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 
 /**

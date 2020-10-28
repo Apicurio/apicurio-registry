@@ -14,37 +14,43 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.exception;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactAlreadyExistsException extends AlreadyExistsException {
+public class VersionNotFoundException extends ArtifactNotFoundException {
 
-    private static final long serialVersionUID = -1015140450163088675L;
-    
-    private final String artifactId;
+    private static final long serialVersionUID = 969959730600115392L;
+
+    private final long version;
 
     /**
      * Constructor.
      */
-    public ArtifactAlreadyExistsException(String artifactId) {
-        this.artifactId = artifactId;
+    public VersionNotFoundException(String artifactId, long version) {
+        super(artifactId);
+        this.version = version;
+    }
+
+    public VersionNotFoundException(String artifactId, long version, Throwable cause) {
+        super(artifactId, cause);
+        this.version = version;
     }
 
     /**
-     * @return the artifactId
+     * @return the version
      */
-    public String getArtifactId() {
-        return artifactId;
+    public long getVersion() {
+        return version;
     }
-    
+
     /**
      * @see java.lang.Throwable#getMessage()
      */
     @Override
     public String getMessage() {
-        return "An artifact with ID '" + this.artifactId + "' already exists.";
+        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "'.";
     }
 
 }

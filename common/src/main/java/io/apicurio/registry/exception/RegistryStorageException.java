@@ -14,28 +14,38 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validity;
-
-import io.apicurio.registry.exception.RegistryException;
+package io.apicurio.registry.exception;
 
 /**
- * Indicates that the artifact content was invalid.
  * @author eric.wittmann@gmail.com
  */
-public class InvalidContentException extends RegistryException {
+public class RegistryStorageException extends StorageException {
 
-    private static final long serialVersionUID = 2546589404804650539L;
-
-    public InvalidContentException(String message) {
-        super(message);
-    }
-
-    public InvalidContentException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public InvalidContentException(Throwable cause) {
+    private static final long serialVersionUID = 708084955101638005L;
+    
+    /**
+     * Constructor.
+     * @param cause
+     */
+    public RegistryStorageException(Throwable cause) {
         super(cause);
+    }
+
+    /**
+     * Constructor.
+     * @param reason
+     * @param cause
+     */
+    public RegistryStorageException(String reason, Throwable cause) {
+        super(reason, cause);
+    }
+
+    /**
+     * Constructor.
+     * @param reason
+     */
+    public RegistryStorageException(String reason) {
+        super(reason);
     }
 
 }

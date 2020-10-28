@@ -25,7 +25,7 @@ import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.exception.RuleNotFoundException;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;

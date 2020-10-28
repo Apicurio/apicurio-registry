@@ -20,11 +20,11 @@ import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.exception.ArtifactNotFoundException;
+import io.apicurio.registry.exception.RegistryStorageException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.exception.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;

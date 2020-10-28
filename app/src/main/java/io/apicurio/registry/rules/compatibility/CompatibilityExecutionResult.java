@@ -8,7 +8,7 @@ import java.util.Set;
 /**
  * Created by aohana
  *
- * Holds the result for compatibility check
+ * Holds the result for a compatibility check
  * isCompatible - whether the compatibility check is successful or not
  * incompatibleDifferences - will contain values in case the schema type has difference type information in case the
  * new schema is not compatible (only JSON schema as of now)

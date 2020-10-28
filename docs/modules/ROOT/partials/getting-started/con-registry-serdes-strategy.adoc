@@ -4,18 +4,34 @@
 [id='registry-serdes-concepts-strategy-{context}']
 = Strategies to lookup a schema
 
-The Kafka client serializer/deserializer uses a lookup _strategy_ to determine the artifact ID or global ID under which the message schema is registered in {registry}.
+The Kafka client serializer uses two lookup _strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}.
 
-For a given topic and message, you can use implementations of the following Java classes:
+For a given topic and message, you can use implementations of the following Java interfaces:
 
 * `ArtifactIdStrategy` to return an artifact ID
 * `GlobalIdStrategy` to return a global ID
 
-The artifact ID returned depends on whether the _key_ or _value_ in the message is being serialized.
+.Artifact ID strategy
+
+The artifact ID strategy provides a way to map the Kafka topic and message information to the ID of an artifact in
+{registry}.  The common convention for the mapping is to combine the Kafka topic name with either `key` or `value`
+(depending on whether the serializer is being used for the Kafka message key or value).  However, alternative
+conventions can be used for the mapping, either by using an alternative strategy provided by {registry} or by
+creating a custom Java class that implements `io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy`.
+
+.Global ID strategy
+
+The global ID strategy is responsible for locating and identifying the specific *version* of the schema registered
+under the artifact ID provided by the artifact ID strategy.  Every version of every artifact has a single globally
+unique identifier that can be used to retrieve the content of that artifact.  As described in a previous section,
+that global ID is what gets included in every Kafka message so that a deserializer can properly fetch the schema
+from {registry}.  The global ID strategy can either lookup an existing artifact version, or it can register one if
+not found, depending on which strategy is used.  Additionally, you can provide your own strategy by creating a
+custom Java class that implements `io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy`.
 
 The classes for each strategy are organized in the `io.apicurio.registry.utils.serde.strategy` package.
 
-The default strategy is `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
+The default artifact ID strategy is `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
 
 .Example
 
@@ -29,7 +45,7 @@ public String artifactId(String topic, boolean isKey, T schema) {
 * The `topic` parameter is the name of the Kafka topic receiving the message.
 * The `isKey` parameter is _true_ when the message key is being serialized, and _false_ when the message value is being serialized.
 * The `schema` parameter is the schema of the message being serialized/deserialized.
-* The `artifactID` returned is the ID under which the schema is registered in {registry}.
+* The `artifactID` returned is the artifact ID under which the schema is registered in {registry}.
 
 What lookup strategy you use depends on how and where you store your schema.
 For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.

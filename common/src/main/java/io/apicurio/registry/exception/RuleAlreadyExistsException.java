@@ -14,38 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.exception;
+
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RegistryStorageException extends StorageException {
+public class RuleAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = 708084955101638005L;
+    private static final long serialVersionUID = 2412206165461946827L;
     
-    /**
-     * Constructor.
-     * @param cause
-     */
-    public RegistryStorageException(Throwable cause) {
-        super(cause);
-    }
+    private final RuleType rule;
 
     /**
      * Constructor.
-     * @param reason
-     * @param cause
      */
-    public RegistryStorageException(String reason, Throwable cause) {
-        super(reason, cause);
+    public RuleAlreadyExistsException(RuleType rule) {
+        this.rule = rule;
     }
 
     /**
-     * Constructor.
-     * @param reason
+     * @see java.lang.Throwable#getMessage()
      */
-    public RegistryStorageException(String reason) {
-        super(reason);
+    @Override
+    public String getMessage() {
+        return "A rule named '" + this.rule.name() + "' already exists.";
     }
 
 }

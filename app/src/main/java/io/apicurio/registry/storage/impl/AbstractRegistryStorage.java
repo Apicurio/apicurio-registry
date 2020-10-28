@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.storage.impl;
 
+import io.apicurio.registry.exception.ArtifactNotFoundException;
+import io.apicurio.registry.exception.RegistryStorageException;
+import io.apicurio.registry.exception.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.*;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;

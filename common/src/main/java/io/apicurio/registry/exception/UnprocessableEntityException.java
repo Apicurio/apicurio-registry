@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.exception;
 
-import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * This exception covers the following errors in the compat API:
+ * - Error code 42201 – Invalid schema
+ * - Error code 42202 – Invalid schema version
+ * - Error code 42203 – Invalid compatibility level
  */
-public class InvalidArtifactTypeException extends RegistryException {
+public class UnprocessableEntityException extends RegistryException {
 
-    private static final long serialVersionUID = 1L;
 
-    public InvalidArtifactTypeException(String message) {
+    public UnprocessableEntityException(String message) {
         super(message);
     }
 
+    public UnprocessableEntityException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

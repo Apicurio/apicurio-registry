@@ -22,7 +22,7 @@ import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.exception.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.types.ArtifactMediaTypes;

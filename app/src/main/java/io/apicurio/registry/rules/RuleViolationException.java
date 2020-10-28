@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.exception.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
 

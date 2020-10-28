@@ -19,7 +19,7 @@ package io.apicurio.registry.util;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import io.apicurio.registry.exception.InvalidArtifactTypeException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

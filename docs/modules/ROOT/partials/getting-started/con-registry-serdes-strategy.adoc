@@ -11,11 +11,15 @@ For a given topic and message, you can use implementations of the following Java
 * `ArtifactIdStrategy` to return an artifact ID
 * `GlobalIdStrategy` to return a global ID
 
+.Artifact ID strategy
+
 The artifact ID strategy provides a way to map the Kafka topic and message information to the ID of an artifact in
 {registry}.  The common convention for the mapping is to combine the Kafka topic name with either `key` or `value`
 (depending on whether the serializer is being used for the Kafka message key or value).  However, alternative
 conventions can be used for the mapping, either by using an alternative strategy provided by {registry} or by
 creating a custom Java class that implements `io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy`.
+
+.Global ID strategy
 
 The global ID strategy is responsible for locating and identifying the specific *version* of the schema registered
 under the artifact ID provided by the artifact ID strategy.  Every version of every artifact has a single globally

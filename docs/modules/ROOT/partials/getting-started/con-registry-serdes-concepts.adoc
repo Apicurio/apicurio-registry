@@ -51,7 +51,7 @@ To enable a consumer to use {registry} for deserialization:
 ** Input data stream for deserialization
 
 The schema is then retrieved by the deserializer using a global ID written into the message being consumed.  The schema
-global ID may be located in the message headers or in the message payload itself, depending on the configuration of
+global ID can be located in the message headers or in the message payload itself, depending on the configuration of
 the producer application.
 
 When locating the global ID in the message payload, the format of the data begins with a magic byte (as a signal to

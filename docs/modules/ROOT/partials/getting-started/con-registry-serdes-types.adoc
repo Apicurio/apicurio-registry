@@ -11,7 +11,7 @@ options include:
 * JSON Schema
 * Google Protobuf
 
-Which schema technology you choose is dependent on use-case and preference.  Of course Kafka allows you to implement
+Which schema technology you choose is dependent on use case and preference.  Of course Kafka allows you to implement
 your own custom serializer and deserializer classes, so you are always free to write your own classes, including
 leveraging {registry} functionality by utilizing the REST Client (see the "Using the {registry} Java client" section).
 
@@ -22,14 +22,14 @@ Using one of the serializer or deserializer classes provided by {registry} in yo
 as setting the proper configuration properties.  Here are some simple examples of configuring producer and
 consumer Kafka applications.
 
-.Configuring a Producer
+.Configuring a producer
 
 [source,java,subs="+quotes,attributes"]
 ----
 public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers, String topicName) {
     Properties props = new Properties();
 
-    // Configure standard kafka settings
+    // Configure standard Kafka settings
     props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
     props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
     props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
@@ -55,7 +55,7 @@ public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers,
 }
 ----
 
-.Configuring a Consumer
+.Configuring a consumer
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -79,7 +79,7 @@ public Consumer<Object,Object> createKafkaConsumer(String kafkaBootstrapServers,
     props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, REGISTRY_URL);
     // No other configuration needed for the deserializer, because the globalId of the schema
     // the deserializer should use is sent as part of the message.  So the deserializer simply
-    // extracts that globalId and uses it to look up the Schema from the registry.
+    // extracts that globalId and uses it to look up the schema from the registry.
 
     // Create the Kafka Consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
@@ -98,7 +98,7 @@ easy as possible.  These classes are:
 
 === Configuring the Avro serializer
 
-The Avro serializer class can be configured in the following ways:
+You can configure the Avro serializer class in the following ways:
 
 * {registry} location as a URL
 * Artifact ID strategy (see the "Strategies to lookup a schema" section)
@@ -122,7 +122,7 @@ The property name is `apicurio.registry.use.headers`.
 
 ==== *Global ID handler*
 
-When passing the global ID in the message payload, it is possible to customize precisely how that is done.  Set
+You can customize precisely how the global ID is encoded when passing it in the Kafka message body. Set
 the configuration property `apicurio.registry.id-handler` to be a class that implements the
 `io.apicurio.registry.utils.serde.strategy.IdHandler` interface.  {registry} provides two implementations of
 that interface:
@@ -141,7 +141,7 @@ TBD
 When using Apache Avro to serializer data, it is common to use the Avro binary encoding format.  This is so that
 the data is encoded in as efficient a format as possible.  However, Avro also supports encoding the data as JSON.
 Encoding as JSON is useful because it is much easier to inspect the payload of each message, often for logging,
-debugging, or other similar use-cases.  The {registry} Avro serializer can be configured to change the encoding
+debugging, or other similar use cases.  The {registry} Avro serializer can be configured to change the encoding
 to JSON from the default (binary).
 
 Set the Avro encoding to use by configuring the `apicurio.avro.encoding` property. The value must be either
@@ -150,8 +150,8 @@ Set the Avro encoding to use by configuring the `apicurio.avro.encoding` propert
 
 === Configuring the Avro deserializer
 
-The Avro deserializer class must be configured to match the settings of the serializer.  As a result, the
-deserializer can be configured in the following ways:
+You must configure the Avro deserializer class to match the configuration settings of the serializer.  As a
+result, you can configure the Avro deserializer class in the following ways:
 
 * {registry} location as a URL
 * Global ID handler
@@ -187,7 +187,7 @@ technology.  As a result, configuration options for JSON Schema are quite differ
 
 === Configuring the JSON Schema serializer
 
-The JSON Schema serializer class can be configured in the following ways:
+You can configure the JSON Schema serializer class in the following ways:
 
 * {registry} location as a URL
 * Artifact ID strategy (see the "Strategies to lookup a schema" section)
@@ -202,7 +202,7 @@ disabled.  The validation feature is disabled by default but can be enabled by s
 
 === Configuring the JSON Schema deserializer
 
-The JSON Schema deserializer class can be configured in the following ways:
+You can configure the JSON Schema deserializer class in the following ways:
 
 * {registry} location as a URL
 * Validation enabled/disabled

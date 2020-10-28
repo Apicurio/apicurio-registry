@@ -8,7 +8,7 @@ in the registry using the {registry} Java client classes.
 
 You can access the {registry} Java client by adding the proper dependency to your project, see xref:writing-registry-client[].
 
-The {registry} client is autocloseable and is implemented using Retrofit and OkHttp. This gives the user the ability to customize its 
+The {registry} client is autocloseable and is implemented using Retrofit and OkHttp as base libraries. This gives the user the ability to customize its
 usage by, for example, adding custom headers or enabling TLS auth support.
 
 == Enabling TLS support in the client

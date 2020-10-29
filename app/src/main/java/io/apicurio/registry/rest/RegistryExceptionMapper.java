@@ -168,7 +168,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
         error.setDetail(getStackTrace(t));
-
+        error.setName(t.getClass().getSimpleName());
         return error;
     }
     

@@ -15,13 +15,13 @@
  */
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.exception.ArtifactAlreadyExistsException;
-import io.apicurio.registry.exception.ArtifactNotFoundException;
-import io.apicurio.registry.exception.RegistryStorageException;
-import io.apicurio.registry.exception.RestClientException;
-import io.apicurio.registry.exception.RuleAlreadyExistsException;
-import io.apicurio.registry.exception.RuleNotFoundException;
-import io.apicurio.registry.exception.VersionNotFoundException;
+
+import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.RestClientException;
+import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
+import io.apicurio.registry.client.exception.RuleNotFoundException;
+import io.apicurio.registry.client.exception.VersionNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
@@ -130,7 +130,7 @@ public interface RegistryRestClient extends AutoCloseable {
     List<RuleType> listGlobalRules() throws RestClientException;
 
 
-    void createGlobalRule(Rule data) throws RuleAlreadyExistsException, RegistryStorageException;
+    void createGlobalRule(Rule data) throws RuleAlreadyExistsException;
 
 
     void deleteAllGlobalRules() throws RestClientException;

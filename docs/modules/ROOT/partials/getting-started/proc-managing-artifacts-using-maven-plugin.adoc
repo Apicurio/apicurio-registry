@@ -80,14 +80,14 @@ The following example shows downloading a single schema by its artifact ID.
 <1> Specify `download` as the execution goal.
 <2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can download multiple artifacts to a specified directory using the artifact ID.
-<4> The plug-in will automatically (try to) choose an appropriate file extension, but you can override it using `<artifactExtension>`.
+<4> The plug-in will automatically try to select an appropriate file extension, but you can override it using `<artifactExtension>`.
 
 == Testing an artifact
 You may want to simply verify that an artifact can be registered without actually making any changes.  This is most
 often useful when rules have been configured in {registry}.  Testing the artifact will result in a failure if the
 artifact content violates any of the configured rules.
 
-NOTE: No content will be added to {registry} even if it passes all of the configured rules.
+NOTE: Even if the artifact passes the test, no content will be added to {registry}.
 
 The following example shows testing an Apache Avro schema artifact:
 

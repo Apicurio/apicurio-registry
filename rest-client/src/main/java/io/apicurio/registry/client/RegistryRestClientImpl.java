@@ -18,7 +18,7 @@
 package io.apicurio.registry.client;
 
 import io.apicurio.registry.client.request.HeadersInterceptor;
-import io.apicurio.registry.client.request.RequestHandler;
+import io.apicurio.registry.client.request.RequestExecutor;
 import io.apicurio.registry.client.service.ArtifactsService;
 import io.apicurio.registry.client.service.IdsService;
 import io.apicurio.registry.client.service.RulesService;
@@ -81,7 +81,7 @@ import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQU
  */
 public class RegistryRestClientImpl implements RegistryRestClient {
 
-    private final RequestHandler requestHandler;
+    private final RequestExecutor requestHandler;
     private final OkHttpClient httpClient;
 
     private ArtifactsService artifactsService;
@@ -110,7 +110,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
                 .baseUrl(baseUrl)
                 .build();
 
-        this.requestHandler = new RequestHandler();
+        this.requestHandler = new RequestExecutor();
 
         initServices(retrofit);
     }

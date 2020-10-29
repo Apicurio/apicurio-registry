@@ -15,7 +15,22 @@
  */
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.rest.beans.*;
+import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.RestClientException;
+import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
+import io.apicurio.registry.client.exception.RuleNotFoundException;
+import io.apicurio.registry.client.exception.VersionNotFoundException;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -29,101 +44,100 @@ public interface RegistryRestClient extends AutoCloseable {
 
     List<String> listArtifacts();
 
-    
-    ArtifactMetaData createArtifact(InputStream data);
+
+    ArtifactMetaData createArtifact(InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+
+    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
 
 
-    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data);
-
-    
-    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data, IfExistsType ifExists, Boolean canonical);
+    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data, IfExistsType ifExists, Boolean canonical) throws ArtifactAlreadyExistsException, RestClientException;
 
 
     InputStream getLatestArtifact(String artifactId);
 
 
-    ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data);
+    ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) throws ArtifactNotFoundException, RestClientException;
 
 
-    void deleteArtifact(String artifactId);
+    void deleteArtifact(String artifactId) throws ArtifactNotFoundException, RestClientException;
 
 
-    void updateArtifactState(String artifactId, UpdateState newState);
+    void updateArtifactState(String artifactId, UpdateState newState) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    ArtifactMetaData getArtifactMetaData(String artifactId);
+    ArtifactMetaData getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RestClientException;
 
 
-    void updateArtifactMetaData(String artifactId, EditableMetaData metaData);
+    void updateArtifactMetaData(String artifactId, EditableMetaData metaData) throws ArtifactNotFoundException, RestClientException;
 
 
-    ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data);
+    ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data) throws ArtifactNotFoundException, RestClientException;
 
 
-    List<Long> listArtifactVersions(String artifactId);
+    List<Long> listArtifactVersions(String artifactId) throws ArtifactNotFoundException, RestClientException;
 
 
-    VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data);
+    VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) throws ArtifactNotFoundException, RestClientException;
 
 
-    InputStream getArtifactVersion(String artifactId, Integer version);
+    InputStream getArtifactVersion(String artifactId, Integer version) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    void updateArtifactVersionState(String artifactId, Integer version, UpdateState newState);
+    void updateArtifactVersionState(String artifactId, Integer version, UpdateState newState) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version);
+    VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData metaData);
+    void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData metaData) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    void deleteArtifactVersionMetaData(String artifactId, Integer version);
+    void deleteArtifactVersionMetaData(String artifactId, Integer version) throws ArtifactNotFoundException, VersionNotFoundException, RestClientException;
 
 
-    List<RuleType> listArtifactRules(String artifactId);
+    List<RuleType> listArtifactRules(String artifactId) throws ArtifactNotFoundException;
 
 
-    void createArtifactRule(String artifactId, Rule ruleConfig);
+    void createArtifactRule(String artifactId, Rule ruleConfig) throws ArtifactNotFoundException, RuleAlreadyExistsException, RestClientException;
 
 
-    void deleteArtifactRules(String artifactId);
+    void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RestClientException;
 
 
-    Rule getArtifactRuleConfig(String artifactId, RuleType ruleType);
+    Rule getArtifactRuleConfig(String artifactId, RuleType ruleType) throws ArtifactNotFoundException, RuleNotFoundException, RestClientException;
 
 
-    Rule updateArtifactRuleConfig(String artifactId, RuleType ruleType, Rule ruleConfig);
+    Rule updateArtifactRuleConfig(String artifactId, RuleType ruleType, Rule ruleConfig) throws ArtifactNotFoundException, RuleNotFoundException, RestClientException;
 
 
-    void deleteArtifactRule(String artifactId, RuleType ruleType);
+    void deleteArtifactRule(String artifactId, RuleType ruleType) throws ArtifactNotFoundException, RuleNotFoundException, RestClientException;
 
 
     void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data);
 
 
-    InputStream getArtifactByGlobalId(long globalId);
+    InputStream getArtifactByGlobalId(long globalId) throws ArtifactNotFoundException, RestClientException;
 
 
-    ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId);
+    ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) throws ArtifactNotFoundException, RestClientException;
 
 
-    Rule getGlobalRuleConfig(RuleType ruleType);
+    Rule getGlobalRuleConfig(RuleType ruleType) throws RuleNotFoundException, RestClientException;
 
 
-    Rule updateGlobalRuleConfig(RuleType ruleType, Rule data);
+    Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) throws RuleNotFoundException, RestClientException;
 
 
-    void deleteGlobalRule(RuleType ruleType);
+    void deleteGlobalRule(RuleType ruleType) throws RuleNotFoundException, RestClientException;
 
 
-    List<RuleType> listGlobalRules();
+    List<RuleType> listGlobalRules() throws RestClientException;
 
 
-    void createGlobalRule(Rule data);
+    void createGlobalRule(Rule data) throws RuleAlreadyExistsException;
 
 
-    void deleteAllGlobalRules();
+    void deleteAllGlobalRules() throws RestClientException;
 
 
     ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit);

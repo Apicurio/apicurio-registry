@@ -19,9 +19,9 @@
 :apicurio-registry:
 :registry: Apicurio Registry
 :kafka-streams: Strimzi
-:registry-version: 1.2
+:registry-version: 1.3
 
-// downstream 
+// downstream
 //:rh-service-registry:
 //:registry: Service Registry
 //:ServiceRegistryName: Apicurio Registry
@@ -40,7 +40,7 @@
 :copy: ©
 :infin: ∞
 :mdash: —
-:nbsp:  
+:nbsp:
 :ndash: –
 :reg: ®
 :trade: ™
@@ -51,7 +51,7 @@ include::attributes-links.adoc[]
 // Download URLs
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
 :download-url-registry-maven: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
-:download-url-registry-source-code: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2 
+:download-url-registry-source-code: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
 :download-url-registry-kafka-connect: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
 :download-url-registry-custom-resources: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2020-Q2
 

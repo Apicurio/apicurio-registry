@@ -16,6 +16,5 @@
 
 package io.apicurio.registry.exception;
 
-
-public class OperationNotSupportedException extends RegistryException {
+public class RestClientException extends RegistryException {
 }

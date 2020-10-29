@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.storage;
+
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * Generic project exception.
- *
- * @author Ales Justin
+ * Base class for all storage exceptions.
+ * @author eric.wittmann@gmail.com
  */
-public class RegistryException extends RuntimeException {
+public abstract class StorageException extends RegistryException {
+    
     private static final long serialVersionUID = 7551763806044016474L;
 
-    public RegistryException() {
+    public StorageException() {
     }
 
-    public RegistryException(String message) {
-        super(message);
+    public StorageException(String reason) {
+        super(reason);
     }
 
-    public RegistryException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RegistryException(Throwable cause) {
+    public StorageException(Throwable cause) {
         super(cause);
     }
 
-    public RegistryException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
+    public StorageException(String reason, Throwable cause) {
+        super(reason, cause);
     }
+
 }

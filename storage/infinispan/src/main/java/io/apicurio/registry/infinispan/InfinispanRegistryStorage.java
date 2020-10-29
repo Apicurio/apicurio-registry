@@ -19,7 +19,7 @@ package io.apicurio.registry.infinispan;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.exception.RegistryStorageException;
+import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.MultiMap;
 import io.apicurio.registry.storage.impl.StorageMap;

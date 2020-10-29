@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.ccompat.rest.error;
+
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * This exception covers the following errors in the compat API:
+ * - 409 Conflict – Incompatible schema
  */
-public abstract class AlreadyExistsException extends StorageException {
+public class ConflictException extends RegistryException {
 
-    private static final long serialVersionUID = 5055445625652989500L;
+    private static final long serialVersionUID = 5511072429790259605L;
 
-    public AlreadyExistsException() {
-    }
-    
-    public AlreadyExistsException(Throwable cause) {
-        super(cause);
-    }
-    
-    public AlreadyExistsException(String reason, Throwable cause) {
-        super(reason, cause);
+    public ConflictException(String message) {
+        super(message);
     }
 
+    public ConflictException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

@@ -18,7 +18,6 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.exception.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;

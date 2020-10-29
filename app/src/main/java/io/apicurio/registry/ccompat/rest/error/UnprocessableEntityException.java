@@ -14,30 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.ccompat.rest.error;
 
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * Base class for all storage exceptions.
- * @author eric.wittmann@gmail.com
+ * This exception covers the following errors in the compat API:
+ * - Error code 42201 – Invalid schema
+ * - Error code 42202 – Invalid schema version
+ * - Error code 42203 – Invalid compatibility level
  */
-public abstract class StorageException extends RegistryException {
-    
-    private static final long serialVersionUID = 7551763806044016474L;
+public class UnprocessableEntityException extends RegistryException {
 
-    public StorageException() {
+
+    public UnprocessableEntityException(String message) {
+        super(message);
     }
 
-    public StorageException(String reason) {
-        super(reason);
+    public UnprocessableEntityException(String message, Throwable cause) {
+        super(message, cause);
     }
-
-    public StorageException(Throwable cause) {
-        super(cause);
-    }
-
-    public StorageException(String reason, Throwable cause) {
-        super(reason, cause);
-    }
-
 }

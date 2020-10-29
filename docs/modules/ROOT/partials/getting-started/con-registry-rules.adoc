@@ -27,9 +27,71 @@ NOTE: If no rules are configured for an artifact, the set of currently configure
 
 [id="registry-rules-work"]
 = How rules work
-Each rule has a name and optional configuration information. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation. 
+Each rule has a name and optional configuration information. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation.
 
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 .Additional resources
 For more details, see {registry-rule-types} and {registry-rule-maturity-matrix}.
+
+[id="registry-rules-config"]
+= Configuring rules
+You can configure rules individually for each artifact, as well as globally.  {registry} applies the rules configured
+for the specific artifact, but if no rules are configured at that level it applies the globally configured rules.  If
+no global rules are configured then no rules are applied.
+
+== Configuring artifact rules
+You can configure artifact rules using the REST API or the web console.  See the relevant documentation sections
+for more information.
+
+== Configuring global rules
+You can configure global rules in several ways:
+
+* Use the `/rules` operations in the REST API
+* Use the web console
+* Set default global rules using {registry} application properties
+
+.Default global rules
+When deploying {registry} it is possible to configure the application itself to enable or disable global rules.  This
+allows configuring of these global rules at installation time without any need for post-install configuration.  You
+can use the following application property format:
+
+`registry.rules.global.<ruleName>`
+
+The following rule names are currently supported:
+
+* `compatibility`
+* `validity`
+
+The value of the application property must be a valid configuration option that is specific to the rule being
+configured.  The following is a table of valid values for each rule:
+
+[%header,cols=2*]
+|===
+|Rule
+|Value
+|*Validity*
+a| `FULL`
+|
+a| `SYNTAX_ONLY`
+|
+a| `NONE`
+|*Compatibility*
+a| `BACKWARD`
+|
+a| `BACKWARD_TRANSITIVE`
+|
+a| `FORWARD`
+|
+a| `FORWARD_TRANSITIVE`
+|
+a| `FULL`
+|
+a| `FULL_TRANSITIVE`
+|
+a| `NONE`
+|===
+
+NOTE: These application properties can be configured as Java system properties or included in the Quarkus
+`application.properties` file.  See more information about configuring {registry} elsewhere in this
+documentation and also in https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

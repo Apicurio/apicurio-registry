@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.storage;
 
 /**
  * @author eric.wittmann@gmail.com

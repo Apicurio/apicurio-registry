@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.exception.InvalidArtifactStateException;
 import io.apicurio.registry.types.ArtifactState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

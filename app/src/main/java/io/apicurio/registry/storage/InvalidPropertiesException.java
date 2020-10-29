@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
-public class InvalidArtifactTypeException extends RegistryException {
+public class InvalidPropertiesException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 
-    public InvalidArtifactTypeException(String message) {
-        super(message);
+    public InvalidPropertiesException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 
 }

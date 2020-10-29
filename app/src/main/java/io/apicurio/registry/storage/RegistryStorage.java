@@ -18,12 +18,6 @@
 package io.apicurio.registry.storage;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.exception.ArtifactAlreadyExistsException;
-import io.apicurio.registry.exception.ArtifactNotFoundException;
-import io.apicurio.registry.exception.RegistryStorageException;
-import io.apicurio.registry.exception.RuleAlreadyExistsException;
-import io.apicurio.registry.exception.RuleNotFoundException;
-import io.apicurio.registry.exception.VersionNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;

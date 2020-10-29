@@ -14,37 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.storage;
+
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactAlreadyExistsException extends AlreadyExistsException {
+public class RuleAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = -1015140450163088675L;
+    private static final long serialVersionUID = 2412206165461946827L;
     
-    private final String artifactId;
+    private final RuleType rule;
 
     /**
      * Constructor.
      */
-    public ArtifactAlreadyExistsException(String artifactId) {
-        this.artifactId = artifactId;
+    public RuleAlreadyExistsException(RuleType rule) {
+        this.rule = rule;
     }
 
-    /**
-     * @return the artifactId
-     */
-    public String getArtifactId() {
-        return artifactId;
-    }
-    
     /**
      * @see java.lang.Throwable#getMessage()
      */
     @Override
     public String getMessage() {
-        return "An artifact with ID '" + this.artifactId + "' already exists.";
+        return "A rule named '" + this.rule.name() + "' already exists.";
     }
 
 }

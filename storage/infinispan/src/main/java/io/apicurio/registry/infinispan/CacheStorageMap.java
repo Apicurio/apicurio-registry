@@ -16,10 +16,10 @@
 
 package io.apicurio.registry.infinispan;
 
-import io.apicurio.registry.exception.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.MetaDataKeys;
-import io.apicurio.registry.exception.VersionNotFoundException;
+import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.StorageMap;
 import io.apicurio.registry.types.ArtifactState;

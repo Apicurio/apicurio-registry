@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.storage;
 
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public abstract class AlreadyExistsException extends StorageException {
 
-public class InvalidPropertiesException extends RegistryException {
+    private static final long serialVersionUID = 5055445625652989500L;
 
-    private static final long serialVersionUID = 1L;
-
-    public InvalidPropertiesException(String message, Throwable throwable) {
-        super(message, throwable);
+    public AlreadyExistsException() {
+    }
+    
+    public AlreadyExistsException(Throwable cause) {
+        super(cause);
+    }
+    
+    public AlreadyExistsException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 
 }

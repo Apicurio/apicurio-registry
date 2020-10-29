@@ -92,6 +92,6 @@ a| `FULL_TRANSITIVE`
 a| `NONE`
 |===
 
-NOTE: These application properties can be configured as Java system properties or included in the Quarkus
+NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file.  See more information about configuring {registry} elsewhere in this
 documentation and also in https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

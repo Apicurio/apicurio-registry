@@ -12,7 +12,7 @@ These are the valid artifact states in {registry}:
 |State
 |Description
 |`ENABLED`
-|Basic state, all operations available.
+|Basic state, all the operations are available.
 |`DISABLED`
 |The artifact and it's metadata is viewable and searchable through the UI but it's content cannot be fetched by any client.
 |`DEPRECATED`

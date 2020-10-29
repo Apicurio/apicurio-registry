@@ -14,7 +14,7 @@ These are the valid artifact states in {registry}:
 |`ENABLED`
 |Basic state, all the operations are available.
 |`DISABLED`
-|The artifact and it's metadata is viewable and searchable through the UI but it's content cannot be fetched by any client.
+|The artifact and its metadata is viewable and searchable using the {registry} web console, but its content cannot be fetched by any client.
 |`DEPRECATED`
 |The artifact is fully usable but a header is added to the REST API response whenever the artifact content is fetched.
 |`DELETED`

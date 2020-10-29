@@ -3,6 +3,22 @@
 [id="registry-client-intro"]
 = {registry} Java client overview
 
-You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes...  
+You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored 
+in the registry using the {registry} Java client classes.
 
-More TBD
+You can access the {registry} Java client by adding the proper dependency to your project, see xref:writing-registry-client[].
+
+The {registry} client is autocloseable and is implemented using Retrofit and OkHttp as base libraries. This gives the user the ability to customize its
+usage by, for example, adding custom headers or enabling TLS auth support.
+
+== Enabling TLS support in the client
+
+You can configure TLS authentication using the following properties:
+
+* apicurio.registry.request.ssl.truststore.location
+* apicurio.registry.request.ssl.truststore.password
+* apicurio.registry.request.ssl.truststore.type
+* apicurio.registry.request.ssl.keystore.location
+* apicurio.registry.request.ssl.keystore.password
+* apicurio.registry.request.ssl.keystore.type
+* apicurio.registry.request.ssl.key.password

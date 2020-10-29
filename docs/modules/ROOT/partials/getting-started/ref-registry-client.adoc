@@ -3,15 +3,25 @@
 
 [id="registry-client-types"]
 = {registry} Java client reference
-The {registry} Java client includes the following...
+The {registry} Java client includes the following configuration options, based on the client factory.
 
-More TBD
-
-.{registry} Java client types
-[%header,cols=2*] 
+.{registry} Java client options
+[%header,cols=3*]
 |===
-|Type
+|Option
 |Description
-|`TBD`
-| TBD
+|Arguments
+|Plain Client
+|Basic REST client used to interact with a running registry.
+|baseUrl
+|Custom HTTP client
+|Registry client using an OkHttpClient provided by the user.
+|baseUrl, okhttpClient
+|Custom Configuration
+|Registry client that accepts a map containing custom configuration. This is useful, for example, to add custom headers to the calls.
+|baseUrl, Map<String, Object> configs
 |===
+
+
+In order to configure custom headers, the prefix *apicurio.registry.request.headers* must be added to the configs map key, for example, a key *apicurio.registry.request.headers.Authorization* with value Basic: xxxxx would result in a header of *Authorization* with value Basic: xxxxx.
+

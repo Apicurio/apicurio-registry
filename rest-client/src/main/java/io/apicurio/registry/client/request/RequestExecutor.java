@@ -14,7 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.exception;
+package io.apicurio.registry.client.request;
 
-public class RestClientException extends RegistryException {
+import retrofit2.Call;
+
+
+public class RequestExecutor {
+
+    public <T> T execute(Call<T> call) {
+
+        final ResultCallback<T> resultCallback = new ResultCallback<T>();
+
+        call.enqueue(resultCallback);
+
+        return resultCallback.getResult();
+    }
 }
+
+

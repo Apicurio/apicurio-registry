@@ -16,14 +16,16 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.VersionNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -90,8 +92,8 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         emd.setDescription(description);
 
         // cannot get a disabled artifact
-        assertWebError(404, () -> client.getLatestArtifact(artifactId));
-        assertWebError(404, () -> client.getArtifactVersion(artifactId, 3));
+        assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact(artifactId));
+        assertThrows(VersionNotFoundException.class, () -> client.getArtifactVersion(artifactId, 3));
 
         // can update and get metadata for a disabled artifact
         client.updateArtifactVersionMetaData(artifactId, 3, emd);

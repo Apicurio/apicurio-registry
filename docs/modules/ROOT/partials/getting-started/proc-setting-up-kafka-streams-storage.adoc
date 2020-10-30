@@ -25,11 +25,11 @@ ifdef::rh-service-registry[]
 .. Click *Installed Operators* > *Red Hat Integration - {kafka-streams}*.
 endif::[]
 .. Under *Provided APIs* > *Kafka*, click *Create Instance* to create a new Kafka cluster.
-.. Edit the custom resource definition as appropriate, and click *Create*. 
+.. Edit the custom resource definition as appropriate, and click *Create*.
 +
 WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
 
-. After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*. 
+. After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*.
 
 . In the `status` block, make a copy of the `bootstrapServers` value, which you will use later to deploy {registry}. For example:
 +
@@ -49,19 +49,19 @@ status:
 
 . Create a Kafka topic to store the {registry} artifacts:
 +
-.. Under *Provided APIs* > *Kafka Topic*, click *Create topic*. 
+.. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
 .. Change the default topic name from `my-topic` to the required `storage-topic`.
 
 . Create a Kafka topic to store the {registry} global IDs:
 .. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
 .. Change the default topic name from `my-topic` to the required `global-id-topic`.
 ifdef::apicurio-registry[]
-. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 ifdef::rh-service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
-. Paste in the following custom resource definition, but use your `bootstrapServers` value that you copied earlier: 
+. Paste in the following custom resource definition, but use your `bootstrapServers` value that you copied earlier:
 +
 [source,yaml]
 ----
@@ -75,15 +75,37 @@ spec:
     streams:
       bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9092"
 ----
-      
+
 . Click *Create* and wait for the {registry} route to be created on OpenShift.
 
 . Click *Networking* > *Route* to access the new route for the {registry} web console. For example:
 +
 [source]
 ----
-http://example-apicurioregistry.my-project.my-domain-name.com/   
+http://example-apicurioregistry.my-project.my-domain-name.com/
 ----
+
+.Overriding default Kafka topic names
+You can change the default names of the Kafka topics that {registry} will use to store data in Kafka.  It is sometimes
+necessary to do this when sharing the Kafka cluster with other applications that may already be using topics named
+`storage-topic` or `global-id-topic`.
+
+Change the default topic names by overriding them either by setting appropriate environment variables or by
+setting appropriate Java system properties:
+
+[%header,cols=3*]
+|===
+|Topic Default
+|Environment Variable
+|System Property
+|`storage-topic`
+a| `REGISTRY_STREAMS_TOPOLOGY_STORAGE_TOPIC`
+a| `registry.streams.topology.storage.topic`
+|`global-id-topic`
+a| `REGISTRY_STREAMS_TOPOLOGY_GLOBAL_ID_TOPIC`
+a| `registry.streams.topology.global.id.topic`
+|===
+
 
 .Additional resources
 

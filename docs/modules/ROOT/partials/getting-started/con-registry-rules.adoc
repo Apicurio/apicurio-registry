@@ -52,8 +52,8 @@ You can configure global rules in several ways:
 * Set default global rules using {registry} application properties
 
 .Default global rules
-When deploying {registry} it is possible to configure the application itself to enable or disable global rules.  This
-allows configuring of these global rules at installation time without any need for post-install configuration.  You
+You can configure the {registry} at the application level to enable or disable global rules.  This allows
+configuring of these global rules at installation time without any need for post-install configuration.  You
 can use the following application property format:
 
 `registry.rules.global.<ruleName>`

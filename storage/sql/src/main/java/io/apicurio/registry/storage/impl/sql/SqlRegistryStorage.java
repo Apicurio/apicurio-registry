@@ -826,6 +826,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
+        // Implement this!
         log.debug("TBD - Please implement me!");
         return null;
     }

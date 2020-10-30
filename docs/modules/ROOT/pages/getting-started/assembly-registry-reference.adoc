@@ -7,7 +7,6 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 This chapter lists the supported artifact types, states and content rule types that are stored in {registry}.
-transitions
 * xref:registry-artifact-types[]
 * xref:registry-artifact-states[]
 * xref:registry-rule-types[]

@@ -16,24 +16,7 @@ These are the valid artifact states in {registry}:
 |`DISABLED`
 |The artifact and its metadata is viewable and searchable using the {registry} web console, but its content cannot be fetched by any client.
 |`DEPRECATED`
-|The artifact is fully usable but a header is added to the REST API response whenever the artifact content is fetched.
-|`DELETED`
-|Artifact not available through the REST API.
-|===
-
-.{registry} artifact state transitions
-[%header,cols=2*]
-|===
-|State
-|Valid Transition States
-|`ENABLED`
-|`DISABLED`,`DEPRECATED`,`DELETED`
-|`DISABLED`
-|`ENABLED`,`DEPRECATED`,`DELETED`
-|`DEPRECATED`
-|`ENABLED`,`DISABLED`,`DELETED`
-|`DELETED`
-|`NONE`
+|The artifact is fully usable but a header is added to the REST API response whenever the artifact content is fetched. The {registry} Rest Client will also log a warning whenever it sees deprecated content.
 |===
 
 

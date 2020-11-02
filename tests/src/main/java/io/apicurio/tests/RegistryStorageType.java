@@ -19,6 +19,6 @@ public enum RegistryStorageType {
     inmemory,
     kafka,
     streams,
-    jpa,
+    sql,
     infinispan;
 }

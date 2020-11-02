@@ -540,10 +540,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
+    public VersionMetaData getArtifactVersionMetaDataByContent(String artifactId, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);

@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: apicurio-registry-jpa
+  name: apicurio-registry-sql
 message: |-
-  Congratulations on deploying Apicurio Registry (JPA Storage) into OpenShift!
+  Congratulations on deploying Apicurio Registry (SQL Storage) into OpenShift!
   
   All components have been deployed and configured.
 
@@ -18,7 +18,7 @@ objects:
       - name: latest
         from:
           kind: DockerImage
-          name: apicurio/apicurio-registry-jpa:latest
+          name: apicurio/apicurio-registry-sql:latest
         importPolicy:
           scheduled: true
 # Services for the components
@@ -27,12 +27,12 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry-jpa
-      template: apicurio-registry-jpa
-    name: apicurio-registry-jpa
+      app: apicurio-registry-sql
+      template: apicurio-registry-sql
+    name: apicurio-registry-sql
   spec:
     selector:
-      app: apicurio-registry-jpa
+      app: apicurio-registry-sql
     ports:
     - port: 8080
       protocol: TCP
@@ -49,14 +49,14 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      app: apicurio-registry-jpa
-      template: apicurio-registry-jpa
-    name: apicurio-registry-jpa
+      app: apicurio-registry-sql
+      template: apicurio-registry-sql
+    name: apicurio-registry-sql
   spec:
     replicas: 1
     selector:
-      app: apicurio-registry-jpa
-      deploymentconfig: apicurio-registry-jpa
+      app: apicurio-registry-sql
+      deploymentconfig: apicurio-registry-sql
     strategy:
       type: Recreate
       recreateParams:
@@ -67,15 +67,15 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          app: apicurio-registry-jpa
-          deploymentconfig: apicurio-registry-jpa
-          template: apicurio-registry-jpa
+          app: apicurio-registry-sql
+          deploymentconfig: apicurio-registry-sql
+          template: apicurio-registry-sql
       spec:
         replicas: 1
         containers:
         - image: registry:latest
           imagePullPolicy: Always
-          name: apicurio-registry-jpa
+          name: apicurio-registry-sql
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -125,7 +125,7 @@ objects:
       imageChangeParams:
         automatic: true
         containerNames:
-          - apicurio-registry-jpa
+          - apicurio-registry-sql
         from:
           kind: ImageStreamTag
           name: 'registry:latest'
@@ -134,16 +134,16 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: apicurio-registry-jpa
+    name: apicurio-registry-sql
     creationTimestamp: null
     labels:
-      app: apicurio-registry-jpa
-      template: apicurio-registry-jpa
+      app: apicurio-registry-sql
+      template: apicurio-registry-sql
   spec:
     host: "${REGISTRY_ROUTE}"
     to:
       kind: Service
-      name: apicurio-registry-jpa
+      name: apicurio-registry-sql
       weight: 100
     tls:
       termination: edge

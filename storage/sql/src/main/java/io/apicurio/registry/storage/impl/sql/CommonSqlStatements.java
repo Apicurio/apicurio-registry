@@ -177,6 +177,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
     
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactMetaDataByContentHash()
+     */
+    @Override
+    public String selectArtifactMetaDataByContentHash() {
+        return "SELECT v.* FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.artifactId = ? AND c.contentHash = ?";
+    }
+    
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContentByGlobalId()
      */
     @Override

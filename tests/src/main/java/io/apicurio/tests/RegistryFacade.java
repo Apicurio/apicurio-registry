@@ -100,8 +100,8 @@ public class RegistryFacade {
             case streams:
                 setupKafkaStorage(appEnv);
                 break;
-            case jpa:
-                setupJPAStorage(appEnv);
+            case sql:
+                setupSQLStorage(appEnv);
                 break;
         }
 
@@ -109,7 +109,7 @@ public class RegistryFacade {
 
     }
 
-    private void setupJPAStorage(Map<String, String> appEnv) throws Exception {
+    private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
         PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
         database.start();
         TestUtils.waitFor("Database is running",

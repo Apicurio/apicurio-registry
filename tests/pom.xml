@@ -402,9 +402,9 @@
         </profile>
 
         <profile>
-            <id>jpa</id>
+            <id>sql</id>
             <properties>
-                <test.storage>jpa</test.storage>
+                <test.storage>sql</test.storage>
             </properties>
         </profile>
 

@@ -14,7 +14,7 @@ By default, `mvn clean install` produces an executable JAR with the *dev* Quarku
 Apicurio Registry supports 4 persistence implementations:
  - In-Memory
  - Kafka (Topics vs. KV-Store / Streams)
- - JPA
+ - SQL
  - Infinispan (POC / WIP)
  
 If you enable one, a separate set of artifacts is produced with the persistence implementation available.
@@ -30,7 +30,7 @@ Additionally, there are 2 main configuration profiles:
 ### Build Options
  
  - `-Pkafka` enables a build of `storage/kafka` module and produces `apicurio-registry-storage-kafka-<version>-all.zip`.
- - `-Pjpa` enables a build of `storage/jpa` module and produces `apicurio-registry-storage-jpa-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
+ - `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
    and `PostgreSQL` driver in *prod* mode.
  - `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment, 
    e.g. a higher logging level.
@@ -42,7 +42,7 @@ Additionally, there are 2 main configuration profiles:
 
 The following parameters are available for executable files:
 
-### JPA
+### SQL
  - In the *dev* mode, the application expects a H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
  - In the *prod* mode, you have to provide connection configuration for a PostgreSQL server as follows:
   
@@ -127,7 +127,7 @@ Every time a commit is pushed to `master` an updated set of docker images are bu
 Hub.  There are several docker images to choose from, one for each storage option.  The images include:
 
 * [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
-* [apicurio-registry-jpa](https://hub.docker.com/r/apicurio/apicurio-registry-jpa)
+* [apicurio-registry-sql](https://hub.docker.com/r/apicurio/apicurio-registry-sql)
 * [apicurio-registry-infinispan](https://hub.docker.com/r/apicurio/apicurio-registry-infinispan)
 * [apicurio-registry-streams](https://hub.docker.com/r/apicurio/apicurio-registry-streams)
 * [apicurio-registry-kafka](https://hub.docker.com/r/apicurio/apicurio-registry-kafka)
@@ -153,7 +153,7 @@ docker tag specific to that release.  We also support the following moving tags:
 
 Run Apicurio Registry with Postgres:
 
- - Compile using `mvn clean install -DskipTests -Pprod -Pjpa -Ddocker`
+ - Compile using `mvn clean install -DskipTests -Pprod -Psql -Ddocker`
 
  - Then create a docker-compose file `test.yml`: 
 ```yaml
@@ -166,7 +166,7 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry-jpa:1.0.0-SNAPSHOT
+    image: apicurio/apicurio-registry-sql:1.0.0-SNAPSHOT
     ports:
       - 8080:8080
     environment:

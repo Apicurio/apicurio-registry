@@ -343,12 +343,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         Date createdOn = new Date();
         try {
             return this.jdbi.withHandle( handle -> {
-                // Extract meta-data from the content
-                ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-                ContentExtractor extractor = provider.getContentExtractor();
-                EditableMetaData emd = extractor.extract(content);
-                EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties());
-
+                EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
                 ArtifactMetaDataDto amdd = createArtifactInternal(handle, artifactId, artifactType, content,
                         createdBy, createdOn, metaData);
                 return CompletableFuture.completedFuture(amdd);
@@ -359,6 +354,19 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             }
             throw new RegistryStorageException(e);
         }
+    }
+
+    private EditableArtifactMetaDataDto extractMetaData(ArtifactType artifactType, ContentHandle content) {
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        EditableMetaData emd = extractor.extract(content);
+        EditableArtifactMetaDataDto metaData;
+        if (emd != null) {
+            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties());
+        } else {
+            metaData = new EditableArtifactMetaDataDto();
+        }
+        return metaData;
     }
 
     /**
@@ -598,9 +606,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
         
         // Extract meta-data from the new content
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-        ContentExtractor extractor = provider.getContentExtractor();
-        EditableMetaData emd = extractor.extract(content);
+        EditableArtifactMetaDataDto emd = extractMetaData(artifactType, content);
 
         // Create version and return
         return this.jdbi.withHandle(handle -> {
@@ -824,11 +830,24 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
+    public ArtifactVersionMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
-        // Implement this!
-        log.debug("TBD - Please implement me!");
-        return null;
+        try {
+            byte[] contentBytes = content.bytes();
+            String contentHash = DigestUtils.sha256Hex(contentBytes);
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectArtifactMetaDataByContentHash();
+                return handle.createQuery(sql)
+                        .bind(0, artifactId)
+                        .bind(1, contentHash)
+                        .map(ArtifactVersionMetaDataDtoMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new ArtifactNotFoundException(artifactId);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -951,7 +970,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             });
         } catch (Exception e) {
             throw new RegistryStorageException(e);
-        }        
+        }
     }
 
     /**
@@ -1215,7 +1234,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);
-        }        
+        }
     }
 
     /**
@@ -1380,7 +1399,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             });
         } catch (Exception e) {
             throw new RegistryStorageException(e);
-        }        
+        }
     }
 
     /**

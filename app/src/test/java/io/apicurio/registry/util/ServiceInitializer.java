@@ -22,8 +22,8 @@ import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
 
 /**
- * Setup storage type's (JPA, Kafka, ...) services.
- * e.g. database (JPA) or (ZK and Kafka)
+ * Setup storage type's (SQL, Kafka, ...) services.
+ * e.g. database (SQL) or (ZK and Kafka)
  * <p>
  * Or simply check if service is already running.
  *

@@ -15,7 +15,7 @@ ifdef::apicurio-registry[]
 |In-memory
 |https://hub.docker.com/r/apicurio/apicurio-registry-mem
 |Java Persistence API  
-|https://hub.docker.com/r/apicurio/apicurio-registry-jpa 
+|https://hub.docker.com/r/apicurio/apicurio-registry-sql 
 |Apache Kafka
 |https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
 |Apache Kafka Streams
@@ -52,7 +52,7 @@ ifdef::rh-service-registry[]
 |Container image for embedded Infinispan storage 
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |Technical Preview only
-|Container image for JPA storage in PostgreSQL 
+|Container image for SQL storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |Technical Preview only
 |===

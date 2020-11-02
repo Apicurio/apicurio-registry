@@ -43,7 +43,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
-        return error.getMessage().contains("primary key violation");
+        return error.getMessage() != null && error.getMessage().contains("primary key violation");
     }
 
     /**

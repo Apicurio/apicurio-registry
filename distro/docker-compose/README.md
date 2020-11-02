@@ -22,6 +22,6 @@ and copy the content of the `./config` directory to the volume - `docker volume 
 ### Metrics with Prometheus and Grafana
 
 Run `compose-metrics.yaml` together with a base compose file, e.g. 
-`docker-compose -f compose-metrics.yaml -f compose-base-jpa.yaml up --abort-on-container-exit`.
+`docker-compose -f compose-metrics.yaml -f compose-base-sql.yaml up --abort-on-container-exit`.
 
 *Grafana* console should be available at `http://localhost:3000` after logging in as *admin/password*.

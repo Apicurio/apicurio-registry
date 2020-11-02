@@ -1,15 +1,15 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-jpa-storage"]
-= Installing {registry} with JPA storage
+[id="installing-registry-sql-storage"]
+= Installing {registry} with SQL storage
 
 This section explains how to install and run {registry} with Java Persistence API storage from a container image. This storage option is suitable for production environments.
 
 .Prerequisites
 
 * You must have Docker installed and the Docker daemon running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-jpa. 
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-sql. 
 * You must already have a PostgreSQL database server installed and running. For example: 
 +
 [source,bash]
@@ -24,7 +24,7 @@ For more details, see https://www.postgresql.org/docs/12/server-start.html
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-jpa
+$ docker pull apicurio/apicurio-registry-sql
 ----
 . Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables: 
 +
@@ -34,7 +34,7 @@ $ docker run -it -p 8080:8080 \
 -e "QUARKUS_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
 -e "QUARKUS_DATASOURCE_USERNAME=apicurio-registry" \
 -e "QUARKUS_DATASOURCE_PASSWORD=password" \
-apicurio/apicurio-registry-jpa:latest
+apicurio/apicurio-registry-sql:latest
 ----
 
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:

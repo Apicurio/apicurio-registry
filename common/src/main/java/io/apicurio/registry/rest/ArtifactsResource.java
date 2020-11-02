@@ -223,7 +223,7 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"*/*"})
-  ArtifactMetaData getArtifactMetaDataByContent(@PathParam("artifactId") String artifactId,
+  VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("artifactId") String artifactId,
       InputStream data);
 
   /**

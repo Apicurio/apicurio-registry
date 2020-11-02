@@ -759,12 +759,6 @@
             </modules>
         </profile>
         <profile>
-            <id>jpa</id>
-            <modules>
-                <module>storage/jpa</module>
-            </modules>
-        </profile>
-        <profile>
             <id>kafka</id>
             <modules>
                 <module>storage/kafka</module>

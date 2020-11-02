@@ -110,6 +110,11 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaDataByGlobalId();
 
     /**
+     * A statement used to select a single row in the versions by artifactId and content hash.
+     */
+    public String selectArtifactMetaDataByContentHash();
+
+    /**
      * A statement to select the content of an artifact version from the versions table by globalId.
      */
     public String selectArtifactVersionContentByGlobalId();
@@ -258,5 +263,6 @@ public interface SqlStatements {
      * A statement to insert a row in the "properties" table.
      */
     public String insertProperty();
+
 
 }

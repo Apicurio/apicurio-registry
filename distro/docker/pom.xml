@@ -15,7 +15,7 @@
 
     <properties>
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
-        <docker.jpa.file>app-files/apicurio-registry-storage-jpa-${project.version}-all.tar.gz</docker.jpa.file>
+        <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
         <docker.infinispan.file>app-files/apicurio-registry-storage-infinispan-${project.version}-all.tar.gz</docker.infinispan.file>
         <docker.asyncmem.file>app-files/apicurio-registry-storage-asyncmem-${project.version}-all.tar.gz</docker.asyncmem.file>
         <docker.kafka.file>app-files/apicurio-registry-storage-kafka-${project.version}-all.tar.gz</docker.kafka.file>
@@ -47,7 +47,7 @@
                                     </includes>
                                 </resource>
                                 <resource>
-                                    <directory>${basedir}/../../storage/jpa/target</directory>
+                                    <directory>${basedir}/../../storage/sql/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -190,11 +190,11 @@
         </profile>
 
         <profile>
-            <id>jpa</id>
+            <id>sql</id>
             <dependencies>
                 <dependency>
                     <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-jpa</artifactId>
+                    <artifactId>apicurio-registry-storage-sql</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -215,10 +215,10 @@
                                 <configuration>
                                     <images>
                                         <image>
-                                            <name>apicurio/apicurio-registry-jpa:${project.version}</name>
+                                            <name>apicurio/apicurio-registry-sql:${project.version}</name>
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.jpa.jvm</dockerFile>
+                                                <dockerFile>./Dockerfile.sql.jvm</dockerFile>
                                                 <tags combine.children="append">
                                                     <tag>latest</tag>
                                                 </tags>

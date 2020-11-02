@@ -474,9 +474,13 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         return artifactMetaDataDto;
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     */
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
+            throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
         ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
@@ -489,10 +493,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             byte[] candidateBytes = canonicalCandidateContent.bytes();
             if (Arrays.equals(canonicalBytes, candidateBytes)) {
                 ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(cMap), cMap.get(VERSION));
-                final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(cMap);
-                artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
-                artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
-                return artifactMetaDataDto;
+                return MetaDataKeys.toArtifactVersionMetaData(cMap);
             }
         }
         throw new ArtifactNotFoundException(artifactId);

@@ -236,7 +236,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ContentHandle content,
             String ct) {
         try {
-            ArtifactMetaDataDto mdDto = this.storage.getArtifactMetaData(artifactId, content);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(artifactId, content);
             ArtifactMetaData md = DtoUtil.dtoToMetaData(artifactId, artifactType, mdDto);
             return CompletableFuture.completedFuture(md);
         } catch (ArtifactNotFoundException nfe) {
@@ -552,8 +552,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
-        return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, content);
+        return DtoUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**

@@ -182,7 +182,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactVersionMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as

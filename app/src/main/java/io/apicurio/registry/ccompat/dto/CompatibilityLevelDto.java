@@ -82,6 +82,8 @@ public class CompatibilityLevelDto {
                         return Level.FULL;
                     case FULL_TRANSITIVE:
                         return Level.FULL_TRANSITIVE;
+                    case NONE:
+                        return Level.NONE;
                 }
                 return null;
             }).orElse(Level.NONE);

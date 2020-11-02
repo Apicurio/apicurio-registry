@@ -117,7 +117,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
         // TODO -- handle deleted?
-        ArtifactMetaDataDto amd = storage.getArtifactMetaData(subject, ContentHandle.create(schema.getSchema()));
+        ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(subject, ContentHandle.create(schema.getSchema()));
         StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
         return FacadeConverter.convert(subject, storedArtifact);
     }
@@ -128,7 +128,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         // if it exists.  If not, then register the new content.
         try {
             ContentHandle content = ContentHandle.create(schema);
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(subject, content);
+            ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(subject, content);
             return CompletableFuture.completedFuture(dto.getGlobalId());
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create

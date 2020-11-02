@@ -509,9 +509,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             return null;
         }
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     */
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
+            throws ArtifactNotFoundException, RegistryStorageException {
         // Get the meta-data for the artifact
         ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
 
@@ -531,10 +535,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
                     byte[] candidateBytes = canonicalCandidateContent.bytes();
                     if (Arrays.equals(canonicalBytes, candidateBytes)) {
-                        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
-                        artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
-                        artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
-                        return artifactMetaDataDto;
+                        return MetaDataKeys.toArtifactVersionMetaData(candidateArtifact.getMetadataMap());
                     }
                 }
             }

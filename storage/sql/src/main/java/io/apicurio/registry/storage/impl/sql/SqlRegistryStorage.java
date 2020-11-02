@@ -827,10 +827,10 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
-    public ArtifactVersionMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
         try {
             byte[] contentBytes = content.bytes();

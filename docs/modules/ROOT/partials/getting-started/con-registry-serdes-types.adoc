@@ -134,7 +134,19 @@ that interface:
 other registries or serde classes) you may want to use 4 bytes when sending the ID.
 
 ==== *Avro datum provider*
-TBD
+Avro provides different Datum writers and readers to write and read data. {registry} supports three different types:
+
+* Generic
+* Specific
+* Reflect
+
+{registry}'s `AvroDatumProvider` is the abstraction on which type is then actually used, 
+where `DefaultAvroDatumProvider` is used by default.
+
+There are two configuration options you can set:
+
+* `apicurio.registry.avro-datum-provider` - provide a fully qualified Java classname of the `AvroDatumProvider` implementation, for example `io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider`
+* `apicurio.registry.use-specific-avro-reader` - true or false, to use Specific type when using `DefaultAvroDatumProvider`
 
 ==== *Avro encoding*
 
@@ -215,10 +227,45 @@ NOTE: Deserializer validation will only work if the serializer passes the global
 will only happen when validation is enabled in the serializer.
 
 == Using Protobuf SerDe with {registry}
-TBD
+
+{registry} provides serializer and deserializer classes for Google Protobuf out of the box, to make using Protobuf as
+easy as possible.  These classes are:
+
+* `io.apicurio.registry.utils.serde.ProtobufKafkaSerializer`
+* `io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer`
 
 === Configuring the Protobuf serializer
-TBD
+
+You can configure the Protobuf serializer class in the following ways:
+
+* {registry} location as a URL
+* Artifact ID strategy (see the "Strategies to lookup a schema" section)
+* Global ID strategy (see the "Strategies to lookup a schema" section)
+* Global ID location
+* Global ID handler
 
 === Configuring the Protobuf deserializer
-TBD
+
+You must configure the Protobuf deserializer class to match the configuration settings of the serializer.  As a
+result, you can configure the Protobuf deserializer class in the following ways:
+
+* {registry} location as a URL
+* Global ID handler
+
+See the serializer documentation for the above configuration options - the property names and values are the same.
+
+NOTE: The following options are *not* needed when configuring the deserializer:
+
+* Artifact ID strategy
+* Global ID strategy
+* Global ID location
+
+The reason these options are not necessary is that the deserializer class can figure this information out from
+the message itself.  In the case of the two strategies, they are not needed because the serializer is responsible
+for sending the global ID of the schema as part of the message.  And the location of that global ID is determined
+(by the deserializer) by simply checking for the magic byte at the start of the message payload.  If that byte is
+found then the global ID is read from the message payload (using the configured handler).  If the magic byte is
+not found, then the global ID is read from the message headers.
+
+NOTE: the Protobuf deserializer doesn't deserialize to your exact Protobuf Message implementation,
+but rather to a `DynamicMessage` instance (as there is no appropriate API to do otherwise).

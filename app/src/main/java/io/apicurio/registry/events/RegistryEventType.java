@@ -21,7 +21,6 @@ package io.apicurio.registry.events;
 public enum RegistryEventType {
 
     ARTIFACT_CREATED,
-    ARTIFACT_VERSION_CREATED,
     ARTIFACT_UPDATED;
 
     private String cloudEventType;

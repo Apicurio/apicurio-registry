@@ -32,4 +32,8 @@ public class SinksConfiguration {
         return this.httpSinks;
     }
 
+    public boolean isConfigured() {
+        return this.httpSinks != null && !this.httpSinks.isEmpty();
+    }
+
 }

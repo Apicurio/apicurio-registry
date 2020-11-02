@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.events.EventSourcedRegistryStorage;
+import io.apicurio.registry.events.EventsService;
 import io.apicurio.registry.storage.impl.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
 import org.slf4j.Logger;
@@ -38,6 +40,9 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorage> storages;
 
+    @Inject
+    EventsService eventsService;
+
     @Produces
     @ApplicationScoped
     @Current
@@ -56,7 +61,7 @@ public class RegistryStorageProducer {
         }
         if (impl != null) {
             log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
-            return impl;
+            return new EventSourcedRegistryStorage(impl, eventsService);
         }
         throw new IllegalStateException("Should not be here ... ?!");
     }

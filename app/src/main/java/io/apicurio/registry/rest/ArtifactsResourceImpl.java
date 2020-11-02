@@ -52,8 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.events.EventsService;
-import io.apicurio.registry.events.RegistryEventType;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -122,9 +120,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Inject
     @Current
     SearchClient searchClient;
-
-    @Inject
-    EventsService eventsService;
 
     private static final int GET_ARTIFACT_IDS_LIMIT = 10000;
 
@@ -345,8 +340,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                             handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct, fcanonical) :
                             CompletableFuture.completedFuture(DtoUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
                     )
-                    .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd))
-                    .whenComplete((meta, e) -> eventsService.triggerEvent(RegistryEventType.ARTIFACT_CREATED, meta));
+                    .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd));
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical)
                     .thenCompose(amdd -> indexArtifact(xRegistryArtifactId, finalContent, amdd));
@@ -394,8 +388,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         return storage.updateArtifact(artifactId, artifactType, content)
-            .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto))
-            .whenComplete((meta, e) -> eventsService.triggerEvent(RegistryEventType.ARTIFACT_UPDATED, meta));
+            .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -448,8 +441,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         final ContentHandle finalContent = content;
         return storage.updateArtifact(artifactId, artifactType, content)
                 .thenCompose(amdd -> indexArtifact(artifactId, finalContent, DtoUtil.dtoToMetaData(artifactId, artifactType, amdd)))
-                .thenApply(amd -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, amd))
-                .whenComplete((meta, e) -> eventsService.triggerEvent(RegistryEventType.ARTIFACT_VERSION_CREATED, meta));
+                .thenApply(amd -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
     }
 
     /**

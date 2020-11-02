@@ -1,0 +1,45 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-config-producer-{context}']
+= Using a schema from a producer client
+
+This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
+
+.Prerequisites
+
+* {registry} is installed
+* The schema is registered with {registry}
+
+.Procedure
+
+. Configure the client with the URL of {registry}.
++
+For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+    "https://my-cluster-service-registry-myproject.example.com/api");
+RegistryService service = RegistryClient.cached(registryUrl);
+----
+
+. Configure the client with the serializer services, and the strategy to look up the schema in {registry}.
++
+For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1",
+    "https://my-cluster-service-registry-myproject.example.com/api");
+
+    clientProperties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, property(clientProperties, CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092"));
+    clientProperties.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl_node1); <1>
+    clientProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName()); <2>
+    clientProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <3>
+    clientProperties.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName()); <4>
+----
+<1> The {registry} URL.
+<2> The serializer service for the message _key_ provided by {registry}.
+<3> The serializer service for the message _value_ provided by {registry}.
+<4> Lookup strategy to find the global ID for the schema. Matches the schema of the message against its global ID (artifact ID and schema version) in {registry}.

@@ -16,14 +16,14 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import io.apicurio.registry.client.RegistryService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * We first check client-side cache for matching schema,
@@ -38,12 +38,12 @@ public class CachedSchemaIdStrategy<T> extends AbstractCrudIdStrategy<T> {
     private Map<String, Long> cache = new ConcurrentHashMap<>();
 
     @Override
-    protected long initialLookup(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
+    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         InputStream stream = toStream(schema);
         String content = IoUtil.toString(stream);
         return cache.computeIfAbsent(
             content,
-            k -> service.getArtifactMetaDataByContent(artifactId, toStream(schema)).getGlobalId()
+            k -> client.getArtifactMetaDataByContent(artifactId, toStream(schema)).getGlobalId()
         );
     }
 

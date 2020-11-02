@@ -2,8 +2,8 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API",
-        "version": "1.3.1.Final",
-        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Note**: The Apicurio Registry REST API is available from `http://MY-REGISTRY-URL/api`. You must prefix all API operation paths with `/api`, for example, `api/ids/{globalId}`.\n",
+        "version": "2.0.0-SNAPSHOT",
+        "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `http://MY-REGISTRY-URL/api` by default. Therefore you must prefix all API operation paths with `/api` in this case. For example: `api/ids/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
             "url": "https://github.com/apicurio/apicurio-registry",
@@ -980,11 +980,11 @@
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
                     },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/RuleViolationConflict"
                     }
                 },
                 "operationId": "createArtifact",
@@ -1500,11 +1500,11 @@
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/RuleViolationConflict"
                     }
                 },
                 "operationId": "createArtifactVersion",
@@ -1569,11 +1569,11 @@
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/RuleViolationConflict"
                     }
                 },
                 "operationId": "testUpdateArtifact",
@@ -2192,6 +2192,62 @@
                 "additionalProperties": {
                     "type": "string"
                 }
+            },
+            "RuleViolationError": {
+                "title": "Root Type for Error",
+                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+                "type": "object",
+                "allOf": [
+                    {
+                        "required": [
+                            "causes"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "causes": {
+                                "description": "List of rule violation causes.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RuleViolationCause"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/Error"
+                    }
+                ],
+                "example": {
+                    "error_code": 409,
+                    "message": "Artifact failed validation",
+                    "causes": [
+                        {
+                            "description": "API is missing a title",
+                            "context": "/info[title]"
+                        },
+                        {
+                            "description": "Operation IDs must be unique",
+                            "context": "/paths[/invoices]/put[operationId]"
+                        }
+                    ]
+                }
+            },
+            "RuleViolationCause": {
+                "title": "Root Type for RuleViolationCAuse",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "context": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "description": "External documentation URL is not valid (it must be formatted as a URL).",
+                    "context": "/info/externalDocs[url]"
+                }
             }
         },
         "responses": {
@@ -2252,6 +2308,34 @@
                                 "value": {
                                     "error_code": 409,
                                     "message": "The artifact content was invalid."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response used when an input conflicts with existing data."
+            },
+            "RuleViolationConflict": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/RuleViolationError"
+                        },
+                        "examples": {
+                            "RuleViolationConflictExample": {
+                                "value": {
+                                    "error_code": 409,
+                                    "message": "The artifact content was invalid",
+                                    "causes": [
+                                        {
+                                            "description": "API is missing a title",
+                                            "context": "/info[title]"
+                                        },
+                                        {
+                                            "description": "Operation IDs must be unique",
+                                            "context": "/paths[/invoices]/put[operationId]"
+                                        }
+                                    ]
                                 }
                             }
                         }

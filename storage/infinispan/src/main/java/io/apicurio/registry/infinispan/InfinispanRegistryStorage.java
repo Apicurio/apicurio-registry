@@ -19,10 +19,13 @@ package io.apicurio.registry.infinispan;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.MultiMap;
 import io.apicurio.registry.storage.impl.StorageMap;
 import io.apicurio.registry.storage.impl.TupleId;
+import io.apicurio.registry.utils.ConcurrentUtil;
+
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -154,4 +157,10 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         ClusterHealth health = manager.getHealth().getClusterHealth();
         return (health.getHealthStatus() != HealthStatus.DEGRADED);
     }
+
+    @Override
+    public void deleteGlobalRules() throws RegistryStorageException {
+        ConcurrentUtil.get(manager.getCache(GLOBAL_RULES_CACHE, true).clearAsync());
+    }
+
 }

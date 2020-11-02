@@ -17,7 +17,20 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+import org.apache.avro.Schema;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.kafka.common.header.Headers;
+
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
@@ -26,18 +39,6 @@ import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
-import org.apache.avro.Schema;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.kafka.common.header.Headers;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * @author Ales Justin
@@ -50,16 +51,16 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     public AvroKafkaSerializer() {
     }
 
-    public AvroKafkaSerializer(RegistryService client) {
+    public AvroKafkaSerializer(RegistryRestClient client) {
         super(client);
     }
 
-    public AvroKafkaSerializer(RegistryService client, ArtifactIdStrategy<Schema> artifactIdStrategy, GlobalIdStrategy<Schema> idStrategy) {
+    public AvroKafkaSerializer(RegistryRestClient client, ArtifactIdStrategy<Schema> artifactIdStrategy, GlobalIdStrategy<Schema> idStrategy) {
         super(client, artifactIdStrategy, idStrategy);
     }
 
     public AvroKafkaSerializer(
-        RegistryService client,
+        RegistryRestClient client,
         ArtifactIdStrategy<Schema> artifactIdStrategy,
         GlobalIdStrategy<Schema> globalIdStrategy,
         AvroDatumProvider<U> avroDatumProvider
@@ -77,7 +78,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
         encoding = AvroEncoding.fromConfig(configs);
-        if (Utils.isTrue(configs.get(USE_HEADERS))) {
+        if (Utils.isTrue(configs.get(SerdeConfig.USE_HEADERS))) {
             headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
         }
         Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);

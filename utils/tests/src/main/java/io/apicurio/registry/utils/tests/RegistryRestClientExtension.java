@@ -2,6 +2,7 @@ package io.apicurio.registry.utils.tests;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
@@ -13,8 +14,17 @@ import io.apicurio.registry.client.RegistryRestClientFactory;
 /**
  * @author famartin
  */
-public class RegistryRestClientExtension implements ParameterResolver{
-
+public class RegistryRestClientExtension implements ParameterResolver {
+    
+    private static RegistryRestClient CLIENT;
+    
+    private static final RegistryRestClient getRestClient() {
+        if (CLIENT == null) {
+            CLIENT = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+        }
+        return CLIENT;
+    }
+    
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         Type type = parameterContext.getParameter().getParameterizedType();
@@ -36,8 +46,7 @@ public class RegistryRestClientExtension implements ParameterResolver{
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         ExtensionContext.Store store = extensionContext.getStore(ExtensionContext.Namespace.GLOBAL);
         return store.getOrComputeIfAbsent("registry_rest_client", k -> {
-            //Since Retrofit needs the base path to end with a slash, we need to add it here
-            return RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl() + "/");
+            return getRestClient();
         });
     }
 

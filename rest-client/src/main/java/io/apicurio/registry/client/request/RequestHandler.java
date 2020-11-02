@@ -1,5 +1,6 @@
 package io.apicurio.registry.client.request;
 
+import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -24,7 +25,7 @@ public class RequestHandler {
 
         private static final Logger logger = Logger.getLogger(ResultCallback.class.getName());
 
-        private final CompletableFuture<T> result;
+        private final CompletableFuture<retrofit2.Response<T>> result;
 
         public ResultCallback() {
             this.result = new CompletableFuture<>();
@@ -33,7 +34,7 @@ public class RequestHandler {
         @Override
         public void onResponse(Call<T> call, retrofit2.Response<T> response) {
             if (response.isSuccessful()) {
-                result.complete(response.body());
+                result.complete(response);
             } else {
                 result.completeExceptionally(new WebApplicationException(response.message(), response.code()));
             }
@@ -46,7 +47,9 @@ public class RequestHandler {
 
         public T getResult() {
             try {
-                return ConcurrentUtil.get(result);
+                final retrofit2.Response<T> callResult = ConcurrentUtil.get(result);
+                checkIfDeprecated(callResult.headers());
+                return callResult.body();
             } catch (RuntimeException e) {
                 handleError(e);
             }
@@ -58,6 +61,16 @@ public class RequestHandler {
                 throw (WebApplicationException) e;
             }
             logger.log(Level.SEVERE, "Error getting call result", e);
+        }
+
+
+        private static void checkIfDeprecated(okhttp3.Headers headers) {
+            String isDeprecated = headers.get(Headers.DEPRECATED);
+            if (isDeprecated != null && Boolean.getBoolean(isDeprecated)) {
+                String id = headers.get(Headers.ARTIFACT_ID);
+                String version = headers.get(Headers.VERSION);
+                logger.warning(String.format("Artifact %s [%s] is deprecated", id, version));
+            }
         }
     }
 }

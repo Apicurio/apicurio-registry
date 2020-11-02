@@ -48,11 +48,12 @@ The following parameters are available for executable files:
   
 |Option|Command argument|Env. variable|
 |---|---|---|
-|Data Source URL|`-Dquarkus.datasource.url`|`QUARKUS_DATASOURCE_URL`|
+|Data Source URL|`-Dquarkus.datasource.jdbc.url`|`QUARKUS_DATASOURCE_URL`|
 |DS Username|`-Dquarkus.datasource.username`|`QUARKUS_DATASOURCE_USERNAME`|
 |DS Password|`-Dquarkus.datasource.password`|`QUARKUS_DATASOURCE_PASSWORD`|
 
 To see additional options, visit:
+ - [Data Source config](https://quarkus.io/guides/datasource) 
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
  - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
 

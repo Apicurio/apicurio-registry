@@ -1,0 +1,101 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-register-{context}']
+= Registering a schema to {registry}
+
+After you have defined a schema in the appropriate format, such as _Apache Avro_, you can add the schema to {registry}.
+
+You can add the schema using:
+
+* The {registry} web console
+* A curl command using the {registry} API
+* A Maven plugin supplied with {registry}
+* Schema configuration added to your client code
+
+Client applications cannot use {registry} until you have registered your schemas.
+
+[discrete]
+== {registry} web console
+
+Having installed {registry}, you connect to the web console from the `ui` endpoint:
+
+`\http://MY-REGISTRY-URL/ui`
+
+From the console, you can add, view and configure schemas.
+You can also create the rules that prevent invalid content being added to the registry.
+
+ifdef::rh-amq-streams[]
+For more information on using the {registry} web console, see the {service-registry-doc}.
+endif::[]
+
+[discrete]
+== Curl command example
+
+[source,shell,subs="+quotes,attributes"]
+----
+curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
+  -H "X-Registry-ArtifactId: prices-value" \
+  --data '{ <1>
+      "type":"record",
+      "name":"price",
+      "namespace":"com.redhat",
+      "fields":[{"name":"symbol","type":"string"},
+      {"name":"price","type":"string"}]
+    }'
+  https://my-cluster-service-registry-myproject.example.com/api/artifacts -s <2>
+----
+<1> Avro schema
+<2> OpenShift route name that exposes {registry}
+
+
+[discrete]
+== Maven plugin example
+
+[source,xml,subs="+quotes,attributes"]
+----
+<plugin>
+<groupId>io.apicurio</groupId>
+<artifactId>apicurio-registry-maven-plugin</artifactId>
+<version>${registry.version}</version>
+<executions>
+  <execution>
+    <phase>generate-sources</phase>
+    <goals>
+      <goal>register</goal>
+    </goals>
+    <configuration>
+      <registryUrl>https://my-cluster-service-registry-myproject.example.com/api</registryUrl>
+      <artifactType>AVRO</artifactType>
+      <artifacts>
+        <schema1>${project.basedir}/schemas/schema1.avsc</schema1>
+      </artifacts>
+    </configuration>
+  </execution>
+</executions>
+</plugin>
+----
+
+[discrete]
+== Configuration using a producer client example
+
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl_node1 = PropertiesUtil.property(clientProperties, "registry.url.node1", <1>
+    "https://my-cluster-service-registry-myproject.example.com/api");
+try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
+    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
+    try {
+        service.getArtifactMetaData(artifactId); <2>
+    } catch (WebApplicationException e) {
+        CompletionStage <ArtifactMetaData> csa = service.createArtifact(
+            ArtifactType.AVRO,
+            artifactId,
+            new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
+        );
+        csa.toCompletableFuture().get();
+    }
+}
+----
+<1> The properties are registered. You can register properties against more than one node.
+<2> Check to see if the schema already exists based on the artifact ID.

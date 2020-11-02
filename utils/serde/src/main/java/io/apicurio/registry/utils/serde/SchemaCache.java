@@ -16,40 +16,41 @@
 
 package io.apicurio.registry.utils.serde;
 
-import io.apicurio.registry.client.RegistryService;
-
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.client.RegistryRestClient;
 
 /**
  * @author Ales Justin
  */
 public abstract class SchemaCache<T> {
-    private final RegistryService client;
+    private final RegistryRestClient client;
     private final Map<Long, T> schemas = new ConcurrentHashMap<>();
 
-    public SchemaCache(RegistryService client) {
+    public SchemaCache(RegistryRestClient client) {
         this.client = Objects.requireNonNull(client);
     }
 
-    protected abstract T toSchema(Response response);
+    protected abstract T toSchema(InputStream schemaData);
 
     public T getSchema(long id) {
         return schemas.computeIfAbsent(id, key -> {
-            Response artifactResponse = client.getArtifactByGlobalId(key);
-            Response.StatusType statusInfo = artifactResponse.getStatusInfo();
-            if (statusInfo.getStatusCode() != 200) {
+            try {
+                InputStream artifactResponse = client.getArtifactByGlobalId(key);
+                return toSchema(artifactResponse);
+            } catch (Exception e) {
                 throw new IllegalStateException(
-                    String.format(
-                        "Error [%s] retrieving schema: %s",
-                        statusInfo.getReasonPhrase(),
-                        key
-                    )
-                );
+                        String.format(
+                            "Error [%s] retrieving schema: %s",
+                            e.getMessage(),
+                            key
+                        ),
+                        e
+                    );
             }
-            return toSchema(artifactResponse);
         });
     }
 

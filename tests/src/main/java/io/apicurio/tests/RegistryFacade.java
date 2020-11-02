@@ -292,7 +292,9 @@ public class RegistryFacade {
                 }
             }
             if (logsPath != null) {
-                TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log"), p.getStdOut());
+                Path filePath = logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log");
+                LOGGER.info("Storing registry logs to " + filePath.toString());
+                TestUtils.writeFile(filePath, p.getStdOut());
                 String stdErr = p.getStdErr();
                 if (stdErr != null && !stdErr.isEmpty()) {
                     TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stderr.log"), stdErr);

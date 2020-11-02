@@ -317,14 +317,10 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             version = Integer.parseInt(content.get(VERSION));
         }
         int fVersion = version;
-        if (state == ArtifactState.DELETED) {
-            deleteArtifactVersionInternal(artifactId, version);
-        } else {
-            if (content == null) {
-                content = getContentMap(artifactId, version.longValue(), null);
-            }
-            ArtifactStateExt.applyState(s -> storage.put(artifactId, fVersion, MetaDataKeys.STATE, s.name()), content, state);
+        if (content == null) {
+            content = getContentMap(artifactId, version.longValue(), null);
         }
+        ArtifactStateExt.applyState(s -> storage.put(artifactId, fVersion, MetaDataKeys.STATE, s.name()), content, state);
     }
 
     /**
@@ -476,22 +472,34 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
     
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
         ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-        ContentHandle canonicalContent = canonicalizer.canonicalize(content);
-        byte[] canonicalBytes = canonicalContent.bytes();
+
+        byte[] contentToCompare;
+        if (canonical) {
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            contentToCompare = canonicalContent.bytes();
+        } else {
+            contentToCompare = content.bytes();
+        }
+
         Map<Long, Map<String, String>> map = getVersion2ContentMap(artifactId);
         for (Map<String, String> cMap : map.values()) {
             ContentHandle candidateContent = ContentHandle.create(MetaDataKeys.getContent(cMap));
-            ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
-            byte[] candidateBytes = canonicalCandidateContent.bytes();
-            if (Arrays.equals(canonicalBytes, candidateBytes)) {
+            byte[] candidateBytes;
+            if (canonical) {
+                ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
+                candidateBytes = canonicalCandidateContent.bytes();
+            } else {
+                candidateBytes = candidateContent.bytes();
+            }
+            if (Arrays.equals(contentToCompare, candidateBytes)) {
                 ArtifactStateExt.logIfDeprecated(artifactId, ArtifactStateExt.getState(cMap), cMap.get(VERSION));
                 return MetaDataKeys.toArtifactVersionMetaData(cMap);
             }

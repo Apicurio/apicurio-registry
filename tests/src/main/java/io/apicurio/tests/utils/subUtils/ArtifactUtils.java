@@ -74,7 +74,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData createArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
-        return client.createArtifact(artifactId, atype, null, artifactData);
+        return client.createArtifact(artifactId, atype, artifactData);
     }
 
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {

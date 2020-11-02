@@ -80,7 +80,9 @@ public interface ArtifactsResource {
   CompletionStage<ArtifactMetaData> createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
-      @DefaultValue("FAIL") @QueryParam("ifExists") IfExistsType ifExists, InputStream data);
+      @DefaultValue("FAIL") @QueryParam("ifExists") IfExistsType ifExists, 
+      @QueryParam("canonical") Boolean canonical,
+      InputStream data);
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
@@ -224,7 +226,7 @@ public interface ArtifactsResource {
   @Produces("application/json")
   @Consumes({"*/*"})
   VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("artifactId") String artifactId,
-      InputStream data);
+          @QueryParam("canonical") Boolean canonical, InputStream data);
 
   /**
    * Returns a list of all version numbers for the artifact.

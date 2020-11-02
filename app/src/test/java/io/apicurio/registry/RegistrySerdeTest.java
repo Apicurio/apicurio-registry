@@ -74,7 +74,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testFindBySchema(RegistryRestClient restClient) throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
         this.waitForGlobalId(amd.getGlobalId());
 
@@ -87,7 +87,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testGetOrCreate(RegistryRestClient restClient) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
         this.waitForGlobalId(amd.getGlobalId());
 
@@ -126,7 +126,6 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = restClient.createArtifact(
             artifactId + "-myrecord3",
             ArtifactType.AVRO,
-            null, 
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)

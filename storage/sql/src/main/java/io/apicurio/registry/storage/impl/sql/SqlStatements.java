@@ -37,6 +37,12 @@ public interface SqlStatements {
     public boolean isPrimaryKeyViolation(Exception error);
 
     /**
+     * Returns true if the given exception represents a foreign key violation.
+     * @param error
+     */
+    public boolean isForeignKeyViolation(Exception error);
+
+    /**
      * A statement that returns 'true' if the database has already been initialized.
      */
     public String isDatabaseInitialized();
@@ -113,6 +119,11 @@ public interface SqlStatements {
      * A statement used to select a single row in the versions by artifactId and content hash.
      */
     public String selectArtifactMetaDataByContentHash();
+
+    /**
+     * A statement used to select a single row in the versions by artifactId and canonical content hash.
+     */
+    public String selectArtifactMetaDataByCanonicalHash();
 
     /**
      * A statement to select the content of an artifact version from the versions table by globalId.
@@ -263,6 +274,5 @@ public interface SqlStatements {
      * A statement to insert a row in the "properties" table.
      */
     public String insertProperty();
-
 
 }

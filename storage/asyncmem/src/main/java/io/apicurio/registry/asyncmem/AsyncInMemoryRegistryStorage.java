@@ -315,13 +315,13 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         this.checkArtifactCreation(artifactId);
-        return super.getArtifactVersionMetaData(artifactId, content);
+        return super.getArtifactVersionMetaData(artifactId, canonical, content);
     }
     
     /**

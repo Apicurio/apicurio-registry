@@ -132,7 +132,7 @@ public class LoadIT extends BaseIT {
             String artifactDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             try {
-                ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
+                ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, artifactData);
 
                 // Make sure artifact is fully registered
                 TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));

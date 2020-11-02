@@ -33,6 +33,12 @@ import io.apicurio.registry.types.ArtifactType;
 public class SearchedArtifactMapper implements RowMapper<SearchedArtifact> {
     
     public static final SearchedArtifactMapper instance = new SearchedArtifactMapper();
+    
+    /**
+     * Constructor.
+     */
+    private SearchedArtifactMapper() {
+    }
 
     /**
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)

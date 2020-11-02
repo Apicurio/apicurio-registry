@@ -44,7 +44,9 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
     public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) {
         try {
             try (InputStream stream = handle.stream()) {
-                return getClient().createArtifact(artifactId, artifactType, IfExistsType.RETURN_OR_UPDATE, stream);
+                // TODO add "ifExists" option to the mojo
+                // TODO add "canonicalize" option to the mojo
+                return getClient().createArtifact(artifactId, artifactType, stream, IfExistsType.RETURN_OR_UPDATE, false);
             }
         } catch (Exception e) {
             throw new IllegalStateException(String.format(

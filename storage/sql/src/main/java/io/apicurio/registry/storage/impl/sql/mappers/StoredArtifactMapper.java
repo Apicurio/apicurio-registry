@@ -31,6 +31,12 @@ import io.apicurio.registry.storage.StoredArtifact;
 public class StoredArtifactMapper implements RowMapper<StoredArtifact> {
     
     public static final StoredArtifactMapper instance = new StoredArtifactMapper();
+    
+    /**
+     * Constructor.
+     */
+    private StoredArtifactMapper() {
+    }
 
     /**
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)

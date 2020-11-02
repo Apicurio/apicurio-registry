@@ -57,7 +57,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        client.createArtifact(artifactId, ArtifactType.AVRO, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        client.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         
         this.waitForArtifact(artifactId);
 

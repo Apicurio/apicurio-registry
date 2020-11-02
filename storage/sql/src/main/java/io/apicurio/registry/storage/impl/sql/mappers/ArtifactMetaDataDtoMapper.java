@@ -33,6 +33,12 @@ import io.apicurio.registry.types.ArtifactType;
 public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto> {
     
     public static final ArtifactMetaDataDtoMapper instance = new ArtifactMetaDataDtoMapper();
+    
+    /**
+     * Constructor.
+     */
+    private ArtifactMetaDataDtoMapper() {
+    }
 
     /**
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)

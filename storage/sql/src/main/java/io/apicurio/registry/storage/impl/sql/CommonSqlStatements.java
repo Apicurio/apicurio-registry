@@ -151,13 +151,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
             return "INSERT INTO versions (artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByGlobalId()
      */
     @Override
     public String selectArtifactVersionMetaDataByGlobalId() {
-        return "SELECT * FROM versions WHERE globalId = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.globalId = ?";
     }
     
     /**
@@ -173,7 +173,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionMetaData() {
-        return "SELECT * FROM versions WHERE artifactId = ? AND version = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND v.version = ?";
     }
     
     /**
@@ -181,7 +181,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByContentHash() {
-        return "SELECT v.* FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.artifactId = ? AND c.contentHash = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN content c ON v.contentId = c.contentId JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND c.contentHash = ?";
+    }
+    
+    @Override
+    public String selectArtifactMetaDataByCanonicalHash() {
+        return "SELECT v.*, a.type FROM versions v JOIN content c ON v.contentId = c.contentId JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND c.canonicalHash = ?";
     }
     
     /**
@@ -213,7 +218,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactMetaData() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE a.artifactId = ?";
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM artifacts a JOIN versions v ON a.latest = v.globalId "
+                + "WHERE a.artifactId = ?";
     }
     
     /**
@@ -293,7 +300,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId = (SELECT globalId FROM versions WHERE artifactId = ?)";
+        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
     }
     
     /**
@@ -301,7 +308,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId = (SELECT globalId FROM versions WHERE artifactId = ?)";
+        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
     }
     
     /**

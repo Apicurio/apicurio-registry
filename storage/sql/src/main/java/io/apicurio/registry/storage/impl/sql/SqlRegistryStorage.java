@@ -387,9 +387,7 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         String labelsStr = SqlUtil.serializeLabels(labels);
         String propertiesStr = SqlUtil.serializeProperties(properties);
         
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-        ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-        ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
@@ -471,6 +469,13 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
                       .execute();
             });
         }
+        
+        // Update the "latest" column in the artifacts table with the globalId of the new version
+        sql = sqlStatements.updateArtifactLatestVersion();
+        handle.createUpdate(sql)
+              .bind(0, globalId)
+              .bind(1, artifactId)
+              .execute();
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
@@ -825,21 +830,31 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
             throw new RegistryStorageException(e);
         }
     }
-
+    
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            byte[] contentBytes = content.bytes();
-            String contentHash = DigestUtils.sha256Hex(contentBytes);
+            String hash;
+            if (canonical) {
+                ArtifactType type = this.getArtifactMetaData(artifactId).getType();
+                ContentHandle canonicalContent = this.canonicalizeContent(type, content);
+                hash = DigestUtils.sha256Hex(canonicalContent.bytes());
+            } else {
+                hash = DigestUtils.sha256Hex(content.bytes());
+            }
+
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactMetaDataByContentHash();
+                if (canonical) {
+                    sql = sqlStatements.selectArtifactMetaDataByCanonicalHash();
+                }
                 return handle.createQuery(sql)
                         .bind(0, artifactId)
-                        .bind(1, contentHash)
+                        .bind(1, hash)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
                         .one();
             });
@@ -947,6 +962,9 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         } catch (Exception e) {
             if (sqlStatements.isPrimaryKeyViolation(e)) {
                 throw new RuleAlreadyExistsException(rule);
+            }
+            if (sqlStatements.isForeignKeyViolation(e)) {
+                throw new ArtifactNotFoundException(artifactId, e);
             }
             throw new RegistryStorageException(e);
         }
@@ -1499,13 +1517,6 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
                 metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), content);
         
-        // Update the "latest" column in the artifacts table with the globalId of the new version
-        sql = sqlStatements.updateArtifactLatestVersion();
-        handle.createUpdate(sql)
-              .bind(0, vmdd.getGlobalId())
-              .bind(1, artifactId)
-              .execute();
-        
         // Return the new artifact meta-data
         ArtifactMetaDataDto amdd = versionToArtifactDto(artifactId, vmdd);
         amdd.setCreatedBy(createdBy);
@@ -1529,9 +1540,28 @@ public class SqlRegistryStorage extends AbstractRegistryStorage {
         amdd.setState(vmdd.getState());
         amdd.setName(vmdd.getName());
         amdd.setDescription(vmdd.getDescription());
+        amdd.setLabels(vmdd.getLabels());
+        amdd.setProperties(vmdd.getProperties());
         amdd.setType(vmdd.getType());
         amdd.setVersion(vmdd.getVersion());
         return amdd;
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     * @param artifactType
+     * @param content
+     */
+    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        try {
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            return canonicalContent;
+        } catch (Exception e) {
+            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            return content;
+        }
     }
 
 }

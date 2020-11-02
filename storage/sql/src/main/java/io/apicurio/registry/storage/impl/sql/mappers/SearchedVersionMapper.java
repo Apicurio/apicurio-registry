@@ -33,6 +33,12 @@ import io.apicurio.registry.types.ArtifactType;
 public class SearchedVersionMapper implements RowMapper<SearchedVersion> {
     
     public static final SearchedVersionMapper instance = new SearchedVersionMapper();
+    
+    /**
+     * Constructor.
+     */
+    private SearchedVersionMapper() {
+    }
 
     /**
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)

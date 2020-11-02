@@ -37,10 +37,9 @@ public class ArtifactStateExt {
 
     static {
         transitions = new HashMap<>();
-        transitions.put(ArtifactState.ENABLED, EnumSet.of(ArtifactState.DISABLED, ArtifactState.DEPRECATED, ArtifactState.DELETED));
-        transitions.put(ArtifactState.DISABLED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED, ArtifactState.DELETED));
-        transitions.put(ArtifactState.DEPRECATED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DISABLED, ArtifactState.DELETED));
-        transitions.put(ArtifactState.DELETED, EnumSet.noneOf(ArtifactState.class));
+        transitions.put(ArtifactState.ENABLED, EnumSet.of(ArtifactState.DISABLED, ArtifactState.DEPRECATED));
+        transitions.put(ArtifactState.DISABLED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED));
+        transitions.put(ArtifactState.DEPRECATED, EnumSet.of(ArtifactState.ENABLED, ArtifactState.DISABLED));
     }
 
     public static final EnumSet<ArtifactState> ACTIVE_STATES = EnumSet.of(ArtifactState.ENABLED, ArtifactState.DEPRECATED, ArtifactState.DISABLED);

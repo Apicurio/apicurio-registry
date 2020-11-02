@@ -29,8 +29,14 @@ public interface RegistryRestClient extends AutoCloseable {
 
     List<String> listArtifacts();
 
+    
+    ArtifactMetaData createArtifact(InputStream data);
 
-    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExists, InputStream data);
+
+    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data);
+
+    
+    ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data, IfExistsType ifExists, Boolean canonical);
 
 
     InputStream getLatestArtifact(String artifactId);
@@ -51,7 +57,7 @@ public interface RegistryRestClient extends AutoCloseable {
     void updateArtifactMetaData(String artifactId, EditableMetaData metaData);
 
 
-    ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data);
+    ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data);
 
 
     List<Long> listArtifactVersions(String artifactId);

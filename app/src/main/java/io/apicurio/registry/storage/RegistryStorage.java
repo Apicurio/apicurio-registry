@@ -178,11 +178,13 @@ public interface RegistryStorage {
     /**
      * Gets the metadata of the version that matches content, or 404
      * @param artifactId
+     * @param canonical
      * @param content
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as

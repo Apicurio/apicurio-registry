@@ -238,51 +238,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(404);
         });
     }
-    
-    @Test
-    public void testDeletedStateCheck() throws Exception {
-        final String SUBJECT = "subject4";
-        // Prepare
-        given()
-            .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
-            .then()
-                .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-
-        this.waitForArtifact(SUBJECT);
-
-        //verify
-        given()
-            .when()
-                .get("/artifacts/{artifactId}", SUBJECT)
-            .then()
-                .statusCode(200)
-                .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
-        
-        //Update state
-        UpdateState us = new UpdateState();
-        us.setState(ArtifactState.DELETED);
-        given()
-           .when()
-               .contentType(ContentTypes.JSON)
-               .body(us)
-               .put("/artifacts/{artifactId}/state", SUBJECT)
-           .then()
-               .statusCode(204);
-        
-        // GET - shouldn't return as the state has been changed to DELETED
-        TestUtils.retry(() -> {
-            given()
-                .when()
-                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                    .get("/ccompat/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-                .then()
-                    .statusCode(404); 
-        });
-    }
 
     @Test
     public void testSchemaTypes() throws Exception {

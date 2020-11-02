@@ -69,7 +69,7 @@ class AllArtifactTypesIT extends BaseIT {
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
 
             // Find artifact by content
-            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, IoUtil.toStream(v1Content));
+            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, false, IoUtil.toStream(v1Content));
             assertNotNull(byContent);
             assertNotNull(byContent.getGlobalId());
             assertEquals(artifactId, byContent.getId());

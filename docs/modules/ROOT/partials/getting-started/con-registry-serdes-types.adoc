@@ -140,13 +140,13 @@ Avro provides different Datum writers and readers to write and read data. {regis
 * Specific
 * Reflect
 
-{registry}'s `AvroDatumProvider` is the abstraction on which type is then actually used,
+{registry}'s `AvroDatumProvider` is the abstraction on which type is then actually used, 
 where `DefaultAvroDatumProvider` is used by default.
 
 There are two configuration options you can set:
 
-* `apicurio.registry.avro-datum-provider` - provide a fqn of the AvroDatumProvider implementation; e.g. io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider
-* `apicurio.registry.use-specific-avro-reader` - true or false, to use Specific type when using DefaultAvroDatumProvider
+* `apicurio.registry.avro-datum-provider` - provide a fully qualified Java classname of the `AvroDatumProvider` implementation, for example `io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider`
+* `apicurio.registry.use-specific-avro-reader` - true or false, to use Specific type when using `DefaultAvroDatumProvider`
 
 ==== *Avro encoding*
 
@@ -267,5 +267,5 @@ for sending the global ID of the schema as part of the message.  And the locatio
 found then the global ID is read from the message payload (using the configured handler).  If the magic byte is
 not found, then the global ID is read from the message headers.
 
-NOTE: the Protobuf deserializer doesn't deserialize to user's exact Protobuf Message implementation,
-but to a `DynamicMessage` instance (there is no appropriate API to do otherwise)
+NOTE: the Protobuf deserializer doesn't deserialize to your exact Protobuf Message implementation,
+but rather to a `DynamicMessage` instance (as there is no appropriate API to do otherwise).

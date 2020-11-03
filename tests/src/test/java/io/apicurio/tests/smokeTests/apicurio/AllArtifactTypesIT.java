@@ -75,7 +75,7 @@ class AllArtifactTypesIT extends BaseIT {
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            TestUtils.assertWebError(400, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
+            TestUtils.assertWebError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");

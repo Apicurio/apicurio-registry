@@ -19,7 +19,7 @@ package io.apicurio.registry;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
-
+import java.util.Collections;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
@@ -56,13 +56,14 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
              JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
-            
+
+            serializer.configure(Collections.emptyMap(), false);
             serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
+
+            deserializer.configure(Collections.emptyMap(), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
-
-            ;
 
             person = deserializer.deserialize(artifactId, headers, bytes);
 
@@ -86,7 +87,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
                 deserializer.deserialize(artifactId, headers, bytes);
                 Assertions.fail();
             } catch (Exception ignored) {
-            }            
+            }
         }
 
     }

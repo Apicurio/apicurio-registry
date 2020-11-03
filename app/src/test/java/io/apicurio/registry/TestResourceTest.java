@@ -31,22 +31,22 @@ public class TestResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
-                .then()
+            .then()
                 .statusCode(204)
                 .body(anything());
 
         // Verify the rule was added
         TestUtils.retry(() -> {
             given()
-                    .when()
+                .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
-                    .then()
+                .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("type", equalTo("COMPATIBILITY"))
@@ -55,13 +55,13 @@ public class TestResourceTest extends AbstractResourceTestBase {
 
         // Test a new version with valid change
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentValid)
                 .put("/artifacts/{artifactId}/test")
-                .then()
+            .then()
                 .statusCode(204);
     }
 
@@ -69,7 +69,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
     public void testTestArtifactCompatibilityViolation() throws Exception {
         String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
         String artifactContentIncompatible = resourceToString("rules/validity/jsonschema-valid-incompatible.json");
-        String artifactId = "testCreateArtifact/TestCompatibilityViolation";
+        String artifactId = "testTestArtifactCompatibilityViolation";
         createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
         // Add a rule
@@ -77,40 +77,41 @@ public class TestResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
-                .then()
+            .then()
                 .statusCode(204)
                 .body(anything());
 
         // Verify the rule was added
         TestUtils.retry(() -> {
             given()
-                    .when()
+                .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
-                    .then()
+                .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("type", equalTo("COMPATIBILITY"))
                     .body("config", equalTo("BACKWARD"));
         });
 
-        // Test a new version with valid change
+        // Test a new version with incompatible content
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentIncompatible)
                 .put("/artifacts/{artifactId}/test")
-                .then()
+            .then()
+            .log().all()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Incompatible artifact: testCreateArtifact/TestCompatibilityViolation [JSON], num of incompatible diffs: {1}"))
+                .body("message", equalTo("Incompatible artifact: testTestArtifactCompatibilityViolation [JSON], num of incompatible diffs: {1}"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
     }
@@ -119,7 +120,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
     public void testTestArtifactValidityViolation() throws Exception {
         String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
         String artifactContentInvalidSyntax = resourceToString("rules/validity/jsonschema-invalid.json");
-        String artifactId = "testCreateArtifact/TestValidityViolation";
+        String artifactId = "testTestArtifactValidityViolation";
         createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
         // Add a rule
@@ -127,41 +128,89 @@ public class TestResourceTest extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
                 .post("/artifacts/{artifactId}/rules")
-                .then()
+            .then()
                 .statusCode(204)
                 .body(anything());
 
         // Verify the rule was added
         TestUtils.retry(() -> {
             given()
-                    .when()
+                .when()
                     .pathParam("artifactId", artifactId)
                     .get("/artifacts/{artifactId}/rules/VALIDITY")
-                    .then()
+                .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("type", equalTo("VALIDITY"))
                     .body("config", equalTo("FULL"));
         });
 
-        // Create a new version of the artifact with invalid syntax
+        // Test a new version of the artifact with invalid syntax
         given()
-                .when()
+            .when()
                 .contentType(CT_JSON)
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentInvalidSyntax)
                 .put("/artifacts/{artifactId}/test")
-                .then()
+            .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax violation for JSON Schema artifact."))
-                .body("causes[0].description", equalTo("Syntax violation for JSON Schema artifact."))
-                .body("causes[0].context", equalTo("FULL"));
+                .body("message", equalTo("Syntax violation for JSON Schema artifact."));
+    }
+
+    @Test
+    public void testOpenApiValidityViolation() throws Exception {
+        String artifactContent = resourceToString("rules/validity/openapi-valid-syntax.json");
+        String artifactContentInvalid = resourceToString("rules/validity/openapi-invalid-singleerror.json");
+        String artifactId = "testOpenApiValidityViolation";
+        createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
+
+        // Add a rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(rule)
+                .pathParam("artifactId", artifactId)
+                .post("/artifacts/{artifactId}/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
+        // Test a new version of the artifact with invalid semantics
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .pathParam("artifactId", artifactId)
+                .body(artifactContentInvalid)
+                .put("/artifacts/{artifactId}/test")
+            .then()
+                .statusCode(409)
+                .body("error_code", equalTo(409))
+                .body("message", equalTo("The OpenAPI artifact is not semantically valid. 1 problems found."))
+                .body("causes[0].description", equalTo("Schema Reference must refer to a valid Schema Definition."))
+                .body("causes[0].context", equalTo("/paths[/widgets]/get/responses[200]/content[application/json]/schema/items"));
     }
 }

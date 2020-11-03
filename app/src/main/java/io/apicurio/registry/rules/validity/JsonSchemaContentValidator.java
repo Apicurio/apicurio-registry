@@ -24,6 +24,8 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the JsonSchema content type.
@@ -44,7 +46,7 @@ public class JsonSchemaContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 JsonNode node = objectMapper.readTree(artifactContent.bytes());
@@ -53,7 +55,7 @@ public class JsonSchemaContentValidator implements ContentValidator {
                     factory.getSchema(node);
                 }
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for JSON Schema artifact.", e);
+                throw new RuleViolationException("Syntax violation for JSON Schema artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

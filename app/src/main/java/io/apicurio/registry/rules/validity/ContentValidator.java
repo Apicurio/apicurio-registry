@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
 
 /**
  * Validates content.  Syntax and semantic validations are possible based on configuration.  An
@@ -31,8 +32,8 @@ public interface ContentValidator {
      *
      * @param level           the level
      * @param artifactContent the content
-     * @throws InvalidContentException for any invalid content
+     * @throws RuleViolationException for any invalid content
      */
-    void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException;
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException;
 
 }

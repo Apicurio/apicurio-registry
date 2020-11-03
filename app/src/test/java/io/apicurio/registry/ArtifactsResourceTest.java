@@ -156,9 +156,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax violation for OpenAPI artifact."))
-                .body("causes[0].description", equalTo("Syntax violation for OpenAPI artifact."))
-                .body("causes[0].context", equalTo("FULL"));
+                .body("message", equalTo("Syntax violation for OpenAPI artifact."));
     }
 
     @Test
@@ -445,10 +443,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax violation for JSON Schema artifact."))
-                .body("causes[0].description", equalTo("Syntax violation for JSON Schema artifact."))
-                .body("causes[0].context", equalTo("FULL"));
-
+                .body("message", equalTo("Syntax violation for JSON Schema artifact."));
     }
 
     @Test

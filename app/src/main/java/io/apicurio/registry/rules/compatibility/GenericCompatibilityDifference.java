@@ -14,45 +14,42 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility.jsonschema.diff;
+package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.rest.beans.RuleViolationCause;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.ToString;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author eric.wittmann@gmail.com
  */
-@Builder
-@Getter
-@EqualsAndHashCode
-@ToString
-public class Difference implements CompatibilityDifference {
+public class GenericCompatibilityDifference implements CompatibilityDifference {
 
-    @NonNull
-    private final DiffType diffType;
+    private final String message;
+    
+    /**
+     * Constructor.
+     * @param e
+     */
+    public GenericCompatibilityDifference(Exception e) {
+        this.message = e.getMessage();
+    }
 
-    @NonNull
-    private final String pathOriginal;
-
-    @NonNull
-    private final String pathUpdated;
-
-    @NonNull
-    private final String subSchemaOriginal;
-
-    @NonNull
-    private final String subSchemaUpdated;
-
+    /**
+     * Constructor.
+     * @param message
+     */
+    public GenericCompatibilityDifference(String message) {
+        this.message = message;
+    }
+    
     /**
      * @see io.apicurio.registry.rules.compatibility.CompatibilityDifference#asRuleViolationCause()
      */
     @Override
     public RuleViolationCause asRuleViolationCause() {
-        return new RuleViolationCause(getDiffType().getDescription(), getPathUpdated());
+        RuleViolationCause cause = new RuleViolationCause();
+        cause.setDescription(message);
+        cause.setContext("/");
+        return cause;
     }
+
 }

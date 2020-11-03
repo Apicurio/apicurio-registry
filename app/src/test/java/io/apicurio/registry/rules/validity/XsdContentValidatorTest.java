@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
 
 /**
  * @author cfoskin@redhat.com
@@ -39,7 +40,7 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("xml-schema-invalid-syntax.xsd");
         XsdContentValidator validator = new XsdContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
@@ -55,7 +56,7 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("xml-schema-invalid-semantics.xsd");
         XsdContentValidator validator = new XsdContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.FULL, content);
         });
     }

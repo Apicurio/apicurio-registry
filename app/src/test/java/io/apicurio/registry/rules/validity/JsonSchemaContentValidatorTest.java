@@ -16,10 +16,12 @@
 
 package io.apicurio.registry.rules.validity;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.content.ContentHandle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
 
 /**
  * Tests the JSON Schema content validator.
@@ -38,7 +40,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidJsonSchema() throws Exception {
         ContentHandle content = resourceToContentHandle("jsonschema-invalid.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }

@@ -16,7 +16,16 @@
 
 package io.apicurio.registry;
 
+import java.util.Collections;
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
@@ -25,12 +34,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import javax.inject.Inject;
-import java.util.Collections;
-import java.util.Set;
 
 /**
  * @author Ales Justin
@@ -71,7 +74,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
         CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), incompatibleJsonString);
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
-        Set<Difference> incompatibleDifferences = compatibilityExecutionResult.getIncompatibleDifferences();
+        Set<CompatibilityDifference> incompatibleDifferences = compatibilityExecutionResult.getIncompatibleDifferences();
         Difference ageDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/age");
         Difference zipCodeDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/zipcode");
         Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageDiff.getDiffType().getDescription());
@@ -80,8 +83,9 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         Assertions.assertEquals("/properties/zipcode", zipCodeDiff.getPathUpdated());
     }
 
-    private Difference findDiffByPathUpdated(Set<Difference> incompatibleDifferences, String path) {
-        for(Difference diff : incompatibleDifferences) {
+    private Difference findDiffByPathUpdated(Set<CompatibilityDifference> incompatibleDifferences, String path) {
+        for(CompatibilityDifference cd : incompatibleDifferences) {
+            Difference diff = (Difference) cd;
             if(diff.getPathUpdated().equals(path)) {
                 return diff;
             }
@@ -159,6 +163,8 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
         compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3);
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
-        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
+        Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
+        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getDescription());
+        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getContext());
     }
 }

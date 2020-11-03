@@ -16,8 +16,28 @@
  */
 package io.apicurio.registry.ibmcompat.api.impl;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
+
+import org.jetbrains.annotations.Nullable;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.ibmcompat.api.ApiService;
 import io.apicurio.registry.ibmcompat.model.EnabledModification;
@@ -34,7 +54,6 @@ import io.apicurio.registry.ibmcompat.model.StateModification;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.rules.validity.InvalidContentException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -47,22 +66,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.util.ArtifactIdGenerator;
-import org.jetbrains.annotations.Nullable;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
@@ -281,7 +284,7 @@ public class ApiServiceImpl implements ApiService {
         try {
             verifiedContent = new ObjectMapper().writeValueAsString(content.content());
         } catch (JsonProcessingException e) {
-            throw new InvalidContentException(e);
+            throw new BadRequestException(e);
         }
         response.resume(Response.ok().entity(verifiedContent).build());
     }

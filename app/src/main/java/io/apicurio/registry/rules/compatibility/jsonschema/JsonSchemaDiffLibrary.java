@@ -16,18 +16,20 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
+import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
+import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
+
+import java.util.Set;
+
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
 
-import java.util.Set;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
-import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>

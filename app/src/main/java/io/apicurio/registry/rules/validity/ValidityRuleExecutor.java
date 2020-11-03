@@ -16,18 +16,15 @@
 
 package io.apicurio.registry.rules.validity;
 
-import com.google.common.collect.ImmutableSet;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -44,15 +41,10 @@ public class ValidityRuleExecutor implements RuleExecutor {
      */
     @Override
     public void execute(RuleContext context) throws RuleViolationException {
-        try {
-            ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
-            ContentValidator validator = provider.getContentValidator();
-            validator.validate(level, context.getUpdatedContent());
-        } catch (InvalidContentException e) {
-            throw new RuleViolationException(e.getMessage(), RuleType.VALIDITY, context.getConfiguration(),
-                    ImmutableSet.of(new RuleViolationCause(e.getMessage(), context.getConfiguration())), e);
-        }
+        ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
+        ContentValidator validator = provider.getContentValidator();
+        validator.validate(level, context.getUpdatedContent());
     }
 
 }

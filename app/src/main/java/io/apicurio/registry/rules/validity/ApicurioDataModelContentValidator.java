@@ -20,8 +20,13 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.ValidationProblem;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A content validator implementation for the OpenAPI and AsyncAPI content types.
@@ -33,21 +38,25 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         Document document = null;
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 document = Library.readDocumentFromJSONString(artifactContent.content());
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for " + getDataModelType() + " artifact.", e);
+                throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
         
         if (level == ValidityLevel.FULL) {
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
-                // TODO should include the details of all the validation problems in the exception
-                throw new InvalidContentException("The " + getDataModelType() + " artifact is not semantically valid. " + problems.size() + " problems found.");
+                Set<RuleViolationCause> causes = problems.stream().map(problem -> new RuleViolationCause(problem.message, problem.nodePath.toString())).collect(Collectors.toSet());
+                throw new RuleViolationException(
+                        "The " + getDataModelType() + " artifact is not semantically valid. " + problems.size() + " problems found.",
+                        RuleType.VALIDITY,
+                        level.name(),
+                        causes);
             }
         }
     }

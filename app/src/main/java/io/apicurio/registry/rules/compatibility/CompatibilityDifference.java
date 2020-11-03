@@ -14,28 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.validity;
+package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.rest.beans.RuleViolationCause;
 
 /**
- * Indicates that the artifact content was invalid.
+ * Represents a single compatibility difference.  These are generated when doing compatibility checking 
+ * between two versions of an artifact.  A non-zero collection of these indicates a compatibility violation.
+ * 
  * @author eric.wittmann@gmail.com
  */
-public class InvalidContentException extends RegistryException {
+public interface CompatibilityDifference {
 
-    private static final long serialVersionUID = 2546589404804650539L;
-
-    public InvalidContentException(String message) {
-        super(message);
-    }
-
-    public InvalidContentException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public InvalidContentException(Throwable cause) {
-        super(cause);
-    }
-
+    /**
+     * Converts the difference into a rule violation cause.
+     */
+    public RuleViolationCause asRuleViolationCause();
+    
 }

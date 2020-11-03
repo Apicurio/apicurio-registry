@@ -1,0 +1,56 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Empty API",
+        "version": "1.0.0",
+        "description": "An example API design using OpenAPI."
+    },
+    "paths": {
+        "/widgets": {
+            "summary": "Path used to manage the list of widgets.",
+            "description": "The REST endpoint/path used to list and create zero or more `Widget` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Widget"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns an array of `Widget` entities."
+                    }
+                },
+                "operationId": "getwidgets",
+                "summary": "List All widgets",
+                "description": "Gets a list of all `Widget` entities."
+            },
+            "post": {
+                "requestBody": {
+                    "description": "A new `Widget` to be created.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful response."
+                    }
+                },
+                "operationId": "createWidget",
+                "summary": "Create a Widget",
+                "description": "Creates a new instance of a `Widget`."
+            }
+        }
+    },
+    "components": {}
+}

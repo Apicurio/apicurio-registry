@@ -16,13 +16,16 @@
 
 package io.apicurio.registry.rules.validity;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import com.google.protobuf.Descriptors;
+
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.support.TestCmmn;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 /**
  * Tests the Protobuf FD content validator.
@@ -54,7 +57,7 @@ public class ProtobufFdContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidProtobufFdContent() {
         ContentHandle content = ContentHandle.create("qwerty");
         ProtobufFdContentValidator validator = new ProtobufFdContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.FULL, content);
         });
     }

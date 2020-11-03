@@ -17,7 +17,10 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -25,8 +28,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import javax.inject.Inject;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * @author Ales Justin
@@ -44,20 +48,45 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString));
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), avroString);
+        Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
+
         String avroString2 = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\", \"qq\":\"ff\"}]}";
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2));
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(avroString), avroString2);
+        Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
     }
 
     @Test
     public void testJson() {
-        String jsonString = "{\"name\":\"foobar\"}";
+        String jsonString = JsonSchemas.jsonSchema;
+        String incompatibleJsonString = JsonSchemas.incompatibleJsonSchema;
         ArtifactType json = ArtifactType.JSON;
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString));
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString));
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), jsonString).isCompatible());
+        Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), jsonString).isCompatible());
+
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(jsonString), incompatibleJsonString);
+        Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
+        Set<Difference> incompatibleDifferences = compatibilityExecutionResult.getIncompatibleDifferences();
+        Difference ageDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/age");
+        Difference zipCodeDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/zipcode");
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageDiff.getDiffType().getDescription());
+        Assertions.assertEquals("/properties/age", ageDiff.getPathUpdated());
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), zipCodeDiff.getDiffType().getDescription());
+        Assertions.assertEquals("/properties/zipcode", zipCodeDiff.getPathUpdated());
+    }
+
+    private Difference findDiffByPathUpdated(Set<Difference> incompatibleDifferences, String path) {
+        for(Difference diff : incompatibleDifferences) {
+            if(diff.getPathUpdated().equals(path)) {
+                return diff;
+            }
+        }
+        return null;
     }
 
     @Test
@@ -83,7 +112,9 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.emptyList(), data));
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data);
+        Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
         String data2 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -105,7 +136,9 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertTrue(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2));
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2);
+        Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
 
         String data3 = "syntax = \"proto3\";\n" +
                        "package test;\n" +
@@ -124,6 +157,8 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                        "\trpc Previous(PreviousRequest) returns (stream Channel);\n" +
                        "}\n";
 
-        Assertions.assertFalse(checker.isCompatibleWith(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3));
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3);
+        Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
     }
 }

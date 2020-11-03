@@ -16,22 +16,6 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -42,6 +26,21 @@ import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(SMOKE)
 class RulesResourceIT extends BaseIT {
@@ -96,7 +95,7 @@ class RulesResourceIT extends BaseIT {
         String artifactId = TestUtils.generateArtifactId();
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        TestUtils.assertWebError(400, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
+        TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
         TestUtils.assertWebError(404, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
@@ -149,7 +148,7 @@ class RulesResourceIT extends BaseIT {
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertWebError(400, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId1, iad));
+        TestUtils.assertWebError(409, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId1, iad));
 
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 

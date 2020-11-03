@@ -2250,7 +2250,7 @@
                 }
             },
             "RuleViolationCause": {
-                "title": "Root Type for RuleViolationCAuse",
+                "title": "Root Type for RuleViolationCause",
                 "description": "",
                 "type": "object",
                 "properties": {

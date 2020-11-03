@@ -21,17 +21,10 @@ import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.beans.Error;
+import io.apicurio.registry.rest.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.*;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -90,7 +80,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleViolationException.class, HTTP_BAD_REQUEST);
+        map.put(RuleViolationException.class, HTTP_CONFLICT);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
@@ -155,10 +145,20 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     }
 
     private static Error toError(Throwable t, int code) {
-        Error error = new Error();
+        Error error;
+
+        if (t instanceof RuleViolationException) {
+            RuleViolationException rve = (RuleViolationException) t;
+            error = new RuleViolationError();
+            ((RuleViolationError) error).setCauses(rve.getCauses());
+        } else {
+            error = new Error();
+        }
+
         error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
         error.setDetail(getStackTrace(t));
+
         return error;
     }
     

@@ -18,6 +18,9 @@ package io.apicurio.registry.compatibility;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.JsonSchemas;
+import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +37,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+
+import java.util.Set;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -70,5 +75,35 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             RuleContext context = new RuleContext("Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
             compatibility.execute(context);
         });
+    }
+
+    @Test
+    public void testJsonSchemaCompatibility() {
+        String v1Schema = JsonSchemas.jsonSchema;
+        String v2Schema = JsonSchemas.incompatibleJsonSchema;
+
+        RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
+            RuleContext context = new RuleContext("TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            compatibility.execute(context);
+        });
+
+        Set<RuleViolationCause> ruleViolationCauses = ruleViolationException.getCauses();
+        RuleViolationCause ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age");
+        RuleViolationCause zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
+
+        Assertions.assertEquals("/properties/age", ageViolationCause.getContext());
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageViolationCause.getDescription());
+        Assertions.assertEquals("/properties/zipcode", zipCodeViolationCause.getContext());
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), zipCodeViolationCause.getDescription());
+
+    }
+
+    private RuleViolationCause findCauseByContext(Set<RuleViolationCause> ruleViolationCauses, String context) {
+        for(RuleViolationCause cause : ruleViolationCauses) {
+            if(cause.getContext().equals(context)) {
+                return cause;
+            }
+        }
+        return null;
     }
 }

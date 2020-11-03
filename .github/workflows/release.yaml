@@ -15,7 +15,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-18.04
-    if: github.event.pull_request.merged == true && github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio'
     steps:
       - name: Retrieve Project Metadata
         uses: radcortez/project-metadata-action@master
@@ -23,15 +23,10 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           metadata-file-path: '.github/project.yaml'
-      - name: Verify Metadata
+      - name: Log Metadata
         run: |
-          if [ -z "${{ github.event.inputs.release-version}}" ]
-          then
-            echo "Failed to load project metadata from project.yaml!"
-            exit 1
-          else
-            echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version}}"
-          fi
+          echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
+          echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
       - name: Set up Node.js v12
         uses: actions/setup-node@v1
         with:
@@ -236,7 +231,7 @@ jobs:
   verify-release:
     runs-on: ubuntu-18.04
     needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
-    if: github.event.pull_request.merged == true && github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio'
     steps:
       - name: Retrieve Project Metadata
         uses: radcortez/project-metadata-action@master

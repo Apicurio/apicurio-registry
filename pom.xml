@@ -116,7 +116,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.9.0.Final</quarkus.version>
+        <quarkus.version>1.9.1.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
@@ -133,7 +133,7 @@
         <infinispan.version>12.0.0.Dev05</infinispan.version>
 
         <!-- gRPC -->
-        <grpc.version>1.33.0</grpc.version>
+        <grpc.version>1.33.1</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>5.5.1</confluent.version>
@@ -181,7 +181,7 @@
         <version.frontend-maven.plugin>1.10.3</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.36.2</version.puppycrawl>
+        <version.puppycrawl>8.37</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

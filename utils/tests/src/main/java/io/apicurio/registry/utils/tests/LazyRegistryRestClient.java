@@ -22,188 +22,188 @@ import io.apicurio.registry.types.RuleType;
  */
 public class LazyRegistryRestClient implements RegistryRestClient {
 
-    private RegistryRestClient instance;
+    private RegistryRestClient delegate;
     private String apiUrl;
 
     public LazyRegistryRestClient(String apiUrl) {
         this.apiUrl = apiUrl;
     }
 
-    private synchronized RegistryRestClient getInstance() {
-        if (instance == null) {
-            instance = RegistryRestClientFactory.create(apiUrl);
+    private synchronized RegistryRestClient getDelegate() {
+        if (delegate == null) {
+            delegate = RegistryRestClientFactory.create(apiUrl);
         }
-        return instance;
+        return delegate;
     }
 
     @Override
     public void close() throws Exception {
-        getInstance().close();
+        getDelegate().close();
     }
 
     @Override
     public List<String> listArtifacts() {
-        return getInstance().listArtifacts();
+        return getDelegate().listArtifacts();
     }
 
     @Override
     public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExists, InputStream data) {
-        return getInstance().createArtifact(artifactId, artifactType, ifExists, data);
+        return getDelegate().createArtifact(artifactId, artifactType, ifExists, data);
     }
 
     @Override
     public InputStream getLatestArtifact(String artifactId) {
-        return getInstance().getLatestArtifact(artifactId);
+        return getDelegate().getLatestArtifact(artifactId);
     }
 
     @Override
     public ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        return getInstance().updateArtifact(artifactId, artifactType, data);
+        return getDelegate().updateArtifact(artifactId, artifactType, data);
     }
 
     @Override
     public void deleteArtifact(String artifactId) {
-        getInstance().deleteArtifact(artifactId);
+        getDelegate().deleteArtifact(artifactId);
     }
 
     @Override
     public void updateArtifactState(String artifactId, UpdateState newState) {
-        getInstance().updateArtifactState(artifactId, newState);
+        getDelegate().updateArtifactState(artifactId, newState);
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        return getInstance().getArtifactMetaData(artifactId);
+        return getDelegate().getArtifactMetaData(artifactId);
     }
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData metaData) {
-        getInstance().updateArtifactMetaData(artifactId, metaData);
+        getDelegate().updateArtifactMetaData(artifactId, metaData);
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
-        return getInstance().getArtifactMetaDataByContent(artifactId, data);
+        return getDelegate().getArtifactMetaDataByContent(artifactId, data);
     }
 
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        return getInstance().listArtifactVersions(artifactId);
+        return getDelegate().listArtifactVersions(artifactId);
     }
 
     @Override
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) {
-        return getInstance().createArtifactVersion(artifactId, artifactType, data);
+        return getDelegate().createArtifactVersion(artifactId, artifactType, data);
     }
 
     @Override
     public InputStream getArtifactVersion(String artifactId, Integer version) {
-        return getInstance().getArtifactVersion(artifactId, version);
+        return getDelegate().getArtifactVersion(artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionState(String artifactId, Integer version, UpdateState newState) {
-        getInstance().updateArtifactVersionState(artifactId, version, newState);
+        getDelegate().updateArtifactVersionState(artifactId, version, newState);
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) {
-        return getInstance().getArtifactVersionMetaData(artifactId, version);
+        return getDelegate().getArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData metaData) {
-        getInstance().updateArtifactVersionMetaData(artifactId, version, metaData);
+        getDelegate().updateArtifactVersionMetaData(artifactId, version, metaData);
     }
 
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
-        getInstance().deleteArtifactVersionMetaData(artifactId, version);
+        getDelegate().deleteArtifactVersionMetaData(artifactId, version);
     }
 
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
-        return getInstance().listArtifactRules(artifactId);
+        return getDelegate().listArtifactRules(artifactId);
     }
 
     @Override
     public void createArtifactRule(String artifactId, Rule ruleConfig) {
-        getInstance().createArtifactRule(artifactId, ruleConfig);
+        getDelegate().createArtifactRule(artifactId, ruleConfig);
     }
 
     @Override
     public void deleteArtifactRules(String artifactId) {
-        getInstance().deleteArtifactRules(artifactId);
+        getDelegate().deleteArtifactRules(artifactId);
     }
 
     @Override
     public Rule getArtifactRuleConfig(String artifactId, RuleType ruleType) {
-        return getInstance().getArtifactRuleConfig(artifactId, ruleType);
+        return getDelegate().getArtifactRuleConfig(artifactId, ruleType);
     }
 
     @Override
     public Rule updateArtifactRuleConfig(String artifactId, RuleType ruleType, Rule ruleConfig) {
-        return getInstance().updateArtifactRuleConfig(artifactId, ruleType, ruleConfig);
+        return getDelegate().updateArtifactRuleConfig(artifactId, ruleType, ruleConfig);
     }
 
     @Override
     public void deleteArtifactRule(String artifactId, RuleType ruleType) {
-        getInstance().deleteArtifactRule(artifactId, ruleType);
+        getDelegate().deleteArtifactRule(artifactId, ruleType);
     }
 
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        getInstance().testUpdateArtifact(artifactId, artifactType, data);
+        getDelegate().testUpdateArtifact(artifactId, artifactType, data);
     }
 
     @Override
     public InputStream getArtifactByGlobalId(long globalId) {
-        return getInstance().getArtifactByGlobalId(globalId);
+        return getDelegate().getArtifactByGlobalId(globalId);
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
-        return getInstance().getArtifactMetaDataByGlobalId(globalId);
+        return getDelegate().getArtifactMetaDataByGlobalId(globalId);
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType ruleType) {
-        return getInstance().getGlobalRuleConfig(ruleType);
+        return getDelegate().getGlobalRuleConfig(ruleType);
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) {
-        return getInstance().updateGlobalRuleConfig(ruleType, data);
+        return getDelegate().updateGlobalRuleConfig(ruleType, data);
     }
 
     @Override
     public void deleteGlobalRule(RuleType ruleType) {
-        getInstance().deleteGlobalRule(ruleType);
+        getDelegate().deleteGlobalRule(ruleType);
     }
 
     @Override
     public List<RuleType> listGlobalRules() {
-        return getInstance().listGlobalRules();
+        return getDelegate().listGlobalRules();
     }
 
     @Override
     public void createGlobalRule(Rule data) {
-        getInstance().createGlobalRule(data);
+        getDelegate().createGlobalRule(data);
     }
 
     @Override
     public void deleteAllGlobalRules() {
-        getInstance().deleteAllGlobalRules();
+        getDelegate().deleteAllGlobalRules();
     }
 
     @Override
     public ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
-        return getInstance().searchArtifacts(search, over, order, offset, limit);
+        return getDelegate().searchArtifacts(search, over, order, offset, limit);
     }
 
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-        return getInstance().searchVersions(artifactId, offset, limit);
+        return getDelegate().searchVersions(artifactId, offset, limit);
     }
 
 }

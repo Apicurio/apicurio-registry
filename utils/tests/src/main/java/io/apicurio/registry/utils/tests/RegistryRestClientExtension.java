@@ -29,7 +29,10 @@ public class RegistryRestClientExtension implements ParameterResolver {
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return new LazyRegistryRestClient(TestUtils.getRegistryApiUrl());
+        ExtensionContext.Store store = extensionContext.getStore(ExtensionContext.Namespace.GLOBAL);
+        return store.getOrComputeIfAbsent("registry_rest_client", k -> {
+            return new LazyRegistryRestClient(TestUtils.getRegistryApiUrl());
+        });
     }
 
 }

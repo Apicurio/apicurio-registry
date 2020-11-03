@@ -15,23 +15,12 @@ on:
 jobs:
   release:
     runs-on: ubuntu-18.04
-    if: github.event.pull_request.merged == true && github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Retrieve Project Metadata
-        uses: radcortez/project-metadata-action@master
-        id: metadata
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          metadata-file-path: '.github/project.yaml'
-      - name: Verify Metadata
+      - name: Log Metadata
         run: |
-          if [ -z "${{ github.event.inputs.release-version}}" ]
-          then
-            echo "Failed to load project metadata from project.yaml!"
-            exit 1
-          else
-            echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version}}"
-          fi
+          echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
+          echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
       - name: Set up Node.js v12
         uses: actions/setup-node@v1
         with:
@@ -57,7 +46,7 @@ jobs:
           git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/apicurio-registry.git"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
           git checkout ${{ github.event.inputs.branch}}
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch}}
@@ -69,7 +58,7 @@ jobs:
           git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/apicurio-registry-examples.git"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
           git fetch
           git checkout master
           git branch --set-upstream-to=origin/master
@@ -236,14 +225,8 @@ jobs:
   verify-release:
     runs-on: ubuntu-18.04
     needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
-    if: github.event.pull_request.merged == true && github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Retrieve Project Metadata
-        uses: radcortez/project-metadata-action@master
-        id: metadata
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          metadata-file-path: '.github/project.yaml'
       - name: Set up JDK 1.8
         uses: AdoptOpenJDK/install-jdk@v1
         with:

@@ -385,7 +385,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(artifactVersionLocation)();
             }).catch( error => {
-                if (error && error.error_code === 400) {
+                if (error && error.error_code === 409) {
                     this.handleInvalidContentError(error);
                 } else {
                     this.handleServerError(error, "Error uploading artifact version.");

@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -85,12 +86,12 @@ public class DiffContext {
 
     public void addDifference(DiffType type, Object originalSubchema, Object updatedSubchema) {
         Difference difference = Difference.builder()
-            .diffType(type)
-            .pathOriginal("")
-            .pathUpdated(pathUpdated)
-            .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
-            .subSchemaUpdated(Objects.toString(updatedSubchema))
-            .build();
+             .diffType(type)
+             .pathOriginal("")
+             .pathUpdated(pathUpdated)
+             .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
+             .subSchemaUpdated(Objects.toString(updatedSubchema))
+             .build();
         addToDifferenceSets(difference);
 //        if(!type.isBackwardsCompatible())
 //            log.warn("New incompatible difference found: " + difference);
@@ -112,6 +113,10 @@ public class DiffContext {
         return diff.stream().anyMatch(d -> !d.getDiffType().isBackwardsCompatible());
     }
 
+    public Set<Difference> getIncompatibleDifferences() {
+        return diff.stream().filter(d -> !d.getDiffType().isBackwardsCompatible()).collect(Collectors.toSet());
+    }
+
     public boolean foundAllDifferencesAreCompatible() {
         return !foundIncompatibleDifference();
     }
@@ -119,9 +124,9 @@ public class DiffContext {
     @Override
     public String toString() {
         return "DiffContext {" +
-            " foundAllDifferencesAreCompatible = " + foundAllDifferencesAreCompatible() +
-            ", diff = " + diff +
-            ", pathAtUpdated = '" + pathUpdated + "'" +
-            " }";
+                " foundAllDifferencesAreCompatible = " + foundAllDifferencesAreCompatible() +
+                ", diff = " + diff +
+                ", pathAtUpdated = '" + pathUpdated + "'" +
+                " }";
     }
 }

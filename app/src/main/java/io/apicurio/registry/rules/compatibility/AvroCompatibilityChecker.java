@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult.empty;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -34,10 +35,10 @@ import static java.util.Objects.requireNonNull;
 public class AvroCompatibilityChecker implements CompatibilityChecker {
 
     /**
-     * @see CompatibilityChecker#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
-    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingSchemaStrings, "existingSchemaStrings MUST NOT be null");
         requireNonNull(proposedSchemaString, "proposedSchemaString MUST NOT be null");
@@ -45,7 +46,7 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
 
         if (schemaValidator == null) {
-            return true;
+            return empty(true);
         }
 
         List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
@@ -54,9 +55,9 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
 
         try {
             schemaValidator.validate(toValidate, existingSchemas);
-            return true;
+            return empty(true);
         } catch (SchemaValidationException e) {
-            return false;
+            return empty(false);
         }
     }
 

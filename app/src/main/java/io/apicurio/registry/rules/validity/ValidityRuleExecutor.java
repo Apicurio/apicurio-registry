@@ -16,7 +16,9 @@
 
 package io.apicurio.registry.rules.validity;
 
+import com.google.common.collect.ImmutableSet;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.rest.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -48,7 +50,8 @@ public class ValidityRuleExecutor implements RuleExecutor {
             ContentValidator validator = provider.getContentValidator();
             validator.validate(level, context.getUpdatedContent());
         } catch (InvalidContentException e) {
-            throw new RuleViolationException(e.getMessage(), RuleType.VALIDITY, context.getConfiguration(), e);
+            throw new RuleViolationException(e.getMessage(), RuleType.VALIDITY, context.getConfiguration(),
+                    ImmutableSet.of(new RuleViolationCause(e.getMessage(), context.getConfiguration())), e);
         }
     }
 

@@ -18,6 +18,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import java.util.List;
 
+import static io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult.empty;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -26,41 +27,39 @@ import static java.util.Objects.requireNonNull;
 public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
     /**
-     * @see io.apicurio.registry.rules.compatibility.CompatibilityChecker#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see io.apicurio.registry.rules.compatibility.CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
-    public boolean isCompatibleWith(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingSchemas, "existingSchemas MUST NOT be null");
         requireNonNull(proposedSchema, "proposedSchema MUST NOT be null");
 
         if (existingSchemas.isEmpty()) {
-            return true;
+            return empty(true);
         }
         switch (compatibilityLevel) {
             case BACKWARD: {
                 ProtobufFile fileBefore = new ProtobufFile(existingSchemas.get(existingSchemas.size() - 1));
                 ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
                 ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
-                return checker.validate();
+                return empty(checker.validate());
             }
             case BACKWARD_TRANSITIVE:
                 ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
                 for (String existing : existingSchemas) {
                     ProtobufFile fileBefore = new ProtobufFile(existing);
                     ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
-                    if (!checker.validate()) {
-                        return false;
-                    }
+                    return empty(!checker.validate());
                 }
-                return true;
+                return empty(true);
             case FORWARD:
             case FORWARD_TRANSITIVE:
             case FULL:
             case FULL_TRANSITIVE:
                 throw new IllegalStateException("Compatibility level " + compatibilityLevel + " not supported for Protobuf schemas");
             default:
-                return true;
+                return empty(true);
         }
     }
 }

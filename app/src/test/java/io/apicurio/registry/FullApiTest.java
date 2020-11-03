@@ -16,12 +16,6 @@
 
 package io.apicurio.registry;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -31,6 +25,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.config.EncoderConfig;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.Test;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
 
 /** 
  * Tests registry via its jax-rs interface.  This test performs more realistic
@@ -84,8 +83,8 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
-                .statusCode(400)
-                .body("error_code", equalTo(400))
+                .statusCode(409)
+                .body("error_code", equalTo(409))
                 .body("message", equalTo("Syntax violation for OpenAPI artifact."));
 
     }
@@ -133,8 +132,8 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .body(artifactContent)
                 .post("/artifacts")
             .then()
-                .statusCode(400)
-                .body("error_code", equalTo(400))
+                .statusCode(409)
+                .body("error_code", equalTo(409))
                 .body("message", equalTo("Syntax violation for Protobuf artifact."));
 
     }

@@ -46,7 +46,7 @@ jobs:
           git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/apicurio-registry.git"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
           git checkout ${{ github.event.inputs.branch}}
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch}}
@@ -58,7 +58,7 @@ jobs:
           git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/apicurio-registry-examples.git"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
           git fetch
           git checkout master
           git branch --set-upstream-to=origin/master

@@ -17,12 +17,6 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Retrieve Project Metadata
-        uses: radcortez/project-metadata-action@master
-        id: metadata
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          metadata-file-path: '.github/project.yaml'
       - name: Log Metadata
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"

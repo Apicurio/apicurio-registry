@@ -45,10 +45,21 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     public List<String> listArtifacts() {
         return getDelegate().listArtifacts();
     }
-
+    
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExists, InputStream data) {
-        return getDelegate().createArtifact(artifactId, artifactType, ifExists, data);
+    public ArtifactMetaData createArtifact(InputStream data) {
+        return getDelegate().createArtifact(data);
+    }
+    
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
+        return getDelegate().createArtifact(artifactId, artifactType, data);
+    }
+    
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
+            IfExistsType ifExists, Boolean canonical) {
+        return getDelegate().createArtifact(artifactId, artifactType, data, ifExists, canonical);
     }
 
     @Override
@@ -80,10 +91,11 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     public void updateArtifactMetaData(String artifactId, EditableMetaData metaData) {
         getDelegate().updateArtifactMetaData(artifactId, metaData);
     }
-
+    
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
-        return getDelegate().getArtifactMetaDataByContent(artifactId, data);
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical,
+            InputStream data) {
+        return getDelegate().getArtifactMetaDataByContent(artifactId, canonical, data);
     }
 
     @Override

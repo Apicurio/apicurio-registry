@@ -110,7 +110,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          mvn clean install -Pprod -Pl -Pinfinispan -Pstreams -Pasyncmem -DskipTests
+          mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests
       - name: Build Examples
         run: |
           cd registry-examples

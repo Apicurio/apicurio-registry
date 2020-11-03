@@ -758,12 +758,6 @@
             </modules>
         </profile>
         <profile>
-            <id>kafka</id>
-            <modules>
-                <module>storage/kafka</module>
-            </modules>
-        </profile>
-        <profile>
             <id>streams</id>
             <modules>
                 <module>storage/streams</module>

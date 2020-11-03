@@ -47,11 +47,6 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExists, InputStream data) {
-        return getDelegate().createArtifact(artifactId, artifactType, ifExists, data);
-    }
-
-    @Override
     public InputStream getLatestArtifact(String artifactId) {
         return getDelegate().getLatestArtifact(artifactId);
     }
@@ -79,11 +74,6 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData metaData) {
         getDelegate().updateArtifactMetaData(artifactId, metaData);
-    }
-
-    @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
-        return getDelegate().getArtifactMetaDataByContent(artifactId, data);
     }
 
     @Override
@@ -204,6 +194,26 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
         return getDelegate().searchVersions(artifactId, offset, limit);
+    }
+
+    @Override
+    public ArtifactMetaData createArtifact(InputStream data) {
+        return getDelegate().createArtifact(data);
+    }
+
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
+        return getDelegate().createArtifact(artifactId, artifactType, data);
+    }
+
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data, IfExistsType ifExists, Boolean canonical) {
+        return getDelegate().createArtifact(artifactId, artifactType, data, ifExists, canonical);
+    }
+
+    @Override
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data) {
+        return getDelegate().getArtifactMetaDataByContent(artifactId, canonical, data);
     }
 
 }

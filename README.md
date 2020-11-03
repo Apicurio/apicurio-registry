@@ -29,7 +29,6 @@ Additionally, there are 2 main configuration profiles:
 
 ### Build Options
  
- - `-Pkafka` enables a build of `storage/kafka` module and produces `apicurio-registry-storage-kafka-<version>-all.zip`.
  - `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
    and `PostgreSQL` driver in *prod* mode.
  - `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment, 
@@ -56,34 +55,6 @@ To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
  - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
-
-### Kafka
-
- - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
- - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers
-
-Kafka storage implementation uses the following Kafka API / architecture
-
- - Storage producer to forward REST API HTTP requests to Kafka broker
- - Storage consumer to handle previously sent  REST API HTTP requests as Kafka messages
- - Snapshot producer to send current state's snapshot to Kafka broker
- - Snapshot consumer for initial (at application start) snapshot handling
-
-We already have sensible defaults for all these things, but they can still be overridden or added by adding appropriate properties to app's configuration. The following property name prefix must be used:
-
- - Storage producer: registry.kafka.storage-producer.
- - Storage consumer: registry.kafka.storage-consumer.
- - Snapshot producer: registry.kafka.snapshot-producer.
- - Snapshot consumer: registry.kafka.snapshot-consumer.
-
-We then strip away the prefix and use the rest of the property name in instance's Properties.
-
-e.g. registry.kafka.storage-producer.enable.idempotence=true --> enable.idempotence=true
-
-For the actual configuration options check (although best config docs are in the code itself):
- - [Kafka configuration](https://kafka.apache.org/documentation/)
-
-To help setup development / testing environment for the module, see kafka_setup.sh script. You just need to have KAFKA_HOME env variable set, and script does the rest.
 
 ### Streams
 
@@ -131,7 +102,6 @@ Hub.  There are several docker images to choose from, one for each storage optio
 * [apicurio-registry-sql](https://hub.docker.com/r/apicurio/apicurio-registry-sql)
 * [apicurio-registry-infinispan](https://hub.docker.com/r/apicurio/apicurio-registry-infinispan)
 * [apicurio-registry-streams](https://hub.docker.com/r/apicurio/apicurio-registry-streams)
-* [apicurio-registry-kafka](https://hub.docker.com/r/apicurio/apicurio-registry-kafka)
 
 Run one of the above docker images like this:
 

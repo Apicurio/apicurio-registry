@@ -110,7 +110,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests
+          mvn clean install -Pprod -Pjpa -Pinfinispan -Pstreams -Pasyncmem -DskipTests
       - name: Build Examples
         run: |
           cd registry-examples
@@ -154,7 +154,6 @@ jobs:
           mvn package -Pprod -DskipTests -Ddocker
           mvn package -Pprod -Pjpa -DskipTests -Ddocker
           mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
-          mvn package -Pprod -Pkafka -DskipTests -Ddocker
           mvn package -Pprod -Pstreams -DskipTests -Ddocker
           mvn package -Pprod -Pasyncmem -DskipTests -Ddocker
       - name: Push The Tagged Docker Images
@@ -169,9 +168,6 @@ jobs:
           docker push apicurio/apicurio-registry-infinispan:latest
           docker push apicurio/apicurio-registry-infinispan:latest-release
           docker push apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}}
-          docker push apicurio/apicurio-registry-kafka:latest
-          docker push apicurio/apicurio-registry-kafka:latest-release
-          docker push apicurio/apicurio-registry-kafka:${{ github.event.inputs.release-version}}
           docker push apicurio/apicurio-registry-streams:latest
           docker push apicurio/apicurio-registry-streams:latest-release
           docker push apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}}
@@ -182,9 +178,9 @@ jobs:
         run: |
           cd registry
           # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Pjpa -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
@@ -259,8 +255,6 @@ jobs:
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-mem:latest apicurio/apicurio-registry-mem:latest-release 
       - name: Verify Docker Release For asyncmem
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-asyncmem:latest apicurio/apicurio-registry-asyncmem:latest-release 
-      - name: Verify Docker Release For kafka
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafka:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-kafka:latest apicurio/apicurio-registry-kafka:latest-release 
       - name: Verify Docker Release For streams
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-streams:latest apicurio/apicurio-registry-streams:latest-release 
       - name: Verify Docker Release For jpa

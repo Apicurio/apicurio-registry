@@ -15,15 +15,6 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.util.List;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -34,6 +25,14 @@ import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+
+import java.util.List;
+
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Tag(SMOKE)
 class AllArtifactTypesIT extends BaseIT {
@@ -63,7 +62,7 @@ class AllArtifactTypesIT extends BaseIT {
             client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            TestUtils.assertWebError(400, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            TestUtils.assertWebError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));

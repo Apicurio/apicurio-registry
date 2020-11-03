@@ -227,12 +227,6 @@ jobs:
     needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
     if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Retrieve Project Metadata
-        uses: radcortez/project-metadata-action@master
-        id: metadata
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          metadata-file-path: '.github/project.yaml'
       - name: Set up JDK 1.8
         uses: AdoptOpenJDK/install-jdk@v1
         with:

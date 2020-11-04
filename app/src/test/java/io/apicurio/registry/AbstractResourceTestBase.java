@@ -24,7 +24,6 @@ import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -33,13 +32,14 @@ import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
-    
+
     protected static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
@@ -47,10 +47,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @Inject
     Instance<ServiceInitializer> initializers;
-    
+
     protected static String registryUrl;
     protected static RegistryRestClient client;
-    
+
     @BeforeAll
     protected static void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
@@ -59,15 +59,22 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @BeforeEach
     protected void beforeEach() throws Exception {
+        prepareServiceInitializers();
+        deleteGlobalRules(0);
+    }
+
+    protected void prepareServiceInitializers() {
         RestAssured.baseURI = registryUrl;
 
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);
+    }
 
+    protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
         given().when().delete("/rules").then().statusCode(204);
         TestUtils.retry(() -> {
-            given().when().get("/rules").then().statusCode(200).body("size()", CoreMatchers.is(0));
+            given().when().get("/rules").then().statusCode(200).body("size()", is(expectedDefaultRulesCount));
         });
     }
 
@@ -90,12 +97,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
-        
+
         waitForArtifact(artifactId);
-        
+
         return response.extract().body().path("globalId");
     }
-    
+
     /**
      * Wait for an artifact to be created.
      * @param artifactId

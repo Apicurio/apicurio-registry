@@ -27,7 +27,6 @@ import java.util.Map;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-
 public class HeadersInterceptor implements Interceptor {
 
     private final Map<String, String> headers;
@@ -42,7 +41,8 @@ public class HeadersInterceptor implements Interceptor {
         final Request request = chain.request();
 
         final Headers requestHeaders = request.headers().newBuilder()
-                .addAll(Headers.of(headers)).build();;
+                .addAll(Headers.of(headers)).build();
+        ;
 
         final Request requestWithHeathers = request.newBuilder()
                 .headers(requestHeaders)

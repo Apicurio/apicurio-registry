@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.request;
+package io.apicurio.registry.client.exception;
 
-import retrofit2.Call;
+import io.apicurio.registry.rest.beans.Error;
 
-/**
- * @author Carles Arnal <carles.arnal@redhat.com>
- */
-public class RequestExecutor {
+public class ConflictException extends RestClientException {
 
-    public <T> T execute(Call<T> call) {
-
-        final ResultCallback<T> resultCallback = new ResultCallback<T>();
-
-        call.enqueue(resultCallback);
-
-        return resultCallback.getResult();
+    public ConflictException(Error error) {
+        super(error);
     }
 }
-
-

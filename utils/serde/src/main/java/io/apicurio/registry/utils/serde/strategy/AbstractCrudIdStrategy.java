@@ -16,15 +16,15 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import java.net.HttpURLConnection;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
+
+import javax.ws.rs.core.Response;
+import java.net.HttpURLConnection;
 
 /**
  * @author Ales Justin
@@ -44,18 +44,16 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
     public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         try {
             return initialLookup(client, artifactId, artifactType, schema);
-        } catch (WebApplicationException e) {
-            if (isNotFound(e.getResponse())) {
-                ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
-                afterCreateArtifact(schema, amd);
-                return amd.getGlobalId();
-            } else {
-                throw new IllegalStateException(String.format(
+        } catch (ArtifactNotFoundException e) {
+            ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
+            afterCreateArtifact(schema, amd);
+            return amd.getGlobalId();
+        } catch (RestClientException e) {
+            throw new IllegalStateException(String.format(
                     "Error [%s] retrieving schema: %s",
                     e.getMessage(),
                     artifactId)
-                );
-            }
+            );
         }
     }
 }

@@ -242,9 +242,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertWebError(404, () -> client.getLatestArtifact(subjectName), true);
-        TestUtils.assertWebError(404, () -> client.listArtifactRules(subjectName), true);
-        TestUtils.assertWebError(404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
+        TestUtils.assertClientError(404, () -> client.getLatestArtifact(subjectName), true);
+        TestUtils.assertClientError(404, () -> client.listArtifactRules(subjectName), true);
+        TestUtils.assertClientError(404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

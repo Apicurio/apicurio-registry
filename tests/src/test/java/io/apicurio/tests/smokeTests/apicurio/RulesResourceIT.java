@@ -73,10 +73,10 @@ class RulesResourceIT extends BaseIT {
         });
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        TestUtils.assertWebError(404, () -> client.getGlobalRuleConfig(RuleType.COMPATIBILITY));
+        TestUtils.assertClientError(404, () -> client.getGlobalRuleConfig(RuleType.COMPATIBILITY));
 
         // Should be null/error (deleted the VALIDITY rule)
-        TestUtils.assertWebError(404, () -> client.getGlobalRuleConfig(RuleType.VALIDITY));
+        TestUtils.assertClientError(404, () -> client.getGlobalRuleConfig(RuleType.VALIDITY));
     }
 
     @RegistryRestClientTest
@@ -89,14 +89,14 @@ class RulesResourceIT extends BaseIT {
         TestUtils.retry(() -> client.createGlobalRule(rule));
         LOGGER.info("Created rule: {} - {}", rule.getType(), rule.getConfig());
 
-        TestUtils.assertWebError(409, () -> client.createGlobalRule(rule), true);
+        TestUtils.assertClientError(409, () -> client.createGlobalRule(rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         String artifactId = TestUtils.generateArtifactId();
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        TestUtils.assertWebError(409, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
-        TestUtils.assertWebError(404, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
+        TestUtils.assertClientError(409, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
+        TestUtils.assertClientError(404, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
 
@@ -142,13 +142,13 @@ class RulesResourceIT extends BaseIT {
         client.createArtifactRule(artifactId1, rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        TestUtils.assertWebError(409, () -> client.createArtifactRule(artifactId1, rule), true);
+        TestUtils.assertClientError(409, () -> client.createArtifactRule(artifactId1, rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertWebError(409, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId1, iad));
+        TestUtils.assertClientError(409, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId1, iad));
 
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 
@@ -190,12 +190,12 @@ class RulesResourceIT extends BaseIT {
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
         client.deleteArtifact(artifactId1);
-        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId1), true);
+        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId1), true);
 
         assertThat(0, is(client.listArtifacts().size()));
 
-        TestUtils.assertWebError(404, () -> client.listArtifactRules(artifactId1));
-        TestUtils.assertWebError(404, () -> client.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
+        TestUtils.assertClientError(404, () -> client.listArtifactRules(artifactId1));
+        TestUtils.assertClientError(404, () -> client.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
     }
 
     @AfterEach

@@ -75,7 +75,7 @@ public class LoadIT extends BaseIT {
                     if (artifactId != null) {
                         LOGGER.info("Delete artifact {} START", artifactId);
                         client.deleteArtifact(artifactId);
-                        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId), true);
+                        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId), true);
                         LOGGER.info("Delete artifact {} FINISH", artifactId);
                     } else if (allCreatedFlag.get()) {
                         return null;

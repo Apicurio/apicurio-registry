@@ -31,8 +31,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
-import javax.ws.rs.WebApplicationException;
-
+import io.apicurio.registry.client.exception.RestClientException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -53,7 +52,7 @@ public class TestUtils {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
 
     private static final String DEFAULT_REGISTRY_HOST = "localhost";
-    private static final int DEFAULT_REGISTRY_PORT = 8081;
+    private static final int DEFAULT_REGISTRY_PORT = 8080;
 
     private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
     private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
@@ -65,7 +64,7 @@ public class TestUtils {
     }
 
     public static boolean isExternalRegistry() {
-        return Boolean.parseBoolean(EXTERNAL_REGISTRY);
+        return Boolean.parseBoolean("true");
     }
 
     public static String getRegistryHost() {
@@ -269,29 +268,29 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertWebError(int expectedCode, Runnable runnable) {
+    public static void assertClientError(int expectedCode, Runnable runnable) throws Exception {
         try {
-            assertWebError(expectedCode, runnable, false);
+            assertClientError(expectedCode, runnable, false);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static void assertWebError(int expectedCode, Runnable runnable, boolean retry) throws Exception {
+    public static void assertClientError(int expectedCode, Runnable runnable, boolean retry) throws Exception {
         if (retry) {
-            retry(() -> internalAssertWebError(expectedCode, runnable));
+            retry(() -> internalAssertClientError(expectedCode, runnable));
         } else {
-            internalAssertWebError(expectedCode, runnable);
+            internalAssertClientError(expectedCode, runnable);
         }
     }
 
-    private static void internalAssertWebError(int expectedCode, Runnable runnable) {
+    private static void internalAssertClientError(int expectedCode, Runnable runnable) {
         try {
             runnable.run();
-            Assertions.fail("Expected (but didn't get) a web application exception with code: " + expectedCode);
+            Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
-            Assertions.assertEquals(WebApplicationException.class.getName(), e.getClass().getName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());
+            Assertions.assertEquals(RestClientException.class.getName(), e.getClass().getSuperclass().getName(), () -> "e: " + e);
+            Assertions.assertEquals(expectedCode, ((RestClientException) e).getError().getErrorCode());
         }
     }
 

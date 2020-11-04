@@ -121,7 +121,7 @@ public class DeleteArtifactIT extends BaseIT {
         assertTrue(webArtifacts.isEmpty());
 
         client.deleteArtifact(artifactId1);
-        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId1), true);
+        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId1), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -136,7 +136,7 @@ public class DeleteArtifactIT extends BaseIT {
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
         client.deleteArtifact(artifactId2);
-        TestUtils.assertWebError(404, () -> client.getArtifactMetaData(artifactId2), true);
+        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId2), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

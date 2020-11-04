@@ -62,7 +62,7 @@ class AllArtifactTypesIT extends BaseIT {
             client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            TestUtils.assertWebError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            TestUtils.assertClientError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
@@ -75,7 +75,7 @@ class AllArtifactTypesIT extends BaseIT {
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            TestUtils.assertWebError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
+            TestUtils.assertClientError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");

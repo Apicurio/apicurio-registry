@@ -219,11 +219,14 @@ public interface SqlStatements {
      * A statement to delete all labels for all versions for a single artifact.
      */
     public String deleteLabels();
+    public String deleteLabelsByGlobalId();
 
+    
     /**
      * A statement to delete all properties for all versions for a single artifact.
      */
     public String deleteProperties();
+    public String deletePropertiesByGlobalId();
 
     /**
      * A statement to delete all versions for a single artifact.

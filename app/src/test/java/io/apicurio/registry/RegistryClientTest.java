@@ -107,7 +107,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertNotNull(artifactMetaData);
         });
 
-        ArtifactSearchResults results = restClient.searchArtifacts(name.toUpperCase(), SearchOver.name, SortOrder.asc, 0, 2);
+        ArtifactSearchResults results = restClient.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
@@ -178,7 +178,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             artifactIds.add(artifactId);
         }
 
-        ArtifactSearchResults results = restClient.searchArtifacts(root.toUpperCase(), SearchOver.name, SortOrder.asc, null, null);
+        ArtifactSearchResults results = restClient.searchArtifacts(root, SearchOver.name, SortOrder.asc, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
@@ -195,7 +195,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         waitForArtifactState(artifactIds.get(3), ArtifactState.DISABLED);
 
         // Check the search results still include the DISABLED artifacts
-        results = restClient.searchArtifacts(root.toUpperCase(), SearchOver.name, SortOrder.asc, null, null);
+        results = restClient.searchArtifacts(root, SearchOver.name, SortOrder.asc, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
@@ -276,7 +276,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             EditableMetaData emd = new EditableMetaData();
             emd.setName("myname");
 
-            final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON");
+            final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON", "registry-client-test-testLabels");
             emd.setLabels(artifactLabels);
             restClient.updateArtifactMetaData(artifactId, emd);
 
@@ -284,13 +284,18 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(artifactId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
-                Assertions.assertEquals(3, artifactMetaData.getLabels().size());
+                Assertions.assertEquals(4, artifactMetaData.getLabels().size());
                 Assertions.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
             });
 
             retry((() -> {
+                System.out.println("==============================");
                 ArtifactSearchResults results = client
-                        .searchArtifacts("open api", SearchOver.labels, SortOrder.asc, 0, 2);
+                        .searchArtifacts("registry-client-test-testLabels", SearchOver.labels, SortOrder.asc, 0, 2);
+                results.getArtifacts().forEach(arty -> {
+                    System.out.println(arty);
+                });
+                System.out.println("==============================");
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());
                 Assertions.assertEquals(1, results.getArtifacts().size());

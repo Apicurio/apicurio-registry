@@ -302,6 +302,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteLabels() {
         return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLabelsByGlobalId()
+     */
+    @Override
+    public String deleteLabelsByGlobalId() {
+        return "DELETE FROM labels WHERE globalId = ?";
+    }
     
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteProperties()
@@ -309,6 +317,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteProperties() {
         return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deletePropertiesByGlobalId()
+     */
+    @Override
+    public String deletePropertiesByGlobalId() {
+        return "DELETE FROM properties WHERE globalId = ?";
     }
     
     /**

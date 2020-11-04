@@ -31,6 +31,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * @author Carles Arnal <carles.arnal@redhat.com>
+ */
 public class ResultCallback<T> implements Callback<T> {
 
     private static final Logger logger = Logger.getLogger(ResultCallback.class.getName());
@@ -66,7 +69,7 @@ public class ResultCallback<T> implements Callback<T> {
             checkIfDeprecated(callResult.headers());
             return callResult.body();
         } catch (RestClientException ex) {
-           throw ExceptionMapper.map(ex);
+            throw ExceptionMapper.map(ex);
         }
     }
 

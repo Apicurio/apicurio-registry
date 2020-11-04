@@ -17,13 +17,33 @@
 package io.apicurio.registry.client.response;
 
 
+import io.apicurio.registry.client.exception.AlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.BadRequestException;
+import io.apicurio.registry.client.exception.ConflictException;
+import io.apicurio.registry.client.exception.DefaultRuleDeletionException;
+import io.apicurio.registry.client.exception.InvalidArtifactStateException;
+import io.apicurio.registry.client.exception.InvalidArtifactTypeException;
+import io.apicurio.registry.client.exception.NotFoundException;
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
 import io.apicurio.registry.client.exception.RuleNotFoundException;
+import io.apicurio.registry.client.exception.RuleViolationException;
+import io.apicurio.registry.client.exception.UnprocessableEntityException;
 import io.apicurio.registry.client.exception.VersionNotFoundException;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+
+/**
+ * @author Carles Arnal <carles.arnal@redhat.com>
+ */
 public class ExceptionMapper {
 
     public static RestClientException map(RestClientException ex) throws RestClientException {
@@ -39,6 +59,24 @@ public class ExceptionMapper {
                 return new RuleAlreadyExistsException(ex.getError());
             case "VersionNotFoundException":
                 return new VersionNotFoundException(ex.getError());
+            case "DefaultRuleDeletionException":
+                return new DefaultRuleDeletionException(ex.getError());
+            case "RuleViolationException":
+                return new RuleViolationException(ex.getError());
+            case "AlreadyExistsException":
+                return new AlreadyExistsException(ex.getError());
+            case "BadRequestException":
+                return new BadRequestException(ex.getError());
+            case "InvalidArtifactStateException":
+                return new InvalidArtifactStateException(ex.getError());
+            case "NotFoundException":
+                return new NotFoundException(ex.getError());
+            case "ConflictException":
+                return new ConflictException(ex.getError());
+            case "UnprocessableEntityException":
+                return new UnprocessableEntityException(ex.getError());
+            case "InvalidArtifactTypeException":
+                return new InvalidArtifactTypeException(ex.getError());
             default:
                 return ex;
         }

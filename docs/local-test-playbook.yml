@@ -8,6 +8,10 @@ content:
   - url: ../
     branches: HEAD
     start_path: docs
+  - url: git@github.com:Apicurio/apicurio-registry-operator.git
+    branches: docs-antora # TODO master
+    # TODO tags: v0.0.4
+    start_path: docs
 
 ui:
   bundle:
@@ -22,6 +26,7 @@ output:
 
 asciidoc:
   attributes:
+    apicurio-registry-operator-downstream: "" # Argument for apicurio-registry-operator inclusion. If removed, upstream documentation is generated.
     plantuml-server-url: 'http://www.plantuml.com/plantuml'
     plantuml-fetch-diagram: true
     mod-loc: partial$

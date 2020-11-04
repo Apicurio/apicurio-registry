@@ -16,17 +16,17 @@
 
 
 // upstream
-:apicurio-registry:
-:registry: Apicurio Registry
-:kafka-streams: Strimzi
-:registry-version: 1.3
+//:apicurio-registry:
+//:registry: Apicurio Registry
+//:kafka-streams: Strimzi
+//:registry-version: 1.3
 
 // downstream
-//:rh-service-registry:
-//:registry: Service Registry
-//:ServiceRegistryName: Apicurio Registry
-//:kafka-streams: AMQ Streams
-//:registry-version: 1.0
+:rh-service-registry:
+:registry: Service Registry
+:ServiceRegistryName: Apicurio Registry
+:kafka-streams: AMQ Streams
+:registry-version: 1.0
 :registry-ocp-version: 4.5
 :version: 2020-Q3
 :context: registry

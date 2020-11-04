@@ -33,14 +33,6 @@ import io.apicurio.registry.client.exception.RuleViolationException;
 import io.apicurio.registry.client.exception.UnprocessableEntityException;
 import io.apicurio.registry.client.exception.VersionNotFoundException;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
-
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */

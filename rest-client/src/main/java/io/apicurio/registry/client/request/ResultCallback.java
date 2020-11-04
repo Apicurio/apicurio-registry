@@ -69,7 +69,7 @@ public class ResultCallback<T> implements Callback<T> {
             checkIfDeprecated(callResult.headers());
             return callResult.body();
         } catch (RestClientException ex) {
-            throw ExceptionMapper.map(ex);
+           throw ExceptionMapper.map(ex);
         }
     }
 

@@ -16,26 +16,8 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-
-import javax.ws.rs.WebApplicationException;
-
-import org.apache.avro.SchemaParseException;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.RegistryRestClientTest;
@@ -47,6 +29,23 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.response.Response;
+import org.apache.avro.SchemaParseException;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Tag(SMOKE)
 public class SchemasConfluentIT extends ConfluentBaseIT {
@@ -242,9 +241,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertWebError(404, () -> client.getLatestArtifact(subjectName), true);
-        TestUtils.assertWebError(404, () -> client.listArtifactRules(subjectName), true);
-        TestUtils.assertWebError(404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

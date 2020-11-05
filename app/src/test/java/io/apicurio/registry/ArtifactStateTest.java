@@ -16,17 +16,8 @@
 
 package io.apicurio.registry;
 
-import static io.apicurio.registry.utils.tests.TestUtils.assertWebError;
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.VersionNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -34,6 +25,16 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
+import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Ales Justin
@@ -89,8 +90,8 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         emd.setDescription(description);
 
         // cannot get a disabled artifact
-        assertWebError(404, () -> client.getLatestArtifact(artifactId));
-        assertWebError(404, () -> client.getArtifactVersion(artifactId, 3));
+        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(artifactId));
+        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(artifactId, 3));
 
         // can update and get metadata for a disabled artifact
         client.updateArtifactVersionMetaData(artifactId, 3, emd);

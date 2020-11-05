@@ -31,8 +31,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
-import javax.ws.rs.WebApplicationException;
 
+import io.apicurio.registry.client.exception.RestClientException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -269,29 +269,29 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertWebError(int expectedCode, Runnable runnable) {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable) throws Exception {
         try {
-            assertWebError(expectedCode, runnable, false);
+            assertClientError(expectedErrorName, expectedCode, runnable, false);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static void assertWebError(int expectedCode, Runnable runnable, boolean retry) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry) throws Exception {
         if (retry) {
-            retry(() -> internalAssertWebError(expectedCode, runnable));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable));
         } else {
-            internalAssertWebError(expectedCode, runnable);
+            internalAssertClientError(expectedErrorName, expectedCode, runnable);
         }
     }
 
-    private static void internalAssertWebError(int expectedCode, Runnable runnable) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable) {
         try {
             runnable.run();
-            Assertions.fail("Expected (but didn't get) a web application exception with code: " + expectedCode);
+            Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
-            Assertions.assertEquals(WebApplicationException.class.getName(), e.getClass().getName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());
+            Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
+            Assertions.assertEquals(expectedCode, ((RestClientException) e).getError().getErrorCode());
         }
     }
 

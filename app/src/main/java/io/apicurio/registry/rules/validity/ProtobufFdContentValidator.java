@@ -16,10 +16,12 @@
 
 package io.apicurio.registry.rules.validity;
 
+import javax.enterprise.context.ApplicationScoped;
+
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
-
-import javax.enterprise.context.ApplicationScoped;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the Protobuf FD content type.
@@ -38,12 +40,12 @@ public class ProtobufFdContentValidator implements ContentValidator {
      * @see ContentValidator#validate(ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.FULL) {
             try {
                 Serde.Schema.parseFrom(artifactContent.bytes());
             } catch (Exception e) {
-                throw new InvalidContentException("Content violation for ProtobufFD artifact.", e);
+                throw new RuleViolationException("Syntax violation for ProtobufFD artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

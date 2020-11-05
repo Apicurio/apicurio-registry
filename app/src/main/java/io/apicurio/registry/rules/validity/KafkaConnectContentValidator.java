@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the Kafka Connect schema content type.
@@ -57,13 +59,13 @@ public class KafkaConnectContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 JsonNode jsonNode = mapper.readTree(artifactContent.content());
                 jsonConverter.asConnectSchema(jsonNode);
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for Kafka Connect Schema artifact.", e);
+                throw new RuleViolationException("Syntax violation for Kafka Connect Schema artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

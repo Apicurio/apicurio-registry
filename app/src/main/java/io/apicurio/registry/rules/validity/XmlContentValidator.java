@@ -21,6 +21,8 @@ import java.io.InputStream;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DocumentBuilderAccessor;
 
 /**
@@ -40,12 +42,12 @@ public class XmlContentValidator implements ContentValidator {
      *      io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
                 DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for XML Schema artifact.", e);
+                throw new RuleViolationException("Syntax violation for XML artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

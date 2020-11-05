@@ -20,6 +20,8 @@ import javax.enterprise.context.ApplicationScoped;
 
 import graphql.schema.idl.SchemaParser;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * A content validator implementation for the GraphQL content type.
@@ -38,12 +40,12 @@ public class GraphQLContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle content) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle content) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 new SchemaParser().parse(content.content());
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for GraphQL artifact.", e);
+                throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

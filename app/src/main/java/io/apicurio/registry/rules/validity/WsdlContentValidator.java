@@ -23,6 +23,8 @@ import javax.enterprise.context.ApplicationScoped;
 import org.w3c.dom.Document;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.DocumentBuilderAccessor;
 import io.apicurio.registry.util.WSDLReaderAccessor;
 
@@ -43,7 +45,7 @@ public class WsdlContentValidator extends XmlContentValidator {
      *      io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws InvalidContentException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = artifactContent.stream()) {
                 Document wsdlDoc = DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
@@ -52,7 +54,7 @@ public class WsdlContentValidator extends XmlContentValidator {
                     WSDLReaderAccessor.getWSDLReader().readWSDL(null, wsdlDoc);
                 }
             } catch (Exception e) {
-                throw new InvalidContentException("Syntax violation for WSDL Schema artifact.", e);
+                throw new RuleViolationException("Syntax violation for WSDL Schema artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
     }

@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult.empty;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -46,7 +45,7 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
 
         if (schemaValidator == null) {
-            return empty(true);
+            return CompatibilityExecutionResult.compatible();
         }
 
         List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
@@ -55,9 +54,9 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
 
         try {
             schemaValidator.validate(toValidate, existingSchemas);
-            return empty(true);
+            return CompatibilityExecutionResult.compatible();
         } catch (SchemaValidationException e) {
-            return empty(false);
+            return CompatibilityExecutionResult.incompatible(e);
         }
     }
 

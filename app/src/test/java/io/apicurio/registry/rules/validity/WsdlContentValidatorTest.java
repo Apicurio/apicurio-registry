@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.RuleViolationException;
 
 /**
  * @author cfoskin@redhat.com
@@ -39,7 +40,7 @@ public class WsdlContentValidatorTest extends AbstractRegistryTestBase {
     public void testinValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("wsdl-invalid-syntax.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
@@ -55,7 +56,7 @@ public class WsdlContentValidatorTest extends AbstractRegistryTestBase {
     public void testinValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
-        Assertions.assertThrows(InvalidContentException.class, () -> {
+        Assertions.assertThrows(RuleViolationException.class, () -> {
             //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's
             validator.validate(ValidityLevel.FULL, content);
         });

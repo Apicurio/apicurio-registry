@@ -10,8 +10,7 @@ public enum ArtifactState {
 
     ENABLED("ENABLED"),
     DISABLED("DISABLED"),
-    DEPRECATED("DEPRECATED"),
-    DELETED("DELETED");
+    DEPRECATED("DEPRECATED");
     private final String value;
     private final static Map<String, ArtifactState> CONSTANTS = new HashMap<String, ArtifactState>();
 

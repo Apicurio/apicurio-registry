@@ -269,26 +269,22 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     private void updateArtifactState(Str.Data data, Integer version, ArtifactState state) {
         String artifactId = data.getArtifactId();
-        if (state == ArtifactState.DELETED) {
-            deleteArtifactVersion(artifactId, version);
-        } else {
-            ArtifactState current = handleVersion(
-                artifactId,
-                version,
-                null,
-                av -> ArtifactStateExt.getState(av.getMetadataMap())
-            );
+        ArtifactState current = handleVersion(
+            artifactId,
+            version,
+            null,
+            av -> ArtifactStateExt.getState(av.getMetadataMap())
+        );
 
-            ArtifactStateExt.applyState(
-                s -> ConcurrentUtil.get(
-                    submitter.submitState(data.getArtifactId(),
-                                          version.longValue(),
-                                          state)
-                ),
-                current,
-                state
-            );
-        }
+        ArtifactStateExt.applyState(
+            s -> ConcurrentUtil.get(
+                submitter.submitState(data.getArtifactId(),
+                                      version.longValue(),
+                                      state)
+            ),
+            current,
+            state
+        );
     }
 
     private boolean exists(String artifactId) {
@@ -509,9 +505,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             return null;
         }
     }
-
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     */
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         // Get the meta-data for the artifact
         ArtifactMetaDataDto metaData = getArtifactMetaData(artifactId);
 
@@ -521,20 +521,28 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             // canonicalize the inbound content
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
-            byte[] canonicalBytes = canonicalContent.bytes();
+            
+            byte[] contentToCompare;
+            if (canonical) {
+                ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+                contentToCompare = canonicalContent.bytes();
+            } else {
+                contentToCompare = content.bytes();
+            }
 
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--) {
                 Str.ArtifactValue candidateArtifact = data.getArtifacts(i);
                 if (isValid(candidateArtifact)) {
                     ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent().toByteArray());
-                    ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
-                    byte[] candidateBytes = canonicalCandidateContent.bytes();
-                    if (Arrays.equals(canonicalBytes, candidateBytes)) {
-                        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(candidateArtifact.getMetadataMap());
-                        artifactMetaDataDto.setCreatedOn(metaData.getCreatedOn());
-                        artifactMetaDataDto.setModifiedOn(metaData.getModifiedOn());
-                        return artifactMetaDataDto;
+                    byte[] candidateBytes;
+                    if (canonical) {
+                        ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
+                        candidateBytes = canonicalCandidateContent.bytes();
+                    } else {
+                        candidateBytes = candidateContent.bytes();
+                    }
+                    if (Arrays.equals(contentToCompare, candidateBytes)) {
+                        return MetaDataKeys.toArtifactVersionMetaData(candidateArtifact.getMetadataMap());
                     }
                 }
             }

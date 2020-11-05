@@ -599,6 +599,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .queryParam("canonical", "true")
                 .body(searchContent)
                 .post("/artifacts/{artifactId}/meta")
             .then()
@@ -609,7 +610,18 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         // Should return the same meta-data
         Assertions.assertEquals(globalId1, globalId2);
 
-        // Get meta-data by empty content
+        // Try the same (extra whitespace) content but without the "canonical=true" param (should fail with 404)
+        searchContent = searchContent.replace("{", "{\n").replace("}", "\n}");
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", "testGetArtifactMetaDataByContent/EmptyAPI")
+                .body(searchContent)
+                .post("/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(404);
+
+        // Get meta-data by empty content (400 error)
         given()
             .when()
                 .contentType(CT_JSON)
@@ -618,7 +630,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(400);
-        
+
     }
 
     @Test

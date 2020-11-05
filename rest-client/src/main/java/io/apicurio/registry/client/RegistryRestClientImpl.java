@@ -218,9 +218,20 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, IfExistsType ifExistsType, InputStream data) {
+    public ArtifactMetaData createArtifact(InputStream data) {
+        return this.createArtifact(null, null, data);
+    }
 
-        return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExistsType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
+        return this.createArtifact(artifactId, artifactType, data, null, null);
+    }
+    
+    @Override
+    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
+            IfExistsType ifExists, Boolean canonical) {
+        return requestHandler.execute(artifactsService.createArtifact(artifactType, artifactId, ifExists, canonical, 
+                RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -260,9 +271,8 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
-
-        return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data) {
+        return requestHandler.execute(artifactsService.getArtifactMetaDataByContent(artifactId, canonical, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override

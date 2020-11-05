@@ -49,7 +49,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         String artifactId = generateArtifactId();
 
         Schema schema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        client.createArtifact(artifactId, ArtifactType.AVRO, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        client.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         
         this.waitForArtifact(artifactId);
 

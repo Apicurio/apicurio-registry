@@ -62,6 +62,30 @@ public final class DtoUtil {
         metaData.setProperties(dto.getProperties());
         return metaData;
     }
+    
+    public static final ArtifactMetaData dtoToMetaData(String artifactId, ArtifactType artifactType,
+            ArtifactVersionMetaDataDto dto) {
+        ArtifactMetaData metaData = new ArtifactMetaData();
+        metaData.setCreatedBy(dto.getCreatedBy());
+        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setDescription(dto.getDescription());
+        metaData.setId(artifactId);
+        metaData.setModifiedBy(dto.getCreatedBy());
+        metaData.setModifiedOn(dto.getCreatedOn());
+        metaData.setName(dto.getName());
+        if (artifactType != null) {
+            metaData.setType(artifactType);
+        } else {
+            metaData.setType(dto.getType());
+        }
+        metaData.setVersion(dto.getVersion());
+        metaData.setGlobalId(dto.getGlobalId());
+        metaData.setState(dto.getState());
+        metaData.setLabels(dto.getLabels());
+        metaData.setProperties(dto.getProperties());
+        return metaData;
+    }
+
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and storage meta-data.

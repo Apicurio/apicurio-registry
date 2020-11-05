@@ -160,7 +160,7 @@ public class UploadArtifactsIT extends BaseIT {
 
         String content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         ArtifactMetaData meta = 
-                client.createArtifact(null, ArtifactType.PROTOBUF, null, new ByteArrayInputStream(content.getBytes()));
+                client.createArtifact(null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

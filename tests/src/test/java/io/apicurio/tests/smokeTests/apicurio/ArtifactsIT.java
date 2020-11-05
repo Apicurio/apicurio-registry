@@ -126,7 +126,7 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = service.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
+        ArtifactMetaData amd = service.createArtifact(artifactId, ArtifactType.JSON, artifactData);
         // Make sure artifact is fully registered
         TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 

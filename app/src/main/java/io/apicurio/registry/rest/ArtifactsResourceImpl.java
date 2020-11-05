@@ -215,7 +215,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             String artifactId,
             IfExistsType ifExists,
             ContentHandle content,
-            String ct) {
+            String ct, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(artifactId);
 
         switch (ifExists) {
@@ -224,7 +224,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             case RETURN:
                 return CompletableFuture.completedFuture(artifactMetaData);
             case RETURN_OR_UPDATE:
-                return handleIfExistsReturnOrUpdate(artifactId, artifactType, content, ct);
+                return handleIfExistsReturnOrUpdate(artifactId, artifactType, content, ct, canonical);
             default:
                 throw new ArtifactAlreadyExistsException(artifactId);
         }
@@ -234,9 +234,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             String artifactId,
             ArtifactType artifactType,
             ContentHandle content,
-            String ct) {
+            String ct, boolean canonical) {
         try {
-            ArtifactMetaDataDto mdDto = this.storage.getArtifactMetaData(artifactId, content);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(artifactId, canonical, content);
             ArtifactMetaData md = DtoUtil.dtoToMetaData(artifactId, artifactType, mdDto);
             return CompletableFuture.completedFuture(md);
         } catch (ArtifactNotFoundException nfe) {
@@ -300,15 +300,16 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.beans.IfExistsType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
-                                                            String xRegistryArtifactId, IfExistsType ifExists, InputStream data) {
+            String xRegistryArtifactId, IfExistsType ifExists, Boolean canonical, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
+        final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
         
         String ct = getContentType();
         final ContentHandle finalContent = content;
@@ -336,12 +337,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                         throw new CompletionException(t);
                     })
                     .thenCompose(amd -> amd == null ?
-                            handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct) :
+                            handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct, fcanonical) :
                             CompletableFuture.completedFuture(DtoUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
                     )
                     .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd));
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct)
+            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical)
                     .thenCompose(amdd -> indexArtifact(xRegistryArtifactId, finalContent, amdd));
         }
     }
@@ -540,10 +541,14 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactMetaDataByContent(java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.ArtifactsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, InputStream data) {
+    public VersionMetaData getArtifactVersionMetaDataByContent(String artifactId, Boolean canonical,
+            InputStream data) {
+        if (canonical == null) {
+            canonical = Boolean.FALSE;
+        }
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -552,8 +557,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId, content);
-        return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, canonical, content);
+        return DtoUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**

@@ -41,8 +41,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.util.HashMap;
@@ -112,7 +110,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
+   // private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
 
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
@@ -317,13 +315,13 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactMetaData(java.lang.String, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         this.checkArtifactCreation(artifactId);
-        return super.getArtifactMetaData(artifactId, content);
+        return super.getArtifactVersionMetaData(artifactId, canonical, content);
     }
     
     /**

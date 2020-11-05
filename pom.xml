@@ -156,6 +156,8 @@
         <lombok.version>1.18.16</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
+        <jdbi.version>3.14.4</jdbi.version>
+        <commons-codec.version>1.15</commons-codec.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -163,6 +165,13 @@
         <!-- Specifications -->
         <annotation-api.version>1.3.2</annotation-api.version>
         <cdi-api.version>2.0</cdi-api.version>
+        
+        <!-- Gatling -->
+        <version.gatling>3.4.0</version.gatling>
+        <version.gatling.plugin>3.1.0</version.gatling.plugin>
+
+        <!-- Scala -->
+        <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
@@ -345,6 +354,18 @@
                 <artifactId>wsdl4j</artifactId>
                 <version>${wsdl4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.jdbi</groupId>
+                <artifactId>jdbi3-bom</artifactId>
+                <version>${jdbi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+            </dependency>
 
             <!-- gRPC -->
             <dependency>
@@ -412,6 +433,18 @@
                 <groupId>org.infinispan</groupId>
                 <artifactId>infinispan-client-rest</artifactId>
                 <version>${infinispan.version}</version>
+            </dependency>
+
+            <!-- Gatling -->
+            <dependency>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-app</artifactId>
+                <version>${version.gatling}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.gatling.highcharts</groupId>
+                <artifactId>gatling-charts-highcharts</artifactId>
+                <version>${version.gatling}</version>
             </dependency>
 
             <!-- Specifications -->
@@ -583,6 +616,16 @@
                     <artifactId>frontend-maven-plugin</artifactId>
                     <version>${version.frontend-maven.plugin}</version>
                 </plugin>
+                <plugin>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-maven-plugin</artifactId>
+                    <version>${version.gatling.plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <version>${version.scala-maven.plugin}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -703,9 +746,15 @@
             </modules>
         </profile>
         <profile>
-            <id>jpa</id>
+            <id>panache</id>
             <modules>
-                <module>storage/jpa</module>
+                <module>storage/panache</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>sql</id>
+            <modules>
+                <module>storage/sql</module>
             </modules>
         </profile>
         <profile>
@@ -722,6 +771,12 @@
             <properties>
                 <quarkus.profile>prod</quarkus.profile>
             </properties>
+        </profile>
+        <profile>
+            <id>perftest</id>
+            <modules>
+                <module>perftest</module>
+            </modules>
         </profile>
         <profile>
             <id>release</id>

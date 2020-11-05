@@ -17,6 +17,11 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -26,11 +31,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
 
 
 /**
@@ -108,7 +108,7 @@ public interface RegistryStorage {
         throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
-     * Deletes an artifact by its unique id. Returns list of artifacts versions.
+     * Deletes an artifact by its unique id. Returns list of artifact versions.
      * @param artifactId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
@@ -178,20 +178,22 @@ public interface RegistryStorage {
     /**
      * Gets the metadata of the version that matches content, or 404
      * @param artifactId
+     * @param canonical
      * @param content
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as
      * name and description, but also generated meta-data such as "modifedOn" and "versionId".
-     * @param id
+     * @param globalId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException;
+    public ArtifactMetaDataDto getArtifactMetaData(long globalId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Updates the stored meta-data for an artifact by ID.  Only the client-editable meta-data can be updated.  Client

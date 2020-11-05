@@ -46,7 +46,8 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
             return initialLookup(client, artifactId, artifactType, schema);
         } catch (WebApplicationException e) {
             if (isNotFound(e.getResponse())) {
-                ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, IfExistsType.RETURN_OR_UPDATE, toStream(schema));
+                // TODO add an option to search by strict content?
+                ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, toStream(schema), IfExistsType.RETURN_OR_UPDATE, true);
                 afterCreateArtifact(schema, amd);
                 return amd.getGlobalId();
             } else {

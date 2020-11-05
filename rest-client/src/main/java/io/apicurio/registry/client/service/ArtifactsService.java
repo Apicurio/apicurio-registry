@@ -36,8 +36,9 @@ public interface ArtifactsService {
 
     @POST("artifacts")
     Call<ArtifactMetaData> createArtifact(@Header("X-Registry-ArtifactType") ArtifactType artifactType,
-                                          @Header("X-Registry-Artifactid") String xRegistryArtifactId,
-                                          @Query("ifExists") IfExistsType ifExistsType,
+                                          @Header("X-Registry-Artifactid") String artifactId,
+                                          @Query("ifExists") IfExistsType ifExists,
+                                          @Query("canonical") Boolean canonical,
                                           @Body RequestBody data);
 
     @GET("artifacts/{artifactId}")
@@ -61,6 +62,7 @@ public interface ArtifactsService {
 
     @POST("artifacts/{artifactId}/meta")
     Call<ArtifactMetaData> getArtifactMetaDataByContent(@Path("artifactId") String artifactId,
+                                                        @Query("canonical") Boolean canonical,
                                                         @Body RequestBody data);
 
     @GET("artifacts/{artifactId}/versions")

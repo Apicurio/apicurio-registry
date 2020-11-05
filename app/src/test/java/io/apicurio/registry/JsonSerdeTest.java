@@ -47,7 +47,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, null, jsonSchema);
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, jsonSchema);
 
         // make sure we have schema registered
         retry(() -> restClient.getArtifactByGlobalId(amd.getGlobalId()));

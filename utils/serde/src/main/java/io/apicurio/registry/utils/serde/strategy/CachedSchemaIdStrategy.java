@@ -41,9 +41,10 @@ public class CachedSchemaIdStrategy<T> extends AbstractCrudIdStrategy<T> {
     protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         InputStream stream = toStream(schema);
         String content = IoUtil.toString(stream);
+        // TODO add an option to search by strict content
         return cache.computeIfAbsent(
             content,
-            k -> client.getArtifactMetaDataByContent(artifactId, toStream(schema)).getGlobalId()
+            k -> client.getArtifactMetaDataByContent(artifactId, true, toStream(schema)).getGlobalId()
         );
     }
 

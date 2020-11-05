@@ -51,8 +51,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
     public void testSmoke() throws Exception {
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd1 = client.createArtifact(artifactId, ArtifactType.JSON, null, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
-
+        ArtifactMetaData amd1 = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
         this.waitForGlobalId(amd1.getGlobalId());
 
         ArtifactMetaData amd2 = client.updateArtifact(
@@ -143,15 +142,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
             return null;
         });
-
-        client.updateArtifactState(artifactId, toUpdateState(ArtifactState.DELETED));
-
-        retry(() -> {
-            ArtifactMetaData innerAmd = client.getArtifactMetaData(artifactId);
-            Assertions.assertEquals(2, innerAmd.getVersion());
-            Assertions.assertEquals(ArtifactState.ENABLED, innerAmd.getState());
-            return null;
-        });
     }
 
     @Test
@@ -162,7 +152,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         ArtifactMetaData md = client.createArtifact(
                 artifactId,
                 ArtifactType.JSON,
-                null,
                 new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 
@@ -209,7 +198,6 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         ArtifactMetaData md = client.createArtifact(
             artifactId,
             ArtifactType.JSON,
-            null,
             new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 

@@ -746,12 +746,6 @@
             </modules>
         </profile>
         <profile>
-            <id>panache</id>
-            <modules>
-                <module>storage/panache</module>
-            </modules>
-        </profile>
-        <profile>
             <id>sql</id>
             <modules>
                 <module>storage/sql</module>

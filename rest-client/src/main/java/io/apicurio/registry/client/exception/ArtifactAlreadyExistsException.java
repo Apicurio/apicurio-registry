@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
-public class ArtifactAlreadyExistsException extends RestClientException {
+public class ArtifactAlreadyExistsException extends ConflictException {
 
     public ArtifactAlreadyExistsException(Error error) {
         super(error);

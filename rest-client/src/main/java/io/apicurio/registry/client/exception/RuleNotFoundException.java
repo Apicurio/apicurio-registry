@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
-public class RuleNotFoundException extends RestClientException {
+public class RuleNotFoundException extends NotFoundException {
 
     public RuleNotFoundException(Error error) {
         super(error);

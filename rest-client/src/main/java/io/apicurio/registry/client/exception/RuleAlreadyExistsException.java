@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
-public class RuleAlreadyExistsException extends RestClientException {
+public class RuleAlreadyExistsException extends AlreadyExistsException {
 
     public RuleAlreadyExistsException(Error error) {
         super(error);

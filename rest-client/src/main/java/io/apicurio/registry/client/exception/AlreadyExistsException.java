@@ -18,7 +18,7 @@ package io.apicurio.registry.client.exception;
 
 import io.apicurio.registry.rest.beans.Error;
 
-public class AlreadyExistsException extends RestClientException {
+public abstract class AlreadyExistsException extends ConflictException {
 
     public AlreadyExistsException(Error error) {
         super(error);

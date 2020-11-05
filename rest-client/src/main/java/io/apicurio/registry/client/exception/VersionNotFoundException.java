@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
-public class VersionNotFoundException extends RestClientException {
+public class VersionNotFoundException extends NotFoundException {
 
     public VersionNotFoundException(Error error) {
         super(error);

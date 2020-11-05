@@ -17,15 +17,12 @@
 package io.apicurio.registry.client.response;
 
 
-import io.apicurio.registry.client.exception.AlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.client.exception.BadRequestException;
-import io.apicurio.registry.client.exception.ConflictException;
 import io.apicurio.registry.client.exception.DefaultRuleDeletionException;
 import io.apicurio.registry.client.exception.InvalidArtifactStateException;
 import io.apicurio.registry.client.exception.InvalidArtifactTypeException;
-import io.apicurio.registry.client.exception.NotFoundException;
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
 import io.apicurio.registry.client.exception.RuleNotFoundException;
@@ -55,16 +52,10 @@ public class ExceptionMapper {
                 return new DefaultRuleDeletionException(ex.getError());
             case "RuleViolationException":
                 return new RuleViolationException(ex.getError());
-            case "AlreadyExistsException":
-                return new AlreadyExistsException(ex.getError());
             case "BadRequestException":
                 return new BadRequestException(ex.getError());
             case "InvalidArtifactStateException":
                 return new InvalidArtifactStateException(ex.getError());
-            case "NotFoundException":
-                return new NotFoundException(ex.getError());
-            case "ConflictException":
-                return new ConflictException(ex.getError());
             case "UnprocessableEntityException":
                 return new UnprocessableEntityException(ex.getError());
             case "InvalidArtifactTypeException":

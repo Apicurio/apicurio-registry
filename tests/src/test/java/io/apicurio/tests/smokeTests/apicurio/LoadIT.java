@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
@@ -75,7 +76,7 @@ public class LoadIT extends BaseIT {
                     if (artifactId != null) {
                         LOGGER.info("Delete artifact {} START", artifactId);
                         client.deleteArtifact(artifactId);
-                        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId), true);
+                        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId), true);
                         LOGGER.info("Delete artifact {} FINISH", artifactId);
                     } else if (allCreatedFlag.get()) {
                         return null;

@@ -16,6 +16,8 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.VersionNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -88,8 +90,8 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         emd.setDescription(description);
 
         // cannot get a disabled artifact
-        assertClientError(404, () -> client.getLatestArtifact(artifactId));
-        assertClientError(404, () -> client.getArtifactVersion(artifactId, 3));
+        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(artifactId));
+        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(artifactId, 3));
 
         // can update and get metadata for a disabled artifact
         client.updateArtifactVersionMetaData(artifactId, 3, emd);

@@ -18,7 +18,7 @@ package io.apicurio.registry.client.exception;
 
 import io.apicurio.registry.rest.beans.Error;
 
-public class ConflictException extends RestClientException {
+public abstract class ConflictException extends RestClientException {
 
     public ConflictException(Error error) {
         super(error);

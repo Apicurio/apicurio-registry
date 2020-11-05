@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.List;
 
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -121,7 +122,7 @@ public class DeleteArtifactIT extends BaseIT {
         assertTrue(webArtifacts.isEmpty());
 
         client.deleteArtifact(artifactId1);
-        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId1), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId1), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -136,7 +137,7 @@ public class DeleteArtifactIT extends BaseIT {
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
         client.deleteArtifact(artifactId2);
-        TestUtils.assertClientError(404, () -> client.getArtifactMetaData(artifactId2), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId2), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

@@ -269,28 +269,28 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertClientError(int expectedCode, Runnable runnable) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable) throws Exception {
         try {
-            assertClientError(expectedCode, runnable, false);
+            assertClientError(expectedErrorName, expectedCode, runnable, false);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static void assertClientError(int expectedCode, Runnable runnable, boolean retry) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry) throws Exception {
         if (retry) {
-            retry(() -> internalAssertClientError(expectedCode, runnable));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable));
         } else {
-            internalAssertClientError(expectedCode, runnable);
+            internalAssertClientError(expectedErrorName, expectedCode, runnable);
         }
     }
 
-    private static void internalAssertClientError(int expectedCode, Runnable runnable) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable) {
         try {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
-            Assertions.assertEquals(RestClientException.class.getName(), e.getClass().getSuperclass().getName(), () -> "e: " + e);
+            Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
             Assertions.assertEquals(expectedCode, ((RestClientException) e).getError().getErrorCode());
         }
     }

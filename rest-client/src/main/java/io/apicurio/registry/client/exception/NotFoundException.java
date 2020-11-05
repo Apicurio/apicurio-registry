@@ -18,7 +18,7 @@ package io.apicurio.registry.client.exception;
 
 import io.apicurio.registry.rest.beans.Error;
 
-public class NotFoundException extends RestClientException {
+public abstract class NotFoundException extends RestClientException {
 
     public NotFoundException(Error error) {
         super(error);

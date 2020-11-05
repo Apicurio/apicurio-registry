@@ -16,6 +16,8 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -82,7 +84,7 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError(409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, invalidArtifactId, iad));
+        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, invalidArtifactId, iad));
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
@@ -116,7 +118,7 @@ class ArtifactsIT extends BaseIT {
         deleteMultipleArtifacts(service, idMap);
 
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
-            TestUtils.assertClientError(404, () -> service.getLatestArtifact(entry.getValue()), true);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(entry.getValue()), true);
         }
     }
 
@@ -171,7 +173,7 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        TestUtils.assertClientError(409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, iad), true);
+        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, iad), true);
     }
 
     @Test
@@ -199,7 +201,7 @@ class ArtifactsIT extends BaseIT {
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            TestUtils.assertClientError(404, () -> service.getLatestArtifact(artifactId), true);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(artifactId), true);
         });
 
         // Re-enable the artifact
@@ -350,7 +352,7 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void deleteNonexistingSchema(RegistryRestClient service) throws Exception {
-        TestUtils.assertClientError(404, () -> service.deleteArtifact("non-existing"));
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.deleteArtifact("non-existing"));
     }
 
     @AfterEach

@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
-public class ArtifactNotFoundException extends RestClientException {
+public class ArtifactNotFoundException extends NotFoundException {
 
     public ArtifactNotFoundException(Error error) {
         super(error);

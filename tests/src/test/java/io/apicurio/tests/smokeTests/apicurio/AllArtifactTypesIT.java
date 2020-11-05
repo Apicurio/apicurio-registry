@@ -16,7 +16,6 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;

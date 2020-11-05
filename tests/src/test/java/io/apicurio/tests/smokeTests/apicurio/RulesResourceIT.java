@@ -17,7 +17,6 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
 import io.apicurio.registry.client.exception.RuleNotFoundException;

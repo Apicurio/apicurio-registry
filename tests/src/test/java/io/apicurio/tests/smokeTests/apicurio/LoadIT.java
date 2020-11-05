@@ -15,8 +15,17 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.RegistryRestClientTest;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.BaseIT;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -33,18 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
+import static io.apicurio.tests.Constants.SMOKE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Disabled because this is too flaky and it needs to be redesigned to align better

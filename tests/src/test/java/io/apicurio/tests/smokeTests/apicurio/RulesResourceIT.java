@@ -100,7 +100,7 @@ class RulesResourceIT extends BaseIT {
         String artifactId = TestUtils.generateArtifactId();
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
         TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
@@ -200,7 +200,7 @@ class RulesResourceIT extends BaseIT {
         assertThat(0, is(client.listArtifacts().size()));
 
         TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(artifactId1));
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
     }
 
     @AfterEach

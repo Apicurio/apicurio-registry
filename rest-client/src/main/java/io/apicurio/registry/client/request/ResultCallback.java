@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.client.request;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.response.ExceptionMapper;
@@ -43,6 +44,7 @@ public class ResultCallback<T> implements Callback<T> {
 
     public ResultCallback() {
         this.result = new CompletableFuture<>();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override

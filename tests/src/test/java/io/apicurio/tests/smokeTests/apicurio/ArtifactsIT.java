@@ -18,6 +18,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.UpdateState;
@@ -84,7 +85,7 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, invalidArtifactId, iad));
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(service, ArtifactType.AVRO, invalidArtifactId, iad));
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);

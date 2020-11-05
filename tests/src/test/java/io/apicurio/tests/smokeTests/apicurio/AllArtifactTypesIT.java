@@ -17,6 +17,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
@@ -63,7 +64,7 @@ class AllArtifactTypesIT extends BaseIT {
             client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
@@ -76,7 +77,7 @@ class AllArtifactTypesIT extends BaseIT {
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
+            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");

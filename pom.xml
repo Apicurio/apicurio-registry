@@ -90,6 +90,8 @@
         <module>utils/maven-plugin</module>
         <module>utils/serde</module>
         <module>utils/sql</module>
+        <module>utils/cloud-events/cloud-events-serde</module>
+        <module>utils/cloud-events/cloud-events-provider</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
         <module>search/client</module>
@@ -305,6 +307,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-cloud-events-serde</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

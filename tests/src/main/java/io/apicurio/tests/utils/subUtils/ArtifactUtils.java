@@ -20,6 +20,7 @@ import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
 import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
 
 import io.apicurio.registry.client.RegistryRestClient;
@@ -74,7 +75,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData createArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
-        return client.createArtifact(artifactId, atype, artifactData);
+        return client.createArtifact(Collections.emptyMap(), artifactId, atype, artifactData);
     }
 
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {
@@ -90,7 +91,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData updateArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
-        return client.updateArtifact(artifactId, atype, artifactData);
+        return client.updateArtifact(Collections.emptyMap(), artifactId, atype, artifactData);
     }
 
     public static Response deleteArtifact(String artifactId) {

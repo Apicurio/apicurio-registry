@@ -29,6 +29,7 @@ import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.apicurio.tests.Constants.SMOKE;
@@ -49,27 +50,27 @@ class AllArtifactTypesIT extends BaseIT {
             Rule rule = new Rule();
             rule.setType(RuleType.VALIDITY);
             rule.setConfig("SYNTAX_ONLY");
-            client.createGlobalRule(rule);
+            client.createGlobalRule(Collections.emptyMap(), rule);
 
             // Make sure we have rule
-            TestUtils.retry(() -> client.getGlobalRuleConfig(rule.getType()));
+            TestUtils.retry(() -> client.getGlobalRuleConfig(Collections.emptyMap(), rule.getType()));
 
             // Create artifact
             ArtifactMetaData amd = ArtifactUtils.createArtifact(client, atype, artifactId, IoUtil.toStream(v1Content));
             // Make sure artifact is fully registered
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
 
             // Test update (valid content)
-            client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
+            client.testUpdateArtifact(Collections.emptyMap(), artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(Collections.emptyMap(), artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
 
             // Find artifact by content
-            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, false, IoUtil.toStream(v1Content));
+            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(Collections.emptyMap(), artifactId, false, IoUtil.toStream(v1Content));
             assertNotNull(byContent);
             assertNotNull(byContent.getGlobalId());
             assertEquals(artifactId, byContent.getId());
@@ -80,15 +81,15 @@ class AllArtifactTypesIT extends BaseIT {
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");
-            client.createArtifactRule(artifactId, rule);
+            client.createArtifactRule(Collections.emptyMap(), artifactId, rule);
 
             // Make sure we have rule
-            TestUtils.retry(() -> client.getArtifactRuleConfig(artifactId, rule.getType()));
+            TestUtils.retry(() -> client.getArtifactRuleConfig(Collections.emptyMap(), artifactId, rule.getType()));
 
             // Update artifact (invalid content) - should work now
             ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content."));
             // Make sure artifact is fully registered
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId()));
         } catch (Exception e) {
             LOGGER.error("Error on AllArtifactTypesIT", e);
             throw new IllegalStateException(e);
@@ -135,9 +136,9 @@ class AllArtifactTypesIT extends BaseIT {
 
     @AfterEach
     void deleteRules(RegistryRestClient client) throws Exception {
-        client.deleteAllGlobalRules();
+        client.deleteAllGlobalRules(Collections.emptyMap());
         TestUtils.retry(() -> {
-            List<RuleType> rules = client.listGlobalRules();
+            List<RuleType> rules = client.listGlobalRules(Collections.emptyMap());
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

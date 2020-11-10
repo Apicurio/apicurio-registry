@@ -17,6 +17,7 @@
 package io.apicurio.registry;
 
 import java.io.ByteArrayInputStream;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.avro.Schema;
@@ -62,15 +63,15 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         ParsedSchema schema2 = confClient.getSchemaById(id);
         Assertions.assertNotNull(schema2);
 
-        ArtifactMetaData amd1 = restClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd1 = restClient.updateArtifact(Collections.emptyMap(), subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         this.waitForGlobalId(amd1.getGlobalId());
 
-        restClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
+        restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId());
 
-        ArtifactMetaData amd2 = restClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd2 = restClient.updateArtifact(Collections.emptyMap(), subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         this.waitForGlobalId(amd2.getGlobalId());
 
-        restClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
+        restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId());
 
         List<Integer> versions1 = confClient.getAllVersions(subject);
         Assertions.assertEquals(3, versions1.size());
@@ -78,7 +79,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        List<Long> versions2 = restClient.listArtifactVersions(subject);
+        List<Long> versions2 = restClient.listArtifactVersions(Collections.emptyMap(), subject);
         Assertions.assertEquals(3, versions2.size());
         Assertions.assertTrue(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
@@ -88,7 +89,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             try {
-                restClient.getArtifactVersionMetaData(subject, 1);
+                restClient.getArtifactVersionMetaData(Collections.emptyMap(), subject, 1);
                 Assertions.fail("Expected restClient.getArtifactVersionMetaData() to fail");
             } catch (Exception ignored) {
             }
@@ -101,7 +102,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        versions2 = restClient.listArtifactVersions(subject);
+        versions2 = restClient.listArtifactVersions(Collections.emptyMap(), subject);
         Assertions.assertEquals(2, versions2.size());
         Assertions.assertFalse(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));

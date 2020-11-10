@@ -22,6 +22,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
@@ -56,7 +57,7 @@ public class TestUpdateRegistryMojo extends ContentRegistryMojo {
                 }
 
                 try (InputStream stream = kvp.getValue().stream()) {
-                    getClient().testUpdateArtifact(kvp.getKey(), at, stream);
+                    getClient().testUpdateArtifact(Collections.emptyMap(), kvp.getKey(), at, stream);
                 }
                 getLog().info(String.format("Artifact '%s' can be updated.", kvp.getKey()));
                 results.put(kvp.getKey(), Boolean.TRUE);

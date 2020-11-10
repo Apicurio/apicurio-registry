@@ -24,6 +24,7 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.*;
 
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -32,88 +33,88 @@ import java.util.List;
 public interface ArtifactsService {
 
     @GET("artifacts")
-    Call<List<String>> listArtifacts();
+    Call<List<String>> listArtifacts(@HeaderMap Map<String, String> headers);
 
     @POST("artifacts")
-    Call<ArtifactMetaData> createArtifact(@Header("X-Registry-ArtifactType") ArtifactType artifactType,
+    Call<ArtifactMetaData> createArtifact(@HeaderMap Map<String, String> headers, @Header("X-Registry-ArtifactType") ArtifactType artifactType,
                                           @Header("X-Registry-Artifactid") String artifactId,
                                           @Query("ifExists") IfExistsType ifExists,
                                           @Query("canonical") Boolean canonical,
                                           @Body RequestBody data);
 
     @GET("artifacts/{artifactId}")
-    Call<ResponseBody> getLatestArtifact(@Path("artifactId") String artifactId);
+    Call<ResponseBody> getLatestArtifact(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}")
-    Call<ArtifactMetaData> updateArtifact(@Path("artifactId") String artifactId,
+    Call<ArtifactMetaData> updateArtifact(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId,
                                           @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
 
     @DELETE("artifacts/{artifactId}")
-    Call<Void> deleteArtifact(@Path("artifactId") String artifactId);
+    Call<Void> deleteArtifact(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/state")
-    Call<Void> updateArtifactState(@Path("artifactId") String artifactId, @Body UpdateState data);
+    Call<Void> updateArtifactState(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId, @Body UpdateState data);
 
     @GET("artifacts/{artifactId}/meta")
-    Call<ArtifactMetaData> getArtifactMetaData(@Path("artifactId") String artifactId);
+    Call<ArtifactMetaData> getArtifactMetaData(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/meta")
-    Call<Void> updateArtifactMetaData(@Path("artifactId") String artifactId, @Body EditableMetaData data);
+    Call<Void> updateArtifactMetaData(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId, @Body EditableMetaData data);
 
     @POST("artifacts/{artifactId}/meta")
-    Call<ArtifactMetaData> getArtifactMetaDataByContent(@Path("artifactId") String artifactId,
+    Call<ArtifactMetaData> getArtifactMetaDataByContent(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId,
                                                         @Query("canonical") Boolean canonical,
                                                         @Body RequestBody data);
 
     @GET("artifacts/{artifactId}/versions")
-    Call<List<Long>> listArtifactVersions(@Path("artifactId") String artifactId);
+    Call<List<Long>> listArtifactVersions(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @POST("artifacts/{artifactId}/versions")
-    Call<VersionMetaData> createArtifactVersion(@Path("artifactId") String artifactId,
+    Call<VersionMetaData> createArtifactVersion(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId,
                                                 @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
 
     @GET("artifacts/{artifactId}/versions/{version}")
-    Call<ResponseBody> getArtifactVersion(@Path("version") Integer version,
+    Call<ResponseBody> getArtifactVersion(@HeaderMap Map<String, String> headers, @Path("version") Integer version,
                                           @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/versions/{version}/state")
-    Call<Void> updateArtifactVersionState(@Path("version") Integer version,
+    Call<Void> updateArtifactVersionState(@HeaderMap Map<String, String> headers, @Path("version") Integer version,
                                           @Path("artifactId") String artifactId, @Body UpdateState data);
 
     @GET("artifacts/{artifactId}/versions/{version}/meta")
-    Call<VersionMetaData> getArtifactVersionMetaData(@Path("version") Integer version,
+    Call<VersionMetaData> getArtifactVersionMetaData(@HeaderMap Map<String, String> headers, @Path("version") Integer version,
                                                      @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/versions/{version}/meta")
-    Call<Void> updateArtifactVersionMetaData(@Path("version") Integer version,
+    Call<Void> updateArtifactVersionMetaData(@HeaderMap Map<String, String> headers, @Path("version") Integer version,
                                              @Path("artifactId") String artifactId, @Body EditableMetaData data);
 
     @DELETE("artifacts/{artifactId}/versions/{version}/meta")
-    Call<Void> deleteArtifactVersionMetaData(@Path("version") Integer version,
+    Call<Void> deleteArtifactVersionMetaData(@HeaderMap Map<String, String> headers, @Path("version") Integer version,
                                              @Path("artifactId") String artifactId);
 
     @GET("artifacts/{artifactId}/rules")
-    Call<List<RuleType>> listArtifactRules(@Path("artifactId") String artifactId);
+    Call<List<RuleType>> listArtifactRules(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @POST("artifacts/{artifactId}/rules")
-    Call<Void> createArtifactRule(@Path("artifactId") String artifactId, @Body Rule data);
+    Call<Void> createArtifactRule(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId, @Body Rule data);
 
     @DELETE("artifacts/{artifactId}/rules")
-    Call<Void> deleteArtifactRules(@Path("artifactId") String artifactId);
+    Call<Void> deleteArtifactRules(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId);
 
     @GET("artifacts/{artifactId}/rules/{rule}")
-    Call<Rule> getArtifactRuleConfig(@Path("rule") RuleType rule,
+    Call<Rule> getArtifactRuleConfig(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule,
                                      @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/rules/{rule}")
-    Call<Rule> updateArtifactRuleConfig(@Path("rule") RuleType rule,
+    Call<Rule> updateArtifactRuleConfig(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule,
                                         @Path("artifactId") String artifactId, @Body Rule data);
 
     @DELETE("artifacts/{artifactId}/rules/{rule}")
-    Call<Void> deleteArtifactRule(@Path("rule") RuleType rule,
+    Call<Void> deleteArtifactRule(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule,
                                   @Path("artifactId") String artifactId);
 
     @PUT("artifacts/{artifactId}/test")
-    Call<Void> testUpdateArtifact(@Path("artifactId") String artifactId,
+    Call<Void> testUpdateArtifact(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId,
                                   @Header("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, @Body RequestBody data);
 }

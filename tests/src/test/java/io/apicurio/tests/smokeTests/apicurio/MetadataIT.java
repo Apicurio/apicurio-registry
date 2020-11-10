@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.is;
@@ -52,10 +53,10 @@ class MetadataIT extends BaseIT {
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, artifactData);
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), metaData.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+        ArtifactMetaData artifactMetaData = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
         assertThat(artifactMetaData.getCreatedOn(), OrderingComparison.greaterThan(0L));
@@ -69,10 +70,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        client.updateArtifactMetaData(artifactId, emd);
+        client.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData amd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -91,7 +92,7 @@ class MetadataIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId, artifactData);
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
@@ -100,9 +101,9 @@ class MetadataIT extends BaseIT {
         metaData = ArtifactUtils.updateArtifact(client, ArtifactType.AVRO, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId()));
 
-        VersionMetaData versionMetaData = client.getArtifactVersionMetaData(artifactId, 2);
+        VersionMetaData versionMetaData = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, 2);
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -114,10 +115,10 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        client.updateArtifactVersionMetaData(artifactId, 2, emd);
+        client.updateArtifactVersionMetaData(Collections.emptyMap(), artifactId, 2, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData artifactMetaData = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData artifactMetaData = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is(2));
             assertThat(artifactMetaData.getType().value(), is("AVRO"));
@@ -126,7 +127,7 @@ class MetadataIT extends BaseIT {
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        versionMetaData = client.getArtifactVersionMetaData(artifactId, 1);
+        versionMetaData = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, 1);
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is(1));

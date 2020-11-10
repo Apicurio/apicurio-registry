@@ -20,7 +20,10 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.HeaderMap;
 import retrofit2.http.Path;
+
+import java.util.Map;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -28,8 +31,8 @@ import retrofit2.http.Path;
 public interface IdsService {
 
     @GET("ids/{globalId}")
-    Call<ResponseBody> getArtifactByGlobalId(@Path("globalId") long globalId);
+    Call<ResponseBody> getArtifactByGlobalId(@HeaderMap Map<String, String> headers, @Path("globalId") long globalId);
 
     @GET("ids/{globalId}/meta")
-    Call<ArtifactMetaData> getArtifactMetaDataByGlobalId(@Path("globalId") long globalId);
+    Call<ArtifactMetaData> getArtifactMetaDataByGlobalId(@HeaderMap Map<String, String> headers, @Path("globalId") long globalId);
 }

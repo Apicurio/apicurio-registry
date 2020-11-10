@@ -79,11 +79,11 @@ public class RegistryConverterIT extends BaseIT {
 
         String artifactId = generateArtifactId();
         
-        ArtifactMetaData amd = restClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO,
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId + "-myrecord4", ArtifactType.AVRO,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
         Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);

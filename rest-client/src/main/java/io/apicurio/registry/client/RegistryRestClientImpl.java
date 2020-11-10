@@ -212,211 +212,211 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     @Override
-    public List<String> listArtifacts() {
+    public List<String> listArtifacts(Map<String, String> headers) {
 
-        return requestExecutor.execute(artifactsService.listArtifacts());
+        return requestExecutor.execute(artifactsService.listArtifacts(headers));
     }
 
     @Override
-    public ArtifactMetaData createArtifact(InputStream data) {
-        return this.createArtifact(null, null, data);
+    public ArtifactMetaData createArtifact(Map<String, String> headers, InputStream data) {
+        return this.createArtifact(headers, null, null, data);
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        return this.createArtifact(artifactId, artifactType, data, null, null);
+    public ArtifactMetaData createArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
+        return this.createArtifact(headers, artifactId, artifactType, data, null, null);
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
-            IfExistsType ifExists, Boolean canonical) {
-        return requestExecutor.execute(artifactsService.createArtifact(artifactType, artifactId, ifExists, canonical,
+    public ArtifactMetaData createArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data,
+                                           IfExistsType ifExists, Boolean canonical) {
+        return requestExecutor.execute(artifactsService.createArtifact(headers, artifactType, artifactId, ifExists, canonical,
                 RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public InputStream getLatestArtifact(String artifactId) {
+    public InputStream getLatestArtifact(Map<String, String> headers, String artifactId) {
 
-        return requestExecutor.execute(artifactsService.getLatestArtifact(artifactId)).byteStream();
+        return requestExecutor.execute(artifactsService.getLatestArtifact(headers, artifactId)).byteStream();
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
+    public ArtifactMetaData updateArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestExecutor.execute(artifactsService.updateArtifact(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestExecutor.execute(artifactsService.updateArtifact(headers, artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public void deleteArtifact(String artifactId) {
+    public void deleteArtifact(Map<String, String> headers, String artifactId) {
 
-        requestExecutor.execute(artifactsService.deleteArtifact(artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifact(headers, artifactId));
     }
 
     @Override
-    public void updateArtifactState(String artifactId, UpdateState data) {
+    public void updateArtifactState(Map<String, String> headers, String artifactId, UpdateState data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactState(artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactState(headers, artifactId, data));
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaData(String artifactId) {
+    public ArtifactMetaData getArtifactMetaData(Map<String, String> headers, String artifactId) {
 
-        return requestExecutor.execute(artifactsService.getArtifactMetaData(artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactMetaData(headers, artifactId));
     }
 
     @Override
-    public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
+    public void updateArtifactMetaData(Map<String, String> headers, String artifactId, EditableMetaData data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactMetaData(artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactMetaData(headers, artifactId, data));
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data) {
-        return requestExecutor.execute(artifactsService.getArtifactMetaDataByContent(artifactId, canonical, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+    public ArtifactMetaData getArtifactMetaDataByContent(Map<String, String> headers, String artifactId, Boolean canonical, InputStream data) {
+        return requestExecutor.execute(artifactsService.getArtifactMetaDataByContent(headers, artifactId, canonical, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public List<Long> listArtifactVersions(String artifactId) {
+    public List<Long> listArtifactVersions(Map<String, String> headers, String artifactId) {
 
-        return requestExecutor.execute(artifactsService.listArtifactVersions(artifactId));
+        return requestExecutor.execute(artifactsService.listArtifactVersions(headers, artifactId));
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) {
+    public VersionMetaData createArtifactVersion(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestExecutor.execute(artifactsService.createArtifactVersion(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestExecutor.execute(artifactsService.createArtifactVersion(headers, artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public InputStream getArtifactVersion(String artifactId, Integer version) {
+    public InputStream getArtifactVersion(Map<String, String> headers, String artifactId, Integer version) {
 
-        return requestExecutor.execute(artifactsService.getArtifactVersion(version, artifactId)).byteStream();
+        return requestExecutor.execute(artifactsService.getArtifactVersion(headers, version, artifactId)).byteStream();
     }
 
     @Override
-    public void updateArtifactVersionState(String artifactId, Integer version, UpdateState data) {
+    public void updateArtifactVersionState(Map<String, String> headers, String artifactId, Integer version, UpdateState data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactVersionState(version, artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactVersionState(headers, version, artifactId, data));
     }
 
     @Override
-    public VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) {
+    public VersionMetaData getArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version) {
 
-        return requestExecutor.execute(artifactsService.getArtifactVersionMetaData(version, artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactVersionMetaData(headers, version, artifactId));
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData data) {
+    public void updateArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version, EditableMetaData data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactVersionMetaData(version, artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactVersionMetaData(headers, version, artifactId, data));
     }
 
     @Override
-    public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
+    public void deleteArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactVersionMetaData(version, artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactVersionMetaData(headers, version, artifactId));
     }
 
     @Override
-    public List<RuleType> listArtifactRules(String artifactId) {
+    public List<RuleType> listArtifactRules(Map<String, String> headers, String artifactId) {
 
-        return requestExecutor.execute(artifactsService.listArtifactRules(artifactId));
+        return requestExecutor.execute(artifactsService.listArtifactRules(headers, artifactId));
     }
 
     @Override
-    public void createArtifactRule(String artifactId, Rule data) {
+    public void createArtifactRule(Map<String, String> headers, String artifactId, Rule data) {
 
-        requestExecutor.execute(artifactsService.createArtifactRule(artifactId, data));
+        requestExecutor.execute(artifactsService.createArtifactRule(headers, artifactId, data));
     }
 
     @Override
-    public void deleteArtifactRules(String artifactId) {
+    public void deleteArtifactRules(Map<String, String> headers, String artifactId) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactRules(artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactRules(headers, artifactId));
     }
 
     @Override
-    public Rule getArtifactRuleConfig(String artifactId, RuleType rule) {
+    public Rule getArtifactRuleConfig(Map<String, String> headers, String artifactId, RuleType rule) {
 
-        return requestExecutor.execute(artifactsService.getArtifactRuleConfig(rule, artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactRuleConfig(headers, rule, artifactId));
     }
 
     @Override
-    public Rule updateArtifactRuleConfig(String artifactId, RuleType rule, Rule data) {
+    public Rule updateArtifactRuleConfig(Map<String, String> headers, String artifactId, RuleType rule, Rule data) {
 
-        return requestExecutor.execute(artifactsService.updateArtifactRuleConfig(rule, artifactId, data));
+        return requestExecutor.execute(artifactsService.updateArtifactRuleConfig(headers, rule, artifactId, data));
     }
 
     @Override
-    public void deleteArtifactRule(String artifactId, RuleType rule) {
+    public void deleteArtifactRule(Map<String, String> headers, String artifactId, RuleType rule) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactRule(rule, artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactRule(headers, rule, artifactId));
     }
 
     @Override
-    public void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
+    public void testUpdateArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
 
-        requestExecutor.execute(artifactsService.testUpdateArtifact(artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        requestExecutor.execute(artifactsService.testUpdateArtifact(headers, artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
-    public InputStream getArtifactByGlobalId(long globalId) {
+    public InputStream getArtifactByGlobalId(Map<String, String> headers, long globalId) {
 
-        return requestExecutor.execute(idsService.getArtifactByGlobalId(globalId)).byteStream();
+        return requestExecutor.execute(idsService.getArtifactByGlobalId(headers, globalId)).byteStream();
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
+    public ArtifactMetaData getArtifactMetaDataByGlobalId(Map<String, String> headers, long globalId) {
 
-        return requestExecutor.execute(idsService.getArtifactMetaDataByGlobalId(globalId));
+        return requestExecutor.execute(idsService.getArtifactMetaDataByGlobalId(headers, globalId));
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
+    public ArtifactSearchResults searchArtifacts(Map<String, String> headers, String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
 
-        return requestExecutor.execute(searchService.searchArtifacts(search, offset, limit, over, order));
+        return requestExecutor.execute(searchService.searchArtifacts(headers, search, offset, limit, over, order));
     }
 
     @Override
-    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults searchVersions(Map<String, String> headers, String artifactId, Integer offset, Integer limit) {
 
-        return requestExecutor.execute(searchService.searchVersions(artifactId, offset, limit));
+        return requestExecutor.execute(searchService.searchVersions(headers, artifactId, offset, limit));
     }
 
     @Override
-    public Rule getGlobalRuleConfig(RuleType rule) {
+    public Rule getGlobalRuleConfig(Map<String, String> headers, RuleType rule) {
 
-        return requestExecutor.execute(rulesService.getGlobalRuleConfig(rule));
+        return requestExecutor.execute(rulesService.getGlobalRuleConfig(headers, rule));
     }
 
     @Override
-    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+    public Rule updateGlobalRuleConfig(Map<String, String> headers, RuleType rule, Rule data) {
 
-        return requestExecutor.execute(rulesService.updateGlobalRuleConfig(rule, data));
+        return requestExecutor.execute(rulesService.updateGlobalRuleConfig(headers, rule, data));
     }
 
     @Override
-    public void deleteGlobalRule(RuleType rule) {
+    public void deleteGlobalRule(Map<String, String> headers, RuleType rule) {
 
-        requestExecutor.execute(rulesService.deleteGlobalRule(rule));
+        requestExecutor.execute(rulesService.deleteGlobalRule(headers, rule));
     }
 
     @Override
-    public List<RuleType> listGlobalRules() {
+    public List<RuleType> listGlobalRules(Map<String, String> headers) {
 
-        return requestExecutor.execute(rulesService.listGlobalRules());
+        return requestExecutor.execute(rulesService.listGlobalRules(headers));
     }
 
     @Override
-    public void createGlobalRule(Rule data) {
+    public void createGlobalRule(Map<String, String> headers, Rule data) {
 
-        requestExecutor.execute(rulesService.createGlobalRule(data));
+        requestExecutor.execute(rulesService.createGlobalRule(headers, data));
     }
 
     @Override
-    public void deleteAllGlobalRules() {
+    public void deleteAllGlobalRules(Map<String, String> headers) {
 
-        requestExecutor.execute(rulesService.deleteAllGlobalRules());
+        requestExecutor.execute(rulesService.deleteAllGlobalRules(headers));
     }
 
     @Override

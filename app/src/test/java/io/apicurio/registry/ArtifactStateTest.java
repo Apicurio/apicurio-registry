@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
@@ -52,35 +53,35 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
     public void testSmoke() throws Exception {
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd1 = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd1 = client.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
         this.waitForGlobalId(amd1.getGlobalId());
 
-        ArtifactMetaData amd2 = client.updateArtifact(
+        ArtifactMetaData amd2 = client.updateArtifact(Collections.emptyMap(),
                 artifactId,
                 ArtifactType.JSON,
                 new ByteArrayInputStream("\"type\": \"int\"".getBytes(StandardCharsets.UTF_8))
         );
         this.waitForGlobalId(amd2.getGlobalId());
 
-        ArtifactMetaData amd3 = client.updateArtifact(
+        ArtifactMetaData amd3 = client.updateArtifact(Collections.emptyMap(),
                 artifactId,
                 ArtifactType.JSON,
                 new ByteArrayInputStream("\"type\": \"float\"".getBytes(StandardCharsets.UTF_8))
         );
         this.waitForGlobalId(amd3.getGlobalId());
 
-        ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
+        ArtifactMetaData amd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
         Assertions.assertEquals(3, amd.getVersion());
 
         // disable latest
-        client.updateArtifactState(artifactId, toUpdateState(ArtifactState.DISABLED));
+        client.updateArtifactState(Collections.emptyMap(), artifactId, toUpdateState(ArtifactState.DISABLED));
         this.waitForVersionState(artifactId, 3, ArtifactState.DISABLED);
 
-        VersionMetaData tvmd = client.getArtifactVersionMetaData(artifactId, 3);
+        VersionMetaData tvmd = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, 3);
         Assertions.assertEquals(3, tvmd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
 
-        ArtifactMetaData tamd = client.getArtifactMetaData(artifactId);
+        ArtifactMetaData tamd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
         Assertions.assertEquals(3, tamd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tamd.getState());
         Assertions.assertNull(tamd.getDescription());
@@ -90,39 +91,39 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         emd.setDescription(description);
 
         // cannot get a disabled artifact
-        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(artifactId));
-        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(artifactId, 3));
+        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(Collections.emptyMap(), artifactId));
+        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(Collections.emptyMap(), artifactId, 3));
 
         // can update and get metadata for a disabled artifact
-        client.updateArtifactVersionMetaData(artifactId, 3, emd);
-        client.updateArtifactMetaData(artifactId, emd);
+        client.updateArtifactVersionMetaData(Collections.emptyMap(), artifactId, 3, emd);
+        client.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
 
         retry(() -> {
-            ArtifactMetaData innerAmd = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData innerAmd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             Assertions.assertEquals(3, innerAmd.getVersion());
             Assertions.assertEquals(description, innerAmd.getDescription());
             return null;
         });
 
-        client.updateArtifactVersionState(artifactId, 3, toUpdateState(ArtifactState.DEPRECATED));
+        client.updateArtifactVersionState(Collections.emptyMap(), artifactId, 3, toUpdateState(ArtifactState.DEPRECATED));
         this.waitForVersionState(artifactId, 3, ArtifactState.DEPRECATED);
 
-        tamd = client.getArtifactMetaData(artifactId);
+        tamd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
         Assertions.assertEquals(3, tamd.getVersion()); // should be back to v3
         Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
         Assertions.assertEquals(tamd.getDescription(), description);
 
-        InputStream latestArtifact = client.getLatestArtifact(artifactId);
+        InputStream latestArtifact = client.getLatestArtifact(Collections.emptyMap(), artifactId);
         Assertions.assertNotNull(latestArtifact);
         latestArtifact.close();
-        InputStream version = client.getArtifactVersion(artifactId, 2);
+        InputStream version = client.getArtifactVersion(Collections.emptyMap(), artifactId, 2);
         Assertions.assertNotNull(version);
         version.close();
 
-        client.updateArtifactMetaData(artifactId, emd); // should be allowed for deprecated
+        client.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd); // should be allowed for deprecated
 
         retry(() -> {
-            ArtifactMetaData innerAmd = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData innerAmd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             Assertions.assertEquals(3, innerAmd.getVersion());
             Assertions.assertEquals(description, innerAmd.getDescription());
             Assertions.assertEquals(ArtifactState.DEPRECATED, innerAmd.getState());
@@ -130,15 +131,15 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         });
 
         // can revert back to enabled from deprecated
-        client.updateArtifactVersionState(artifactId, 3, toUpdateState(ArtifactState.ENABLED));
+        client.updateArtifactVersionState(Collections.emptyMap(), artifactId, 3, toUpdateState(ArtifactState.ENABLED));
         this.waitForVersionState(artifactId, 3, ArtifactState.ENABLED);
 
         retry(() -> {
-            ArtifactMetaData innerAmd = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData innerAmd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             Assertions.assertEquals(3, innerAmd.getVersion()); // should still be latest (aka 3)
             Assertions.assertEquals(description, innerAmd.getDescription());
 
-            VersionMetaData innerVmd = client.getArtifactVersionMetaData(artifactId, 1);
+            VersionMetaData innerVmd = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, 1);
             Assertions.assertNull(innerVmd.getDescription());
 
             return null;
@@ -150,7 +151,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         // Create the artifact
-        ArtifactMetaData md = client.createArtifact(
+        ArtifactMetaData md = client.createArtifact(Collections.emptyMap(),
                 artifactId,
                 ArtifactType.JSON,
                 new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
@@ -158,36 +159,36 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         retry(() -> {
             // Get the meta-data
-            ArtifactMetaData actualMD = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(md.getGlobalId(), actualMD.getGlobalId());
         });
 
         // Set to disabled
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DISABLED);
-        client.updateArtifactState(artifactId, state);
+        client.updateArtifactState(Collections.emptyMap(), artifactId, state);
         this.waitForArtifactState(artifactId, ArtifactState.DISABLED);
 
         retry(() -> {
             // Get the meta-data again - should be DISABLED
-            ArtifactMetaData actualMD = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(md.getGlobalId(), actualMD.getGlobalId());
             Assertions.assertEquals(ArtifactState.DISABLED, actualMD.getState());
 
             // Get the version meta-data - should also be disabled
-            VersionMetaData vmd = client.getArtifactVersionMetaData(artifactId, md.getVersion());
+            VersionMetaData vmd = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, md.getVersion());
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });
 
         // Now re-enable the artifact
         state.setState(ArtifactState.ENABLED);
-        client.updateArtifactState(artifactId, state);
+        client.updateArtifactState(Collections.emptyMap(), artifactId, state);
         this.waitForArtifactState(artifactId, ArtifactState.ENABLED);
 
         // Get the meta-data
-        ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
+        ArtifactMetaData amd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
         Assertions.assertEquals(ArtifactState.ENABLED, amd.getState());
-        VersionMetaData vmd = client.getArtifactVersionMetaData(artifactId, md.getVersion());
+        VersionMetaData vmd = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, md.getVersion());
         Assertions.assertEquals(ArtifactState.ENABLED, vmd.getState());
     }
 
@@ -196,44 +197,44 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         // Create the artifact
-        ArtifactMetaData md = client.createArtifact(
-            artifactId,
-            ArtifactType.JSON,
-            new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+        ArtifactMetaData md = client.createArtifact(Collections.emptyMap(),
+                artifactId,
+                ArtifactType.JSON,
+                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 
         retry(() -> {
             // Get the meta-data
-            ArtifactMetaData actualMD = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(md.getGlobalId(), actualMD.getGlobalId());
         });
 
         // Set to deprecated
         UpdateState state = new UpdateState();
         state.setState(ArtifactState.DEPRECATED);
-        client.updateArtifactState(artifactId, state);
+        client.updateArtifactState(Collections.emptyMap(), artifactId, state);
         this.waitForArtifactState(artifactId, ArtifactState.DEPRECATED);
 
         retry(() -> {
             // Get the meta-data again - should be DEPRECATED
-            ArtifactMetaData actualMD = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(md.getGlobalId(), actualMD.getGlobalId());
             Assertions.assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
         });
 
         // Set to disabled
         state.setState(ArtifactState.DISABLED);
-        client.updateArtifactState(artifactId, state);
+        client.updateArtifactState(Collections.emptyMap(), artifactId, state);
         this.waitForArtifactState(artifactId, ArtifactState.DISABLED);
 
         retry(() -> {
             // Get the meta-data again - should be DISABLED
-            ArtifactMetaData actualMD = client.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(md.getGlobalId(), actualMD.getGlobalId());
             Assertions.assertEquals(ArtifactState.DISABLED, actualMD.getState());
 
             // Get the version meta-data - should also be disabled
-            VersionMetaData vmd = client.getArtifactVersionMetaData(artifactId, md.getVersion());
+            VersionMetaData vmd = client.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, md.getVersion());
             Assertions.assertEquals(ArtifactState.DISABLED, vmd.getState());
         });
     }

@@ -17,16 +17,6 @@
 
 package io.apicurio.registry.utils.serde;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-
-import org.apache.kafka.common.errors.SerializationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -37,6 +27,16 @@ import io.apicurio.registry.utils.serde.strategy.IdHandler;
 import io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler;
 import io.apicurio.registry.utils.serde.util.HeaderUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
+import org.apache.kafka.common.errors.SerializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Common class for both serializer and deserializer.
@@ -189,10 +189,10 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             throw new RuntimeException("ArtifactId not found in headers.");
         }
         if (version == null) {
-            ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
+            ArtifactMetaData amd = getClient().getArtifactMetaData(Collections.emptyMap(), artifactId);
             return amd.getGlobalId();
         } else {
-            VersionMetaData vmd = getClient().getArtifactVersionMetaData(artifactId, version);
+            VersionMetaData vmd = getClient().getArtifactVersionMetaData(Collections.emptyMap(), artifactId, version);
             return vmd.getGlobalId();
         }
     }

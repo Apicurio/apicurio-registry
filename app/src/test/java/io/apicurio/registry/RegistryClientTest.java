@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @RegistryRestClientTest
     public void testSmoke(RegistryRestClient restClient) {
-        restClient.deleteAllGlobalRules();
+        restClient.deleteAllGlobalRules(Collections.emptyMap());
 
         Assertions.assertNotNull(restClient.toString());
         Assertions.assertEquals(restClient.hashCode(), restClient.hashCode());
@@ -66,21 +67,21 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, stream);
+            ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream);
             Assertions.assertNotNull(amd);
             waitForArtifact(artifactId);
 
             EditableMetaData emd = new EditableMetaData();
             emd.setName("myname");
-            restClient.updateArtifactMetaData(artifactId, emd);
+            restClient.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
             retry(() -> {
-                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(artifactId);
+                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(Collections.emptyMap(), artifactId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
             });
 
             stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
-            restClient.updateArtifact(artifactId, ArtifactType.JSON, stream);
+            restClient.updateArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream);
         } finally {
 //            restClient.deleteArtifact(artifactId);
         }
@@ -89,7 +90,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @RegistryRestClientTest
     void testSearchArtifact(RegistryRestClient restClient) throws Exception {
         // warm-up
-        restClient.listArtifacts();
+        restClient.listArtifacts(Collections.emptyMap());
 
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
@@ -97,24 +98,24 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         long id = amd.getGlobalId();
         
         this.waitForGlobalId(id);
 
         retry(() -> {
-            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(id);
+            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), id);
             Assertions.assertNotNull(artifactMetaData);
         });
 
-        ArtifactSearchResults results = restClient.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
+        ArtifactSearchResults results = restClient.searchArtifacts(Collections.emptyMap(), name, SearchOver.name, SortOrder.asc, 0, 2);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
 
         // Try searching for *everything*.  This test was added due to Issue #661
-        results = restClient.searchArtifacts(null, null, null, null, null);
+        results = restClient.searchArtifacts(Collections.emptyMap(), null, null, null, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertTrue(results.getCount() > 0);
     }
@@ -122,7 +123,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @RegistryRestClientTest
     void testSearchVersion(RegistryRestClient restClient) throws Exception {
         // warm-up
-        restClient.listArtifacts();
+        restClient.listArtifacts(Collections.emptyMap());
 
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
@@ -130,29 +131,29 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         long id1 = amd.getGlobalId();
         
         this.waitForGlobalId(id1);
 
         retry(() -> {
-            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(id1);
+            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), id1);
             Assertions.assertNotNull(artifactMetaData);
         });
 
         artifactData.reset(); // a must between usage!!
 
-        VersionMetaData vmd = restClient.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        VersionMetaData vmd = restClient.createArtifactVersion(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         long id2 = vmd.getGlobalId();
         
         this.waitForGlobalId(id2);
 
         retry(() -> {
-            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(id2);
+            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), id2);
             Assertions.assertNotNull(artifactMetaData);
         });
 
-        VersionSearchResults results = restClient.searchVersions(artifactId, 0, 2);
+        VersionSearchResults results = restClient.searchVersions(Collections.emptyMap(), artifactId, 0, 2);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(2, results.getCount());
         Assertions.assertEquals(2, results.getVersions().size());
@@ -162,7 +163,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @RegistryRestClientTest
     void testSearchDisabledArtifacts(RegistryRestClient restClient) throws Exception {
         // warm-up
-        restClient.listArtifacts();
+        restClient.listArtifacts(Collections.emptyMap());
         String root = "testSearchDisabledArtifact" + ThreadLocalRandom.current().nextInt(1000000);
         List<String> artifactIds = new ArrayList<>();
 
@@ -173,12 +174,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                     .getBytes(StandardCharsets.UTF_8));
 
-            restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+            restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
             waitForArtifact(artifactId);
             artifactIds.add(artifactId);
         }
 
-        ArtifactSearchResults results = restClient.searchArtifacts(root, SearchOver.name, SortOrder.asc, null, null);
+        ArtifactSearchResults results = restClient.searchArtifacts(Collections.emptyMap(), root, SearchOver.name, SortOrder.asc, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
@@ -189,13 +190,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Put 2 of the 5 artifacts in DISABLED state
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DISABLED);
-        restClient.updateArtifactState(artifactIds.get(0), us);
+        restClient.updateArtifactState(Collections.emptyMap(), artifactIds.get(0), us);
         waitForArtifactState(artifactIds.get(0), ArtifactState.DISABLED);
-        restClient.updateArtifactState(artifactIds.get(3), us);
+        restClient.updateArtifactState(Collections.emptyMap(), artifactIds.get(3), us);
         waitForArtifactState(artifactIds.get(3), ArtifactState.DISABLED);
 
         // Check the search results still include the DISABLED artifacts
-        results = restClient.searchArtifacts(root, SearchOver.name, SortOrder.asc, null, null);
+        results = restClient.searchArtifacts(Collections.emptyMap(), root, SearchOver.name, SortOrder.asc, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
@@ -213,7 +214,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @RegistryRestClientTest
     void testSearchDisabledVersions(RegistryRestClient restClient) throws Exception {
         // warm-up
-        restClient.listArtifacts();
+        restClient.listArtifacts(Collections.emptyMap());
 
         String artifactId = UUID.randomUUID().toString();
         String name = "testSearchDisabledVersions" + ThreadLocalRandom.current().nextInt(1000000);
@@ -221,20 +222,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                 .getBytes(StandardCharsets.UTF_8));
 
-        restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+        restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         waitForArtifact(artifactId);
 
         artifactData.reset();
 
-        restClient.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        restClient.createArtifactVersion(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         waitForVersion(artifactId, 2);
 
         artifactData.reset();
 
-        restClient.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
+        restClient.createArtifactVersion(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         waitForVersion(artifactId, 3);
 
-        VersionSearchResults results = restClient.searchVersions(artifactId, 0, 5);
+        VersionSearchResults results = restClient.searchVersions(Collections.emptyMap(), artifactId, 0, 5);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(3, results.getCount());
         Assertions.assertEquals(3, results.getVersions().size());
@@ -244,13 +245,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Put 2 of the 3 versions in DISABLED state
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DISABLED);
-        restClient.updateArtifactVersionState(artifactId, 1, us);
+        restClient.updateArtifactVersionState(Collections.emptyMap(), artifactId, 1, us);
         waitForVersionState(artifactId, 1, ArtifactState.DISABLED);
-        restClient.updateArtifactVersionState(artifactId, 3, us);
+        restClient.updateArtifactVersionState(Collections.emptyMap(), artifactId, 3, us);
         waitForVersionState(artifactId, 3, ArtifactState.DISABLED);
 
         // Check that the search results still include the DISABLED versions
-        results = restClient.searchVersions(artifactId, 0, 5);
+        results = restClient.searchVersions(Collections.emptyMap(), artifactId, 0, 5);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(3, results.getCount());
         Assertions.assertEquals(3, results.getVersions().size());
@@ -269,7 +270,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-            restClient.createArtifact(artifactId, ArtifactType.JSON, stream);
+            restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream);
             
             this.waitForArtifact(artifactId);
 
@@ -278,10 +279,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
             final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON", "registry-client-test-testLabels");
             emd.setLabels(artifactLabels);
-            restClient.updateArtifactMetaData(artifactId, emd);
+            restClient.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
 
             retry(() -> {
-                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(artifactId);
+                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(Collections.emptyMap(), artifactId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
                 Assertions.assertEquals(4, artifactMetaData.getLabels().size());
@@ -291,7 +292,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             retry((() -> {
                 System.out.println("==============================");
                 ArtifactSearchResults results = client
-                        .searchArtifacts("registry-client-test-testLabels", SearchOver.labels, SortOrder.asc, 0, 2);
+                        .searchArtifacts(Collections.emptyMap(), "registry-client-test-testLabels", SearchOver.labels, SortOrder.asc, 0, 2);
                 results.getArtifacts().forEach(arty -> {
                     System.out.println(arty);
                 });
@@ -302,7 +303,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertTrue(results.getArtifacts().get(0).getLabels().containsAll(artifactLabels));
             }));
         } finally {
-            restClient.deleteArtifact(artifactId);
+            restClient.deleteArtifact(Collections.emptyMap(), artifactId);
         }
     }
 
@@ -311,7 +312,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-            restClient.createArtifact(artifactId, ArtifactType.JSON, stream);
+            restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream);
 
             this.waitForArtifact(artifactId);
 
@@ -323,10 +324,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             artifactProperties.put("extraProperty2", "value for extra property 2");
             artifactProperties.put("extraProperty3", "value for extra property 3");
             emd.setProperties(artifactProperties);
-            restClient.updateArtifactMetaData(artifactId, emd);
+            restClient.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
 
             retry(() -> {
-                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(artifactId);
+                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaData(Collections.emptyMap(), artifactId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("myname", artifactMetaData.getName());
                 Assertions.assertEquals(3, artifactMetaData.getProperties().size());
@@ -336,7 +337,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 }
             });
         } finally {
-            restClient.deleteArtifact(artifactId);
+            restClient.deleteArtifact(Collections.emptyMap(), artifactId);
         }
     }
 
@@ -348,7 +349,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         try {
             // warm-up
-            restClient.listArtifacts();
+            restClient.listArtifacts(Collections.emptyMap());
 
             // Create artifact 1
             String firstName = "aaaTestorder" + ThreadLocalRandom.current().nextInt(1000000);
@@ -356,7 +357,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     ("{\"type\":\"record\",\"title\":\"" + firstName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
 
-            ArtifactMetaData amd = restClient.createArtifact(firstArtifactId, ArtifactType.JSON, artifactData);
+            ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), firstArtifactId, ArtifactType.JSON, artifactData);
             long id = amd.getGlobalId();
             
             this.waitForGlobalId(id);
@@ -368,7 +369,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     ("{\"type\":\"record\",\"title\":\"" + secondName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
             
-            ArtifactMetaData secondCs = restClient.createArtifact(secondArtifactId, ArtifactType.JSON, secondData);
+            ArtifactMetaData secondCs = restClient.createArtifact(Collections.emptyMap(), secondArtifactId, ArtifactType.JSON, secondData);
             long secondId = secondCs.getGlobalId();
 
             this.waitForGlobalId(secondId);
@@ -377,18 +378,18 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ByteArrayInputStream thirdData = new ByteArrayInputStream(
                     ("{\"openapi\":\"3.0.2\",\"info\":{\"description\":\"testorder\"}}")
                             .getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData thirdCs = restClient.createArtifact(thirdArtifactId, ArtifactType.OPENAPI, thirdData);
+            ArtifactMetaData thirdCs = restClient.createArtifact(Collections.emptyMap(), thirdArtifactId, ArtifactType.OPENAPI, thirdData);
             long thirdId = thirdCs.getGlobalId();
 
             this.waitForGlobalId(thirdId);
 
             retry(() -> {
-                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(thirdId);
+                ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), thirdId);
                 Assertions.assertNotNull(artifactMetaData);
                 Assertions.assertEquals("testorder", artifactMetaData.getDescription());
             });
 
-            ArtifactSearchResults ascResults = restClient.searchArtifacts("Testorder", SearchOver.everything, SortOrder.asc, 0, 5);
+            ArtifactSearchResults ascResults = restClient.searchArtifacts(Collections.emptyMap(), "Testorder", SearchOver.everything, SortOrder.asc, 0, 5);
             Assertions.assertNotNull(ascResults);
             Assertions.assertEquals(3, ascResults.getCount());
             Assertions.assertEquals(3, ascResults.getArtifacts().size());
@@ -396,7 +397,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(secondName, ascResults.getArtifacts().get(1).getName());
             Assertions.assertNull(ascResults.getArtifacts().get(2).getName());
 
-            ArtifactSearchResults descResults = restClient.searchArtifacts("Testorder", SearchOver.everything, SortOrder.desc, 0, 5);
+            ArtifactSearchResults descResults = restClient.searchArtifacts(Collections.emptyMap(), "Testorder", SearchOver.everything, SortOrder.desc, 0, 5);
             Assertions.assertNotNull(descResults);
             Assertions.assertEquals(3, descResults.getCount());
             Assertions.assertEquals(3, descResults.getArtifacts().size());
@@ -404,14 +405,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertEquals(secondName, descResults.getArtifacts().get(1).getName());
             Assertions.assertEquals(firstName, descResults.getArtifacts().get(2).getName());
 
-            ArtifactSearchResults searchIdOverName = restClient.searchArtifacts(firstArtifactId, SearchOver.name, SortOrder.asc, 0, 5);
+            ArtifactSearchResults searchIdOverName = restClient.searchArtifacts(Collections.emptyMap(), firstArtifactId, SearchOver.name, SortOrder.asc, 0, 5);
             Assertions.assertEquals(firstName, searchIdOverName.getArtifacts().get(0).getName());
             Assertions.assertEquals(firstArtifactId, searchIdOverName.getArtifacts().get(0).getId());
 
         } finally {
-            restClient.deleteArtifact(firstArtifactId);
-            restClient.deleteArtifact(secondArtifactId);
-            restClient.deleteArtifact(thirdArtifactId);
+            restClient.deleteArtifact(Collections.emptyMap(), firstArtifactId);
+            restClient.deleteArtifact(Collections.emptyMap(), secondArtifactId);
+            restClient.deleteArtifact(Collections.emptyMap(), thirdArtifactId);
         }
     }
 }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -90,10 +91,10 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
+            ArtifactMetaData amd = apicurioService.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.AVRO, artifactData);
 
             // Make sure artifact is fully registered
-            TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+            TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
 
             LOGGER.info("Created record with name: {} and ID: {}", amd.getName(), amd.getId());
             idMap.put(name, amd.getId());
@@ -104,24 +105,24 @@ public abstract class BaseIT implements TestSeparator, Constants {
 
     protected void deleteMultipleArtifacts(RegistryRestClient apicurioService, Map<String, String> idMap) {
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
-            apicurioService.deleteArtifact(entry.getValue());
+            apicurioService.deleteArtifact(Collections.emptyMap(), entry.getValue());
             LOGGER.info("Deleted artifact {} with ID: {}", entry.getKey(), entry.getValue());
         }
     }
 
     public void createArtifactViaApicurioClient(RegistryRestClient client, Schema schema, String artifactName) throws TimeoutException {
-        ArtifactMetaData artifactMetadata = client.createArtifact(
+        ArtifactMetaData artifactMetadata = client.createArtifact(Collections.emptyMap(),
                 artifactName,
                 ArtifactType.AVRO,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         EditableMetaData editableMetaData = new EditableMetaData();
         editableMetaData.setName(artifactName);
-        client.updateArtifactMetaData(artifactName, editableMetaData);
+        client.updateArtifactMetaData(Collections.emptyMap(), artifactName, editableMetaData);
         // wait for global id store to populate (in case of Kafka / Streams)
         TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
             () -> {
-                ArtifactMetaData metadata = client.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                ArtifactMetaData metadata = client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifactMetadata.getGlobalId());
                 LOGGER.info("Checking that created schema is equal to the get schema");
                 assertThat(metadata.getName(), is(artifactName));
                 return true;
@@ -129,18 +130,18 @@ public abstract class BaseIT implements TestSeparator, Constants {
     }
 
     public void updateArtifactViaApicurioClient(RegistryRestClient client, Schema schema, String artifactName) throws TimeoutException {
-        ArtifactMetaData artifactMetadata = client.updateArtifact(
+        ArtifactMetaData artifactMetadata = client.updateArtifact(Collections.emptyMap(),
                 artifactName,
                 ArtifactType.AVRO,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         EditableMetaData editableMetaData = new EditableMetaData();
         editableMetaData.setName(artifactName);
-        client.updateArtifactMetaData(artifactName, editableMetaData);
+        client.updateArtifactMetaData(Collections.emptyMap(), artifactName, editableMetaData);
         // wait for global id store to populate (in case of Kafka / Streams)
         TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
             () -> {
-                ArtifactMetaData metadata = client.getArtifactMetaDataByGlobalId(artifactMetadata.getGlobalId());
+                ArtifactMetaData metadata = client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifactMetadata.getGlobalId());
                 LOGGER.info("Checking that created schema is equal to the get schema");
                 assertThat(metadata.getName(), is(artifactName));
                 return true;

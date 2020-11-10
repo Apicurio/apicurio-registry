@@ -22,6 +22,7 @@ import retrofit2.Call;
 import retrofit2.http.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -29,20 +30,20 @@ import java.util.List;
 public interface RulesService {
 
     @GET("rules/{rule}")
-    Call<Rule> getGlobalRuleConfig(@Path("rule") RuleType rule);
+    Call<Rule> getGlobalRuleConfig(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule);
 
     @PUT("rules/{rule}")
-    Call<Rule> updateGlobalRuleConfig(@Path("rule") RuleType rule, @Body Rule data);
+    Call<Rule> updateGlobalRuleConfig(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule, @Body Rule data);
 
     @DELETE("rules/{rule}")
-    Call<Void> deleteGlobalRule(@Path("rule") RuleType rule);
+    Call<Void> deleteGlobalRule(@HeaderMap Map<String, String> headers, @Path("rule") RuleType rule);
 
     @GET("rules")
-    Call<List<RuleType>> listGlobalRules();
+    Call<List<RuleType>> listGlobalRules(@HeaderMap Map<String, String> headers);
 
     @POST("rules")
-    Call<Void> createGlobalRule(@Body Rule data);
+    Call<Void> createGlobalRule(@HeaderMap Map<String, String> headers, @Body Rule data);
 
     @DELETE("rules")
-    Call<Void> deleteAllGlobalRules();
+    Call<Void> deleteAllGlobalRules(@HeaderMap Map<String, String> headers);
 }

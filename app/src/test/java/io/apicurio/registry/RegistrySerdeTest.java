@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,11 +75,11 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testFindBySchema(RegistryRestClient restClient) throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
         this.waitForGlobalId(amd.getGlobalId());
 
-        Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
         Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
     }
@@ -87,11 +88,11 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     public void testGetOrCreate(RegistryRestClient restClient) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
 
         this.waitForGlobalId(amd.getGlobalId());
 
-        Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
         Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
 
@@ -111,7 +112,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         GlobalIdStrategy<Schema> idStrategy = new CachedSchemaIdStrategy<>();
         long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
 
-        retry(() -> restClient.getArtifactMetaDataByGlobalId(id));
+        retry(() -> restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), id));
 
         Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
     }
@@ -123,13 +124,13 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = restClient.createArtifact(
-            artifactId + "-myrecord3",
-            ArtifactType.AVRO,
-            new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
+        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(),
+                artifactId + "-myrecord3",
+                ArtifactType.AVRO,
+                new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
         Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
@@ -141,14 +142,14 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         config.put(SerdeConfig.GLOBAL_ID_STRATEGY, new FindLatestIdStrategy<>());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
         Serializer<GenericData.Record> serializer = (Serializer<GenericData.Record>) getClass().getClassLoader()
-                                                                                               .loadClass(AvroKafkaSerializer.class.getName())
-                                                                                               .newInstance();
+                .loadClass(AvroKafkaSerializer.class.getName())
+                .newInstance();
         serializer.configure(config, true);
         byte[] bytes = serializer.serialize(artifactId, record);
 
         Deserializer<GenericData.Record> deserializer = (Deserializer<GenericData.Record>) getClass().getClassLoader()
-                                                                                                     .loadClass(AvroKafkaDeserializer.class.getName())
-                                                                                                     .newInstance();
+                .loadClass(AvroKafkaDeserializer.class.getName())
+                .newInstance();
         deserializer.configure(config, true);
 
         record = deserializer.deserialize(artifactId, bytes);
@@ -183,7 +184,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-            
+
             GenericData.Record record = new GenericData.Record(schema);
             record.put("bar", "somebar");
 
@@ -207,7 +208,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
             HashMap<String, String> config = new HashMap<>();
             config.put(SerdeConfig.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
-            serializer.configure(config,false);
+            serializer.configure(config, false);
             deserializer.configure(config, false);
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
@@ -222,7 +223,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
             JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
             Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
-            
+
             // some impl details ...
             waitForSchema(restClient, bytes);
 
@@ -241,7 +242,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             HashMap<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_HEADERS, "true");
-            serializer.configure(config,false);
+            serializer.configure(config, false);
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -251,7 +252,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(subject, headers, record);
             Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
-            Header globalId =  headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
             long id = ByteBuffer.wrap(globalId.value()).getLong();
 
             waitForGlobalId(id);
@@ -270,7 +271,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             serializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
             deserializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
-            
+
             String artifactId = generateArtifactId();
 
             Tester tester = new Tester("Apicurio");

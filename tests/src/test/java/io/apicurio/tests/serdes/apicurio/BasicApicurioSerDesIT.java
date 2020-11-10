@@ -19,6 +19,7 @@ package io.apicurio.tests.serdes.apicurio;
 import static io.apicurio.tests.Constants.CLUSTER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -188,7 +189,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> client.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
+            () -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceJsonSchemaApicurioMessages(artifactId, subjectName, 10).get(5, TimeUnit.SECONDS);
@@ -221,7 +222,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> client.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
+            () -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceProtobufMessages(artifactId, subjectName, 100).get(5, TimeUnit.SECONDS);

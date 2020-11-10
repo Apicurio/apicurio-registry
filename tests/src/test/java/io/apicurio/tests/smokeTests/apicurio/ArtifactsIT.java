@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -61,10 +62,10 @@ class ArtifactsIT extends BaseIT {
         rule.setConfig("FULL");
 
         LOGGER.info("Creating global rule:{}", rule.toString());
-        service.createGlobalRule(rule);
+        service.createGlobalRule(Collections.emptyMap(), rule);
 
         // Make sure we have rule
-        TestUtils.retry(() -> service.getGlobalRuleConfig(rule.getType()));
+        TestUtils.retry(() -> service.getGlobalRuleConfig(Collections.emptyMap(), rule.getType()));
 
         String artifactId = TestUtils.generateArtifactId();
 
@@ -73,9 +74,9 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId()));
 
-        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
+        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(Collections.emptyMap(), artifactId)));
 
         LOGGER.info("Artifact with name:{} and content:{} was created", response.getString("name"), response);
 
@@ -92,18 +93,18 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId()));
 
-        response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
+        response = new JsonObject(IoUtil.toString(service.getLatestArtifact(Collections.emptyMap(), artifactId)));
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
-        List<Long> apicurioVersions = service.listArtifactVersions(artifactId);
+        List<Long> apicurioVersions = service.listArtifactVersions(Collections.emptyMap(), artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems(1L, 2L));
 
-        response = new JsonObject(IoUtil.toString(service.getArtifactVersion(artifactId, 1)));
+        response = new JsonObject(IoUtil.toString(service.getArtifactVersion(Collections.emptyMap(), artifactId, 1)));
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
 
@@ -119,7 +120,7 @@ class ArtifactsIT extends BaseIT {
         deleteMultipleArtifacts(service, idMap);
 
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(entry.getValue()), true);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(Collections.emptyMap(), entry.getValue()), true);
         }
     }
 
@@ -129,13 +130,13 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = service.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = service.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
         // Make sure artifact is fully registered
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(artifactId)));
+        JsonObject response = new JsonObject(IoUtil.toString(service.getLatestArtifact(Collections.emptyMap(), artifactId)));
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
         assertThat(response.getString("type"), is("INVALID"));
@@ -149,17 +150,17 @@ class ArtifactsIT extends BaseIT {
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully registered
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId()));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, artifactData);
         // Make sure artifact is fully updated
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId()));
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        List<Long> artifactVersions = service.listArtifactVersions(artifactId);
+        List<Long> artifactVersions = service.listArtifactVersions(Collections.emptyMap(), artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
         assertThat(artifactVersions, hasItems(1L, 2L));
@@ -189,29 +190,29 @@ class ArtifactsIT extends BaseIT {
 
         // Verify
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
         });
 
         // Disable the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        service.updateArtifactState(artifactId, data);
+        service.updateArtifactState(Collections.emptyMap(), artifactId, data);
 
         // Verify (expect 404)
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(artifactId), true);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.getLatestArtifact(Collections.emptyMap(), artifactId), true);
         });
 
         // Re-enable the artifact
         data.setState(ArtifactState.ENABLED);
-        service.updateArtifactState(artifactId, data);
+        service.updateArtifactState(Collections.emptyMap(), artifactId, data);
 
         // Verify
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
         });
     }
@@ -226,56 +227,56 @@ class ArtifactsIT extends BaseIT {
         // Create the artifact
         ArtifactMetaData v1MD = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v1MD.getGlobalId()));
 
         // Update the artifact (v2)
         ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v2MD.getGlobalId()));
 
         // Update the artifact (v3)
         ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v3MD.getGlobalId()));
 
         // Disable v3
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DISABLED);
-        service.updateArtifactVersionState(artifactId, v3MD.getVersion(), data);
+        service.updateArtifactVersionState(Collections.emptyMap(), artifactId, v3MD.getVersion(), data);
 
         // Verify artifact
         TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
             assertEquals(3, actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
         data.setState(ArtifactState.ENABLED);
-        service.updateArtifactVersionState(artifactId, v3MD.getVersion(), data);
+        service.updateArtifactVersionState(Collections.emptyMap(), artifactId, v3MD.getVersion(), data);
 
         TestUtils.retry(() -> {
             // Verify artifact (now v3)
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertEquals(3, actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -291,7 +292,7 @@ class ArtifactsIT extends BaseIT {
 
         TestUtils.retry(() -> {
             // Verify
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
         });
@@ -299,11 +300,11 @@ class ArtifactsIT extends BaseIT {
         // Deprecate the artifact
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        service.updateArtifactState(artifactId, data);
+        service.updateArtifactState(Collections.emptyMap(), artifactId, data);
 
         TestUtils.retry(() -> {
             // Verify (expect 404)
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
         });
@@ -319,48 +320,48 @@ class ArtifactsIT extends BaseIT {
         // Create the artifact
         ArtifactMetaData v1MD = ArtifactUtils.createArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v1MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v1MD.getGlobalId()));
 
         // Update the artifact (v2)
         ArtifactMetaData v2MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV2));
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v2MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v2MD.getGlobalId()));
 
         // Update the artifact (v3)
         ArtifactMetaData v3MD = ArtifactUtils.updateArtifact(service, ArtifactType.AVRO, artifactId, IoUtil.toStream(artifactDataV3));
-        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(v3MD.getGlobalId()));
+        TestUtils.retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), v3MD.getGlobalId()));
 
         // Deprecate v2
         UpdateState data = new UpdateState();
         data.setState(ArtifactState.DEPRECATED);
-        service.updateArtifactVersionState(artifactId, v2MD.getVersion(), data);
+        service.updateArtifactVersionState(Collections.emptyMap(), artifactId, v2MD.getVersion(), data);
 
         TestUtils.retry(() -> {
             // Verify artifact
-            ArtifactMetaData actualMD = service.getArtifactMetaData(artifactId);
+            ArtifactMetaData actualMD = service.getArtifactMetaData(Collections.emptyMap(), artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = service.getArtifactVersionMetaData(artifactId, v1MD.getVersion());
+            VersionMetaData actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v1MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v2MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v2MD.getVersion());
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = service.getArtifactVersionMetaData(artifactId, v3MD.getVersion());
+            actualVMD = service.getArtifactVersionMetaData(Collections.emptyMap(), artifactId, v3MD.getVersion());
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
 
     @Test
     void deleteNonexistingSchema(RegistryRestClient service) throws Exception {
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.deleteArtifact("non-existing"));
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> service.deleteArtifact(Collections.emptyMap(), "non-existing"));
     }
 
     @AfterEach
     void deleteRules(RegistryRestClient service) throws Exception {
-        service.deleteAllGlobalRules();
+        service.deleteAllGlobalRules(Collections.emptyMap());
         TestUtils.retry(() -> {
-            List<RuleType> rules = service.listGlobalRules();
+            List<RuleType> rules = service.listGlobalRules(Collections.emptyMap());
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

@@ -17,6 +17,7 @@
 package io.apicurio.registry.utils.serde.strategy;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,7 +45,7 @@ public class CachedSchemaIdStrategy<T> extends AbstractCrudIdStrategy<T> {
         // TODO add an option to search by strict content
         return cache.computeIfAbsent(
             content,
-            k -> client.getArtifactMetaDataByContent(artifactId, true, toStream(schema)).getGlobalId()
+            k -> client.getArtifactMetaDataByContent(Collections.emptyMap(), artifactId, true, toStream(schema)).getGlobalId()
         );
     }
 

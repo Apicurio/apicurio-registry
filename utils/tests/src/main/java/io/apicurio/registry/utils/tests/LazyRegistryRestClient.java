@@ -2,6 +2,8 @@ package io.apicurio.registry.utils.tests;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
+
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -42,180 +44,179 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     }
 
     @Override
-    public List<String> listArtifacts() {
-        return getDelegate().listArtifacts();
+    public List<String> listArtifacts(Map<String, String> headers) {
+        return getDelegate().listArtifacts(headers);
     }
     
     @Override
-    public ArtifactMetaData createArtifact(InputStream data) {
-        return getDelegate().createArtifact(data);
+    public ArtifactMetaData createArtifact(Map<String, String> headers, InputStream data) {
+        return getDelegate().createArtifact(headers, data);
     }
     
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        return getDelegate().createArtifact(artifactId, artifactType, data);
+    public ArtifactMetaData createArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
+        return getDelegate().createArtifact(headers, artifactId, artifactType, data);
     }
     
     @Override
-    public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
+    public ArtifactMetaData createArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data,
             IfExistsType ifExists, Boolean canonical) {
-        return getDelegate().createArtifact(artifactId, artifactType, data, ifExists, canonical);
+        return getDelegate().createArtifact(headers, artifactId, artifactType, data, ifExists, canonical);
     }
 
     @Override
-    public InputStream getLatestArtifact(String artifactId) {
-        return getDelegate().getLatestArtifact(artifactId);
+    public InputStream getLatestArtifact(Map<String, String> headers, String artifactId) {
+        return getDelegate().getLatestArtifact(headers, artifactId);
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        return getDelegate().updateArtifact(artifactId, artifactType, data);
+    public ArtifactMetaData updateArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
+        return getDelegate().updateArtifact(headers, artifactId, artifactType, data);
     }
 
     @Override
-    public void deleteArtifact(String artifactId) {
-        getDelegate().deleteArtifact(artifactId);
+    public void deleteArtifact(Map<String, String> headers, String artifactId) {
+        getDelegate().deleteArtifact(headers, artifactId);
     }
 
     @Override
-    public void updateArtifactState(String artifactId, UpdateState newState) {
-        getDelegate().updateArtifactState(artifactId, newState);
+    public void updateArtifactState(Map<String, String> headers, String artifactId, UpdateState newState) {
+        getDelegate().updateArtifactState(headers, artifactId, newState);
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        return getDelegate().getArtifactMetaData(artifactId);
+    public ArtifactMetaData getArtifactMetaData(Map<String, String> headers, String artifactId) {
+        return getDelegate().getArtifactMetaData(headers, artifactId);
     }
 
     @Override
-    public void updateArtifactMetaData(String artifactId, EditableMetaData metaData) {
-        getDelegate().updateArtifactMetaData(artifactId, metaData);
+    public void updateArtifactMetaData(Map<String, String> headers, String artifactId, EditableMetaData metaData) {
+        getDelegate().updateArtifactMetaData(headers, artifactId, metaData);
     }
     
     @Override
-    public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical,
+    public ArtifactMetaData getArtifactMetaDataByContent(Map<String, String> headers, String artifactId, Boolean canonical,
             InputStream data) {
-        return getDelegate().getArtifactMetaDataByContent(artifactId, canonical, data);
+        return getDelegate().getArtifactMetaDataByContent(headers, artifactId, canonical, data);
     }
 
     @Override
-    public List<Long> listArtifactVersions(String artifactId) {
-        return getDelegate().listArtifactVersions(artifactId);
+    public List<Long> listArtifactVersions(Map<String, String> headers, String artifactId) {
+        return getDelegate().listArtifactVersions(headers, artifactId);
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) {
-        return getDelegate().createArtifactVersion(artifactId, artifactType, data);
+    public VersionMetaData createArtifactVersion(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
+        return getDelegate().createArtifactVersion(headers, artifactId, artifactType, data);
     }
 
     @Override
-    public InputStream getArtifactVersion(String artifactId, Integer version) {
-        return getDelegate().getArtifactVersion(artifactId, version);
+    public InputStream getArtifactVersion(Map<String, String> headers, String artifactId, Integer version) {
+        return getDelegate().getArtifactVersion(headers, artifactId, version);
     }
 
     @Override
-    public void updateArtifactVersionState(String artifactId, Integer version, UpdateState newState) {
-        getDelegate().updateArtifactVersionState(artifactId, version, newState);
+    public void updateArtifactVersionState(Map<String, String> headers, String artifactId, Integer version, UpdateState newState) {
+        getDelegate().updateArtifactVersionState(headers, artifactId, version, newState);
     }
 
     @Override
-    public VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) {
-        return getDelegate().getArtifactVersionMetaData(artifactId, version);
+    public VersionMetaData getArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version) {
+        return getDelegate().getArtifactVersionMetaData(headers, artifactId, version);
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData metaData) {
-        getDelegate().updateArtifactVersionMetaData(artifactId, version, metaData);
+    public void updateArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version, EditableMetaData metaData) {
+        getDelegate().updateArtifactVersionMetaData(headers, artifactId, version, metaData);
     }
 
     @Override
-    public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
-        getDelegate().deleteArtifactVersionMetaData(artifactId, version);
+    public void deleteArtifactVersionMetaData(Map<String, String> headers, String artifactId, Integer version) {
+        getDelegate().deleteArtifactVersionMetaData(headers, artifactId, version);
     }
 
     @Override
-    public List<RuleType> listArtifactRules(String artifactId) {
-        return getDelegate().listArtifactRules(artifactId);
+    public List<RuleType> listArtifactRules(Map<String, String> headers, String artifactId) {
+        return getDelegate().listArtifactRules(headers, artifactId);
     }
 
     @Override
-    public void createArtifactRule(String artifactId, Rule ruleConfig) {
-        getDelegate().createArtifactRule(artifactId, ruleConfig);
+    public void createArtifactRule(Map<String, String> headers, String artifactId, Rule ruleConfig) {
+        getDelegate().createArtifactRule(headers, artifactId, ruleConfig);
     }
 
     @Override
-    public void deleteArtifactRules(String artifactId) {
-        getDelegate().deleteArtifactRules(artifactId);
+    public void deleteArtifactRules(Map<String, String> headers, String artifactId) {
+        getDelegate().deleteArtifactRules(headers, artifactId);
     }
 
     @Override
-    public Rule getArtifactRuleConfig(String artifactId, RuleType ruleType) {
-        return getDelegate().getArtifactRuleConfig(artifactId, ruleType);
+    public Rule getArtifactRuleConfig(Map<String, String> headers, String artifactId, RuleType ruleType) {
+        return getDelegate().getArtifactRuleConfig(headers, artifactId, ruleType);
     }
 
     @Override
-    public Rule updateArtifactRuleConfig(String artifactId, RuleType ruleType, Rule ruleConfig) {
-        return getDelegate().updateArtifactRuleConfig(artifactId, ruleType, ruleConfig);
+    public Rule updateArtifactRuleConfig(Map<String, String> headers, String artifactId, RuleType ruleType, Rule ruleConfig) {
+        return getDelegate().updateArtifactRuleConfig(headers, artifactId, ruleType, ruleConfig);
     }
 
     @Override
-    public void deleteArtifactRule(String artifactId, RuleType ruleType) {
-        getDelegate().deleteArtifactRule(artifactId, ruleType);
+    public void deleteArtifactRule(Map<String, String> headers, String artifactId, RuleType ruleType) {
+        getDelegate().deleteArtifactRule(headers, artifactId, ruleType);
     }
 
     @Override
-    public void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
-        getDelegate().testUpdateArtifact(artifactId, artifactType, data);
+    public void testUpdateArtifact(Map<String, String> headers, String artifactId, ArtifactType artifactType, InputStream data) {
+        getDelegate().testUpdateArtifact(headers, artifactId, artifactType, data);
     }
 
     @Override
-    public InputStream getArtifactByGlobalId(long globalId) {
-        return getDelegate().getArtifactByGlobalId(globalId);
+    public InputStream getArtifactByGlobalId(Map<String, String> headers, long globalId) {
+        return getDelegate().getArtifactByGlobalId(headers, globalId);
     }
 
     @Override
-    public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
-        return getDelegate().getArtifactMetaDataByGlobalId(globalId);
+    public ArtifactMetaData getArtifactMetaDataByGlobalId(Map<String, String> headers, long globalId) {
+        return getDelegate().getArtifactMetaDataByGlobalId(headers, globalId);
     }
 
     @Override
-    public Rule getGlobalRuleConfig(RuleType ruleType) {
-        return getDelegate().getGlobalRuleConfig(ruleType);
+    public Rule getGlobalRuleConfig(Map<String, String> headers, RuleType ruleType) {
+        return getDelegate().getGlobalRuleConfig(headers, ruleType);
     }
 
     @Override
-    public Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) {
-        return getDelegate().updateGlobalRuleConfig(ruleType, data);
+    public Rule updateGlobalRuleConfig(Map<String, String> headers, RuleType ruleType, Rule data) {
+        return getDelegate().updateGlobalRuleConfig(headers, ruleType, data);
     }
 
     @Override
-    public void deleteGlobalRule(RuleType ruleType) {
-        getDelegate().deleteGlobalRule(ruleType);
+    public void deleteGlobalRule(Map<String, String> headers, RuleType ruleType) {
+        getDelegate().deleteGlobalRule(headers, ruleType);
     }
 
     @Override
-    public List<RuleType> listGlobalRules() {
-        return getDelegate().listGlobalRules();
+    public List<RuleType> listGlobalRules(Map<String, String> headers) {
+        return getDelegate().listGlobalRules(headers);
     }
 
     @Override
-    public void createGlobalRule(Rule data) {
-        getDelegate().createGlobalRule(data);
+    public void createGlobalRule(Map<String, String> headers, Rule data) {
+        getDelegate().createGlobalRule(headers, data);
     }
 
     @Override
-    public void deleteAllGlobalRules() {
-        getDelegate().deleteAllGlobalRules();
+    public void deleteAllGlobalRules(Map<String, String> headers) {
+        getDelegate().deleteAllGlobalRules(headers);
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
-        return getDelegate().searchArtifacts(search, over, order, offset, limit);
+    public ArtifactSearchResults searchArtifacts(Map<String, String> headers, String search, SearchOver over, SortOrder order, Integer offset, Integer limit) {
+        return getDelegate().searchArtifacts(headers, search, over, order, offset, limit);
     }
 
     @Override
-    public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-        return getDelegate().searchVersions(artifactId, offset, limit);
+    public VersionSearchResults searchVersions(Map<String, String> headers, String artifactId, Integer offset, Integer limit) {
+        return getDelegate().searchVersions(headers, artifactId, offset, limit);
     }
-
 }

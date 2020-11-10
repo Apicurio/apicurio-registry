@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -100,7 +101,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             // Explicit file extension is not defined, getting it from the metadata
             if (ext == null || ext.equals("")) {
                 try {
-                    ArtifactMetaData artifactMetaData = getClient().getArtifactMetaData(id);
+                    ArtifactMetaData artifactMetaData = getClient().getArtifactMetaData(Collections.emptyMap(), id);
                     ext = ".".concat(ArtifactExtensionType.fromArtifactType(artifactMetaData.getType()).toString());
                 } catch (Exception ex) {
                     throw new MojoExecutionException(
@@ -116,8 +117,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
             Integer version = versions.get(id);
             try (InputStream stream = (version != null) ?
-                    getClient().getArtifactVersion(id, version) :
-                    getClient().getLatestArtifact(id)) {
+                    getClient().getArtifactVersion(Collections.emptyMap(), id, version) :
+                    getClient().getLatestArtifact(Collections.emptyMap(), id)) {
                 if (replaceExisting) {
                     Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } else {

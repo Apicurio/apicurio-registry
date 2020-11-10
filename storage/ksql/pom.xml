@@ -10,11 +10,12 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     
-    <artifactId>apicurio-registry-storage-sql</artifactId>
+    <artifactId>apicurio-registry-storage-ksql</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-storage-sql</name>
+    <name>apicurio-registry-storage-ksql</name>
     
     <dependencies>
+        <!-- Project Deps -->
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
@@ -26,6 +27,16 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-kafka</artifactId>
+        </dependency>
+        
+        <!-- Third Party Deps -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
         </dependency>
 
         <!-- Test Only -->
@@ -93,6 +104,22 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-kafka</artifactId>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-test-common</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -165,6 +192,34 @@
                             </outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.polago.maven.plugins</groupId>
+                <artifactId>merge-properties-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>merge-properties</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <outputFile>application.properties</outputFile>
+                            <overwriteProperties>true</overwriteProperties>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.outputDirectory}</directory>
+                                    <includes>
+                                      <include>application.properties</include>
+                                      <include>overlay.properties</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>

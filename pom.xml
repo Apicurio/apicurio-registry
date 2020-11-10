@@ -89,6 +89,7 @@
         <module>utils/streams</module>
         <module>utils/maven-plugin</module>
         <module>utils/serde</module>
+        <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
         <module>search/client</module>
@@ -188,6 +189,7 @@
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
         <version.frontend-maven.plugin>1.10.3</version.frontend-maven.plugin>
+        <version.merge-properties.plugin>1.1</version.merge-properties.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.37</version.puppycrawl>
@@ -240,6 +242,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-streams</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -276,6 +283,26 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-asyncmem</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-streams</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-ksql</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -626,6 +653,11 @@
                     <artifactId>scala-maven-plugin</artifactId>
                     <version>${version.scala-maven.plugin}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.polago.maven.plugins</groupId>
+                    <artifactId>merge-properties-maven-plugin</artifactId>
+                    <version>${version.merge-properties.plugin}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -755,6 +787,12 @@
             <id>streams</id>
             <modules>
                 <module>storage/streams</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>ksql</id>
+            <modules>
+                <module>storage/ksql</module>
             </modules>
         </profile>
         <profile>

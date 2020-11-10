@@ -16,6 +16,7 @@
     <properties>
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
         <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
+        <docker.ksql.file>app-files/apicurio-registry-storage-ksql-${project.version}-all.tar.gz</docker.ksql.file>
         <docker.infinispan.file>app-files/apicurio-registry-storage-infinispan-${project.version}-all.tar.gz</docker.infinispan.file>
         <docker.asyncmem.file>app-files/apicurio-registry-storage-asyncmem-${project.version}-all.tar.gz</docker.asyncmem.file>
         <docker.streams.file>app-files/apicurio-registry-storage-streams-${project.version}-all.tar.gz</docker.streams.file>
@@ -47,6 +48,14 @@
                                 </resource>
                                 <resource>
                                     <directory>${basedir}/../../storage/sql/target</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*runner</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${basedir}/../../storage/ksql/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -210,6 +219,50 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.sql.jvm</dockerFile>
+                                                <tags combine.children="append">
+                                                    <tag>latest</tag>
+                                                </tags>
+                                            </build>
+                                        </image>
+                                    </images>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>ksql</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-storage-ksql</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <version>0.34.1</version>
+                        <executions>
+                            <execution>
+                                <id>docker-build</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <images>
+                                        <image>
+                                            <name>apicurio/apicurio-registry-ksql:${project.version}</name>
+                                            <build>
+                                                <contextDir>${project.build.directory}/docker</contextDir>
+                                                <dockerFile>./Dockerfile.ksql.jvm</dockerFile>
                                                 <tags combine.children="append">
                                                     <tag>latest</tag>
                                                 </tags>

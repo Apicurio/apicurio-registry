@@ -37,7 +37,7 @@ public class KafkaEventSink implements EventSink {
             value = {"registry.streams.common", "registry.streams.events"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
-    Properties producerPproperties;
+    Properties producerProperties;
 
     private ProducerActions<UUID, byte[]> producer;
     private Integer partition;
@@ -92,7 +92,7 @@ public class KafkaEventSink implements EventSink {
     public synchronized ProducerActions<UUID, byte[]> getProducer() {
         if (producer == null) {
             producer = new AsyncProducer<UUID, byte[]>(
-                    producerPproperties,
+                    producerProperties,
                     Serdes.UUID().serializer(),
                     Serdes.ByteArray().serializer()
                 );

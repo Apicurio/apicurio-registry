@@ -124,8 +124,8 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactMetaData(artifactId, content);
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifactVersionMetaData(artifactId, canonical, content);
     }
 
     @Override

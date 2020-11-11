@@ -13,27 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.events;
-
-import java.util.List;
+package io.apicurio.registry.events.http;
 
 /**
  * @author Fabian Martinez
  */
-public class HttpSinksConfiguration {
+public class HttpSinkConfiguration {
+    
+    private String name;
+    private String endpoint;
 
-    private List<HttpSinkConfiguration> httpSinks;
-
-    public HttpSinksConfiguration(List<HttpSinkConfiguration> httpSinks) {
-        this.httpSinks = httpSinks;
+    public HttpSinkConfiguration(String name, String endpoint) {
+        this.name = name;
+        this.endpoint = endpoint;
     }
 
-    public List<HttpSinkConfiguration> httpSinks() {
-        return this.httpSinks;
+    public String getName() {
+        return name;
     }
 
-    public boolean isConfigured() {
-        return this.httpSinks != null && !this.httpSinks.isEmpty();
+    public String getEndpoint() {
+        return endpoint;
     }
 
 }

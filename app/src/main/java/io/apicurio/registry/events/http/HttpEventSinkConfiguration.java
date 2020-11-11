@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.events;
+package io.apicurio.registry.events.http;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +31,7 @@ import io.apicurio.registry.utils.RegistryProperties;
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class EventsServiceConfiguration {
+public class HttpEventSinkConfiguration {
 
     @ConfigProperty(name = "registry.events.ksink")
     Optional<String> ksink;
@@ -46,5 +46,6 @@ public class EventsServiceConfiguration {
         }
         return new HttpSinksConfiguration(httpSinks);
     }
+
 
 }

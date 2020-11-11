@@ -4,22 +4,16 @@
 [id="managing-artifacts-using-maven-plugin"]
 = Managing artifacts using the {registry} Maven plug-in
 
-{registry} provides a Maven plug-in to enable you to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
+You can use the {registry} Maven plug-in to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
 
-.Prerequisites
-
-* See {registry-overview}
-* {registry} must be installed and running in your environment
-* Maven must be installed and configured in your environment
-
+[discrete]
 == Registering an artifact using the Maven plug-in
 
-Probably the most common use case for the Maven plug-in is registering artifacts during a build.  You can accomplish
-this by using the `register` goal provided.  Simply update your Maven `pom.xml` file to use the
-`apicurio-registry-maven-plugin` to upload an artifact to {registry}.
+Probably the most common use case for the Maven plug-in is registering artifacts during a build. You can accomplish this by using the `register` execution goal. 
 
-The following example shows registering an Apache Avro schema artifact:
-
+.Procedure
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register an artifact. The following example shows registering an Apache Avro schema:
++
 [source,xml]
 ----
 <plugin>
@@ -43,16 +37,17 @@ The following example shows registering an Apache Avro schema artifact:
   </executions>
 </plugin>
 ----
-<1> Specify `register` as the execution goal to upload an artifact to the registry.
+<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
 <2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can upload multiple artifacts using the artifact ID and location.
 
+[discrete]
 == Downloading an artifact using the Maven plug-in
-You can also use the Maven plug-in to download artifacts from {registry}.  This is often useful, for example, when
-generating code from a registered schema.
+You can also use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
 
-The following example shows downloading a single schema by its artifact ID.
-
+.Procedure
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading a single schema by its artifact ID.
++
 [source,xml]
 ----
 <plugin>
@@ -80,17 +75,17 @@ The following example shows downloading a single schema by its artifact ID.
 <1> Specify `download` as the execution goal.
 <2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can download multiple artifacts to a specified directory using the artifact ID.
-<4> The plug-in will automatically try to select an appropriate file extension, but you can override it using `<artifactExtension>`.
+<4> The plug-in automatically tries to select an appropriate file extension, but you can override it using `<artifactExtension>`.
 
-== Testing an artifact
-You may want to simply verify that an artifact can be registered without actually making any changes.  This is most
-often useful when rules have been configured in {registry}.  Testing the artifact will result in a failure if the
-artifact content violates any of the configured rules.
+[discrete]
+== Testing an artifact using the Maven plug-in
+You might want to verify that an artifact can be registered without actually making any changes. This is most often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
 
-NOTE: Even if the artifact passes the test, no content will be added to {registry}.
+NOTE: Even if the artifact passes the test, no content is added to {registry}.
 
-The following example shows testing an Apache Avro schema artifact:
-
+.Procedure
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to test an artifact. The following example shows testing an Apache Avro schema:
++
 [source,xml]
 ----
 <plugin>
@@ -114,9 +109,9 @@ The following example shows testing an Apache Avro schema artifact:
   </executions>
 </plugin>
 ----
-<1> Specify `test-update` as the execution goal to test an artifact.
+<1> Specify `test-update` as the execution goal to test the schema artifact.
 <2> You must specify the {registry} URL with the `/api` endpoint.
 <3> You can test multiple artifacts using the artifact ID and location.
 
 .Additional resources
- * For more details on the Maven plug-in, see https://github.com/Apicurio/apicurio-registry-demo.
+ * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]

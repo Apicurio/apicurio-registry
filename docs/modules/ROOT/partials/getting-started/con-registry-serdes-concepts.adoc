@@ -15,9 +15,7 @@ Schemas can evolve, so you can define rules in {registry}, for example, to ensur
 * Protobuf
 * JSON Schema
 
-These schema technologies can be used by client applications through Kafka client serializer/deserializer (SerDe)
-services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} may vary.  See
-the type-specific sections below for more details about each.
+These schema technologies can be used by client applications through Kafka client serializer/deserializer (SerDe) services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} may vary. See the type-specific sections below for more details about each.
 
 = Producer schema configuration
 
@@ -30,12 +28,10 @@ To enable a producer to use {registry} for serialization:
 
 ** URL of {registry}
 ** {registry} serializer to use with the messages
-** _Strategy_ to map the Kafka message to an artifact ID in {registry}
-** _Strategy_ to look up (or register) the schema used for serialization in {registry}
+** Strategy to map the Kafka message to an artifact ID in {registry}
+** Strategy to look up or register the schema used for serialization in {registry}
 
-After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages
-sent to the Kafka broker topic by the producer.  Alternatively (depending on configuration), the producer can
-automatically register the schema on first use.
+After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages sent to the Kafka broker topic by the producer.  Alternatively (depending on configuration), the producer can automatically register the schema on first use.
 
 If a schema already exists, you can create a new version using the REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves. An artifact ID and schema version represents a unique tuple that identifies a schema.
 
@@ -50,15 +46,11 @@ To enable a consumer to use {registry} for deserialization:
 ** {registry} deserializer to use with the messages
 ** Input data stream for deserialization
 
-The schema is then retrieved by the deserializer using a global ID written into the message being consumed.  The schema
-global ID can be located in the message headers or in the message payload itself, depending on the configuration of
-the producer application.
+The schema is then retrieved by the deserializer using a global ID written into the message being consumed.  The schema global ID can be located in the message headers or in the message payload itself, depending on the configuration of the producer application.
 
-When locating the global ID in the message payload, the format of the data begins with a magic byte (as a signal to
-consumers) followed by the global ID and then the message data as normal.
+When locating the global ID in the message payload, the format of the data begins with a magic byte (as a signal to consumers) followed by the global ID and then the message data as normal.
 
 For example:
-
 [source,shell,subs="+quotes,attributes"]
 ----
 # ...

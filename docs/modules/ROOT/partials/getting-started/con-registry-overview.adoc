@@ -21,7 +21,7 @@ ifdef::rh-service-registry[]
 endif::[]
 
 [discrete]
-== {registry} main features
+== {registry} capabilities
 
 * Support for multiple payload formats for standard event schemas and API specifications 
 

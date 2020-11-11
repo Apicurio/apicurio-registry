@@ -2,7 +2,7 @@
 
 [id="registry-rules"]
 
-= Rules for registry content
+= Govern registry content using rules
 To govern the evolution of registry content, you can configure optional rules for artifact content added to the registry. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules.
 
 The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
@@ -32,31 +32,32 @@ Each rule has a name and optional configuration information. The registry storag
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 .Additional resources
-For more details, see {registry-rule-types} and {registry-rule-maturity-matrix}.
+For more details, see {registry-reference}.
 
 [id="registry-rules-config"]
-= Configuring rules
-You can configure rules individually for each artifact, as well as globally.  {registry} applies the rules configured
-for the specific artifact, but if no rules are configured at that level it applies the globally configured rules.  If
-no global rules are configured then no rules are applied.
+= Content rule configuration
+You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. But if no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
 
-== Configuring artifact rules
-You can configure artifact rules using the REST API or the web console.  See the relevant documentation sections
-for more information.
+[discrete]
+== Configure artifact rules
+You can configure artifact rules using the {registry} web console or REST API. For details, see the following:
 
-== Configuring global rules
+* {managing-registry-artifacts-ui}
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+[discrete]
+== Configure global rules
 You can configure global rules in several ways:
 
 * Use the `/rules` operations in the REST API
-* Use the web console
+* Use the {registry} web console
 * Set default global rules using {registry} application properties
 
-.Default global rules
-You can configure the {registry} at the application level to enable or disable global rules.  This allows
-configuring of these global rules at installation time without any need for post-install configuration.  You
-can use the following application property format:
-
-`registry.rules.global.<ruleName>`
+.Configure default global rules
+You can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
+----
+registry.rules.global.<ruleName>
+----
 
 The following rule names are currently supported:
 
@@ -64,8 +65,9 @@ The following rule names are currently supported:
 * `validity`
 
 The value of the application property must be a valid configuration option that is specific to the rule being
-configured.  The following is a table of valid values for each rule:
+configured. The following table shows the valid values for each rule:
 
+.{registry} content rules
 [%header,cols=2*]
 |===
 |Rule
@@ -93,5 +95,4 @@ a| `NONE`
 |===
 
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
-`application.properties` file.  See more information about configuring {registry} elsewhere in this
-documentation and also in https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+`application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

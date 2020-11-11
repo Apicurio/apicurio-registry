@@ -1,9 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-distros"]
-= Available distributions
-
-{registry} includes the following distributions: 
+= {registry} available distributions
 
 ifdef::apicurio-registry[]
 

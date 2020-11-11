@@ -25,13 +25,18 @@ public class KafkaSqlServiceInitializer implements ServiceInitializer, ClusterIn
 
     private KafkaTestContainerManager manager;
 
+    /**
+     * @see io.apicurio.registry.util.ServiceInitializer#beforeAll(java.lang.Object)
+     */
     @Override
     public void beforeAll(@Observes @Initialized(ApplicationScoped.class) Object event) throws Exception {
+        String bootstrapServers = System.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        System.setProperty("registry.ksql.bootstrap.servers", bootstrapServers);
+        
+        log.info("Bootstrap servers for KSQL test: {}", bootstrapServers);
+        
         Properties properties = new Properties();
-        properties.put(
-                CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
-                System.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-        );
+        properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         properties.put("connections.max.idle.ms", 10000);
         properties.put("request.timeout.ms", 5000);
         try (AdminClient client = AdminClient.create(properties)) {
@@ -40,13 +45,20 @@ public class KafkaSqlServiceInitializer implements ServiceInitializer, ClusterIn
             log.info("Kafka is running - {} ...", names);
         }
     }
-
+    
+    /**
+     * @see io.apicurio.registry.util.ServiceInitializer#afterAll(java.lang.Object)
+     */
     @Override
-    public void beforeEach() {
+    public void afterAll(Object event) {
     }
 
     @Override
     public Map<String, String> startCluster() {
+        log.info("Starting Kafka cluster for KSQL test.");
+        if (manager != null) {
+            throw new RuntimeException("Tried starting Kafka twice!");
+        }
         manager = new KafkaTestContainerManager();
         return manager.start();
     }
@@ -54,7 +66,9 @@ public class KafkaSqlServiceInitializer implements ServiceInitializer, ClusterIn
     @Override
     public void stopCluster() {
         if (manager != null) {
+            log.info("Stopping Kafka cluster.");
             manager.stop();
+            manager = null;
         }
     }
 }

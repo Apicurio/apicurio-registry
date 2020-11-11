@@ -47,9 +47,9 @@ The following parameters are available for executable files:
   
 |Option|Command argument|Env. variable|
 |---|---|---|
-|Data Source URL|`-Dquarkus.datasource.jdbc.url`|`QUARKUS_DATASOURCE_URL`|
-|DS Username|`-Dquarkus.datasource.username`|`QUARKUS_DATASOURCE_USERNAME`|
-|DS Password|`-Dquarkus.datasource.password`|`QUARKUS_DATASOURCE_PASSWORD`|
+|Data Source URL|`-Dquarkus.datasource.jdbc.url`|`REGISTRY_DATASOURCE_URL`|
+|DS Username|`-Dquarkus.datasource.username`|`REGISTRY_DATASOURCE_USERNAME`|
+|DS Password|`-Dquarkus.datasource.password`|`REGISTRY_DATASOURCE_PASSWORD`|
 
 To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
@@ -141,9 +141,9 @@ services:
     ports:
       - 8080:8080
     environment:
-      QUARKUS_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
-      QUARKUS_DATASOURCE_USERNAME: apicurio-registry
-      QUARKUS_DATASOURCE_PASSWORD: password
+      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
+      REGISTRY_DATASOURCE_USERNAME: apicurio-registry
+      REGISTRY_DATASOURCE_PASSWORD: password
 ```
   - Run `docker-compose -f test.yml up`
 

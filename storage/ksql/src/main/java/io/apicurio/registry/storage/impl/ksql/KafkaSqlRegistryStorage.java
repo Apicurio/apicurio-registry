@@ -145,17 +145,20 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
      */
     private void startConsumerThread(final KafkaConsumer<UUID, JournalRecord> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", topic);
+        log.info("Bootstrap servers: " + bootstrapServers);
         Runnable runner = () -> {
             log.info("KSQL consumer thread startup lag: {}", startupLag);
 
             try {
+                // Startup lag
+                try { Thread.sleep(startupLag); } catch (InterruptedException e) { }
+
+                log.info("Subscribing to {}", topic);
+
                 // Subscribe to the journal topic
                 Collection<String> topics = Collections.singleton(topic);
                 consumer.subscribe(topics);
-                
-                // Startup lag
-                try { Thread.sleep(startupLag); } catch (InterruptedException e) { }
-                
+
                 // Main consumer loop
                 while (!stopped) {
                     final ConsumerRecords<UUID, JournalRecord> records = consumer.poll(Duration.ofMillis(pollTimeout));
@@ -485,8 +488,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
      * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
      */
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, long version,
-            EditableArtifactMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         if (isApplying()) {
             super.updateArtifactVersionMetaData(artifactId, version, metaData);
@@ -508,7 +510,5 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
             return (CompletionStage<ArtifactMetaDataDto>) journalAndWait("updateArtifactWithMetadata", artifactId, artifactType, content, metaData);
         }
     }
-    
-    
 
 }

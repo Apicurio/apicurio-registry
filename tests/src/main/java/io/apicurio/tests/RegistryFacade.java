@@ -117,9 +117,9 @@ public class RegistryFacade {
 
         String datasourceUrl = "jdbc:postgresql://" + database.getContainerIpAddress() + ":" +
                 database.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + database.getDatabaseName();
-        appEnv.put("QUARKUS_DATASOURCE_URL", datasourceUrl);
-        appEnv.put("QUARKUS_DATASOURCE_USERNAME", database.getUsername());
-        appEnv.put("QUARKUS_DATASOURCE_PASSWORD", database.getPassword());
+        appEnv.put("REGISTRY_DATASOURCE_URL", datasourceUrl);
+        appEnv.put("REGISTRY_DATASOURCE_USERNAME", database.getUsername());
+        appEnv.put("REGISTRY_DATASOURCE_PASSWORD", database.getPassword());
         processes.add(new RegistryTestProcess() {
 
             @Override

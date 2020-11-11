@@ -55,6 +55,11 @@ public class KafkaSqlDispatcher {
             int idx = 0;
             for (JournalRecordArgument argument : arguments) {
                 Class<?> c = Class.forName(argument.getClassName());
+                // Hack: the storage has methods that take a long but not a Long.  But when we serialized
+                // the arguments, auto-boxing converted from long to Long.  Reverse that here.
+                if (c.equals(Long.class)) {
+                    c = long.class;
+                }
                 types[idx] = c;
                 if (c.equals(ContentHandle.class)) {
                     String b64Data = mapper.treeToValue(argument.getValue(), String.class);

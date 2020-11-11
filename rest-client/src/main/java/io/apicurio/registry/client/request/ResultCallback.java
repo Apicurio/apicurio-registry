@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.client.request;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.exception.RestClientException;

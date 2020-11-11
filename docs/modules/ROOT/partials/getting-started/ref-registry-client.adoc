@@ -1,27 +1,39 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-client.adoc
 
-[id="registry-client-types"]
-= {registry} Java client reference
-The {registry} Java client includes the following configuration options, based on the client factory.
+[id="registry-client-config"]
+= {registry} Java client configuration
+The {registry} Java client includes the following configuration options, based on the client factory:
 
-.{registry} Java client options
-[%header,cols=3*]
+.{registry} Java client configuration options
+[%header,cols="1,2,1"]
 |===
 |Option
 |Description
 |Arguments
-|Plain Client
+|Plain client
 |Basic REST client used to interact with a running registry.
-|baseUrl
+|`baseUrl`
 |Custom HTTP client
 |Registry client using an OkHttpClient provided by the user.
-|baseUrl, okhttpClient
-|Custom Configuration
+|`baseUrl`, `okhttpClient`
+|Custom configuration
 |Registry client that accepts a map containing custom configuration. This is useful, for example, to add custom headers to the calls.
-|baseUrl, Map<String, Object> configs
+|`baseUrl`, `Map<String Object> configs`
 |===
 
+[discrete]
+== Custom header configuration
+To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: xxxxx` results in a header of `Authorization` with value of `Basic: xxxxx`.
 
-In order to configure custom headers, the prefix *apicurio.registry.request.headers* must be added to the configs map key, for example, a key *apicurio.registry.request.headers.Authorization* with value Basic: xxxxx would result in a header of *Authorization* with value Basic: xxxxx.
+[discrete]
+== TLS configuration
+You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
 
+* `apicurio.registry.request.ssl.truststore.location`
+* `apicurio.registry.request.ssl.truststore.password`
+* `apicurio.registry.request.ssl.truststore.type`
+* `apicurio.registry.request.ssl.keystore.location`
+* `apicurio.registry.request.ssl.keystore.password`
+* `apicurio.registry.request.ssl.keystore.type`
+* `apicurio.registry.request.ssl.key.password`

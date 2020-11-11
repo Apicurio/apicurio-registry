@@ -3,12 +3,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="using-kafka-client-serdes"]
-= Using the Kafka client serializers/deserializers
+= Validating schemas using Kafka client serializers/deserializers
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 {registry} provides Kafka client serializers/deserializers for producer and consumer applications. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that the messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
 
-This chapter provides instructions on how to use the Kafka client serializer and deserializer for Apache Avro in your Kafka producer and consumer client applications:
+This chapter provides instructions on how to use the Kafka client serializers and deserializers for Apache Avro, JSON Schema, and Google Protobuf in your Kafka producer and consumer client applications:
 
 * xref:registry-serdes-concepts-serde-{context}[]
 * xref:registry-serdes-types-serde-{context}[]

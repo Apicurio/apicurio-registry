@@ -58,6 +58,7 @@ public class MergePropertiesMojo extends AbstractMojo {
         
         Properties mergedProps = new Properties();
         // Read all the input properties files
+        getLog().info("Reading " + inputs.size() + " input files.");
         for (File input : inputs) {
             if (!input.isFile() ) {
                 throw new MojoExecutionException("Invalid input file: " + input.getAbsolutePath());
@@ -66,11 +67,13 @@ public class MergePropertiesMojo extends AbstractMojo {
             try (Reader reader = new FileReader(input)) {
                 inputProps.load(reader);
                 mergedProps.putAll(inputProps);
+                getLog().info("Read all properties from input file: " + input.getName());
             } catch (Throwable t) {
                 throw new MojoExecutionException("Failed to load input file: " + input.getAbsolutePath(), t);
             }
             if (deleteInputs) {
                 input.delete();
+                getLog().info("Deleted input file: " + input.getName());
             }
         }
         
@@ -80,6 +83,7 @@ public class MergePropertiesMojo extends AbstractMojo {
         }
         try (FileWriter writer = new FileWriter(output)) {
             mergedProps.store(writer, "Properties merged by 'apicurio-registry-maven-plugin'");
+            getLog().info("Merged properties written to: " + output.getName());
         } catch (Throwable t) {
             throw new MojoExecutionException("Failed to write merged properties to: " + output.getAbsolutePath());
         }

@@ -15,25 +15,18 @@
  */
 package io.apicurio.registry.events;
 
-import java.util.List;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.Message;
 
 /**
  * @author Fabian Martinez
  */
-public class SinksConfiguration {
+public interface EventSink {
 
-    private List<HttpSinkConfiguration> httpSinks;
+    String name();
 
-    public SinksConfiguration(List<HttpSinkConfiguration> httpSinks) {
-        this.httpSinks = httpSinks;
-    }
+    boolean isConfigured();
 
-    public List<HttpSinkConfiguration> httpSinks() {
-        return this.httpSinks;
-    }
-
-    public boolean isConfigured() {
-        return this.httpSinks != null && !this.httpSinks.isEmpty();
-    }
+    void handle(Message<Buffer> message);
 
 }

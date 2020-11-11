@@ -37,14 +37,14 @@ public class EventsServiceConfiguration {
     Optional<String> ksink;
 
     @Produces
-    public SinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
+    public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
         List<HttpSinkConfiguration> httpSinks = properties.stringPropertyNames().stream()
             .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
             .collect(Collectors.toList());
         if (ksink.isPresent()) {
             httpSinks.add(new HttpSinkConfiguration("k_sink", ksink.get()));
         }
-        return new SinksConfiguration(httpSinks);
+        return new HttpSinksConfiguration(httpSinks);
     }
 
 }

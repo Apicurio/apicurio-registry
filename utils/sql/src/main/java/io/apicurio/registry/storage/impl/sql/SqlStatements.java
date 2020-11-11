@@ -103,7 +103,12 @@ public interface SqlStatements {
     /**
      * A statement used to update the 'latest' column of the 'artifacts' table.
      */
-    public String updateArtifactLatestVersion();
+    public String updateArtifactLatest();
+
+    /**
+     * A statement used to update the 'latest' column of the 'artifacts' table to the globalId of the highest remaining version.
+     */
+    public String updateArtifactLatestGlobalId();
 
     /**
      * A statement used to insert a row in the versions table.

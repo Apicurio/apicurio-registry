@@ -20,16 +20,17 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.impl.ksql.KafkaSqlRegistryStorage;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
     
     @Inject
-    SqlRegistryStorage storage;
+    KafkaSqlRegistryStorage storage;
     
     /**
      * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()

@@ -159,6 +159,43 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>merge-properties</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.outputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/overlay.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.testOutputDirectory}/application.properties</param>
+                                <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>

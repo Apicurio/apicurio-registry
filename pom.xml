@@ -189,7 +189,6 @@
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
         <version.frontend-maven.plugin>1.10.3</version.frontend-maven.plugin>
-        <version.merge-properties.plugin>1.1</version.merge-properties.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.37</version.puppycrawl>
@@ -652,11 +651,6 @@
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
                     <version>${version.scala-maven.plugin}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.polago.maven.plugins</groupId>
-                    <artifactId>merge-properties-maven-plugin</artifactId>
-                    <version>${version.merge-properties.plugin}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

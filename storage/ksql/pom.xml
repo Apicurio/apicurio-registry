@@ -197,8 +197,9 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.polago.maven.plugins</groupId>
-                <artifactId>merge-properties-maven-plugin</artifactId>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${project.version}</version>
                 <executions>
                     <execution>
                         <id>merge-properties</id>
@@ -207,19 +208,27 @@
                             <goal>merge</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                            <outputFile>application.properties</outputFile>
-                            <overwriteProperties>true</overwriteProperties>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.outputDirectory}</directory>
-                                    <includes>
-                                      <include>application.properties</include>
-                                      <include>overlay.properties</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
+                            <output>${project.build.outputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/overlay.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.testOutputDirectory}/application.properties</param>
+                                <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>

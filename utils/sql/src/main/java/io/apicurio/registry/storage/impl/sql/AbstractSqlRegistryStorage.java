@@ -448,7 +448,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
         
         // Update the "latest" column in the artifacts table with the globalId of the new version
-        sql = sqlStatements.updateArtifactLatestVersion();
+        sql = sqlStatements.updateArtifactLatest();
         handle.createUpdate(sql)
               .bind(0, globalId)
               .bind(1, artifactId)
@@ -503,7 +503,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 SortedSet<Long> rval = new TreeSet<Long>(versions);
                 
                 // Set the 'latest' version of an artifact to NULL
-                sql = sqlStatements.updateArtifactLatestVersion();
+                sql = sqlStatements.updateArtifactLatest();
                 handle.createUpdate(sql)
                       .bind(0, (Long) null)
                       .bind(1, artifactId)
@@ -1218,7 +1218,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         try {
             this.jdbi.withHandle( handle -> {
                 // Set the 'latest' version of an artifact to NULL
-                String sql = sqlStatements.updateArtifactLatestVersion();
+                String sql = sqlStatements.updateArtifactLatest();
                 handle.createUpdate(sql)
                       .bind(0, (Long) null)
                       .bind(1, artifactId)
@@ -1249,18 +1249,19 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
                 // TODO reap orphaned rows in the "content" table?
 
-                // If the row was deleted, remove the version from the set of versions
+                // If the row was deleted, update the "latest" column to the globalId of the highest remaining version
                 if (rows == 1) {
                     versions.remove(version);
+                    
+                    // Update the 'latest' version of the artifact to the globalId of the highest remaining version
+                    long latestVersion = versions.last();
+                    sql = sqlStatements.updateArtifactLatestGlobalId();
+                    handle.createUpdate(sql)
+                          .bind(0, artifactId)
+                          .bind(1, latestVersion)
+                          .bind(2, artifactId)
+                          .execute();
                 }
-                
-                // Update the 'latest' version of the artifact to the highest version remaining.
-                long latestVersion = versions.last();
-                sql = sqlStatements.updateArtifactLatestVersion();
-                handle.createUpdate(sql)
-                      .bind(0, latestVersion)
-                      .bind(1, artifactId)
-                      .execute();
                 
                 if (rows == 0) {
                     throw new VersionNotFoundException(artifactId, version);

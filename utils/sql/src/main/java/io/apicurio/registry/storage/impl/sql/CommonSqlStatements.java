@@ -133,11 +133,19 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatest()
      */
     @Override
-    public String updateArtifactLatestVersion() {
+    public String updateArtifactLatest() {
         return "UPDATE artifacts SET latest = ? WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestGlobalId()
+     */
+    @Override
+    public String updateArtifactLatestGlobalId() {
+        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?) WHERE artifactId = ?";
     }
     
     /**

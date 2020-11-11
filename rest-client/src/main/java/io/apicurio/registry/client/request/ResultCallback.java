@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.client.request;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.exception.RestClientException;
@@ -28,6 +29,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,7 +58,14 @@ public class ResultCallback<T> implements Callback<T> {
             try {
                 result.completeExceptionally(new RestClientException(objectMapper.readValue(response.errorBody().byteStream(), Error.class)));
             } catch (IOException | NullPointerException e) {
-                logger.log(Level.SEVERE, "Error trying to read response", e);
+
+                logger.log(Level.SEVERE, "Error trying to parse error response message", e);
+                final Error error = new Error();
+                error.setName(e.getClass().getSimpleName());
+                error.setMessage(e.getMessage());
+                error.setDetail(getStackTrace(e));
+                error.setErrorCode(0);
+                result.completeExceptionally(new RestClientException(error));
             }
         }
     }
@@ -81,6 +91,20 @@ public class ResultCallback<T> implements Callback<T> {
             String id = headers.get(Headers.ARTIFACT_ID);
             String version = headers.get(Headers.VERSION);
             logger.warning(String.format("Artifact %s [%s] is deprecated", id, version));
+        }
+    }
+
+    /**
+     * Gets the full stack trace for the given exception and returns it as a
+     * string.
+     * @param t
+     */
+    private static String getStackTrace(Throwable t) {
+        try (StringWriter writer = new StringWriter()) {
+            t.printStackTrace(new PrintWriter(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            return null;
         }
     }
 }

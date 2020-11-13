@@ -19,6 +19,7 @@ package io.apicurio.registry.storage.impl.ksql;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -38,8 +39,9 @@ public class JournalRecord {
      * @param methodName
      * @param arguments
      */
-    public static JournalRecord create(String methodName, Object ...arguments) {
+    public static JournalRecord create(UUID uuid, String methodName, Object ...arguments) {
         JournalRecord record = new JournalRecord();
+        record.setUuid(uuid);
         record.setMethod(methodName);
         if (arguments != null && arguments.length > 0) {
             List<JournalRecordArgument> recordArgs = new ArrayList<>(arguments.length);
@@ -64,6 +66,7 @@ public class JournalRecord {
         return record;
     }
     
+    private UUID uuid;
     private String method;
     private List<JournalRecordArgument> arguments;
 
@@ -99,6 +102,20 @@ public class JournalRecord {
      */
     public void setArguments(List<JournalRecordArgument> arguments) {
         this.arguments = arguments;
+    }
+
+    /**
+     * @return the uuid
+     */
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    /**
+     * @param uuid the uuid to set
+     */
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
     }
     
 }

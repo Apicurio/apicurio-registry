@@ -44,8 +44,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.UUIDDeserializer;
-import org.apache.kafka.common.serialization.UUIDSerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -92,6 +92,10 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlRegistryStorage.class);
 
     @Inject
+    @ConfigProperty(name = "registry.ksql.globalRuleKey", defaultValue = "__global_rule")
+    String globalRuleKey;
+    
+    @Inject
     @ConfigProperty(name = "registry.ksql.bootstrap.servers")
     String bootstrapServers;
 
@@ -114,8 +118,8 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
     KafkaSqlDispatcher dispatcher;
     
     private boolean stopped = true;
-    private KafkaProducer<UUID, JournalRecord> producer;
-    private KafkaConsumer<UUID, JournalRecord> consumer;
+    private KafkaProducer<String, JournalRecord> producer;
+    private KafkaConsumer<String, JournalRecord> consumer;
     private ThreadLocal<Boolean> applying = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     @PostConstruct
@@ -143,7 +147,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
      * the internal data model.
      * @param consumer
      */
-    private void startConsumerThread(final KafkaConsumer<UUID, JournalRecord> consumer) {
+    private void startConsumerThread(final KafkaConsumer<String, JournalRecord> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", topic);
         log.info("Bootstrap servers: " + bootstrapServers);
         Runnable runner = () -> {
@@ -161,14 +165,13 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
                 // Main consumer loop
                 while (!stopped) {
-                    final ConsumerRecords<UUID, JournalRecord> records = consumer.poll(Duration.ofMillis(pollTimeout));
+                    final ConsumerRecords<String, JournalRecord> records = consumer.poll(Duration.ofMillis(pollTimeout));
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
-                            UUID uuid = record.key();
                             JournalRecord journalRecord = record.value();
-                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
-                            processJournalRecord(uuid, journalRecord);
+                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue?
+                            processJournalRecord(journalRecord);
                         });
                     }
                 }
@@ -185,15 +188,14 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
     /**
      * Process a single journal record found on the Kafka topic.
-     * @param uuid
      * @param journalRecord
      */
-    private void processJournalRecord(UUID uuid, JournalRecord journalRecord) {
-        log.debug("[{}] Processing journal record of type {}", uuid, journalRecord.getMethod());
+    private void processJournalRecord(JournalRecord journalRecord) {
+        log.debug("[{}] Processing journal record of type {}", journalRecord.getUuid(), journalRecord.getMethod());
         applying.set(Boolean.TRUE);
         try {
             Object returnValueOrException = dispatcher.dispatchTo(journalRecord, this);
-            coordinator.notifyResponse(uuid, returnValueOrException);
+            coordinator.notifyResponse(journalRecord.getUuid(), returnValueOrException);
         } finally {
             applying.set(Boolean.FALSE);
         }
@@ -202,25 +204,25 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
     /**
      * Creates the Kafka producer.
      */
-    private KafkaProducer<UUID, JournalRecord> createKafkaProducer() {
+    private KafkaProducer<String, JournalRecord> createKafkaProducer() {
         Properties props = new Properties();
 
         // Configure kafka settings
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topic);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, UUIDSerializer.class.getName());
+        props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JournalRecordSerializer.class.getName());
 
         // Create the Kafka producer
-        KafkaProducer<UUID, JournalRecord> producer = new KafkaProducer<>(props);
+        KafkaProducer<String, JournalRecord> producer = new KafkaProducer<>(props);
         return producer;
     }
 
     /**
      * Creates the Kafka consumer.
      */
-    private KafkaConsumer<UUID, JournalRecord> createKafkaConsumer() {
+    private KafkaConsumer<String, JournalRecord> createKafkaConsumer() {
         Properties props = new Properties();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -228,11 +230,11 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, UUIDDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JournalRecordDeserializer.class.getName());
 
         // Create the Kafka Consumer
-        KafkaConsumer<UUID, JournalRecord> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<String, JournalRecord> consumer = new KafkaConsumer<>(props);
         return consumer;
     }
 
@@ -242,14 +244,16 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
     /**
      * Create a journal record and publish it to the Kafka topic.
+     * @param journalKey
      * @param methodName
      * @param arguments
+     * @throws RegistryException
      */
-    private Object journalAndWait(String methodName, Object ...arguments) throws RegistryException {
+    private Object journalAndWait(String journalKey, String methodName, Object ...arguments) throws RegistryException {
         UUID uuid = coordinator.createUUID();
         log.debug("[{}] Publishing journal record of type {}", uuid, methodName);
-        JournalRecord record = JournalRecord.create(methodName, arguments);
-        ProducerRecord<UUID, JournalRecord> producerRecord = new ProducerRecord<UUID, JournalRecord>(topic, uuid, record);
+        JournalRecord record = JournalRecord.create(uuid, methodName, arguments);
+        ProducerRecord<String, JournalRecord> producerRecord = new ProducerRecord<String, JournalRecord>(topic, journalKey, record);
         producer.send(producerRecord);
         Object rval;
         try {
@@ -274,7 +278,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.createGlobalRule(rule, config);
         } else {
-            journalAndWait("createGlobalRule", rule, config);
+            journalAndWait(globalRuleKey, "createGlobalRule", rule, config);
         }
     }
     
@@ -287,7 +291,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateGlobalRule(rule, config);
         } else {
-            journalAndWait("updateGlobalRule", rule, config);
+            journalAndWait(globalRuleKey, "updateGlobalRule", rule, config);
         }
     }
     
@@ -299,7 +303,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteGlobalRules();
         } else {
-            journalAndWait("deleteGlobalRules");
+            journalAndWait(globalRuleKey, "deleteGlobalRules");
         }
     }
     
@@ -311,7 +315,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteGlobalRule(rule);
         } else {
-            journalAndWait("deleteGlobalRule", rule);
+            journalAndWait(globalRuleKey, "deleteGlobalRule", rule);
         }
     }
     
@@ -324,7 +328,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.deleteArtifact(artifactId);
         } else {
-            return (SortedSet<Long>) journalAndWait("deleteArtifact", artifactId);
+            return (SortedSet<Long>) journalAndWait(artifactId, "deleteArtifact", artifactId);
         }
     }
     
@@ -337,7 +341,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteArtifactRule(artifactId, rule);
         } else {
-            journalAndWait("deleteArtifactRule", artifactId, rule);
+            journalAndWait(artifactId, "deleteArtifactRule", artifactId, rule);
         }
     }
     
@@ -350,7 +354,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteArtifactRules(artifactId);
         } else {
-            journalAndWait("deleteArtifactRules", artifactId);
+            journalAndWait(artifactId, "deleteArtifactRules", artifactId);
         }
     }
     
@@ -363,7 +367,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteArtifactVersion(artifactId, version);
         } else {
-            journalAndWait("deleteArtifactVersion", artifactId, version);
+            journalAndWait(artifactId, "deleteArtifactVersion", artifactId, version);
         }
     }
     
@@ -376,7 +380,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.deleteArtifactVersionMetaData(artifactId, version);
         } else {
-            journalAndWait("deleteArtifactVersionMetaData", artifactId, version);
+            journalAndWait(artifactId, "deleteArtifactVersionMetaData", artifactId, version);
         }
     }
 
@@ -389,7 +393,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.createArtifact(artifactId, artifactType, content);
         } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait("createArtifact", artifactId, artifactType, content);
+            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "createArtifact", artifactId, artifactType, content);
         }
     }
 
@@ -403,7 +407,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.createArtifactWithMetadata(artifactId, artifactType, content, metaData);
         } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait("createArtifactWithMetadata", artifactId, artifactType, content, metaData);
+            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "createArtifactWithMetadata", artifactId, artifactType, content, metaData);
         }
     }
 
@@ -417,7 +421,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.createArtifactRuleAsync(artifactId, rule, config);
         } else {
-            return (CompletionStage<Void>) journalAndWait("createArtifactRuleAsync", artifactId, rule, config);
+            return (CompletionStage<Void>) journalAndWait(artifactId, "createArtifactRuleAsync", artifactId, rule, config);
         }
     }
     
@@ -430,7 +434,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.updateArtifact(artifactId, artifactType, content);
         } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait("updateArtifact", artifactId, artifactType, content);
+            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "updateArtifact", artifactId, artifactType, content);
         }
     }
     
@@ -443,7 +447,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateArtifactMetaData(artifactId, metaData);
         } else {
-            journalAndWait("updateArtifactMetaData", artifactId, metaData);
+            journalAndWait(artifactId, "updateArtifactMetaData", artifactId, metaData);
         }
     }
     
@@ -456,7 +460,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateArtifactRule(artifactId, rule, config);
         } else {
-            journalAndWait("updateArtifactRule", artifactId, rule, config);
+            journalAndWait(artifactId, "updateArtifactRule", artifactId, rule, config);
         }
     }
     
@@ -468,7 +472,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateArtifactState(artifactId, state);
         } else {
-            journalAndWait("updateArtifactState", artifactId, state);
+            journalAndWait(artifactId, "updateArtifactState", artifactId, state);
         }
     }
     
@@ -480,7 +484,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateArtifactState(artifactId, state, version);
         } else {
-            journalAndWait("updateArtifactState", artifactId, state, version);
+            journalAndWait(artifactId, "updateArtifactState", artifactId, state, version);
         }
     }
     
@@ -493,10 +497,10 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             super.updateArtifactVersionMetaData(artifactId, version, metaData);
         } else {
-            journalAndWait("updateArtifactVersionMetaData", artifactId, version, metaData);
+            journalAndWait(artifactId, "updateArtifactVersionMetaData", artifactId, version, metaData);
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
      */
@@ -507,7 +511,7 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         if (isApplying()) {
             return super.updateArtifactWithMetadata(artifactId, artifactType, content, metaData);
         } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait("updateArtifactWithMetadata", artifactId, artifactType, content, metaData);
+            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "updateArtifactWithMetadata", artifactId, artifactType, content, metaData);
         }
     }
 

@@ -13,19 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.apicurio.registry.storage.impl.ksql;
+package io.apicurio.registry.storage;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public class TestTypes {
-    
-    public static void main(String[] args) {
-        System.out.println(long.class);
-        System.out.println(Long.class);
-        System.out.println(Long.class == long.class);
-        System.out.println(Long.class.equals(long.class));
-    }
+public interface RegistryStorageProvider {
+
+    RegistryStorage storage();
 
 }

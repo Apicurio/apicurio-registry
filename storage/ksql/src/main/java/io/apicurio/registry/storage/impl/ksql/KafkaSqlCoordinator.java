@@ -24,16 +24,18 @@ import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.apicurio.registry.types.RegistryException;
+
 /**
  * Coordinates "write" responses across threads in the Kafka-SQL storage implementation.  Basically this is used
  * to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP thread is
  * waiting for an operation to be completed by the Kafka consumer thread.
- * 
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class KafkaSqlCoordinator {
-    
+
     private static final Object NULL = new Object();
     private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
     private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
@@ -49,21 +51,28 @@ public class KafkaSqlCoordinator {
 
     /**
      * Waits for a response to the operation with the given UUID. There is a countdown latch for each operation.  The
-     * caller waiting for the response will wait for the countdown to happen and then proceed.  We also remove 
+     * caller waiting for the response will wait for the countdown to happen and then proceed.  We also remove
      * the latch from the Map here since it's not needed anymore.
-     * 
+     *
      * @param uuid
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
-    public Object waitForResponse(UUID uuid) throws InterruptedException {
+    public Object waitForResponse(UUID uuid) {
         // TODO timeout should be configurable
-        latches.get(uuid).await(30, TimeUnit.SECONDS);
-        latches.remove(uuid);
-        Object rval = returnValues.remove(uuid);
-        if (rval == NULL) {
-            return null;
-        } else {
+        try {
+            latches.get(uuid).await(30, TimeUnit.SECONDS);
+
+            Object rval = returnValues.remove(uuid);
+            if (rval == NULL) {
+                return null;
+            } else if (rval instanceof RegistryException) {
+                throw (RegistryException) rval;
+            }
             return rval;
+        } catch (InterruptedException e) {
+          throw new RegistryException(e);
+        } finally {
+            latches.remove(uuid);
         }
     }
 
@@ -71,7 +80,7 @@ public class KafkaSqlCoordinator {
      * Countdown the latch for the given UUID.  This will wake up the thread waiting for the response
      * so that it can proceed.
      * @param uuid
-     * @param returnValue 
+     * @param returnValue
      */
     public void notifyResponse(UUID uuid, Object returnValue) {
         // If there is no countdown latch, then there is no HTTP thread waiting for

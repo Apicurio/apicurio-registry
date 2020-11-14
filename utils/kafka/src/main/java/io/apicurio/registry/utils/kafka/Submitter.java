@@ -31,16 +31,15 @@ import java.util.function.Function;
 /**
  * @author Ales Justin
  */
-public class Submitter {
-    private Function<Str.StorageValue, CompletableFuture<?>> submitFn;
+public class Submitter<T> {
+    private Function<Str.StorageValue, CompletableFuture<T>> submitFn;
 
-    public Submitter(Function<Str.StorageValue, CompletableFuture<?>> submitFn) {
+    public Submitter(Function<Str.StorageValue, CompletableFuture<T>> submitFn) {
         this.submitFn = submitFn;
     }
 
-    private <T> CompletableFuture<T> submit(Str.StorageValue value) {
-        //noinspection unchecked
-        return (CompletableFuture<T>) submitFn.apply(value);
+    private CompletableFuture<T> submit(Str.StorageValue value) {
+        return submitFn.apply(value);
     }
 
     private Str.StorageValue.Builder getRVBuilder(Str.ValueType vt, Str.ActionType actionType, String artifactId, long version) {
@@ -55,7 +54,7 @@ public class Submitter {
         return builder;
     }
 
-    public <T> CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content) {
+    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
@@ -68,7 +67,7 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> properties) {
+    public CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> properties) {
         Str.MetaDataValue.Builder builder = Str.MetaDataValue.newBuilder();
         if (name != null) {
             builder.setName(name);
@@ -89,7 +88,7 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitRule(Str.ActionType actionType, String artifactId, RuleType type, String configuration) {
+    public CompletableFuture<T> submitRule(Str.ActionType actionType, String artifactId, RuleType type, String configuration) {
         Str.RuleValue.Builder builder = Str.RuleValue.newBuilder();
         if (type != null) {
             builder.setType(Str.RuleType.valueOf(type.name()));
@@ -102,13 +101,13 @@ public class Submitter {
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitSnapshot(long timestamp) {
+    public CompletableFuture<T> submitSnapshot(long timestamp) {
         Str.SnapshotValue.Builder builder = Str.SnapshotValue.newBuilder().setTimestamp(timestamp);
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.SNAPSHOT, Str.ActionType.CREATE, null, -1).setSnapshot(builder);
         return submit(rvb.build());
     }
 
-    public <T> CompletableFuture<T> submitState(String artifactId, Long version, ArtifactState state) {
+    public CompletableFuture<T> submitState(String artifactId, Long version, ArtifactState state) {
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.STATE,
                                                     Str.ActionType.UPDATE,
                                                     artifactId, version != null ? version : -1L)

@@ -356,9 +356,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE v.globalId = ?";
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.artifactId = v.artifactId WHERE v.globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
      */

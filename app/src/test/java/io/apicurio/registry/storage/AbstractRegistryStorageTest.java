@@ -238,6 +238,84 @@ public abstract class AbstractRegistryStorageTest {
     }
 
     @Test
+    public void testGetArtifactVersions() throws Exception {
+        String artifactId = "testGetArtifactVersions";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = storage().createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+
+        StoredArtifact storedArtifact = storage().getArtifact(artifactId);
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT, dto);
+
+        storedArtifact = storage().getArtifactVersion(artifactId, 1);
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT, dto);
+
+        storedArtifact = storage().getArtifactVersion(dto.getGlobalId());
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT, dto);
+
+        ArtifactMetaDataDto dtov1 = storage().getArtifactMetaData(dto.getGlobalId());
+        verifyArtifactMetadata(dtov1, dto);
+
+        SortedSet<Long> versions = storage().getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(1, versions.size());
+
+        ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactMetaDataDto dtov2 = storage().updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
+        Assertions.assertNotNull(dtov2);
+        Assertions.assertEquals(artifactId, dtov2.getId());
+        Assertions.assertEquals(2, dtov2.getVersion());
+        Assertions.assertEquals(ArtifactState.ENABLED, dtov2.getState());
+
+        versions = storage().getArtifactVersions(artifactId);
+        Assertions.assertNotNull(versions);
+        Assertions.assertFalse(versions.isEmpty());
+        Assertions.assertEquals(2, versions.size());
+
+        //verify version 2
+
+        storedArtifact = storage().getArtifact(artifactId);
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT_V2, dtov2);
+
+        storedArtifact = storage().getArtifactVersion(artifactId, 2);
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT_V2, dtov2);
+
+        storedArtifact = storage().getArtifactVersion(dtov2.getGlobalId());
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT_V2, dtov2);
+
+        ArtifactMetaDataDto dtov2Stored = storage().getArtifactMetaData(dtov2.getGlobalId());
+        verifyArtifactMetadata(dtov2Stored, dtov2);
+
+        // verify version 1 again
+
+        storedArtifact = storage().getArtifactVersion(artifactId, 1);
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT, dto);
+
+        storedArtifact = storage().getArtifactVersion(dto.getGlobalId());
+        verifyArtifact(storedArtifact, OPENAPI_CONTENT, dto);
+
+        dtov1 = storage().getArtifactMetaData(dto.getGlobalId());
+        verifyArtifactMetadata(dtov1, dto);
+
+    }
+
+    private void verifyArtifact(StoredArtifact storedArtifact, String content, ArtifactMetaDataDto expectedMetadata) {
+        Assertions.assertNotNull(storedArtifact);
+        Assertions.assertEquals(content, storedArtifact.getContent().content());
+        Assertions.assertEquals(expectedMetadata.getGlobalId(), storedArtifact.getGlobalId());
+        Assertions.assertEquals(expectedMetadata.getVersion(), storedArtifact.getVersion());
+    }
+
+    private void verifyArtifactMetadata(ArtifactMetaDataDto actualMetadata, ArtifactMetaDataDto expectedMetadata) {
+        Assertions.assertNotNull(actualMetadata);
+        Assertions.assertNotNull(expectedMetadata);
+        Assertions.assertEquals(expectedMetadata.getGlobalId(), actualMetadata.getGlobalId());
+        Assertions.assertEquals(expectedMetadata.getVersion(), actualMetadata.getVersion());
+    }
+
+    @Test
     public void testCreateArtifactVersionWithMetaData() throws Exception {
         String artifactId = "testCreateArtifactVersionWithMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);

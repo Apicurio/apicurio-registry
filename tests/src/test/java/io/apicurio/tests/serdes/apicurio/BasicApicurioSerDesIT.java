@@ -99,6 +99,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
     }
 
     @RegistryRestClientTest
+    @Tag(ACCEPTANCE)
     void testEvolveAvroApicurio(RegistryRestClient client) throws InterruptedException, ExecutionException, TimeoutException {
         String topicName = TestUtils.generateTopic();
         String recordName = TestUtils.generateSubject();

@@ -40,8 +40,8 @@ A consumer client application uses a deserializer to get the messages that it co
 
 To enable a consumer to use {registry} for deserialization:
 
-* xref:service-registry-register-{context}[Define and register your schema with {registry}]
-* xref:service-registry-config-consumer-{context}[Configure the consumer client code]:
+* xref:registry-serdes-register-{context}[Define and register your schema with {registry}]
+* xref:registry-serdes-config-consumer-{context}[Configure the consumer client code]:
 ** URL of {registry}
 ** {registry} deserializer to use with the messages
 ** Input data stream for deserialization

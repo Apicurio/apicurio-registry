@@ -93,11 +93,12 @@ necessary to do this when sharing the Kafka cluster with other applications that
 Change the default topic names by overriding them either by setting appropriate environment variables or by
 setting appropriate Java system properties:
 
-[%header,cols=3*]
+.Environment variables for Kafka topic names
+[%header,cols="1,2,2"]
 |===
-|Topic Default
-|Environment Variable
-|System Property
+|Topic default
+|Environment variable
+|System property
 |`storage-topic`
 a| `REGISTRY_STREAMS_TOPOLOGY_STORAGE_TOPIC`
 a| `registry.streams.topology.storage.topic`

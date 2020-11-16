@@ -36,7 +36,7 @@ For more details, see {registry-reference}.
 
 [id="registry-rules-config"]
 = Content rule configuration
-You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. But if no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
+You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
 
 [discrete]
 == Configure artifact rules

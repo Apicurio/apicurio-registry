@@ -1,16 +1,16 @@
 // Metadata created by nebel
-
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="intro-to-registry-rules"]
 = {registry} content rules
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter introduces the optional rules used to govern registry content and provides details on the available rule types:
+This chapter introduces the optional rules used to govern registry content and provides details on the available rule configuration:
 
 * xref:registry-rules[]
 * xref:registry-rules-apply[]
-* xref:registry-rules-work[]  
+* xref:registry-rules-work[]
+* xref:registry-rules-config[]  
 
 //INCLUDES
 include::{mod-loc}getting-started/con-registry-rules.adoc[leveloffset=+1]

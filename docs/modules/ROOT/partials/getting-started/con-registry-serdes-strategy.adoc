@@ -2,7 +2,7 @@
 // assembly-using-kafka-client-serdes
 
 [id='registry-serdes-concepts-strategy-{context}']
-= Strategies to lookup a schema
+= Strategies to look up a schema
 
 The Kafka client serializer uses two lookup _strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}.
 
@@ -17,6 +17,17 @@ For a given topic and message, you can use implementations of the following Java
 The artifact ID strategy provides a way to map the Kafka topic and message information to the ID of an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with either `key` or `value`, depending on whether the serializer is being used for the Kafka message key or value).
 
 However, you can use alternative conventions for the mapping, either by using an alternative strategy provided by {registry} or by creating a custom Java class that implements `io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy`.
+
+[discrete]
+[id='service-registry-concepts-artifactid-{context}']
+== Strategies to return an artifact ID
+
+Strategies to return an artifact ID based on an implementation of `ArtifactIdStrategy`:
+
+`RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
+`TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
+`TopicIdStrategy`:: (Default) strategy that uses the topic name and `key` or `value` suffix.
+`SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
 
 [discrete]
 == Global ID strategy
@@ -43,17 +54,6 @@ public String artifactId(String topic, boolean isKey, T schema) {
 
 What lookup strategy you use depends on how and where you store your schema.
 For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.
-
-[discrete]
-[id='service-registry-concepts-artifactid-{context}']
-== Strategies to return an artifact ID
-
-Strategies to return an artifact ID based on an implementation of `ArtifactIdStrategy`:
-
-`RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
-`TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
-`TopicIdStrategy`:: (Default) strategy that uses the topic name and `key` or `value` suffix.
-`SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
 
 [discrete]
 [id='service-registry-concepts-globalid-{context}']

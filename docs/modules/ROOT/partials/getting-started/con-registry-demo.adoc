@@ -15,7 +15,3 @@
 * REST client example
 
 For more details, see link:https://github.com/Apicurio/apicurio-registry-examples[]
-
-ifdef::rh-service-registry[]
-For another open source demonstration example with detailed instructions on Avro serialization/deserialization with storage in Apache Kafka, see the Red Hat Developer article on link:https://developers.redhat.com/blog/2019/12/16/getting-started-with-red-hat-integration-service-registry/[Getting Started with Red Hat Integration Service Registry].
-endif::[]

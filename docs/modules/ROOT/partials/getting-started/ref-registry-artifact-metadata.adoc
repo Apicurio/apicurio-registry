@@ -50,7 +50,7 @@ a| true
 |===
 
 .Updating artifact metadata
-* You can use the {registry} REST API update the set of editable properties using the metadata endpoints. 
+* You can use the {registry} REST API to update the set of editable properties using the metadata endpoints. 
 
 * You can edit the `state` property only by using the state transition API. For example, you can mark an artifact as `deprecated` or `disabled`.  
 

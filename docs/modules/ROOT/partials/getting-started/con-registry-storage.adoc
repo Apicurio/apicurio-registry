@@ -47,3 +47,4 @@ ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
 endif::[]
 * {installing-the-registry-openshift}
+* {installing-the-registry-storage-openshift}

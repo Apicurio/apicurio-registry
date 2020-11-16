@@ -13,29 +13,24 @@ This procedure describes how to configure a Kafka producer client written in Jav
 
 .Procedure
 
-. Configure the client with the URL of {registry}.
-+
-For example:
+. Configure the client with the URL of {registry}. For example:
 +
 [source,java,subs="+quotes,attributes"]
 ----
 String registryUrl = "https://registry.example.com/api";
 Properties props = new Properties();
-props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl); <1>
+props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl);
 ----
 
-. Configure the client with the serializer, and the and the strategy to look up the schema in {registry}.
-+
-For example:
+. Configure the client with the serializer, and the strategy to look up the schema in {registry}. For example:
 +
 [source,java,subs="+quotes,attributes"]
 ----
 props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092");
-props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
-props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <3>
-props.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName()); <4>
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <1>
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
+props.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName()); <3>
 ----
-<1> The {registry} URL.
-<2> The serializer for the message _key_ provided by {registry}.
-<3> The serializer for the message _value_ provided by {registry}.
-<4> Lookup strategy to find the global ID for the schema.
+<1> The serializer for the message key provided by {registry}.
+<2> The serializer for the message value provided by {registry}.
+<3> Lookup strategy to find the global ID for the schema.

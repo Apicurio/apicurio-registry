@@ -4,7 +4,7 @@
 [id='registry-serdes-register-{context}']
 = Registering a schema in {registry}
 
-After you have defined a schema in the appropriate format, such as _Apache Avro_, you can add the schema to {registry}.
+After you have defined a schema in the appropriate format, such as Apache Avro, you can add the schema to {registry}.
 
 You can add the schema using:
 
@@ -45,8 +45,8 @@ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
     }'
   https://my-cluster-service-registry-myproject.example.com/api/artifacts -s <2>
 ----
-<1> Avro schema
-<2> OpenShift route name that exposes {registry}
+<1> Avro schema artifact.
+<2> OpenShift route name that exposes {registry}.
 
 
 [discrete]

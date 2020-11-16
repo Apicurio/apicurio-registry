@@ -104,7 +104,7 @@ You can configure the Avro serializer class in the following ways:
 * Avro encoding
 
 .Global ID location
-lizer is responsible for passing the unique global ID of the schema as part of the Kafka message so that consumers can use the right schema for deserialization.  The location of that global ID can be in the payload of the message or in the message headers. The default approach is to pass the global ID in the message payload. If you want the ID sent in the message headers instead, you can set the following configuration property:
+The serializer passes the unique global ID of the schema as part of the Kafka message so that consumers can use the right schema for deserialization.  The location of that global ID can be in the payload of the message or in the message headers. The default approach is to pass the global ID in the message payload. If you want the ID sent in the message headers instead, you can set the following configuration property:
 ----
 props.putIfAbsent(AbstractKafkaSerDe.USE_HEADERS, "true")
 ----
@@ -123,7 +123,7 @@ that interface:
 {registry} represents the global ID of an artifact as a long, but for legacy reasons (or for compatibility with other registries or serde classes) you may want to use 4 bytes when sending the ID.
 
 .Avro datum provider
-Avro provides different Datum writers and readers to write and read data. {registry} supports three different types:
+Avro provides different datum writers and readers to write and read data. {registry} supports three different types:
 
 * Generic
 * Specific

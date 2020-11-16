@@ -13,9 +13,7 @@ This procedure describes how to configure a Kafka Streams client written in Java
 
 .Procedure
 
-. Create and configure a REST client with the {registry}
-+
-For example:
+. Create and configure a REST client with the {registry}. For example:
 +
 [source,shell,subs="+quotes,attributes"]
 ----
@@ -23,9 +21,7 @@ String registryUrl = "https://registry.example.com/api";
 RegistryService client = RegistryClient.cached(registryUrl);
 ----
 
-. Configure the serializer, deserializer, and create the Kafka Streams client
-+
-For example:
+. Configure the serializer, deserializer, and create the Kafka Streams client. For example:
 +
 [source,java,subs="+quotes,attributes"]
 ----
@@ -48,5 +44,5 @@ KStream<String, LogInput> input = builder.stream( <4>
 ----
 <1> The serializer provided by {registry}.
 <2> The deserializer provided by {registry}.
-<3> The deserialization is in _Apache Avro_ format.
+<3> The deserialization is in Apache Avro format.
 <4> The Kafka Streams client application.

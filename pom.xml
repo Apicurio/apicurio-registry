@@ -82,6 +82,7 @@
     <modules>
         <module>common</module>
         <module>app</module>
+        <module>cli</module>
         <module>client</module>
         <module>ui</module>
         <module>utils/converter</module>
@@ -131,6 +132,9 @@
 
         <!-- Storage types -->
         <infinispan.version>12.0.0.Dev05</infinispan.version>
+
+        <!-- Picocli -->
+        <picocli.version>4.5.2</picocli.version>
 
         <!-- gRPC -->
         <grpc.version>1.33.1</grpc.version>
@@ -365,6 +369,18 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+
+            <!-- Picocli -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli-shell-jline2</artifactId>
+                <version>${picocli.version}</version>
             </dependency>
 
             <!-- gRPC -->

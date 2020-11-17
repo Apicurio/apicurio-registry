@@ -1,23 +1,5 @@
 package io.apicurio.registry.cluster;
 
-import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.cluster.support.ClusterUtils;
@@ -38,6 +20,22 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.quarkus.runtime.configuration.QuarkusConfigFactory;
 import io.smallrye.config.SmallRyeConfig;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+
+import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 /**
  * @author Ales Justin
@@ -81,15 +79,15 @@ public class ClusterIT {
         RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
 
         // warm-up both nodes (its storages)
-        client1.listArtifacts(Collections.emptyMap());
-        client2.listArtifacts(Collections.emptyMap());
+        client1.listArtifacts();
+        client2.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-        long globalId = client1.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream).getGlobalId();
+        long globalId = client1.createArtifact(artifactId, ArtifactType.JSON, stream).getGlobalId();
         try {
             TestUtils.retry(() -> {
-                ArtifactMetaData amd = client2.getArtifactMetaData(Collections.emptyMap(), artifactId);
+                ArtifactMetaData amd = client2.getArtifactMetaData(artifactId);
                 Assertions.assertEquals(1, amd.getVersion());
             }, "ClusterIT-SmokeTest-CreateArtifact", 10);
 
@@ -99,10 +97,10 @@ public class ClusterIT {
             EditableMetaData emd = new EditableMetaData();
             emd.setName(name);
             emd.setDescription(desc);
-            client1.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
+            client1.updateArtifactMetaData(artifactId, emd);
 
             TestUtils.retry(() -> {
-                ArtifactMetaData amd = client2.getArtifactMetaDataByGlobalId(Collections.emptyMap(), globalId);
+                ArtifactMetaData amd = client2.getArtifactMetaDataByGlobalId(globalId);
                 Assertions.assertEquals(name, amd.getName());
                 Assertions.assertEquals(desc, amd.getDescription());
             });
@@ -110,35 +108,35 @@ public class ClusterIT {
             Rule rule = new Rule();
             rule.setType(RuleType.VALIDITY);
             rule.setConfig("myconfig");
-            client1.createArtifactRule(Collections.emptyMap(), artifactId, rule);
+            client1.createArtifactRule(artifactId, rule);
 
             TestUtils.retry(() -> {
-                Rule config = client2.getArtifactRuleConfig(Collections.emptyMap(), artifactId, RuleType.VALIDITY);
+                Rule config = client2.getArtifactRuleConfig(artifactId, RuleType.VALIDITY);
                 Assertions.assertEquals(rule.getConfig(), config.getConfig());
             });
 
-            List<Long> v1 = client1.listArtifactVersions(Collections.emptyMap(), artifactId);
-            List<Long> v2 = client2.listArtifactVersions(Collections.emptyMap(), artifactId);
+            List<Long> v1 = client1.listArtifactVersions(artifactId);
+            List<Long> v2 = client2.listArtifactVersions(artifactId);
             Assertions.assertEquals(v1, v2);
 
-            List<RuleType> rt1 = client1.listArtifactRules(Collections.emptyMap(), artifactId);
-            List<RuleType> rt2 = client2.listArtifactRules(Collections.emptyMap(), artifactId);
+            List<RuleType> rt1 = client1.listArtifactRules(artifactId);
+            List<RuleType> rt2 = client2.listArtifactRules(artifactId);
             Assertions.assertEquals(rt1, rt2);
 
             Rule globalRule = new Rule();
             globalRule.setType(RuleType.COMPATIBILITY);
             globalRule.setConfig("gc");
-            client1.createGlobalRule(Collections.emptyMap(), globalRule);
+            client1.createGlobalRule(globalRule);
             try {
                 TestUtils.retry(() -> {
-                    List<RuleType> grts = client2.listGlobalRules(Collections.emptyMap());
+                    List<RuleType> grts = client2.listGlobalRules();
                     Assertions.assertTrue(grts.contains(globalRule.getType()));
                 });
             } finally {
-                client1.deleteGlobalRule(Collections.emptyMap(), RuleType.COMPATIBILITY);
+                client1.deleteGlobalRule(RuleType.COMPATIBILITY);
             }
         } finally {
-            client1.deleteArtifact(Collections.emptyMap(), artifactId);
+            client1.deleteArtifact(artifactId);
         }
 
         client1.close();
@@ -180,12 +178,12 @@ public class ClusterIT {
         RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
 
         // warm-up both nodes (its storages)
-        client1.listArtifacts(Collections.emptyMap());
-        client2.listArtifacts(Collections.emptyMap());
+        client1.listArtifacts();
+        client2.listArtifacts();
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, stream);
+        client1.createArtifact(artifactId, ArtifactType.JSON, stream);
         try {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
@@ -194,11 +192,11 @@ public class ClusterIT {
                 EditableMetaData emd = new EditableMetaData();
                 emd.setName(name);
                 emd.setDescription(desc);
-                client2.updateArtifactMetaData(Collections.emptyMap(), artifactId, emd);
+                client2.updateArtifactMetaData(artifactId, emd);
             });
 
             TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(Collections.emptyMap(), name, SearchOver.name, SortOrder.asc, 0, 2);
+                ArtifactSearchResults results = client2.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- name");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- name");
@@ -207,7 +205,7 @@ public class ClusterIT {
             });
             TestUtils.retry(() -> {
                 // client 1 !
-                ArtifactSearchResults results = client1.searchArtifacts(Collections.emptyMap(), desc, SearchOver.description, SortOrder.desc, 0, 2);
+                ArtifactSearchResults results = client1.searchArtifacts(desc, SearchOver.description, SortOrder.desc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- description");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- description");
@@ -215,7 +213,7 @@ public class ClusterIT {
                 Assertions.assertEquals(desc, results.getArtifacts().get(0).getDescription());
             });
             TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(Collections.emptyMap(), desc, SearchOver.everything, SortOrder.desc, 0, 2);
+                ArtifactSearchResults results = client2.searchArtifacts(desc, SearchOver.everything, SortOrder.desc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- everything");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- everything");
@@ -223,7 +221,7 @@ public class ClusterIT {
                 Assertions.assertEquals(desc, results.getArtifacts().get(0).getDescription());
             });
         } finally {
-            client1.deleteArtifact(Collections.emptyMap(), artifactId);
+            client1.deleteArtifact(artifactId);
         }
 
         client1.close();

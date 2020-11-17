@@ -20,6 +20,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
 import java.util.Collections;
+
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
@@ -47,10 +48,10 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = restClient.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, jsonSchema);
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, jsonSchema);
 
         // make sure we have schema registered
-        retry(() -> restClient.getArtifactByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
+        retry(() -> restClient.getArtifactByGlobalId(amd.getGlobalId()));
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -60,7 +61,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
             serializer.configure(Collections.emptyMap(), false);
             serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(Collections.emptyMap(),false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);

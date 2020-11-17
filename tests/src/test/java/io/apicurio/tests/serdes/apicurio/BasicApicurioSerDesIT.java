@@ -16,21 +16,7 @@
 
 package io.apicurio.tests.serdes.apicurio;
 
-import static io.apicurio.tests.Constants.CLUSTER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.Collections;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.avro.Schema;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-
 import com.google.protobuf.Descriptors;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -43,6 +29,17 @@ import io.apicurio.tests.Constants;
 import io.apicurio.tests.serdes.KafkaClients;
 import io.apicurio.tests.serdes.proto.MsgTypes;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static io.apicurio.tests.Constants.CLUSTER;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Tag(CLUSTER)
 public class BasicApicurioSerDesIT extends BaseIT {
@@ -189,7 +186,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifact.getGlobalId()) != null
+            () -> client.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceJsonSchemaApicurioMessages(artifactId, subjectName, 10).get(5, TimeUnit.SECONDS);
@@ -222,7 +219,7 @@ public class BasicApicurioSerDesIT extends BaseIT {
             "Artifact not registered",
             Constants.POLL_INTERVAL,
             Constants.TIMEOUT_GLOBAL,
-            () -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), artifact.getGlobalId()) != null
+            () -> client.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
         );
 
         KafkaClients.produceProtobufMessages(artifactId, subjectName, 100).get(5, TimeUnit.SECONDS);

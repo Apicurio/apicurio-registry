@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -189,10 +188,10 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             throw new RuntimeException("ArtifactId not found in headers.");
         }
         if (version == null) {
-            ArtifactMetaData amd = getClient().getArtifactMetaData(Collections.emptyMap(), artifactId);
+            ArtifactMetaData amd = getClient().getArtifactMetaData(artifactId);
             return amd.getGlobalId();
         } else {
-            VersionMetaData vmd = getClient().getArtifactVersionMetaData(Collections.emptyMap(), artifactId, version);
+            VersionMetaData vmd = getClient().getArtifactVersionMetaData(artifactId, version);
             return vmd.getGlobalId();
         }
     }

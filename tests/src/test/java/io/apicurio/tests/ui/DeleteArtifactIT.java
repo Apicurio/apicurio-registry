@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
@@ -58,12 +57,12 @@ public class DeleteArtifactIT extends BaseIT {
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, client.listArtifacts(Collections.emptyMap()).size());
+        assertEquals(1, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
         String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, client.listArtifacts(Collections.emptyMap()).size());
+        assertEquals(2, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
@@ -106,12 +105,12 @@ public class DeleteArtifactIT extends BaseIT {
 
         String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
         String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, client.listArtifacts(Collections.emptyMap()).size());
+        assertEquals(1, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
         String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, client.listArtifacts(Collections.emptyMap()).size());
+        assertEquals(2, client.listArtifacts().size());
         page.goBackToArtifactsList();
 
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
@@ -122,8 +121,8 @@ public class DeleteArtifactIT extends BaseIT {
         });
         assertTrue(webArtifacts.isEmpty());
 
-        client.deleteArtifact(Collections.emptyMap(), artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(Collections.emptyMap(), artifactId1), true);
+        client.deleteArtifact(artifactId1);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId1), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -137,8 +136,8 @@ public class DeleteArtifactIT extends BaseIT {
         webArtifacts = page.getArtifactsList();
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
-        client.deleteArtifact(Collections.emptyMap(), artifactId2);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(Collections.emptyMap(), artifactId2), true);
+        client.deleteArtifact(artifactId2);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId2), true);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

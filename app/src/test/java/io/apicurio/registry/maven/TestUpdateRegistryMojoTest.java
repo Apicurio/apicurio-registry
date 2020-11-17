@@ -57,14 +57,14 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        client.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        client.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
         
         this.waitForArtifact(artifactId);
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        client.createArtifactRule(Collections.emptyMap(), artifactId, rule);
+        client.createArtifactRule(artifactId, rule);
 
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +

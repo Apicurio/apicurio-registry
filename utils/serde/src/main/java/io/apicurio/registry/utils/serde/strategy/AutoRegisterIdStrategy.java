@@ -20,7 +20,6 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Collections;
 
 /**
  * @author Ales Justin
@@ -29,7 +28,7 @@ public class AutoRegisterIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     @Override
     protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
-        ArtifactMetaData amd = client.updateArtifact(Collections.emptyMap(), artifactId, artifactType, toStream(schema));
+        ArtifactMetaData amd = client.updateArtifact(artifactId, artifactType, toStream(schema));
         return amd.getGlobalId();
     }
 

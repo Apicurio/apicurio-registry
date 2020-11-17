@@ -17,7 +17,6 @@
 package io.apicurio.registry.utils.serde;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +39,7 @@ public abstract class SchemaCache<T> {
     public T getSchema(long id) {
         return schemas.computeIfAbsent(id, key -> {
             try {
-                InputStream artifactResponse = client.getArtifactByGlobalId(Collections.emptyMap(), key);
+                InputStream artifactResponse = client.getArtifactByGlobalId(key);
                 return toSchema(artifactResponse);
             } catch (Exception e) {
                 throw new IllegalStateException(

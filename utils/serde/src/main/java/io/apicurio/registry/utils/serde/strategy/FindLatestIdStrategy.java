@@ -20,7 +20,6 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Collections;
 
 /**
  * @author Ales Justin
@@ -28,7 +27,7 @@ import java.util.Collections;
 public class FindLatestIdStrategy<T> implements GlobalIdStrategy<T> {
     @Override
     public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
-        ArtifactMetaData amd = client.getArtifactMetaData(Collections.emptyMap(), artifactId);
+        ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
         return amd.getGlobalId();
     }
 }

@@ -20,7 +20,6 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Collections;
 
 /**
  * @author Ales Justin
@@ -29,7 +28,7 @@ public class FindBySchemaIdStrategy<T> implements GlobalIdStrategy<T> {
     @Override
     public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         // TODO add an option to search by strict content?
-        ArtifactMetaData amd = client.getArtifactMetaDataByContent(Collections.emptyMap(), artifactId, true, toStream(schema));
+        ArtifactMetaData amd = client.getArtifactMetaDataByContent(artifactId, true, toStream(schema));
         return amd.getGlobalId();
     }
 }

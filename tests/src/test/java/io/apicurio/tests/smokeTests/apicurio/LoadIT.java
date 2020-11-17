@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -75,8 +74,8 @@ public class LoadIT extends BaseIT {
                 try {
                     if (artifactId != null) {
                         LOGGER.info("Delete artifact {} START", artifactId);
-                        client.deleteArtifact(Collections.emptyMap(), artifactId);
-                        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(Collections.emptyMap(), artifactId), true);
+                        client.deleteArtifact(artifactId);
+                        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId), true);
                         LOGGER.info("Delete artifact {} FINISH", artifactId);
                     } else if (allCreatedFlag.get()) {
                         return null;
@@ -116,11 +115,11 @@ public class LoadIT extends BaseIT {
                 throw new IllegalStateException("Error deleteing artifacts", result);
             }
         } catch (TimeoutException e) {
-            LOGGER.info("Artifacts not deleted are {}", client.listArtifacts(Collections.emptyMap()).toString());
+            LOGGER.info("Artifacts not deleted are {}", client.listArtifacts().toString());
             throw e;
         }
 
-        assertEquals(0, client.listArtifacts(Collections.emptyMap()).size());
+        assertEquals(0, client.listArtifacts().size());
 
     }
 
@@ -133,10 +132,10 @@ public class LoadIT extends BaseIT {
             String artifactDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
             try {
-                ArtifactMetaData amd = client.createArtifact(Collections.emptyMap(), artifactId, ArtifactType.JSON, artifactData);
+                ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, artifactData);
 
                 // Make sure artifact is fully registered
-                TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd.getGlobalId()));
+                TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
                 LOGGER.info("Create artifact {} FINISH", amd.getId());
                 assertEquals(artifactId, amd.getId());

@@ -18,7 +18,6 @@
 package io.apicurio.registry.maven;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -47,7 +46,7 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
             try (InputStream stream = handle.stream()) {
                 // TODO add "ifExists" option to the mojo
                 // TODO add "canonicalize" option to the mojo
-                return getClient().createArtifact(Collections.emptyMap(), artifactId, artifactType, stream, IfExistsType.RETURN_OR_UPDATE, false);
+                return getClient().createArtifact(artifactId, artifactType, stream, IfExistsType.RETURN_OR_UPDATE, false);
             }
         } catch (Exception e) {
             throw new IllegalStateException(String.format(

@@ -16,13 +16,6 @@
 
 package io.apicurio.tests.utils.subUtils;
 
-import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
-import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
-
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -30,6 +23,12 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
+
+import java.io.InputStream;
+import java.util.HashMap;
+
+import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
+import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
 
 public class ArtifactUtils {
 
@@ -75,7 +74,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData createArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
-        return client.createArtifact(Collections.emptyMap(), artifactId, atype, artifactData);
+        return client.createArtifact(artifactId, atype, artifactData);
     }
 
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {
@@ -91,7 +90,7 @@ public class ArtifactUtils {
     }
 
     public static ArtifactMetaData updateArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
-        return client.updateArtifact(Collections.emptyMap(), artifactId, atype, artifactData);
+        return client.updateArtifact(artifactId, atype, artifactData);
     }
 
     public static Response deleteArtifact(String artifactId) {

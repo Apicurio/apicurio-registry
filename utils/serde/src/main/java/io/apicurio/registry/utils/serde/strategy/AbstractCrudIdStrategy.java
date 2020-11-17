@@ -25,7 +25,6 @@ import io.apicurio.registry.types.ArtifactType;
 
 import javax.ws.rs.core.Response;
 import java.net.HttpURLConnection;
-import java.util.Collections;
 
 /**
  * @author Ales Justin
@@ -47,7 +46,7 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
             return initialLookup(client, artifactId, artifactType, schema);
         } catch (ArtifactNotFoundException e) {
             // TODO add an option to search by strict content?
-            ArtifactMetaData amd = client.createArtifact(Collections.emptyMap(), artifactId, artifactType, toStream(schema), IfExistsType.RETURN_OR_UPDATE, true);
+            ArtifactMetaData amd = client.createArtifact(artifactId, artifactType, toStream(schema), IfExistsType.RETURN_OR_UPDATE, true);
             afterCreateArtifact(schema, amd);
             return amd.getGlobalId();
         } catch (RestClientException e) {

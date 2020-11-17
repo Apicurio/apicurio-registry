@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 
 import static io.apicurio.tests.Constants.SMOKE;
@@ -59,29 +58,29 @@ class RulesResourceIT extends BaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        TestUtils.retry(() -> client.createGlobalRule(Collections.emptyMap(), rule));
+        TestUtils.retry(() -> client.createGlobalRule(rule));
 
         // Check the rule was created.
         TestUtils.retry(() -> {
-            Rule ruleConfig = client.getGlobalRuleConfig(Collections.emptyMap(), RuleType.VALIDITY);
+            Rule ruleConfig = client.getGlobalRuleConfig(RuleType.VALIDITY);
             assertNotNull(ruleConfig);
             assertEquals("SYNTAX_ONLY", ruleConfig.getConfig());
         });
 
         // Delete all rules
-        client.deleteAllGlobalRules(Collections.emptyMap());
+        client.deleteAllGlobalRules();
 
         // No rules listed now
         TestUtils.retry(() -> {
-            List<RuleType> rules = client.listGlobalRules(Collections.emptyMap());
+            List<RuleType> rules = client.listGlobalRules();
             assertEquals(0, rules.size());
         });
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> client.getGlobalRuleConfig(Collections.emptyMap(), RuleType.COMPATIBILITY));
+        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> client.getGlobalRuleConfig(RuleType.COMPATIBILITY));
 
         // Should be null/error (deleted the VALIDITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> client.getGlobalRuleConfig(Collections.emptyMap(), RuleType.VALIDITY));
+        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> client.getGlobalRuleConfig(RuleType.VALIDITY));
     }
 
     @RegistryRestClientTest
@@ -91,10 +90,10 @@ class RulesResourceIT extends BaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        TestUtils.retry(() -> client.createGlobalRule(Collections.emptyMap(), rule));
+        TestUtils.retry(() -> client.createGlobalRule(rule));
         LOGGER.info("Created rule: {} - {}", rule.getType(), rule.getConfig());
 
-        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> client.createGlobalRule(Collections.emptyMap(), rule), true);
+        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> client.createGlobalRule(rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         String artifactId = TestUtils.generateArtifactId();
@@ -113,7 +112,7 @@ class RulesResourceIT extends BaseIT {
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
         TestUtils.retry(() -> {
-            List<Long> artifactVersions = client.listArtifactVersions(Collections.emptyMap(), artifactId);
+            List<Long> artifactVersions = client.listArtifactVersions(artifactId);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L));
         });
@@ -129,7 +128,7 @@ class RulesResourceIT extends BaseIT {
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId1, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
         String artifactId2 = TestUtils.generateArtifactId();
         artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -138,16 +137,16 @@ class RulesResourceIT extends BaseIT {
         metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId2, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId2, metaData);
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd2.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        client.createArtifactRule(Collections.emptyMap(), artifactId1, rule);
+        client.createArtifactRule(artifactId1, rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> client.createArtifactRule(Collections.emptyMap(), artifactId1, rule), true);
+        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> client.createArtifactRule(artifactId1, rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
@@ -166,11 +165,11 @@ class RulesResourceIT extends BaseIT {
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
         TestUtils.retry(() -> {
-            List<Long> artifactVersions = client.listArtifactVersions(Collections.emptyMap(), artifactId1);
+            List<Long> artifactVersions = client.listArtifactVersions(artifactId1);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId1, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L));
 
-            artifactVersions = client.listArtifactVersions(Collections.emptyMap(), artifactId2);
+            artifactVersions = client.listArtifactVersions(artifactId2);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId2, artifactVersions.toString());
             assertThat(artifactVersions, hasItems(1L, 2L));
         });
@@ -185,30 +184,30 @@ class RulesResourceIT extends BaseIT {
         ArtifactMetaData metaData = ArtifactUtils.createArtifact(client, ArtifactType.AVRO, artifactId1, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, metaData);
         ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), amd1.getGlobalId()));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        client.createArtifactRule(Collections.emptyMap(), artifactId1, rule);
+        client.createArtifactRule(artifactId1, rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        client.deleteArtifact(Collections.emptyMap(), artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(Collections.emptyMap(), artifactId1), true);
+        client.deleteArtifact(artifactId1);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId1), true);
 
-        assertThat(0, is(client.listArtifacts(Collections.emptyMap()).size()));
+        assertThat(0, is(client.listArtifacts().size()));
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(Collections.emptyMap(), artifactId1));
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(Collections.emptyMap(), artifactId1, RuleType.VALIDITY));
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(artifactId1));
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
     }
 
     @AfterEach
     void clearRules(RegistryRestClient client) throws Exception {
         LOGGER.info("Removing all global rules");
-        client.deleteAllGlobalRules(Collections.emptyMap());
+        client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            List<RuleType> rules = client.listGlobalRules(Collections.emptyMap());
+            List<RuleType> rules = client.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

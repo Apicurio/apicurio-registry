@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -188,7 +187,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return client.getLatestArtifact(Collections.emptyMap(), subjectName) != null;
+                return client.getLatestArtifact(subjectName) != null;
             } catch (WebApplicationException e) {
                 return false;
             }
@@ -205,11 +204,11 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(Collections.emptyMap(), globalId));
+        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(globalId));
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return client.getLatestArtifact(Collections.emptyMap(), subjectName) != null;
+                return client.getLatestArtifact(subjectName) != null;
             } catch (WebApplicationException e) {
                 return false;
             }
@@ -218,18 +217,18 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        client.createArtifactRule(Collections.emptyMap(), subjectName, rule);
+        client.createArtifactRule(subjectName, rule);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = client.getArtifactRuleConfig(Collections.emptyMap(), subjectName, RuleType.VALIDITY);
+                Rule r = client.getArtifactRuleConfig(subjectName, RuleType.VALIDITY);
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
             } catch (WebApplicationException e) {
                 return false;
             }
         });
 
-        List<RuleType> rules = client.listArtifactRules(Collections.emptyMap(), subjectName);
+        List<RuleType> rules = client.listArtifactRules(subjectName);
         assertThat(1, is(rules.size()));
 
         confluentService.deleteSubject(subjectName);
@@ -242,9 +241,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(Collections.emptyMap(), subjectName), true);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(Collections.emptyMap(), subjectName), true);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(Collections.emptyMap(), subjectName, rules.get(0)), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

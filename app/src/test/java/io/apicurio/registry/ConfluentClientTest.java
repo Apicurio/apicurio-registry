@@ -21,7 +21,6 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -276,7 +275,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        apicurioClient.createGlobalRule(Collections.emptyMap(), rule);
+        apicurioClient.createGlobalRule(rule);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

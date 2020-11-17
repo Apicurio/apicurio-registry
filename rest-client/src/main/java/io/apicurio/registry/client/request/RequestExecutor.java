@@ -18,10 +18,19 @@ package io.apicurio.registry.client.request;
 
 import retrofit2.Call;
 
+import java.util.Map;
+
+
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */
 public class RequestExecutor {
+
+    private final ThreadLocal<Map<String, String>> requestHeaders;
+
+    public RequestExecutor(ThreadLocal<Map<String, String>> requestHeaders) {
+        this.requestHeaders = requestHeaders;
+    }
 
     public <T> T execute(Call<T> call) {
 
@@ -29,7 +38,11 @@ public class RequestExecutor {
 
         call.enqueue(resultCallback);
 
-        return resultCallback.getResult();
+        final T result = resultCallback.getResult();
+
+        requestHeaders.remove();
+
+        return result;
     }
 }
 

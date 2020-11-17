@@ -316,7 +316,7 @@ public class TestUtils {
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
     public static void waitForSchemaCustom(RegistryRestClient service, byte[] bytes, Function<byte[], Long> fn) throws Exception {
         long id = fn.apply(bytes);
-        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(Collections.emptyMap(), id));
+        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
         Assertions.assertNotNull(amd); // wait for global id to populate
     }
 

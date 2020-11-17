@@ -13,7 +13,7 @@ This chapter explains how to install {registry}:
 .Prerequisites
 * {registry-overview}
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry}, and on your chosen storage option, for example, Kafka Streams, database, Infinispan cluster configuration.
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 
 ifdef::apicurio-registry[]
 .Additional resources

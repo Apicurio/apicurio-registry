@@ -13,20 +13,16 @@ This procedure describes how to configure a Kafka consumer client written in Jav
 
 .Procedure
 
-. Configure the client with the URL of {registry}.
-+
-For example:
+. Configure the client with the URL of {registry}. For example:
 +
 [source,shell,subs="+quotes,attributes"]
 ----
 String registryUrl = "https://registry.example.com/api";
 Properties props = new Properties();
-props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl); <1>
+props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl); 
 ----
 
-. Configure the client with the {registry} deserializer.
-+
-For example:
+. Configure the client with the {registry} deserializer. For example:
 +
 [source,java,subs="+quotes,attributes"]
 ----
@@ -37,10 +33,9 @@ props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-    AvroKafkaDeserializer.class.getName()); <2> <3>
+    AvroKafkaDeserializer.class.getName()); <1> 
 props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-    AvroKafkaDeserializer.class.getName()); <2> <3>
+    AvroKafkaDeserializer.class.getName()); <2>
 ----
-<1> The {registry} URL.
-<2> The deserializer provided by {registry}.
-<3> The deserialization is in _Apache Avro_ JSON format.
+<1> The deserializer provided by {registry}.
+<2> The deserialization is in Apache Avro JSON format.

@@ -1,6 +1,6 @@
 
 [id="configuring-registry-ui"]
-= Configuring {registry} web console 
+= Configuring the {registry} web console 
 
 You can configure the {registry} web console specifically for your deployment environment or to customize its behavior. This section provides details on how to configure optional environment variables for the {registry} web console.
 

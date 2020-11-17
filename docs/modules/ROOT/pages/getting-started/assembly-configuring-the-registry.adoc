@@ -2,7 +2,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="configuring-the-registry"]
-= Managing {registry} deployment on OpenShift
+= Configuring {registry} deployment on OpenShift
 
 This chapter explains how to configure optional settings for {registry} health checks on OpenShift:
 

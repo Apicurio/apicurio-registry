@@ -72,16 +72,16 @@ endif::[]
 |Location
 |Release
 |Example custom resource definitions for installation
-|link:{download-url-registry-custom-resources}[Software Downloads for Red Hat Integration]
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability and Technical Preview
 |Kafka Connect converters 
-|link:{download-url-registry-kafka-connect}[Software Downloads for Red Hat Integration]
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |Maven repository
-|link:{download-url-registry-maven}[Software Downloads for Red Hat Integration]
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |Source code 
-|link:{download-url-registry-source-code}[Software Downloads for Red Hat Integration]
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |===
 

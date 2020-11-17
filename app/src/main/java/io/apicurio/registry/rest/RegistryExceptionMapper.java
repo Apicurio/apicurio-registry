@@ -186,5 +186,4 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             return null;
         }
     }
-    
 }

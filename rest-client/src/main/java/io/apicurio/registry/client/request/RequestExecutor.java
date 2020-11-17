@@ -36,13 +36,11 @@ public class RequestExecutor {
 
         final ResultCallback<T> resultCallback = new ResultCallback<T>();
 
-        call.enqueue(resultCallback);
-
-        final T result = resultCallback.getResult();
-
         requestHeaders.remove();
 
-        return result;
+        call.enqueue(resultCallback);
+
+        return resultCallback.getResult();
     }
 }
 

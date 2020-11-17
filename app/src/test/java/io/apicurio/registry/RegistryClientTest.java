@@ -98,12 +98,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(
-                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
         ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
         long id = amd.getGlobalId();
-        
+
         this.waitForGlobalId(id);
 
         retry(() -> {
@@ -131,12 +131,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(
-                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
         ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
         long id1 = amd.getGlobalId();
-        
+
         this.waitForGlobalId(id1);
 
         retry(() -> {
@@ -148,7 +148,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         VersionMetaData vmd = restClient.createArtifactVersion(artifactId, ArtifactType.JSON, artifactData);
         long id2 = vmd.getGlobalId();
-        
+
         this.waitForGlobalId(id2);
 
         retry(() -> {
@@ -174,8 +174,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             String artifactId = root + UUID.randomUUID().toString();
             String name = root + i;
             ByteArrayInputStream artifactData = new ByteArrayInputStream(
-                ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
-                    .getBytes(StandardCharsets.UTF_8));
+                    ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                            .getBytes(StandardCharsets.UTF_8));
 
             restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
             waitForArtifact(artifactId);
@@ -187,8 +187,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
         Assertions.assertTrue(results.getArtifacts().stream()
-            .map(SearchedArtifact::getId)
-            .collect(Collectors.toList()).containsAll(artifactIds));
+                .map(SearchedArtifact::getId)
+                .collect(Collectors.toList()).containsAll(artifactIds));
 
         // Put 2 of the 5 artifacts in DISABLED state
         UpdateState us = new UpdateState();
@@ -204,14 +204,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(5, results.getCount());
         Assertions.assertEquals(5, results.getArtifacts().size());
         Assertions.assertTrue(results.getArtifacts().stream()
-            .map(SearchedArtifact::getId)
-            .collect(Collectors.toList()).containsAll(artifactIds));
+                .map(SearchedArtifact::getId)
+                .collect(Collectors.toList()).containsAll(artifactIds));
         Assertions.assertEquals(2, results.getArtifacts().stream()
-            .filter(searchedArtifact -> ArtifactState.DISABLED.equals(searchedArtifact.getState()))
-            .count());
+                .filter(searchedArtifact -> ArtifactState.DISABLED.equals(searchedArtifact.getState()))
+                .count());
         Assertions.assertEquals(3, results.getArtifacts().stream()
-            .filter(searchedArtifact -> ArtifactState.ENABLED.equals(searchedArtifact.getState()))
-            .count());
+                .filter(searchedArtifact -> ArtifactState.ENABLED.equals(searchedArtifact.getState()))
+                .count());
     }
 
     @RegistryRestClientTest
@@ -222,8 +222,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = UUID.randomUUID().toString();
         String name = "testSearchDisabledVersions" + ThreadLocalRandom.current().nextInt(1000000);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(
-            ("{\"type\":\"record\",\"title\":\""+ name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
-                .getBytes(StandardCharsets.UTF_8));
+                ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                        .getBytes(StandardCharsets.UTF_8));
 
         restClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
         waitForArtifact(artifactId);
@@ -243,7 +243,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(3, results.getCount());
         Assertions.assertEquals(3, results.getVersions().size());
         Assertions.assertTrue(results.getVersions().stream()
-            .allMatch(searchedVersion -> name.equals(searchedVersion.getName()) && ArtifactState.ENABLED.equals(searchedVersion.getState())));
+                .allMatch(searchedVersion -> name.equals(searchedVersion.getName()) && ArtifactState.ENABLED.equals(searchedVersion.getState())));
 
         // Put 2 of the 3 versions in DISABLED state
         UpdateState us = new UpdateState();
@@ -259,13 +259,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(3, results.getCount());
         Assertions.assertEquals(3, results.getVersions().size());
         Assertions.assertTrue(results.getVersions().stream()
-            .allMatch(searchedVersion -> name.equals(searchedVersion.getName())));
+                .allMatch(searchedVersion -> name.equals(searchedVersion.getName())));
         Assertions.assertEquals(2, results.getVersions().stream()
-            .filter(searchedVersion -> ArtifactState.DISABLED.equals(searchedVersion.getState()))
-            .count());
+                .filter(searchedVersion -> ArtifactState.DISABLED.equals(searchedVersion.getState()))
+                .count());
         Assertions.assertEquals(1, results.getVersions().stream()
-            .filter(searchedVersion -> ArtifactState.ENABLED.equals(searchedVersion.getState()))
-            .count());
+                .filter(searchedVersion -> ArtifactState.ENABLED.equals(searchedVersion.getState()))
+                .count());
     }
 
     @RegistryRestClientTest
@@ -274,7 +274,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         try {
             ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
             restClient.createArtifact(artifactId, ArtifactType.JSON, stream);
-            
+
             this.waitForArtifact(artifactId);
 
             EditableMetaData emd = new EditableMetaData();
@@ -335,7 +335,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 Assertions.assertEquals("myname", artifactMetaData.getName());
                 Assertions.assertEquals(3, artifactMetaData.getProperties().size());
                 Assertions.assertTrue(artifactMetaData.getProperties().keySet().containsAll(artifactProperties.keySet()));
-                for(String key: artifactMetaData.getProperties().keySet()) {
+                for (String key : artifactMetaData.getProperties().keySet()) {
                     Assertions.assertTrue(artifactMetaData.getProperties().get(key).equals(artifactProperties.get(key)));
                 }
             });
@@ -362,7 +362,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
             ArtifactMetaData amd = restClient.createArtifact(firstArtifactId, ArtifactType.JSON, artifactData);
             long id = amd.getGlobalId();
-            
+
             this.waitForGlobalId(id);
 
             // Create artifact 2
@@ -371,12 +371,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ByteArrayInputStream secondData = new ByteArrayInputStream(
                     ("{\"type\":\"record\",\"title\":\"" + secondName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
-            
+
             ArtifactMetaData secondCs = restClient.createArtifact(secondArtifactId, ArtifactType.JSON, secondData);
             long secondId = secondCs.getGlobalId();
 
             this.waitForGlobalId(secondId);
-            
+
             // Create artifact 3
             ByteArrayInputStream thirdData = new ByteArrayInputStream(
                     ("{\"openapi\":\"3.0.2\",\"info\":{\"description\":\"testorder\"}}")
@@ -428,8 +428,24 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final Map<String, String> secondRequestHeaders = Collections.singletonMap("SecondHeaderKey", "secondheaderkey");
 
         testConcurrentClientCalls(restClient, firstRequestHeaders, secondRequestHeaders);
+        testNonConcurrentClientCalls(restClient, firstRequestHeaders, secondRequestHeaders);
     }
 
+    private void testNonConcurrentClientCalls(RegistryRestClient restClient, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
+
+        restClient.setNextRequestHeaders(firstRequestHeaders);
+        Assertions.assertTrue(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+        restClient.listArtifacts();
+        Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+
+        restClient.setNextRequestHeaders(secondRequestHeaders);
+        Assertions.assertTrue(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        restClient.listArtifacts();
+        Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+
+    }
 
     private void testConcurrentClientCalls(RegistryRestClient restClient, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
 

@@ -160,16 +160,16 @@
 
 // Debezium titles
 
-:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-q3/html-single/installing_change_data_capture_on_openshift/
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_openshift/
 :NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
 
-:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-q3/html-single/installing_change_data_capture_on_rhel/
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_rhel/
 :NameDebeziumInstallRHEL: Installing Debezium on RHEL
 
-:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-q3/html-single/getting_started_with_change_data_capture/index
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/getting_started_with_change_data_capture/index
 :NameDebeziumGettingStarted: Getting Started with Debezium
 
-:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-q3/html-single/debezium_user_guide/index
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/debezium_user_guide/index
 :NameDebeziumUserGuide: Debezium User Guide
 
 // Debezium link attributes that are used upstream.  Add attributes as needed.

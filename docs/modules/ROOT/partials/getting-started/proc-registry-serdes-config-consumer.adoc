@@ -2,7 +2,7 @@
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-config-consumer-{context}']
-= Using a schema from a consumer client
+= Using a schema from a Kafka consumer client
 
 This procedure describes how to configure a Kafka consumer client written in Java to use a schema from {registry}.
 

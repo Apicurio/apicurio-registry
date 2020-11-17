@@ -2,7 +2,7 @@
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-serde-{context}']
-= Configuring different SerDe types
+= Using different client serializer/deserializer types
 
 When using a schema technology in your Kafka applications, you must choose which specific schema type to use. Common options include:
 
@@ -12,13 +12,13 @@ When using a schema technology in your Kafka applications, you must choose which
 
 Which schema technology you choose is dependent on use case and preference. Of course you can use Kafka to implement custom serializer and deserializer classes, so you are always free to write your own classes, including leveraging {registry} functionality using the {registry} REST Java client.
 
-For your convenience, {registry} provides out-of-the box SerDe classes for all three schema technologies. This section explains how to configure Kafka applications to use each type.
-
-Using one of the serializer or deserializer classes provided by {registry} in your Kafka application involves setting the correct configuration properties. Here are some simple examples of configuring producer and consumer Kafka applications.
+For your convenience, {registry} provides out-of-the box SerDe classes for Avro, JSON Schema, and Protobuf schema technologies. The following sections explains how to configure Kafka applications to use each type.
 
 [discrete]
-== Configuring a producer
+== Kafka application configuration for serializers/deserializers 
+Using one of the serializer or deserializer classes provided by {registry} in your Kafka application involves setting the correct configuration properties. The following simple examples show how to configure a serializer in a Kafka producer application and how to configure a deserializer in a Kafka consumer application.
 
+.Example serializer configuration in a Kafka producer
 [source,java,subs="+quotes,attributes"]
 ----
 public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers, String topicName) {
@@ -29,7 +29,7 @@ public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers,
     props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
     props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
 
-    // Use a {registry} provided Kafka Serializer
+    // Use a {registry}-provided Kafka serializer
     props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         io.apicurio.registry.utils.serde.AvroKafkaSerializer.class.getName());
     props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
@@ -37,9 +37,11 @@ public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers,
 
     // Configure {registry} location
     props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, REGISTRY_URL);
+    
     // Map the topic name (plus -key/value) to the artifactId in the registry
     props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM,
         io.apicurio.registry.utils.serde.strategy.TopicIdStrategy.class.getName());
+    
     // Get an existing schema or auto-register if not found
     props.putIfAbsent(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM,
         io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy.class.getName());
@@ -50,9 +52,7 @@ public Producer<Object,Object> createKafkaProducer(String kafkaBootstrapServers,
 }
 ----
 
-[discrete]
-== Configuring a consumer
-
+.Example deserializer configuration in a Kafka consumer
 [source,java,subs="+quotes,attributes"]
 ----
 public Consumer<Object,Object> createKafkaConsumer(String kafkaBootstrapServers, String topicName) {
@@ -65,7 +65,7 @@ public Consumer<Object,Object> createKafkaConsumer(String kafkaBootstrapServers,
     props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
     props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-    // Use a {registry} provided Kafka Deserializer
+    // Use a {registry}-provided Kafka deserializer
     props.putIfAbsent(ProducerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
         io.apicurio.registry.utils.serde.AvroKafkaDeserializer.class.getName());
     props.putIfAbsent(ProducerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
@@ -73,180 +73,13 @@ public Consumer<Object,Object> createKafkaConsumer(String kafkaBootstrapServers,
 
     // Configure {registry} location
     props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, REGISTRY_URL);
-    // No other configuration needed for the deserializer, because the globalId of the schema
-    // the deserializer should use is sent as part of the message.  So the deserializer simply
+    
+    // No other configuration needed for deserializer because  globalId of the schema
+    // the deserializer uses is sent as part of the message. The deserializer simply
     // extracts that globalId and uses it to look up the schema from the registry.
 
-    // Create the Kafka Consumer
+    // Create the Kafka consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
     return consumer;
 }
 ----
-
-== Using Avro SerDe with {registry}
-
-{registry} provides serializer and deserializer classes for Apache Avro to make using Avro as
-easy as possible. These classes are:
-
-* `io.apicurio.registry.utils.serde.AvroKafkaSerializer`
-* `io.apicurio.registry.utils.serde.AvroKafkaDeserializer`
-
-=== Configuring the Avro serializer
-
-You can configure the Avro serializer class in the following ways:
-
-* {registry} location as a URL
-* Artifact ID strategy 
-* Global ID strategy 
-* Global ID location
-* Global ID handler
-* Avro datum provider
-* Avro encoding
-
-.Global ID location
-The serializer passes the unique global ID of the schema as part of the Kafka message so that consumers can use the right schema for deserialization.  The location of that global ID can be in the payload of the message or in the message headers. The default approach is to pass the global ID in the message payload. If you want the ID sent in the message headers instead, you can set the following configuration property:
-----
-props.putIfAbsent(AbstractKafkaSerDe.USE_HEADERS, "true")
-----
-The property name is `apicurio.registry.use.headers`.
-
-
-.Global ID handler
-You can customize precisely how the global ID is encoded when passing it in the Kafka message body. Set
-the configuration property `apicurio.registry.id-handler` to be a class that implements the
-`io.apicurio.registry.utils.serde.strategy.IdHandler` interface. {registry} provides two implementations of
-that interface:
-
-* `io.apicurio.registry.utils.serde.strategy.DefaultIdHandler` - stores the ID as an 8 byte long
-* `io.apicurio.registry.utils.serde.strategy.Legacy4ByteIdHandler` - stores the ID as an 4 byte int
-
-{registry} represents the global ID of an artifact as a long, but for legacy reasons (or for compatibility with other registries or serde classes) you may want to use 4 bytes when sending the ID.
-
-.Avro datum provider
-Avro provides different datum writers and readers to write and read data. {registry} supports three different types:
-
-* Generic
-* Specific
-* Reflect
-
-The {registry} `AvroDatumProvider` is the abstraction on which type is then actually used, where `DefaultAvroDatumProvider` is used by default.
-
-There are two configuration options you can set:
-
-* `apicurio.registry.avro-datum-provider` - provide a fully qualified Java class name of the `AvroDatumProvider` implementation, for example `io.apicurio.registry.utils.serde.avro.ReflectAvroDatumProvider`
-* `apicurio.registry.use-specific-avro-reader` - true or false, to use specific type when using `DefaultAvroDatumProvider`
-
-.Avro encoding
-
-When using Apache Avro to serializer data, it is common to use the Avro binary encoding format. This is so that the data is encoded in as efficient a format as possible.  However, Avro also supports encoding the data as JSON. Encoding as JSON is useful because it is much easier to inspect the payload of each message, often for logging, debugging, or other similar use cases.  The {registry} Avro serializer can be configured to change the encoding to JSON from the default (binary).
-
-Set the Avro encoding to use by configuring the `apicurio.avro.encoding` property. The value must be either
-`JSON` or `BINARY`.
-
-=== Configuring the Avro deserializer
-
-You must configure the Avro deserializer class to match the configuration settings of the serializer.  As a
-result, you can configure the Avro deserializer class in the following ways:
-
-* {registry} location as a URL
-* Global ID handler
-* Avro datum provider
-* Avro encoding
-
-See the serializer documentation for the above configuration options - the property names and values are the same.
-
-[NOTE] 
-====
-The following options are not needed when configuring the deserializer:
-
-* Artifact ID strategy
-* Global ID strategy
-* Global ID location
-====
-
-The reason these options are not necessary is that the deserializer class can figure this information out from
-the message itself. In the case of the two strategies, they are not needed because the serializer is responsible for sending the global ID of the schema as part of the message. 
-
-The location of that global ID is determined by the deserializer by simply checking for the magic byte at the start of the message payload. If that byte is found, the global ID is read from the message payload using the configured handler.  If the magic byte is not found, the global ID is read from the message headers.
-
-== Using JSON Schema SerDe with {registry}
-
-{registry} provides serializer and deserializer classes for JSON Schema to make using JSON Schema as easy as possible.  These classes are:
-
-* `io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer`
-* `io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer`
-
-Unlike Apache Avro, JSON Schema is not actually a serialization technology - it is instead a validation
-technology. As a result, configuration options for JSON Schema are quite different. For example, there is no
-encoding option, because data is always encoded as JSON.
-
-=== Configuring the JSON Schema serializer
-
-You can configure the JSON Schema serializer class in the following ways:
-
-* {registry} location as a URL
-* Artifact ID strategy 
-* Global ID strategy
-* Validation enabled/disabled
-
-As you can see, the only non-standard configuration property is whether JSON Schema validation is enabled or
-disabled.  The validation feature is disabled by default but can be enabled by setting
-`apicurio.registry.serdes.json-schema.validation-enabled` to `"true"`. For example:
-----
-props.putIfAbsent(JsonSchemaSerDeConstants.REGISTRY_JSON_SCHEMA_VALIDATION_ENABLED, "true")`
-----
-
-=== Configuring the JSON Schema deserializer
-
-You can configure the JSON Schema deserializer class in the following ways:
-
-* {registry} location as a URL
-* Validation enabled/disabled
-
-The deserializer is simple to configure. You must provide the location of {registry} so that the schema can be loaded. The only other configuration is whether or not to perform validation.  These
-configuration properties are the same as for the serializer.
-
-NOTE: Deserializer validation only works if the serializer passes the global ID in the Kafka message, which will only happen when validation is enabled in the serializer.
-
-== Using Protobuf SerDe with {registry}
-
-{registry} provides serializer and deserializer classes for Google Protobuf out of the box, to make using Protobuf as easy as possible.  These classes are:
-
-* `io.apicurio.registry.utils.serde.ProtobufKafkaSerializer`
-* `io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer`
-
-=== Configuring the Protobuf serializer
-
-You can configure the Protobuf serializer class in the following ways:
-
-* {registry} location as a URL
-* Artifact ID strategy 
-* Global ID strategy 
-* Global ID location
-* Global ID handler
-
-=== Configuring the Protobuf deserializer
-
-You must configure the Protobuf deserializer class to match the configuration settings of the serializer.  As a result, you can configure the Protobuf deserializer class in the following ways:
-
-* {registry} location as a URL
-* Global ID handler
-
-See the serializer documentation these configuration options - the property names and values are the same.
-
-[NOTE]
-====
-The following options are not needed when configuring the deserializer:
-
-* Artifact ID strategy
-* Global ID strategy
-* Global ID location
-====
-
-The reason these options are not necessary is that the deserializer class can figure this information out from
-the message itself. In the case of the two strategies, they are not needed because the serializer is responsible for sending the global ID of the schema as part of the message.  
-
-The location of that global ID is determined (by the deserializer) by simply checking for the magic byte at the start of the message payload. If that byte is found, the global ID is read from the message payload (using the configured handler). If the magic byte is not found, the global ID is read from the message headers.
-
-NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation,
-but rather to a `DynamicMessage` instance (because there is no appropriate API to do otherwise).

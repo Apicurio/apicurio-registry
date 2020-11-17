@@ -2,7 +2,7 @@
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-config-producer-{context}']
-= Using a schema from a producer client
+= Using a schema from a Kafka producer client
 
 This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
 

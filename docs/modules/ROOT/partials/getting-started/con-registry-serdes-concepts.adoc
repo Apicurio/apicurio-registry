@@ -17,7 +17,8 @@ Schemas can evolve, so you can define rules in {registry}, for example, to ensur
 
 These schema technologies can be used by client applications through Kafka client serializer/deserializer (SerDe) services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} may vary. See the type-specific sections below for more details about each.
 
-= Producer schema configuration
+[discrete]
+== Producer schema configuration
 
 A producer client application uses a serializer to put the messages that it sends to a specific broker topic into the correct data format.
 
@@ -35,7 +36,8 @@ After registering your schema, when you start Kafka and {registry}, you can acce
 
 If a schema already exists, you can create a new version using the REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves. An artifact ID and schema version represents a unique tuple that identifies a schema.
 
-= Consumer schema configuration
+[discrete]
+== Consumer schema configuration
 A consumer client application uses a deserializer to get the messages that it consumes from a specific broker topic into the correct data format.
 
 To enable a consumer to use {registry} for deserialization:

@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-artifacts"]
-= Schema and API artifacts in {registry}
+= Schema and API artifacts in {registry} 
 
 The items stored in {registry}, such as event schemas and API specifications, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
 

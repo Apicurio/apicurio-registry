@@ -61,7 +61,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
             serializer.configure(Collections.emptyMap(), false);
             serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
 
-            deserializer.configure(Collections.emptyMap(),false);
+            deserializer.configure(Collections.emptyMap(), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);

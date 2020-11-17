@@ -1,5 +1,4 @@
 // Metadata created by nebel
-
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="managing-registry-artifacts-api"]

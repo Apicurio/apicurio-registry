@@ -10,7 +10,7 @@ This chapter introduces the optional rules used to govern registry content and p
 * xref:registry-rules[]
 * xref:registry-rules-apply[]
 * xref:registry-rules-work[]
-* xref:registry-rules-config[]  
+* xref:registry-rules-config[]   
 
 //INCLUDES
 include::{mod-loc}getting-started/con-registry-rules.adoc[leveloffset=+1]

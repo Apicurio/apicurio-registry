@@ -29,6 +29,7 @@ Strategies to return an artifact ID based on an implementation of `ArtifactIdStr
 `TopicIdStrategy`:: (Default) strategy that uses the topic name and `key` or `value` suffix.
 `SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
 
+
 [discrete]
 == Global ID strategy
 

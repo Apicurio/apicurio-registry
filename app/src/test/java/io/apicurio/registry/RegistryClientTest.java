@@ -18,6 +18,7 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
@@ -30,17 +31,21 @@ import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.RegistryRestClientTest;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -412,5 +417,42 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             restClient.deleteArtifact(secondArtifactId);
             restClient.deleteArtifact(thirdArtifactId);
         }
+    }
+
+    @Test
+    void headersCustomizationTest() throws Exception {
+
+        final RegistryRestClient restClient = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+
+        final Map<String, String> firstRequestHeaders = Collections.singletonMap("FirstHeaderKey", "firstheadervalue");
+        final Map<String, String> secondRequestHeaders = Collections.singletonMap("SecondHeaderKey", "secondheaderkey");
+
+        testConcurrentClientCalls(restClient, firstRequestHeaders, secondRequestHeaders);
+    }
+
+
+    private void testConcurrentClientCalls(RegistryRestClient restClient, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
+
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        new Thread(() -> {
+            restClient.setNextRequestHeaders(firstRequestHeaders);
+            Assertions.assertTrue(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            restClient.listArtifacts();
+            Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            latch.countDown();
+        }).start();
+
+        new Thread(() -> {
+            restClient.setNextRequestHeaders(secondRequestHeaders);
+            Assertions.assertTrue(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            restClient.listArtifacts();
+            Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            Assertions.assertFalse(restClient.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            latch.countDown();
+        }).start();
+
+        latch.await();
     }
 }

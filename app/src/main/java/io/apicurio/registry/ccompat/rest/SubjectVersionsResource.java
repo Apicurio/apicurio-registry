@@ -45,7 +45,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  */
 @Path("/ccompat/subjects/{subject}/versions")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
-@Produces({COMPAT_SCHEMA_REGISTRY_V1})
+@Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SubjectVersionsResource {
 
     // ----- Path: /subjects/{subject}/versions -----

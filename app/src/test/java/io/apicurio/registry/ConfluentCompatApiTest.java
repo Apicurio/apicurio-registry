@@ -384,4 +384,49 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         assertEquals(2, versions.length);
     }
+
+    @Test
+    public void validateAcceptHeaders() throws Exception {
+
+        //Test application/json
+        String[] types = given()
+                .when()
+                .accept(ContentTypes.JSON)
+                .get("/ccompat/schemas/types")
+                .then()
+                .statusCode(200)
+                .extract().as(String[].class);
+
+        assertTypes(types);
+
+        //Test application/vnd.schemaregistry.v1+jso
+        types = given()
+                .when()
+                .accept(ContentTypes.COMPAT_SCHEMA_REGISTRY_V1)
+                .get("/ccompat/schemas/types")
+                .then()
+                .statusCode(200)
+                .extract().as(String[].class);
+
+        assertTypes(types);
+
+        //Test application/vnd.schemaregistry+json
+        types = given()
+                .when()
+                .accept(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/schemas/types")
+                .then()
+                .statusCode(200)
+                .extract().as(String[].class);
+
+        assertTypes(types);
+    }
+
+    public void assertTypes(String[] types) {
+
+        assertEquals(3, types.length);
+        assertEquals("JSON", types[0]);
+        assertEquals("PROTOBUF", types[1]);
+        assertEquals("AVRO", types[2]);
+    }
 }

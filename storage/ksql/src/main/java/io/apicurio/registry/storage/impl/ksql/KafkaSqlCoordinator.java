@@ -83,6 +83,12 @@ public class KafkaSqlCoordinator {
      * @param returnValue
      */
     public void notifyResponse(UUID uuid, Object returnValue) {
+
+        //we are re-using the topic from a streams based registry instance
+        if (uuid == null) {
+            return;
+        }
+
         // If there is no countdown latch, then there is no HTTP thread waiting for
         // a response.  This means one of two possible things:
         //  1) We're in a cluster and the HTTP thread is on another node

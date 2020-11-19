@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
@@ -48,6 +49,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.Serdes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -206,8 +208,15 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
 
-                            byte[] reqId = record.headers().headers("req").iterator().next().value();
-                            UUID req = UUID.fromString(new String(reqId));
+                            UUID req = Optional.ofNullable(record.headers().headers("req"))
+                                .map(Iterable::iterator)
+                                .map(it -> {
+                                    return it.hasNext() ? it.next() : null;
+                                })
+                                .map(Header::value)
+                                .map(String::new)
+                                .map(UUID::fromString)
+                                .orElse(null);
 
                             String artifactId = record.key();
                             Str.StorageValue storageAction = record.value();

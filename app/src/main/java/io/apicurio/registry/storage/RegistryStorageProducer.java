@@ -61,7 +61,11 @@ public class RegistryStorageProducer {
         }
         if (impl != null) {
             log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
-            return new EventSourcedRegistryStorage(impl, eventsService);
+            if (eventsService.isConfigured()) {
+                return new EventSourcedRegistryStorage(impl, eventsService);
+            } else {
+                return impl;
+            }
         }
         throw new IllegalStateException("Should not be here ... ?!");
     }

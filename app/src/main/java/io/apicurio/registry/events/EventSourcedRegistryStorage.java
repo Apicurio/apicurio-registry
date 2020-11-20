@@ -16,6 +16,7 @@
 package io.apicurio.registry.events;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
@@ -54,9 +55,9 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
         this.eventsService = eventsService;
     }
 
-    private void fireEvent(RegistryEventType type, Object data, Throwable error) {
+    private void fireEvent(RegistryEventType type, Optional<String> artifactId, Object data, Throwable error) {
         if (error == null && data != null) {
-            eventsService.triggerEvent(type, data);
+            eventsService.triggerEvent(type, artifactId, data);
         }
     }
 
@@ -74,14 +75,14 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
         return storage.createArtifact(artifactId, artifactType, content)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, meta, ex));
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
     }
 
     @Override
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return storage.createArtifactWithMetadata(artifactId, artifactType, content, metaData)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, meta, ex));
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
     }
 
     @Override
@@ -98,14 +99,14 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
         return storage.updateArtifact(artifactId, artifactType, content)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, meta, ex));
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, Optional.of(artifactId), meta, ex));
     }
 
     @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.updateArtifactWithMetadata(artifactId, artifactType, content, metaData)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, meta, ex));
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, Optional.of(artifactId), meta, ex));
     }
 
     @Override

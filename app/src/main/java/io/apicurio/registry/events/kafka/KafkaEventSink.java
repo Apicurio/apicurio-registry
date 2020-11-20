@@ -54,7 +54,7 @@ public class KafkaEventSink implements EventSink {
     )
     Properties producerProperties;
 
-    private ProducerActions<UUID, byte[]> producer;
+    private ProducerActions<String, byte[]> producer;
     private Integer partition;
 
     @ConfigProperty(name = "registry.events.kafka.topic")
@@ -65,7 +65,7 @@ public class KafkaEventSink implements EventSink {
 
     @PostConstruct
     void init() {
-        partition = eventsTopicPartition.orElse(0);
+        partition = eventsTopicPartition.orElse(null);
     }
 
     @Override
@@ -81,6 +81,7 @@ public class KafkaEventSink implements EventSink {
     @Override
     public void handle(Message<Buffer> message) {
         String type = message.headers().get("type");
+        String artifactId = message.headers().get("artifactId");
 
         log.info("Firing event " + type);
 
@@ -94,21 +95,27 @@ public class KafkaEventSink implements EventSink {
         headers.add("ce_time", Instant.now().toString().getBytes());
         headers.add("content-type", "application/json".getBytes());
 
+        //for artifact related operations message key will be the artifactId which will place all messages for an artifact in the same topic
+        String key = artifactId;
+        if (key == null) {
+            key = uuid.toString();
+        }
+
         getProducer()
-            .apply(new ProducerRecord<UUID, byte[]>(
+            .apply(new ProducerRecord<String, byte[]>(
                     eventsTopic.get(),
-                    partition,
-                    uuid,
+                    partition, //partition is optional and can be null
+                    key,
                     message.body().getBytes(),
                     headers));
 
     }
 
-    public synchronized ProducerActions<UUID, byte[]> getProducer() {
+    public synchronized ProducerActions<String, byte[]> getProducer() {
         if (producer == null) {
-            producer = new AsyncProducer<UUID, byte[]>(
+            producer = new AsyncProducer<String, byte[]>(
                     producerProperties,
-                    Serdes.UUID().serializer(),
+                    Serdes.String().serializer(),
                     Serdes.ByteArray().serializer()
                 );
         }

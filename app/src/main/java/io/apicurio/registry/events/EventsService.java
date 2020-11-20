@@ -15,11 +15,15 @@
  */
 package io.apicurio.registry.events;
 
+import java.util.Optional;
+
 /**
  * @author Fabian Martinez
  */
 public interface EventsService {
 
-    void triggerEvent(RegistryEventType type, Object data);
+    boolean isConfigured();
+
+    void triggerEvent(RegistryEventType type, Optional<String> artifactId, Object data);
 
 }

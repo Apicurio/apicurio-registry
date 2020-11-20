@@ -15,8 +15,10 @@
  */
 package io.apicurio.registry.events;
 
-import javax.annotation.PostConstruct;
+import java.util.Optional;
+
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -26,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -53,8 +56,7 @@ public class EventsServiceImpl implements EventsService {
     @Inject
     Instance<EventSink> sinks;
 
-    @PostConstruct
-    public void init() {
+    public void init(@Observes StartupEvent ev) {
         for (EventSink sink : sinks) {
             if (sink.isConfigured()) {
                 log.info("Subscribing sink " + sink.name());
@@ -65,7 +67,12 @@ public class EventsServiceImpl implements EventsService {
     }
 
     @Override
-    public void triggerEvent(RegistryEventType type, Object data) {
+    public boolean isConfigured() {
+        return configuredSinks;
+    }
+
+    @Override
+    public void triggerEvent(RegistryEventType type, Optional<String> artifactId, Object data) {
         if (configuredSinks && data != null) {
             Buffer buffer;
             try {
@@ -74,11 +81,12 @@ public class EventsServiceImpl implements EventsService {
                 log.error("Error serializing event data", e);
                 return;
             }
-            eventBus.publish(INTERNAL_EVENTS_ADDRESS,
-                buffer,
-                new DeliveryOptions()
-                    .addHeader("type", type.cloudEventType())
-            );
+            DeliveryOptions opts = new DeliveryOptions()
+                    .addHeader("type", type.cloudEventType());
+            if (artifactId.isPresent()) {
+                opts.addHeader("artifactId", artifactId.get());
+            }
+            eventBus.publish(INTERNAL_EVENTS_ADDRESS, buffer, opts);
         }
     }
 

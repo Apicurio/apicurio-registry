@@ -23,8 +23,10 @@ import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import io.apicurio.registry.utils.serde.util.ResponseUtils;
 import org.apache.kafka.common.header.Headers;
 
+import javax.ws.rs.core.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -43,6 +45,11 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
 
     public ProtobufKafkaSerializer(RegistryService client, ArtifactIdStrategy<byte[]> artifactIdStrategy, GlobalIdStrategy<byte[]> idStrategy) {
         super(client, artifactIdStrategy, idStrategy);
+    }
+
+    @Override
+    protected byte[] readSchema(Response response) {
+        return ResponseUtils.toBytesSchema(response);
     }
 
     @Override

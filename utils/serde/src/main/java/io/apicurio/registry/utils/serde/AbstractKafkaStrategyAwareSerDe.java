@@ -31,6 +31,7 @@ import java.util.Objects;
 public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafkaStrategyAwareSerDe<T, S>> extends AbstractKafkaSerDe<S> {
     public static final String REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.artifact-id";
     public static final String REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM = "apicurio.registry.global-id";
+    public static final String REGISTRY_CHECK_PERIOD_CONFIG_PARAM = "apicurio.registry.check-period";
 
     private ArtifactIdStrategy<T> artifactIdStrategy;
     private GlobalIdStrategy<T> globalIdStrategy;
@@ -79,5 +80,6 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
 
         Object gis = configs.get(REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM);
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
+        getGlobalIdStrategy().configure(configs, isKey);
     }
 }

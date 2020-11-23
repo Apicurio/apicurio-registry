@@ -22,15 +22,15 @@ import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 
-import java.net.HttpURLConnection;
-import java.util.concurrent.CompletionStage;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import java.net.HttpURLConnection;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Ales Justin
  */
-public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
+public abstract class AbstractCrudIdStrategy<T> extends CheckPeriodIdStrategy   <T> {
 
     protected <R> R unwrap(CompletionStage<R> cs) {
         return ConcurrentUtil.result(cs);
@@ -46,7 +46,7 @@ public abstract class AbstractCrudIdStrategy<T> implements GlobalIdStrategy<T> {
     }
 
     @Override
-    public long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
+    long findIdInternal(RegistryService service, String artifactId, ArtifactType artifactType, T schema) {
         try {
             return initialLookup(service, artifactId, artifactType, schema);
         } catch (WebApplicationException e) {

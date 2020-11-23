@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.events.EventSourcedRegistryStorage;
+import io.apicurio.registry.events.EventsService;
 import io.apicurio.registry.storage.impl.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
 import org.slf4j.Logger;
@@ -41,31 +43,41 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorageProvider> provider;
 
+    @Inject
+    EventsService eventsService;
+
     @Produces
     @ApplicationScoped
     @Current
     public RegistryStorage realImpl() {
 
-        if (provider.isResolvable()) {
-            return provider.get().storage();
-        }
-
-        List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
         RegistryStorage impl = null;
-        if (list.size() == 1) {
-            impl = list.get(0);
+        
+        if (provider.isResolvable()) {
+            impl= provider.get().storage();
         } else {
-            for (RegistryStorage rs : list) {
-                if (rs instanceof InMemoryRegistryStorage == false) {
-                    impl = rs;
-                    break;
+            List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
+            if (list.size() == 1) {
+                impl = list.get(0);
+            } else {
+                for (RegistryStorage rs : list) {
+                    if (rs instanceof InMemoryRegistryStorage == false) {
+                        impl = rs;
+                        break;
+                    }
                 }
             }
         }
+
         if (impl != null) {
             log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
-            return impl;
+            if (eventsService.isConfigured()) {
+                return new EventSourcedRegistryStorage(impl, eventsService);
+            } else {
+                return impl;
+            }
         }
-        throw new IllegalStateException("Should not be here ... ?!");
+        
+        throw new IllegalStateException("No RegistryStorage available on the classpath!");
     }
 }

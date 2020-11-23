@@ -20,6 +20,7 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
+
 /**
  * @author Ales Justin
  */

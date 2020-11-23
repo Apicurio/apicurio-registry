@@ -82,6 +82,7 @@
     <modules>
         <module>common</module>
         <module>app</module>
+        <module>cli</module>
         <module>client</module>
         <module>ui</module>
         <module>utils/converter</module>
@@ -124,14 +125,17 @@
 
         <!-- Schema types -->
         <avro.version>1.10.0</avro.version>
-        <json-schema-validator.version>1.0.44</json-schema-validator.version>
+        <json-schema-validator.version>1.0.45</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.13.0</protobuf.version>
+        <protobuf.version>3.14.0</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Storage types -->
-        <infinispan.version>12.0.0.Dev05</infinispan.version>
+        <infinispan.version>12.0.0.Dev06</infinispan.version>
+
+        <!-- Picocli -->
+        <picocli.version>4.5.2</picocli.version>
 
         <!-- gRPC -->
         <grpc.version>1.33.1</grpc.version>
@@ -146,7 +150,7 @@
         <apicurio-data-models.version>1.1.6</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>15.0</graphql.version>
+        <graphql.version>16.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
@@ -198,7 +202,7 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.14.3</test-containers.version>
+        <test-containers.version>1.15.0</test-containers.version>
     </properties>
 
     <dependencyManagement>
@@ -391,6 +395,18 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+
+            <!-- Picocli -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli-shell-jline2</artifactId>
+                <version>${picocli.version}</version>
             </dependency>
 
             <!-- gRPC -->

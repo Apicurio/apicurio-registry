@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.serde.strategy;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
 
+
 /**
  * @author Ales Justin
  */

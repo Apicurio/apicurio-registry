@@ -53,6 +53,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersion> {
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
+        dto.setVersion(rs.getInt("version"));
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
         // TODO return properties as well
         //dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));

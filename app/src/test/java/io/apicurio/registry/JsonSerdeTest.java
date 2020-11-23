@@ -20,6 +20,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
 import java.util.Collections;
+
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;

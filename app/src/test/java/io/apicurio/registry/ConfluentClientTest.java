@@ -265,7 +265,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     
     /**
      * Test for issue: https://github.com/Apicurio/apicurio-registry/issues/536
-     * @param supplier
      * @throws Exception
      */
     @Test

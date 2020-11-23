@@ -97,7 +97,7 @@ public class Submitter<T> {
             builder.setConfiguration(configuration);
         }
 
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.RULE, actionType, artifactId, -1).setRule(builder);
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.RULE, actionType, artifactId, -1L).setRule(builder);
         return submit(rvb.build());
     }
 

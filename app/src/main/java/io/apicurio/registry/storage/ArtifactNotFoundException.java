@@ -25,10 +25,6 @@ public class ArtifactNotFoundException extends NotFoundException {
     
     private String artifactId;
 
-    public ArtifactNotFoundException(Throwable cause) {
-        super(cause);
-    }
-
     /**
      * Constructor.
      */

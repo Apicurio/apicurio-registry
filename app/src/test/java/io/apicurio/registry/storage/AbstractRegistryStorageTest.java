@@ -26,6 +26,7 @@ import java.util.SortedSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -34,11 +35,12 @@ import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractRegistryStorageTest {
+public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
     
     private static final String OPENAPI_CONTENT = "{" + 
             "    \"openapi\": \"3.0.2\"," + 
@@ -166,15 +168,17 @@ public abstract class AbstractRegistryStorageTest {
         Assertions.assertEquals(dto.getGlobalId(), storedArtifact.getGlobalId());
         Assertions.assertEquals(dto.getVersion(), storedArtifact.getVersion());
         
-        ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(artifactId);
-        Assertions.assertNotNull(amdDto);
-        Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
-        Assertions.assertEquals("NAME", amdDto.getName());
-        Assertions.assertEquals("DESCRIPTION", amdDto.getDescription());
-        Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
-        Assertions.assertEquals(1, amdDto.getVersion());
-        Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
-        Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
+        TestUtils.retry(() -> {
+            ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(artifactId);
+            Assertions.assertNotNull(amdDto);
+            Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
+            Assertions.assertEquals("NAME", amdDto.getName());
+            Assertions.assertEquals("DESCRIPTION", amdDto.getDescription());
+            Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
+            Assertions.assertEquals(1, amdDto.getVersion());
+            Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
+            Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
+        });
     }
 
     @Test
@@ -549,10 +553,12 @@ public abstract class AbstractRegistryStorageTest {
         ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
         ArtifactMetaDataDto dtov2 = storage().updateArtifact(artifactId, ArtifactType.OPENAPI, contentv2).toCompletableFuture().get();
         Assertions.assertNotNull(dtov2);
+        Assertions.assertEquals(2, dtov2.getVersion());
         
         storage().deleteArtifactVersion(artifactId, 1);
         
         final String aid2 = artifactId;
+        
         storage().getArtifact(aid2);
         storage().getArtifactMetaData(aid2);
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
@@ -853,15 +859,17 @@ public abstract class AbstractRegistryStorageTest {
             storage().updateArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData);
         }
 
-        VersionSearchResults results = storage().searchVersions(artifactId, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(50, results.getCount());
-        Assertions.assertEquals(10, results.getVersions().size());
+        TestUtils.retry(() -> {
+            VersionSearchResults results = storage().searchVersions(artifactId, 0, 10);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(50, results.getCount());
+            Assertions.assertEquals(10, results.getVersions().size());
 
-        results = storage().searchVersions(artifactId, 0, 1000);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(50, results.getCount());
-        Assertions.assertEquals(50, results.getVersions().size());
+            results = storage().searchVersions(artifactId, 0, 1000);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(50, results.getCount());
+            Assertions.assertEquals(50, results.getVersions().size());
+        });
 
     }
 

@@ -570,7 +570,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
-            throw new ArtifactNotFoundException(e);
+            throw new ArtifactNotFoundException(artifactId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -1162,7 +1162,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
-            throw new ArtifactNotFoundException(e);
+            throw new ArtifactNotFoundException("gid-" + globalId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -1185,7 +1185,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
-            throw new ArtifactNotFoundException(e);
+            throw new ArtifactNotFoundException(artifactId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }

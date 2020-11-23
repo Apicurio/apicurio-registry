@@ -81,9 +81,7 @@ public class KafkaSQLSink {
 
     private Object handleArtifact(String artifactId, StorageValue storageAction) {
         ArtifactValue artifactValue = storageAction.getArtifact();
-
         ArtifactType artifactType = ArtifactType.values()[artifactValue.getArtifactType()];
-
 
         ActionType actionType = storageAction.getType();
         switch (actionType) {
@@ -92,13 +90,18 @@ public class KafkaSQLSink {
             case UPDATE:
                 return sqlStorage.updateArtifact(artifactId, artifactType, ContentHandle.create(artifactValue.getContent().toByteArray()));
             case DELETE:
-                return sqlStorage.deleteArtifact(artifactId);
+                if (storageAction.getVersion() == -1L) {
+                    return sqlStorage.deleteArtifact(artifactId);
+                } else {
+                    sqlStorage.deleteArtifactVersion(artifactId, storageAction.getVersion());
+                    break;
+                }
             case READ:
                 log.warn("Read storage action, nothing to do. artifact: %s", artifactId);
                 break;
             case UNDEFINED:
             case UNRECOGNIZED:
-                log.warn("Unrecognized storage action artifact: %s", artifactId);
+                log.warn("Unrecognized storage action type for artifact: %s", artifactId);
                 break;
         }
         return null;

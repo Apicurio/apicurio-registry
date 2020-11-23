@@ -63,7 +63,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     public void startIfNeeded() {
         if (!TestUtils.isExternalRegistry() &&
-                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams) &&
+                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.ksql) &&
                 kafkaContainer != null) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed as registry storage");
         } else {

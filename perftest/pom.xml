@@ -14,6 +14,7 @@
         <dependency>
             <groupId>io.gatling.highcharts</groupId>
             <artifactId>gatling-charts-highcharts</artifactId>
+            <version>3.4.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -142,7 +142,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    private final Submitter submitter = new Submitter(this::send);
+    private final Submitter<RecordMetadata> submitter = new Submitter<>(this::send);
 
     private CompletableFuture<RecordMetadata> send(Str.StorageValue value) {
         ProducerRecord<String, Str.StorageValue> record = new ProducerRecord<>(

@@ -38,10 +38,18 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorage> storages;
 
+    @Inject
+    Instance<RegistryStorageProvider> provider;
+
     @Produces
     @ApplicationScoped
     @Current
     public RegistryStorage realImpl() {
+
+        if (provider.isResolvable()) {
+            return provider.get().storage();
+        }
+
         List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
         RegistryStorage impl = null;
         if (list.size() == 1) {

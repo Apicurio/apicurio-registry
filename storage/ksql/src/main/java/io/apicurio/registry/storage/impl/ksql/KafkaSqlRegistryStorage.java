@@ -28,24 +28,30 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import javax.annotation.PostConstruct;
+import java.util.function.Function;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.serialization.Serdes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -57,26 +63,42 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
+import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
+import io.apicurio.registry.storage.impl.ksql.sql.KafkaSQLSink;
+import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.DtoUtil;
+import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.kafka.AsyncProducer;
+import io.apicurio.registry.utils.kafka.ProducerActions;
+import io.apicurio.registry.utils.kafka.ProtoSerde;
+import io.apicurio.registry.utils.kafka.Submitter;
+import io.quarkus.runtime.StartupEvent;
 
 /**
  * An implementation of a registry storage that extends the basic SQL storage but federates 'write' operations
- * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all 
+ * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
  * writes are published to a topic for consumption by all nodes.
- * 
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
@@ -87,20 +109,33 @@ import io.apicurio.registry.types.RuleType;
 @Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
 @Logged
 @SuppressWarnings("unchecked")
-public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
+public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlRegistryStorage.class);
+
+    /* Fake global rules as an artifact */
+    public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
+
+    @Inject
+    KafkaSqlCoordinator coordinator;
+
+    @Inject
+    KafkaSQLSink kafkaSqlSink;
+
+    @Inject
+    @Named("SQLRegistryStorage")
+    RegistryStorage sqlStorage;
 
     @Inject
     @ConfigProperty(name = "registry.ksql.globalRuleKey", defaultValue = "__global_rule")
     String globalRuleKey;
-    
+
     @Inject
     @ConfigProperty(name = "registry.ksql.bootstrap.servers")
     String bootstrapServers;
 
     @Inject
-    @ConfigProperty(name = "registry.ksql.topic", defaultValue = "ksql-journal")
+    @ConfigProperty(name = "registry.ksql.topic", defaultValue = "storage-topic")
     String topic;
 
     @Inject
@@ -110,44 +145,47 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
     @Inject
     @ConfigProperty(name = "registry.ksql.consumer.poll.timeout", defaultValue = "1000")
     Integer pollTimeout;
-    
-    @Inject
-    KafkaSqlCoordinator coordinator;
 
-    @Inject
-    KafkaSqlDispatcher dispatcher;
-    
     private boolean stopped = true;
-    private KafkaProducer<String, JournalRecord> producer;
-    private KafkaConsumer<String, JournalRecord> consumer;
-    private ThreadLocal<Boolean> applying = ThreadLocal.withInitial(() -> Boolean.FALSE);
+    private ProducerActions<String, Str.StorageValue> storageProducer;
+    private KafkaConsumer<String, Str.StorageValue> consumer;
+    private Submitter<UUID> submitter;
 
-    @PostConstruct
-    void onConstruct() {
+    void onConstruct(@Observes StartupEvent ev) {
         log.info("Using Kafka-SQL storage.");
         // Start the Kafka Consumer thread
         consumer = createKafkaConsumer();
         startConsumerThread(consumer);
-        
-        producer = createKafkaProducer();
+
+        storageProducer = createKafkaProducer();
+        submitter = new Submitter<UUID>(this::send);
     }
-    
+
     @PreDestroy
     void onDestroy() {
-        stop();
-    }
-    
-    public void stop() {
         stopped = true;
     }
 
+    private CompletableFuture<UUID> send(Str.StorageValue value) {
+        UUID requestId = coordinator.createUUID();
+        RecordHeader h = new RecordHeader("req", requestId.toString().getBytes());
+        ProducerRecord<String, Str.StorageValue> record = new ProducerRecord<>(
+            topic,
+            0,
+            value.getArtifactId(), // MUST be set
+            value,
+            Collections.singletonList(h)
+        );
+        return storageProducer.apply(record).thenApply(rm -> requestId);
+    }
+
     /**
-     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic, 
+     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
      * consuming JournalRecord entries found on that topic, and applying those journal entries to
      * the internal data model.
      * @param consumer
      */
-    private void startConsumerThread(final KafkaConsumer<String, JournalRecord> consumer) {
+    private void startConsumerThread(final KafkaConsumer<String, Str.StorageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", topic);
         log.info("Bootstrap servers: " + bootstrapServers);
         Runnable runner = () -> {
@@ -165,13 +203,26 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
 
                 // Main consumer loop
                 while (!stopped) {
-                    final ConsumerRecords<String, JournalRecord> records = consumer.poll(Duration.ofMillis(pollTimeout));
+                    final ConsumerRecords<String, Str.StorageValue> records = consumer.poll(Duration.ofMillis(pollTimeout));
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
-                            JournalRecord journalRecord = record.value();
-                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue?
-                            processJournalRecord(journalRecord);
+
+                            UUID req = Optional.ofNullable(record.headers().headers("req"))
+                                .map(Iterable::iterator)
+                                .map(it -> {
+                                    return it.hasNext() ? it.next() : null;
+                                })
+                                .map(Header::value)
+                                .map(String::new)
+                                .map(UUID::fromString)
+                                .orElse(null);
+
+                            String artifactId = record.key();
+                            Str.StorageValue storageAction = record.value();
+
+                            // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
+                            kafkaSqlSink.processStorageAction(req, artifactId, storageAction);
                         });
                     }
                 }
@@ -187,42 +238,26 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
     }
 
     /**
-     * Process a single journal record found on the Kafka topic.
-     * @param journalRecord
-     */
-    private void processJournalRecord(JournalRecord journalRecord) {
-        log.debug("[{}] Processing journal record of type {}", journalRecord.getUuid(), journalRecord.getMethod());
-        applying.set(Boolean.TRUE);
-        try {
-            Object returnValueOrException = dispatcher.dispatchTo(journalRecord, this);
-            coordinator.notifyResponse(journalRecord.getUuid(), returnValueOrException);
-        } finally {
-            applying.set(Boolean.FALSE);
-        }
-    }
-
-    /**
      * Creates the Kafka producer.
      */
-    private KafkaProducer<String, JournalRecord> createKafkaProducer() {
+    private ProducerActions<String, Str.StorageValue> createKafkaProducer() {
         Properties props = new Properties();
 
         // Configure kafka settings
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topic);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JournalRecordSerializer.class.getName());
 
         // Create the Kafka producer
-        KafkaProducer<String, JournalRecord> producer = new KafkaProducer<>(props);
-        return producer;
+        return new AsyncProducer<String, Str.StorageValue>(props,
+                Serdes.String().serializer(),
+                ProtoSerde.parsedWith(Str.StorageValue.parser()));
     }
 
     /**
      * Creates the Kafka consumer.
      */
-    private KafkaConsumer<String, JournalRecord> createKafkaConsumer() {
+    private KafkaConsumer<String, Str.StorageValue> createKafkaConsumer() {
         Properties props = new Properties();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -230,289 +265,330 @@ public class KafkaSqlRegistryStorage extends AbstractSqlRegistryStorage {
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JournalRecordDeserializer.class.getName());
 
         // Create the Kafka Consumer
-        KafkaConsumer<String, JournalRecord> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<String, Str.StorageValue> consumer = new KafkaConsumer<>(props,
+                Serdes.String().deserializer(),
+                ProtoSerde.parsedWith(Str.StorageValue.parser()));
         return consumer;
     }
 
-    private boolean isApplying() {
-        return applying.get();
+    private void updateArtifactState(ArtifactState currentState, String artifactId, Integer version, ArtifactState state) {
+        ArtifactStateExt.applyState(
+            s ->  {
+                UUID reqId = ConcurrentUtil.get(submitter.submitState(artifactId, version.longValue(), s));
+                coordinator.waitForResponse(reqId);
+            },
+            currentState,
+            state
+        );
     }
 
-    /**
-     * Create a journal record and publish it to the Kafka topic.
-     * @param journalKey
-     * @param methodName
-     * @param arguments
-     * @throws RegistryException
-     */
-    private Object journalAndWait(String journalKey, String methodName, Object ...arguments) throws RegistryException {
-        UUID uuid = coordinator.createUUID();
-        log.debug("[{}] Publishing journal record of type {}", uuid, methodName);
-        JournalRecord record = JournalRecord.create(uuid, methodName, arguments);
-        ProducerRecord<String, JournalRecord> producerRecord = new ProducerRecord<String, JournalRecord>(topic, journalKey, record);
-        producer.send(producerRecord);
-        Object rval;
-        try {
-            log.debug("[{}] Waiting for journal record response for type {}", uuid, methodName);
-            rval = coordinator.waitForResponse(uuid);
-        } catch (InterruptedException e) {
-            throw new RegistryStorageException(e);
-        }
-        if (rval instanceof RegistryException) {
-            throw (RegistryException) rval;
-        } else {
-            return rval;
-        }
-    }
+    //TODO implement is Ready and is alive checking if the state is fully updated
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
-     */
-    @Override
-    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleAlreadyExistsException, RegistryStorageException {
-        if (isApplying()) {
-            super.createGlobalRule(rule, config);
-        } else {
-            journalAndWait(globalRuleKey, "createGlobalRule", rule, config);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
-     */
-    @Override
-    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.updateGlobalRule(rule, config);
-        } else {
-            journalAndWait(globalRuleKey, "updateGlobalRule", rule, config);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteGlobalRules()
-     */
-    @Override
-    public void deleteGlobalRules() throws RegistryStorageException {
-        if (isApplying()) {
-            super.deleteGlobalRules();
-        } else {
-            journalAndWait(globalRuleKey, "deleteGlobalRules");
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
-     */
-    @Override
-    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.deleteGlobalRule(rule);
-        } else {
-            journalAndWait(globalRuleKey, "deleteGlobalRule", rule);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteArtifact(java.lang.String)
-     */
-    @Override
-    public SortedSet<Long> deleteArtifact(String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            return super.deleteArtifact(artifactId);
-        } else {
-            return (SortedSet<Long>) journalAndWait(artifactId, "deleteArtifact", artifactId);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
-     */
-    @Override
-    public void deleteArtifactRule(String artifactId, RuleType rule)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.deleteArtifactRule(artifactId, rule);
-        } else {
-            journalAndWait(artifactId, "deleteArtifactRule", artifactId, rule);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteArtifactRules(java.lang.String)
-     */
-    @Override
-    public void deleteArtifactRules(String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.deleteArtifactRules(artifactId);
-        } else {
-            journalAndWait(artifactId, "deleteArtifactRules", artifactId);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteArtifactVersion(java.lang.String, long)
-     */
-    @Override
-    public void deleteArtifactVersion(String artifactId, long version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.deleteArtifactVersion(artifactId, version);
-        } else {
-            journalAndWait(artifactId, "deleteArtifactVersion", artifactId, version);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#deleteArtifactVersionMetaData(java.lang.String, long)
-     */
-    @Override
-    public void deleteArtifactVersionMetaData(String artifactId, long version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.deleteArtifactVersionMetaData(artifactId, version);
-        } else {
-            journalAndWait(artifactId, "deleteArtifactVersionMetaData", artifactId, version);
-        }
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
-     */
-    @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        if (isApplying()) {
-            return super.createArtifact(artifactId, artifactType, content);
-        } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "createArtifact", artifactId, artifactType, content);
-        }
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
-     */
-    @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        if (isApplying()) {
-            return super.createArtifactWithMetadata(artifactId, artifactType, content, metaData);
-        } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "createArtifactWithMetadata", artifactId, artifactType, content, metaData);
-        }
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#createArtifactRuleAsync(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
-     */
-    @Override
-    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule,
-            RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        if (isApplying()) {
-            return super.createArtifactRuleAsync(artifactId, rule, config);
-        } else {
-            return (CompletionStage<Void>) journalAndWait(artifactId, "createArtifactRuleAsync", artifactId, rule, config);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
-     */
-    @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            return super.updateArtifact(artifactId, artifactType, content);
-        } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "updateArtifact", artifactId, artifactType, content);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
-     */
-    @Override
-    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.updateArtifactMetaData(artifactId, metaData);
-        } else {
-            journalAndWait(artifactId, "updateArtifactMetaData", artifactId, metaData);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
-     */
-    @Override
-    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.updateArtifactRule(artifactId, rule, config);
-        } else {
-            journalAndWait(artifactId, "updateArtifactRule", artifactId, rule, config);
-        }
-    }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactState(java.lang.String, io.apicurio.registry.types.ArtifactState)
-     */
     @Override
     public void updateArtifactState(String artifactId, ArtifactState state) {
-        if (isApplying()) {
-            super.updateArtifactState(artifactId, state);
-        } else {
-            journalAndWait(artifactId, "updateArtifactState", artifactId, state);
-        }
+        ArtifactMetaDataDto metadata = sqlStorage.getArtifactMetaData(artifactId);
+        updateArtifactState(metadata.getState(), artifactId, metadata.getVersion(), state);
     }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactState(java.lang.String, io.apicurio.registry.types.ArtifactState, java.lang.Integer)
-     */
+
     @Override
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        if (isApplying()) {
-            super.updateArtifactState(artifactId, state, version);
-        } else {
-            journalAndWait(artifactId, "updateArtifactState", artifactId, state, version);
-        }
+        ArtifactVersionMetaDataDto metadata = sqlStorage.getArtifactVersionMetaData(artifactId, version);
+        updateArtifactState(metadata.getState(), artifactId, version, state);
     }
-    
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
-     */
+
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            super.updateArtifactVersionMetaData(artifactId, version, metaData);
-        } else {
-            journalAndWait(artifactId, "updateArtifactVersionMetaData", artifactId, version, metaData);
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+
+        try {
+            sqlStorage.getArtifactMetaData(artifactId);
+            throw new ArtifactAlreadyExistsException(artifactId);
+        } catch (ArtifactNotFoundException e) {
+            //ignored
+            //artifact does not exist, we can create it
         }
+
+        return submitter
+                .submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content.bytes())
+                .thenCompose(reqId -> {
+                    return (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId);
+                });
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifact(artifactId, artifactType, content)
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+    }
+
+    @Override
+    public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+
+        //to verify artifact exists
+        //TODO implement a low level storage api that provides methods like, exists, ...
+        sqlStorage.getArtifactMetaData(artifactId);
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null));
+        SortedSet<Long> versionIds = (SortedSet<Long>) coordinator.waitForResponse(reqId);
+
+        return versionIds;
+    }
+
+    @Override
+    public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifact(artifactId);
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+
+        try {
+            sqlStorage.getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException e) {
+            throw e;
+        }
+
+        return submitter
+                .submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content.bytes())
+                .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
+
+    }
+
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return updateArtifact(artifactId, artifactType, content)
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+    }
+
+
+    @Override
+    public Set<String> getArtifactIds(Integer limit) {
+        return sqlStorage.getArtifactIds(limit);
+    }
+
+    @Override
+    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
+        return sqlStorage.searchArtifacts(search, offset, limit, searchOver, sortOrder);
+    }
+
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactMetaData(artifactId);
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        if (isApplying()) {
-            return super.updateArtifactWithMetadata(artifactId, artifactType, content, metaData);
-        } else {
-            return (CompletionStage<ArtifactMetaDataDto>) journalAndWait(artifactId, "updateArtifactWithMetadata", artifactId, artifactType, content, metaData);
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactVersionMetaData(artifactId, canonical, content);
+    }
+
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactMetaData(id);
+    }
+
+    @Override
+    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+
+        try {
+            sqlStorage.getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException e) {
+            throw e;
         }
+
+        UUID reqId = ConcurrentUtil.get(submitter
+                .submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactRules(artifactId);
+    }
+
+    @Override
+    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+
+        try {
+            sqlStorage.getArtifactRule(artifactId, rule);
+            throw new RuleAlreadyExistsException(rule);
+        } catch (RuleNotFoundException e) {
+            //rule does not exist, we can create it
+        }
+
+        return submitter
+                .submitRule(Str.ActionType.CREATE, artifactId, rule, config.getConfiguration())
+                .thenCompose(reqId -> (CompletionStage<Void>) coordinator.waitForResponse(reqId));
+    }
+
+    @Override
+    public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        try {
+            sqlStorage.getArtifactMetaData(artifactId);
+        } catch (ArtifactNotFoundException e) {
+            throw e;
+        }
+
+        deleteArtifactRulesInternal(artifactId);
+    }
+
+    private void deleteArtifactRulesInternal(String artifactId) {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, null, null));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactRule(artifactId, rule);
+    }
+
+    @Override
+    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+
+        try {
+            sqlStorage.getArtifactRule(artifactId, rule);
+        } catch (RuleNotFoundException e) {
+            throw e;
+        }
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, artifactId, rule, config.getConfiguration()));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public void deleteArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        try {
+            sqlStorage.getArtifactRule(artifactId, rule);
+        } catch (RuleNotFoundException e) {
+            throw e;
+        }
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, artifactId, rule, null));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactVersions(artifactId);
+    }
+
+    @Override
+    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
+        return sqlStorage.searchVersions(artifactId, offset, limit);
+    }
+
+    @Override
+    public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactVersion(id);
+    }
+
+    @Override
+    public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactVersion(artifactId, version);
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return sqlStorage.getArtifactVersionMetaData(artifactId, version);
+    }
+
+    @Override
+    public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(artifactId, version, null, value -> {
+            UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null));
+            coordinator.waitForResponse(reqId);
+            return null;
+        });
+    }
+
+    @Override
+    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(
+            artifactId,
+            version,
+            ArtifactStateExt.ACTIVE_STATES,
+            value -> {
+                UUID reqId = ConcurrentUtil.get(submitter
+                        .submitMetadata(Str.ActionType.UPDATE, artifactId, version, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()));
+                coordinator.waitForResponse(reqId);
+                return null;
+            }
+        );
+    }
+
+    @Override
+    public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        handleVersion(
+            artifactId,
+            version,
+            null,
+            value -> {
+                UUID reqId = ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.DELETE, artifactId, version, null, null, Collections.emptyList(), Collections.emptyMap()));
+                coordinator.waitForResponse(reqId);
+                return null;
+            }
+        );
+    }
+
+    private <T> T handleVersion(String artifactId, long version, EnumSet<ArtifactState> states, Function<ArtifactVersionMetaDataDto, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
+        ArtifactVersionMetaDataDto metadata = sqlStorage.getArtifactVersionMetaData(artifactId, version);
+
+        ArtifactState state = metadata.getState();
+        ArtifactStateExt.validateState(states, state, artifactId, version);
+        return handler.apply(metadata);
+    }
+
+    @Override
+    public List<RuleType> getGlobalRules() throws RegistryStorageException {
+        return sqlStorage.getGlobalRules();
+    }
+
+    @Override
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.CREATE, GLOBAL_RULES_ID, rule, config.getConfiguration()));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public void deleteGlobalRules() throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, GLOBAL_RULES_ID, null, null));
+        coordinator.waitForResponse(reqId);
+
+    }
+
+    @Override
+    public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        return sqlStorage.getGlobalRule(rule);
+    }
+
+    @Override
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
+        try {
+            sqlStorage.getGlobalRule(rule);
+        } catch (RuleNotFoundException e) {
+            throw e;
+        }
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, GLOBAL_RULES_ID, rule, config.getConfiguration()));
+        coordinator.waitForResponse(reqId);
+
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        try {
+            sqlStorage.getGlobalRule(rule);
+        } catch (RuleNotFoundException e) {
+            throw e;
+        }
+        UUID reqId = ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, GLOBAL_RULES_ID, rule, null));
+        coordinator.waitForResponse(reqId);
     }
 
 }

@@ -241,6 +241,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * Creates the Kafka producer.
      */
     private ProducerActions<String, Str.StorageValue> createKafkaProducer() {
+        // TODO properties should be injected similar to StreamsRegistryConfiguration#storageProducer
         Properties props = new Properties();
 
         // Configure kafka settings
@@ -258,6 +259,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * Creates the Kafka consumer.
      */
     private KafkaConsumer<String, Str.StorageValue> createKafkaConsumer() {
+        // TODO properties should be injected similar to StreamsRegistryConfiguration#storageProducer
         Properties props = new Properties();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);

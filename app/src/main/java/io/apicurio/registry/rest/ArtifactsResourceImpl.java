@@ -387,7 +387,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(artifactId, artifactType, content).thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
+        return storage.updateArtifact(artifactId, artifactType, content)
+            .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
     /**

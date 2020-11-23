@@ -103,6 +103,22 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return response.extract().body().path("globalId");
     }
 
+    protected Integer createArtifactVersion(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("artifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+            .post("/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        return response.extract().body().path("globalId");
+    }
+
     /**
      * Wait for an artifact to be created.
      * @param artifactId

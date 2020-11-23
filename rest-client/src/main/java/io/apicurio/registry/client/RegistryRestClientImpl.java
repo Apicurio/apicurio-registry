@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.client.request.AuthInterceptor;
 import io.apicurio.registry.client.request.HeadersInterceptor;
 import io.apicurio.registry.client.request.RequestExecutor;
 import io.apicurio.registry.client.service.ArtifactsService;
@@ -91,11 +93,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
     RegistryRestClientImpl(String baseUrl) {
-        this(baseUrl, Collections.emptyMap());
+        this(baseUrl, Collections.emptyMap(), null);
     }
 
-    RegistryRestClientImpl(String baseUrl, Map<String, Object> config) {
-        this(baseUrl, createHttpClientWithConfig(baseUrl, config));
+    RegistryRestClientImpl(String baseUrl, Map<String, Object> config, Auth auth) {
+        this(baseUrl, createHttpClientWithConfig(baseUrl, config, auth));
     }
 
     RegistryRestClientImpl(String baseUrl, OkHttpClient okHttpClient) {
@@ -116,14 +118,14 @@ public class RegistryRestClientImpl implements RegistryRestClient {
         initServices(retrofit);
     }
 
-    private static OkHttpClient createHttpClientWithConfig(String baseUrl, Map<String, Object> configs) {
+    private static OkHttpClient createHttpClientWithConfig(String baseUrl, Map<String, Object> configs, Auth auth) {
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
-        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs);
+        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs, auth);
         okHttpClientBuilder = addSSL(okHttpClientBuilder, configs);
         return okHttpClientBuilder.build();
     }
 
-    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs) {
+    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs, Auth auth) {
 
         Map<String, String> requestHeaders = configs.entrySet().stream()
                 .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
@@ -139,6 +141,8 @@ public class RegistryRestClientImpl implements RegistryRestClient {
             if (user != null && !user.isEmpty()) {
                 String credentials = Credentials.basic(user, pwd);
                 requestHeaders.put("Authorization", credentials);
+            } else if (auth != null) {
+                okHttpClientBuilder.addInterceptor(new AuthInterceptor(auth));
             }
         }
 

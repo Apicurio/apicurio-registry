@@ -162,6 +162,7 @@
         <retrofit.version>2.9.0</retrofit.version>
         <jdbi.version>3.17.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
+        <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>

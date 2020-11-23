@@ -34,7 +34,6 @@ import java.util.function.Function;
 
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.auth.AuthProvider;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -62,10 +61,8 @@ public class TestUtils {
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
     private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
     public static final String REGISTRY = "registry";
-    public static final String ADMIN = "admin";
     public static final String REGISTRY_API = "registry-api";
     public static final String SECRET = "secret";
-    public static final String KEYCLOAK = "KEYCLOAK";
     public static final String KEYCLOAK_AUTH_URL = "http://localhost:8090/auth";
 
     private TestUtils() {
@@ -88,15 +85,13 @@ public class TestUtils {
         return getRegistryUrl().concat("/ui");
     }
 
-    public static AuthConfig getAuthConfig(AuthProvider authProvider){
+    public static AuthConfig getAuthConfig(){
 
-        return new AuthConfig.Builder(authProvider)
-                .setServerUrl(KEYCLOAK_AUTH_URL)
-                .setClientId(REGISTRY_API)
-                .setRealm(REGISTRY)
-                .setUsername(ADMIN)
-                .setPassword(ADMIN)
-                .setClientSecret(SECRET)
+        return new AuthConfig.Builder()
+                .withServerUrl(KEYCLOAK_AUTH_URL)
+                .withClientId(REGISTRY_API)
+                .withRealm(REGISTRY)
+                .withClientSecret(SECRET)
                 .build();
     }
 

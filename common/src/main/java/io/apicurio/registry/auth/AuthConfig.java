@@ -1,78 +1,86 @@
+/*
+ * Copyright 2020 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.auth;
 
-import org.keycloak.admin.client.Config;
 
-public class AuthConfig extends Config {
+/**
+ * @author carnalca@redhat.com
+ */
+public class AuthConfig {
 
-    private AuthProvider provider;
+    private final String serverUrl;
+    private final String realm;
+    private final String clientId;
+    private final String clientSecret;
 
-    public AuthProvider getProvider() {
-        return provider;
+    public AuthConfig(String serverUrl, String realm, String clientId, String clientSecret) {
+        this.serverUrl = serverUrl;
+        this.realm = realm;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
 
-    public void setProvider(AuthProvider provider) {
-        this.provider = provider;
+    public String getServerUrl() {
+        return serverUrl;
     }
 
-    public AuthConfig(String serverUrl, String realm, String username, String password, String clientId, String clientSecret, AuthProvider provider) {
-        super(serverUrl, realm, username, password, clientId, clientSecret);
-        this.provider = provider;
+    public String getRealm() {
+        return realm;
     }
 
-    public AuthConfig(String serverUrl, String realm, String username, String password, String clientId, String clientSecret) {
-        super(serverUrl, realm, username, password, clientId, clientSecret);
+    public String getClientId() {
+        return clientId;
     }
 
-    public AuthConfig(String serverUrl, String realm, String username, String password, String clientId, String clientSecret, String grantType) {
-        super(serverUrl, realm, username, password, clientId, clientSecret, grantType);
+    public String getClientSecret() {
+        return clientSecret;
     }
 
     public static class Builder {
         private String serverUrl;
         private String realm;
-        private String username;
-        private String password;
         private String clientId;
         private String clientSecret;
-        private AuthConfig config;
-        private AuthProvider provider;
 
-        public Builder(AuthProvider provider) {
-            this.provider = provider;
+        public Builder() {
         }
 
-        public Builder setRealm(String realm) {
+        public Builder withRealm(String realm) {
             this.realm = realm;
             return this;
         }
 
-        public Builder setUsername(String username) {
-            this.username = username;
-            return this;
-        }
-
-        public Builder setPassword(String password) {
-            this.password = password;
-            return this;
-        }
-
-        public Builder setClientId(String clientId) {
+        public Builder withClientId(String clientId) {
             this.clientId = clientId;
             return this;
         }
 
-        public Builder setClientSecret(String clientSecret) {
+        public Builder withClientSecret(String clientSecret) {
             this.clientSecret = clientSecret;
             return this;
         }
 
-        public Builder setServerUrl(String serverUrl) {
+        public Builder withServerUrl(String serverUrl) {
             this.serverUrl = serverUrl;
             return this;
         }
 
         public AuthConfig build(){
-            return this.config = new AuthConfig(this.serverUrl, this.realm, this.username, this.password, this.clientId, this.clientSecret, this.provider);
+            return new AuthConfig(this.serverUrl, this.realm, this.clientId, this.clientSecret);
         }
     }
 

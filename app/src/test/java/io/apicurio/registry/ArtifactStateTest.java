@@ -197,9 +197,9 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         // Create the artifact
         ArtifactMetaData md = client.createArtifact(
-            artifactId,
-            ArtifactType.JSON,
-            new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
+                artifactId,
+                ArtifactType.JSON,
+                new ByteArrayInputStream("{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8))
         );
 
         retry(() -> {

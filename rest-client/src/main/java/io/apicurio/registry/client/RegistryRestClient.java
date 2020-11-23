@@ -36,6 +36,7 @@ import io.apicurio.registry.types.RuleType;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -145,4 +146,7 @@ public interface RegistryRestClient extends AutoCloseable {
 
     VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit);
 
+    void setNextRequestHeaders(Map<String, String> headers);
+
+    Map<String, String> getHeaders();
 }

@@ -1,7 +1,5 @@
 package io.apicurio.registry.utils.tests;
 
-import java.io.InputStream;
-import java.util.List;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -16,6 +14,10 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author famartin
@@ -45,20 +47,20 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     public List<String> listArtifacts() {
         return getDelegate().listArtifacts();
     }
-    
+
     @Override
     public ArtifactMetaData createArtifact(InputStream data) {
         return getDelegate().createArtifact(data);
     }
-    
+
     @Override
     public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
         return getDelegate().createArtifact(artifactId, artifactType, data);
     }
-    
+
     @Override
     public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
-            IfExistsType ifExists, Boolean canonical) {
+                                           IfExistsType ifExists, Boolean canonical) {
         return getDelegate().createArtifact(artifactId, artifactType, data, ifExists, canonical);
     }
 
@@ -91,10 +93,10 @@ public class LazyRegistryRestClient implements RegistryRestClient {
     public void updateArtifactMetaData(String artifactId, EditableMetaData metaData) {
         getDelegate().updateArtifactMetaData(artifactId, metaData);
     }
-    
+
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical,
-            InputStream data) {
+                                                         InputStream data) {
         return getDelegate().getArtifactMetaDataByContent(artifactId, canonical, data);
     }
 
@@ -218,4 +220,13 @@ public class LazyRegistryRestClient implements RegistryRestClient {
         return getDelegate().searchVersions(artifactId, offset, limit);
     }
 
+    @Override
+    public void setNextRequestHeaders(Map<String, String> headers) {
+        getDelegate().setNextRequestHeaders(headers);
+    }
+
+    @Override
+    public Map<String, String> getHeaders() {
+        return getDelegate().getHeaders();
+    }
 }

@@ -16,8 +16,22 @@
 
 package io.apicurio.tests;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.RegistryRestClientExtension;
+import io.apicurio.registry.utils.tests.SimpleDisplayName;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.interfaces.TestSeparator;
+import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import org.apache.avro.Schema;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -30,23 +44,8 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import org.apache.avro.Schema;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryRestClientExtension;
-import io.apicurio.registry.utils.tests.SimpleDisplayName;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.interfaces.TestSeparator;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @DisplayNameGeneration(SimpleDisplayName.class)
 @ExtendWith(RegistryDeploymentManager.class)

@@ -24,8 +24,10 @@ import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.utils.serde.AbstractKafkaStrategyAwareSerDe;
 import io.apicurio.registry.utils.serde.AvroEncoding;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
@@ -94,7 +96,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
-        CompletionStage<ArtifactMetaData> csa = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        byte[] schemaContent = IoUtil.toBytes(schema.toString());
+        CompletionStage<ArtifactMetaData> csa = client.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schemaContent));
         ArtifactMetaData amd = ConcurrentUtil.result(csa);
 
         this.waitForGlobalId(amd.getGlobalId());
@@ -125,6 +128,37 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         retry(() -> service.getArtifactMetaDataByGlobalId(id));
 
         Assertions.assertEquals(id, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
+    }
+
+    @RegistryServiceTest
+    public void testCheckPeriod(Supplier<RegistryService> supplier) throws Exception {
+        RegistryService service = supplier.get();
+
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5x\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        String artifactId = generateArtifactId();
+        byte[] schemaContent = IoUtil.toBytes(schema.toString());
+        CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schemaContent));
+        ConcurrentUtil.result(csa);
+
+        long pc = 5000L; // 5seconds check period ...
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(AbstractKafkaStrategyAwareSerDe.REGISTRY_CHECK_PERIOD_MS_CONFIG_PARAM, String.valueOf(pc));
+        GlobalIdStrategy<Schema> idStrategy = new FindLatestIdStrategy<>();
+        idStrategy.configure(config, false);
+
+        long id1 = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
+        service.reset();
+        long id2 = idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema);
+        service.reset();
+        Assertions.assertEquals(id1, id2); // should be less than 5seconds ...
+        retry(() -> service.getArtifactMetaDataByGlobalId(id2));
+
+        service.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        Thread.sleep(pc + 1);
+        retry(() -> Assertions.assertNotEquals(id2, service.getArtifactMetaData(artifactId).getGlobalId()));
+
+        Assertions.assertNotEquals(id2, idStrategy.findId(service, artifactId, ArtifactType.AVRO, schema));
     }
 
     @SuppressWarnings("unchecked")
@@ -194,7 +228,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     @RegistryServiceTest
     public void testAvro(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(supplier.get());
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
@@ -218,9 +252,9 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     @RegistryServiceTest
     public void testAvroJSON(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(supplier.get());
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
-            HashMap<String, String> config = new HashMap();
+            HashMap<String, String> config = new HashMap<>();
             config.put(AvroEncoding.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
             serializer.configure(config,false);
             deserializer.configure(config, false);
@@ -250,11 +284,11 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     @RegistryServiceTest
     public void testAvroUsingHeaders(Supplier<RegistryService> supplier) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(supplier.get());
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(supplier.get());
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-            HashMap<String, String> config = new HashMap();
+            HashMap<String, String> config = new HashMap<>();
             config.put(AbstractKafkaSerDe.USE_HEADERS, "true");
             serializer.configure(config,false);
             deserializer.configure(config, false);
@@ -284,8 +318,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
     @RegistryServiceTest
     public void testAvroReflect(Supplier<RegistryService> supplier) throws Exception {
-        try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(supplier.get());
-             AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(supplier.get())) {
+        try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<>(supplier.get());
+             AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<>(supplier.get())) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             serializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());

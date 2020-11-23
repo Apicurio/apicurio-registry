@@ -44,7 +44,7 @@ public abstract class CheckPeriodIdStrategy<T> implements GlobalIdStrategy<T> {
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        Object cp = configs.get(AbstractKafkaStrategyAwareSerDe.REGISTRY_CHECK_PERIOD_CONFIG_PARAM);
+        Object cp = configs.get(AbstractKafkaStrategyAwareSerDe.REGISTRY_CHECK_PERIOD_MS_CONFIG_PARAM);
         if (cp != null) {
             long checkPeriodParam;
             if (cp instanceof Number) {

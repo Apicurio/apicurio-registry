@@ -18,6 +18,8 @@ package io.apicurio.registry.storage.impl.sql;
 
 import javax.inject.Inject;
 
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.ksql.KafkaSqlRegistryStorage;
@@ -27,7 +29,7 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
+public class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
     
     @Inject
     KafkaSqlRegistryStorage storage;
@@ -38,6 +40,34 @@ class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
     @Override
     protected RegistryStorage storage() {
         return storage;
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#testCreateArtifactWithMetaData()
+     */
+    @Override
+    @Test
+    public void testCreateArtifactWithMetaData() throws Exception {
+        try {
+            super.testCreateArtifactWithMetaData();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#testCreateArtifactVersionWithMetaData()
+     */
+    @Override
+    @Test
+    public void testCreateArtifactVersionWithMetaData() throws Exception {
+        try {
+            super.testCreateArtifactVersionWithMetaData();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
 }

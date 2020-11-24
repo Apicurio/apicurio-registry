@@ -168,17 +168,15 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(dto.getGlobalId(), storedArtifact.getGlobalId());
         Assertions.assertEquals(dto.getVersion(), storedArtifact.getVersion());
         
-        TestUtils.retry(() -> {
-            ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(artifactId);
-            Assertions.assertNotNull(amdDto);
-            Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
-            Assertions.assertEquals("NAME", amdDto.getName());
-            Assertions.assertEquals("DESCRIPTION", amdDto.getDescription());
-            Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
-            Assertions.assertEquals(1, amdDto.getVersion());
-            Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
-            Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
-        });
+        ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(amdDto);
+        Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
+        Assertions.assertEquals("NAME", amdDto.getName());
+        Assertions.assertEquals("DESCRIPTION", amdDto.getDescription());
+        Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
+        Assertions.assertEquals(1, amdDto.getVersion());
+        Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
+        Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
     }
 
     @Test
@@ -864,13 +862,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             Assertions.assertNotNull(results);
             Assertions.assertEquals(50, results.getCount());
             Assertions.assertEquals(10, results.getVersions().size());
-
+    
             results = storage().searchVersions(artifactId, 0, 1000);
             Assertions.assertNotNull(results);
             Assertions.assertEquals(50, results.getCount());
             Assertions.assertEquals(50, results.getVersions().size());
         });
-
     }
 
 }

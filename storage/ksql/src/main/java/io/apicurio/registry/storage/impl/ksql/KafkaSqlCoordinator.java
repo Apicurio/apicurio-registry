@@ -70,7 +70,7 @@ public class KafkaSqlCoordinator {
             }
             return rval;
         } catch (InterruptedException e) {
-          throw new RegistryException(e);
+          throw new RegistryException("[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {
             latches.remove(uuid);
         }

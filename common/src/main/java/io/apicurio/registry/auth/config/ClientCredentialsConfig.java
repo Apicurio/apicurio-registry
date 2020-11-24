@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth;
+package io.apicurio.registry.auth.config;
 
 
 /**
  * @author carnalca@redhat.com
  */
-public class AuthConfig {
+public class ClientCredentialsConfig implements CredentialsConfig {
 
     private final String serverUrl;
     private final String realm;
     private final String clientId;
     private final String clientSecret;
 
-    public AuthConfig(String serverUrl, String realm, String clientId, String clientSecret) {
+    public ClientCredentialsConfig(String serverUrl, String realm, String clientId, String clientSecret) {
         this.serverUrl = serverUrl;
         this.realm = realm;
         this.clientId = clientId;
@@ -79,8 +79,8 @@ public class AuthConfig {
             return this;
         }
 
-        public AuthConfig build(){
-            return new AuthConfig(this.serverUrl, this.realm, this.clientId, this.clientSecret);
+        public ClientCredentialsConfig build(){
+            return new ClientCredentialsConfig(this.serverUrl, this.realm, this.clientId, this.clientSecret);
         }
     }
 

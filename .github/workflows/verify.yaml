@@ -38,7 +38,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -pl !tests
+        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pksql -pl !tests
       - name: Login to DockerHub Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
@@ -51,6 +51,7 @@ jobs:
           mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
           mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
           mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pksql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
       - name: Push The Tagged Docker Images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
@@ -59,6 +60,7 @@ jobs:
           docker push apicurio/apicurio-registry-infinispan:latest-snapshot
           docker push apicurio/apicurio-registry-streams:latest-snapshot
           docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
+          docker push apicurio/apicurio-registry-ksql:latest-snapshot
 
   kubernetes-tests:
     name: Kubernetes Tests

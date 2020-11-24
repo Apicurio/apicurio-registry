@@ -16,19 +16,28 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.config.BasicCredentialsConfig;
+import io.apicurio.registry.auth.config.ClientCredentialsConfig;
+import io.apicurio.registry.auth.config.CredentialsConfig;
+
 /**
  * @author carnalca@redhat.com
  */
 public class Auth {
 
-    private final AuthConfig config;
+    private final CredentialsConfig config;
 
-    public Auth(AuthConfig config) {
+    public Auth(CredentialsConfig config) {
         this.config = config;
     }
 
-    //For now we only support Keycloak as the default client credentials flow provider
     public AuthStrategy getAuthStrategy() {
-        return new KeycloakAuth(config);
+
+        if (config instanceof ClientCredentialsConfig) {
+            return new KeycloakAuth((ClientCredentialsConfig) config);
+        } else if (config instanceof BasicCredentialsConfig) {
+            return new BasicAuth((BasicCredentialsConfig) config);
+        }
+        throw new IllegalStateException("Invalid credentials configuration class");
     }
 }

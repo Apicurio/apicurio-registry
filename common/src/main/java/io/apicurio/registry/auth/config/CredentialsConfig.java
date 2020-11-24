@@ -13,12 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.auth;
 
+package io.apicurio.registry.auth.config;
 
-/**
- * @author carnalca@redhat.com
- */
-public interface AuthStrategy {
-    String getAuthValue();
+public interface CredentialsConfig {
 }

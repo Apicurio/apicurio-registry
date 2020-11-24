@@ -17,6 +17,8 @@
 package io.apicurio.registry.client.request;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.BasicAuth;
+import okhttp3.Credentials;
 import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -25,6 +27,7 @@ import okhttp3.Response;
 import java.io.IOException;
 
 public class AuthInterceptor implements Interceptor {
+
     private final Auth auth;
 
     public AuthInterceptor(Auth auth) {
@@ -36,8 +39,18 @@ public class AuthInterceptor implements Interceptor {
 
         final Request request = chain.request();
 
+        String authValue = "";
+
+        if (auth.getAuthStrategy() instanceof BasicAuth) {
+            final BasicAuth basicAuth = (BasicAuth) auth.getAuthStrategy();
+            authValue = Credentials.basic(basicAuth.getUsername(), basicAuth.getPassword());
+
+        } else {
+            authValue = auth.getAuthStrategy().getAuthValue();
+        }
+
         final Headers requestHeaders = request.headers().newBuilder()
-                .add("Authorization", auth.getAuthStrategy().getToken()).build();
+                .add("Authorization", authValue).build();
 
         final Request requestWithHeathers = request.newBuilder()
                 .headers(requestHeaders)

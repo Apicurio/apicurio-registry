@@ -423,6 +423,13 @@
         </profile>
 
         <profile>
+            <id>ksql</id>
+            <properties>
+                <test.storage>ksql</test.storage>
+            </properties>
+        </profile>
+
+        <profile>
             <id>infinispan</id>
             <properties>
                 <test.storage>infinispan</test.storage>

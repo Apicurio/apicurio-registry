@@ -133,11 +133,19 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatest()
      */
     @Override
-    public String updateArtifactLatestVersion() {
+    public String updateArtifactLatest() {
         return "UPDATE artifacts SET latest = ? WHERE artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestGlobalId()
+     */
+    @Override
+    public String updateArtifactLatestGlobalId() {
+        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?) WHERE artifactId = ?";
     }
     
     /**
@@ -356,9 +364,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.latest = v.globalId WHERE v.globalId = ?";
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.artifactId = v.artifactId WHERE v.globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
      */

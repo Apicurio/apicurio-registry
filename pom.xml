@@ -90,6 +90,7 @@
         <module>utils/streams</module>
         <module>utils/maven-plugin</module>
         <module>utils/serde</module>
+        <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
         <module>search/client</module>
@@ -245,6 +246,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-streams</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -281,6 +287,26 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-asyncmem</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-streams</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-ksql</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -708,6 +734,7 @@
                     </additionalDependencies>
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
+                    <source>8</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -772,6 +799,12 @@
             <id>streams</id>
             <modules>
                 <module>storage/streams</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>ksql</id>
+            <modules>
+                <module>storage/ksql</module>
             </modules>
         </profile>
         <profile>

@@ -92,6 +92,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @RegistryRestClientTest
     void testSearchArtifact(RegistryRestClient restClient) throws Exception {
+        try {
         // warm-up
         restClient.listArtifacts();
 
@@ -106,11 +107,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         this.waitForGlobalId(id);
 
-        retry(() -> {
-            ArtifactMetaData artifactMetaData = restClient.getArtifactMetaDataByGlobalId(id);
-            Assertions.assertNotNull(artifactMetaData);
-        });
-
         ArtifactSearchResults results = restClient.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -121,6 +117,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         results = restClient.searchArtifacts(null, null, null, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertTrue(results.getCount() > 0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @RegistryRestClientTest
@@ -293,13 +293,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             });
 
             retry((() -> {
-                System.out.println("==============================");
                 ArtifactSearchResults results = client
                         .searchArtifacts("registry-client-test-testLabels", SearchOver.labels, SortOrder.asc, 0, 2);
-                results.getArtifacts().forEach(arty -> {
-                    System.out.println(arty);
-                });
-                System.out.println("==============================");
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());
                 Assertions.assertEquals(1, results.getArtifacts().size());

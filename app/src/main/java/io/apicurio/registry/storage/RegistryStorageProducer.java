@@ -41,24 +41,34 @@ public class RegistryStorageProducer {
     Instance<RegistryStorage> storages;
 
     @Inject
+    Instance<RegistryStorageProvider> provider;
+
+    @Inject
     EventsService eventsService;
 
     @Produces
     @ApplicationScoped
     @Current
     public RegistryStorage realImpl() {
-        List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
+
         RegistryStorage impl = null;
-        if (list.size() == 1) {
-            impl = list.get(0);
+        
+        if (provider.isResolvable()) {
+            impl= provider.get().storage();
         } else {
-            for (RegistryStorage rs : list) {
-                if (rs instanceof InMemoryRegistryStorage == false) {
-                    impl = rs;
-                    break;
+            List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
+            if (list.size() == 1) {
+                impl = list.get(0);
+            } else {
+                for (RegistryStorage rs : list) {
+                    if (rs instanceof InMemoryRegistryStorage == false) {
+                        impl = rs;
+                        break;
+                    }
                 }
             }
         }
+
         if (impl != null) {
             log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
             if (eventsService.isConfigured()) {
@@ -67,6 +77,7 @@ public class RegistryStorageProducer {
                 return impl;
             }
         }
-        throw new IllegalStateException("Should not be here ... ?!");
+        
+        throw new IllegalStateException("No RegistryStorage available on the classpath!");
     }
 }

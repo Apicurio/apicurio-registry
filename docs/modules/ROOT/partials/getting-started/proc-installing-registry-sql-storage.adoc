@@ -31,9 +31,9 @@ $ docker pull apicurio/apicurio-registry-sql
 [source,bash]
 ----
 $ docker run -it -p 8080:8080 \   
--e "QUARKUS_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
--e "QUARKUS_DATASOURCE_USERNAME=apicurio-registry" \
--e "QUARKUS_DATASOURCE_PASSWORD=password" \
+-e "REGISTRY_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "REGISTRY_DATASOURCE_USERNAME=apicurio-registry" \
+-e "REGISTRY_DATASOURCE_PASSWORD=password" \
 apicurio/apicurio-registry-sql:latest
 ----
 

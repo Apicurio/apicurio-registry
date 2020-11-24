@@ -47,6 +47,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersion> {
     public SearchedVersion map(ResultSet rs, StatementContext ctx) throws SQLException {
         SearchedVersion dto = new SearchedVersion();
         dto.setGlobalId(rs.getLong("globalId"));
+        dto.setVersion(rs.getInt("version"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
@@ -54,6 +55,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersion> {
         dto.setDescription(rs.getString("description"));
         dto.setVersion(rs.getInt("version"));
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
+        // TODO return properties as well
         //dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setType(ArtifactType.valueOf(rs.getString("type")));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));

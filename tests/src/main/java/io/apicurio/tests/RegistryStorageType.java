@@ -20,5 +20,6 @@ public enum RegistryStorageType {
     kafka,
     streams,
     sql,
-    infinispan;
+    infinispan,
+    ksql;
 }

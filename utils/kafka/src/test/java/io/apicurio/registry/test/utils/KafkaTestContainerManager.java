@@ -16,28 +16,34 @@
 
 package io.apicurio.registry.test.utils;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.testcontainers.containers.KafkaContainer;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.KafkaContainer;
+
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+
 /**
  * @author Fabian Martinez Gonzalez
  * @author Ales Justin
  */
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
+    private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
+
     private final boolean skipKafkaContainer = Boolean.getBoolean("skipKafkaContainer");
     private KafkaContainer kafka;
 
     public Map<String, String> start() {
+        log.info("Starting the Kafka Test Container");
         String bootstrapServers = "localhost:9092";
         if (!skipKafkaContainer) {
             kafka = new KafkaContainer();
@@ -56,6 +62,8 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     }
 
     private void createTopics(String bootstrapServers) {
+        log.info("Creating topics using bootstrap servers: {}", bootstrapServers);
+
         Properties properties = new Properties();
         properties.put("bootstrap.servers", bootstrapServers);
         properties.put("connections.max.idle.ms", 10000);
@@ -64,7 +72,8 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
             CreateTopicsResult result = client.createTopics(Arrays.asList(
                     new NewTopic("storage-topic", 1, (short) 1),
                     new NewTopic("global-id-topic", 1, (short) 1),
-                    new NewTopic("snapshot-topic", 1, (short) 1)
+                    new NewTopic("snapshot-topic", 1, (short) 1),
+                    new NewTopic("ksql-journal", 1, (short) 1)
             ));
             try {
                 result.all().get();
@@ -75,6 +84,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     }
 
     public void stop() {
+        log.info("Stopping the Kafka Test Container");
         if (!skipKafkaContainer) {
             kafka.stop();
         }

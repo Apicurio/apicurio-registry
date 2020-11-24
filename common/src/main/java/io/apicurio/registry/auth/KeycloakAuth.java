@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.config.ClientCredentialsConfig;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 
@@ -29,7 +30,7 @@ public class KeycloakAuth implements AuthStrategy {
     private static final String CLIENT_CREDENTIALS = "client_credentials";
     private final Keycloak keycloak;
 
-    public KeycloakAuth(AuthConfig config) {
+    public KeycloakAuth(ClientCredentialsConfig config) {
 
         this.keycloak = KeycloakBuilder.builder()
                 .serverUrl(config.getServerUrl())
@@ -41,7 +42,7 @@ public class KeycloakAuth implements AuthStrategy {
     }
 
     @Override
-    public String getToken() {
+    public String getAuthValue() {
         return BEARER + this.keycloak.tokenManager().getAccessToken().getToken();
     }
 }

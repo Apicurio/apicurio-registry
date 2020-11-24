@@ -36,6 +36,10 @@ public class RegistryRestClientFactory {
         return new RegistryRestClientImpl(baseUrl, okHttpClient);
     }
 
+    public static RegistryRestClient create(String baseUrl, Map<String, Object> configs) {
+        return new RegistryRestClientImpl(baseUrl, configs);
+    }
+
     public static RegistryRestClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
         return new RegistryRestClientImpl(baseUrl, configs, auth);
     }

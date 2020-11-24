@@ -18,6 +18,7 @@
 package io.apicurio.registry.client;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.config.BasicCredentialsConfig;
 import io.apicurio.registry.client.request.AuthInterceptor;
 import io.apicurio.registry.client.request.HeadersInterceptor;
 import io.apicurio.registry.client.request.RequestExecutor;
@@ -38,7 +39,6 @@ import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
-import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
@@ -92,7 +92,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     private IdsService idsService;
 
     RegistryRestClientImpl(String baseUrl) {
-        this(baseUrl, Collections.emptyMap(), null);
+        this(baseUrl, Collections.emptyMap());
+    }
+
+    RegistryRestClientImpl(String baseUrl, Map<String, Object> config) {
+        this(baseUrl, createHttpClientWithConfig(baseUrl, config, null));
     }
 
     RegistryRestClientImpl(String baseUrl, Map<String, Object> config, Auth auth) {
@@ -137,10 +141,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
             HttpUrl url = HttpUrl.parse(baseUrl);
             String user = url.encodedUsername();
             String pwd = url.encodedPassword();
-            if (user != null && !user.isEmpty()) {
-                String credentials = Credentials.basic(user, pwd);
-                requestHeaders.put("Authorization", credentials);
-            } else if (auth != null) {
+            if (auth == null && user != null && !user.isEmpty()) {
+                auth = new Auth(new BasicCredentialsConfig(user, pwd));
+            }
+
+            if (auth != null) {
                 okHttpClientBuilder.addInterceptor(new AuthInterceptor(auth));
             }
         }
@@ -233,7 +238,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
 
     @Override
     public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
-            IfExistsType ifExists, Boolean canonical) {
+                                           IfExistsType ifExists, Boolean canonical) {
         return requestExecutor.execute(artifactsService.createArtifact(artifactType, artifactId, ifExists, canonical,
                 RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }

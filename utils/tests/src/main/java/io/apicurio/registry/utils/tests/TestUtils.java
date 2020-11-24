@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 
 import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.auth.AuthConfig;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -83,16 +82,6 @@ public class TestUtils {
 
     public static String getRegistryUIUrl() {
         return getRegistryUrl().concat("/ui");
-    }
-
-    public static AuthConfig getAuthConfig(){
-
-        return new AuthConfig.Builder()
-                .withServerUrl(KEYCLOAK_AUTH_URL)
-                .withClientId(REGISTRY_API)
-                .withRealm(REGISTRY)
-                .withClientSecret(SECRET)
-                .build();
     }
 
     public static String getRegistryApiUrl() {

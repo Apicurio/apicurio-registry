@@ -13,12 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.config.BasicCredentialsConfig;
 
 /**
  * @author carnalca@redhat.com
  */
-public interface AuthStrategy {
-    String getAuthValue();
+public class BasicAuth implements AuthStrategy {
+
+    private final String username;
+    private final String password;
+
+    public BasicAuth(BasicCredentialsConfig basicCredentialsConfig) {
+        this.username = basicCredentialsConfig.getUsername();
+        this.password = basicCredentialsConfig.getPassword();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getAuthValue() {
+        return username + ":" + password;
+    }
 }

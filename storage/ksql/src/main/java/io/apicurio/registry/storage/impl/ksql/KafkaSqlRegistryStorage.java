@@ -322,12 +322,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType,
             ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifact(artifactId, artifactType, content)
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                    .thenCompose(reqId -> {
-                        coordinator.waitForResponse(reqId);
-                        return null;
-                    })
-                    .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+            .thenCompose(amdd ->
+                submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                    .thenAccept(reqId -> coordinator.waitForResponse(reqId))
+                    .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData))
+            );
+
     }
 
     @Override
@@ -369,11 +369,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return updateArtifact(artifactId, artifactType, content)
             .thenCompose(amdd ->
                 submitter.submitMetadata(Str.ActionType.UPDATE, artifactId, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                    .thenCompose(reqId -> {
-                        coordinator.waitForResponse(reqId);
-                        return null;
-                    })
-                    .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+                    .thenAccept(reqId -> coordinator.waitForResponse(reqId))
+                    .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData))
+            );
     }
 
 

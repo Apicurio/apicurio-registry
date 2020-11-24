@@ -118,7 +118,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.9.2.Final</quarkus.version>
+        <quarkus.version>1.10.0.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
@@ -163,6 +163,7 @@
         <retrofit.version>2.9.0</retrofit.version>
         <jdbi.version>3.17.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
+        <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -172,7 +173,7 @@
         <cdi-api.version>2.0</cdi-api.version>
         
         <!-- Gatling -->
-        <version.gatling>3.4.1</version.gatling>
+        <version.gatling>3.4.2</version.gatling>
         <version.gatling.plugin>3.1.0</version.gatling.plugin>
 
         <!-- Scala -->

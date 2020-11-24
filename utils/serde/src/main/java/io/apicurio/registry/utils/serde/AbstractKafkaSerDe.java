@@ -101,7 +101,7 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
             }
 
             try {
-                client = RegistryRestClientFactory.create(baseUrl, new HashMap<>(configs), null);
+                client = RegistryRestClientFactory.create(baseUrl, new HashMap<>(configs));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }

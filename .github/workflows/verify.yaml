@@ -7,7 +7,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 1.2.x, 2.0.x, 2.0.x-auth]
+    branches: [master, 1.2.x, 2.0.x]
   pull_request:
     paths-ignore:
       - '.github/project.yaml'
@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 2.0.x-auth]
+    branches: [master]
 
 jobs:
   build-verify:

@@ -17,24 +17,10 @@
 package io.apicurio.registry.utils.tests;
 
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
-
-
+import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.RestClientException;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -43,9 +29,19 @@ import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.utils.IoUtil;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 /**
  * @author Ales Justin

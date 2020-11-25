@@ -64,5 +64,16 @@ Strategies to return a global ID based on an implementation of `GlobalIdStrategy
 
 `FindLatestIdStrategy`:: Strategy that returns the global ID of the latest schema version, based on an artifact ID.
 `FindBySchemaIdStrategy`:: Strategy that matches schema content, based on an artifact ID, to return a global ID.
+`CachedSchemaIdStrategy`:: Strategy that caches the schema, and uses the global ID of the cached schema.
 `GetOrCreateIdStrategy`:: Strategy that tries to get the latest schema, based on an artifact ID, and if it does not exist, it creates a new schema.
 `AutoRegisterIdStrategy`:: Strategy that updates the schema, and uses the global ID of the updated schema.
+
+[discrete]
+[id='configuring-globalid-strategy-{context}']
+== Configuring global ID strategy
+You can configure the following application property:
+
+* apicurio.registry.check-period-ms -- set remote lookup period in milliseconds
+
+You can configure application properties as Java system properties or include them in the Quarkus
+application.properties file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

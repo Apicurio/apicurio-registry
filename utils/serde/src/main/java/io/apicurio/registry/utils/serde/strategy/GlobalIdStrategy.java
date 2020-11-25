@@ -22,6 +22,7 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Map;
 
 /**
  * A {@link GlobalIdStrategy} is used by the Kafka serializer/deserializer
@@ -42,6 +43,15 @@ public interface GlobalIdStrategy<T> {
      * @return the global id under which the schema is registered.
      */
     long findId(RegistryService service, String artifactId, ArtifactType artifactType, T schema);
+
+    /**
+     * Configure, if supported.
+     *
+     * @param configs the configs
+     * @param isKey are we handling key or value
+     */
+    default void configure(Map<String, ?> configs, boolean isKey) {
+    }
 
     /**
      * Create InputStream from schema.

@@ -27,6 +27,8 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.utils.RegistryProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Holds/accesses all configuration settings for the UI.
@@ -34,6 +36,8 @@ import io.apicurio.registry.utils.RegistryProperties;
  */
 @ApplicationScoped
 public class UiConfigProperties {
+
+    private static final Logger logger = LoggerFactory.getLogger(UiConfigProperties.class);
     
     @Inject
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
@@ -64,11 +68,11 @@ public class UiConfigProperties {
     
     @PostConstruct
     void onConstruct() {
-        System.out.println("============> kcProperties  " + keycloakConfig);
-        System.out.println("============> tenantEnabled  " + tenantEnabled);
-        System.out.println("============> featureReadOnly  " + featureReadOnly);
-        System.out.println("============> uiUrl  " + uiUrl);
-        System.out.println("============> apiUrl  " + apiUrl);
+        logger.debug("============> kcProperties  " + keycloakConfig);
+        logger.debug("============> tenantEnabled  " + tenantEnabled);
+        logger.debug("============> featureReadOnly  " + featureReadOnly);
+        logger.debug("============> uiUrl  " + uiUrl);
+        logger.debug("============> apiUrl  " + apiUrl);
     }
 
     public Map<String, Object> getKeycloakProperties() {

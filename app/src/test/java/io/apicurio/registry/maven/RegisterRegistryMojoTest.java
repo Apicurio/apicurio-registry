@@ -38,7 +38,6 @@ import java.util.Map;
  */
 @QuarkusTest
 public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
-
     RegisterRegistryMojo mojo;
 
     @BeforeEach
@@ -49,7 +48,6 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
 
     @Test
     public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
-
         Map<String, Integer> expectedVersions = new LinkedHashMap<>();
 
         Map<String, File> idToFile = new LinkedHashMap<>();
@@ -69,7 +67,6 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
             expectedVersions.put(valueSubject, version);
         }
 
-        mojo.setClient(client);
         mojo.artifacts = idToFile;
         mojo.artifactType = ArtifactType.AVRO;
         mojo.execute();

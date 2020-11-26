@@ -22,7 +22,6 @@ import okhttp3.OkHttpClient;
 
 import java.util.Map;
 
-
 /**
  * @author eric.wittmann@gmail.com
  */

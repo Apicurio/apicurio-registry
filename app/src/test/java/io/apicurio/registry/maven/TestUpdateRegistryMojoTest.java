@@ -79,7 +79,6 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         File file = new File(tempDirectory, artifactId + ".avsc");
         writeContent(file, schema2.toString().getBytes(StandardCharsets.UTF_8));
 
-        mojo.setClient(client);
         mojo.artifacts = Collections.singletonMap(artifactId, file);
         mojo.artifactType = ArtifactType.AVRO;
         mojo.execute();

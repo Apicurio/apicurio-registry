@@ -53,7 +53,6 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
         
         this.waitForArtifact(artifactId);
 
-        mojo.setClient(client);
         mojo.ids = Collections.singleton(artifactId);
         mojo.artifactExtension = ".avsc";
         mojo.outputDirectory = tempDirectory;

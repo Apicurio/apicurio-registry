@@ -43,13 +43,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.function.Supplier;
 
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.*;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**

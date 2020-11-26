@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-admin-client</artifactId>
-            <version>10.0.1</version>
+            <version>${keycloak.version}</version>
         </dependency>
 
         <dependency>

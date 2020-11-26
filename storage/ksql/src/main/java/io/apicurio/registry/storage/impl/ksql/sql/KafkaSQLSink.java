@@ -10,6 +10,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +20,12 @@ import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.ksql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.ksql.KafkaSqlRegistryStorage;
+import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.storage.proto.Str.ActionType;
 import io.apicurio.registry.storage.proto.Str.ArtifactValue;
 import io.apicurio.registry.storage.proto.Str.MetaDataValue;
 import io.apicurio.registry.storage.proto.Str.RuleValue;
-import io.apicurio.registry.storage.proto.Str.StorageValue;
 import io.apicurio.registry.storage.proto.Str.StorageValue.ValueCase;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -51,9 +53,19 @@ public class KafkaSQLSink {
     @Named("SQLRegistryStorage")
     SQLRegistryStorage sqlStorage;
 
-    public void processStorageAction(UUID requestId, String artifactId, Str.StorageValue storageAction) {
+    public void processStorageAction(ConsumerRecord<String, Str.StorageValue> record) {
+        UUID requestId = Optional.ofNullable(record.headers().headers("req"))
+                .map(Iterable::iterator)
+                .map(it -> {
+                    return it.hasNext() ? it.next() : null;
+                })
+                .map(Header::value)
+                .map(String::new)
+                .map(UUID::fromString)
+                .orElse(null);
+
         try {
-            Object result = internalProcessStorageAction(artifactId, storageAction);
+            Object result = internalProcessStorageAction(record);
             coordinator.notifyResponse(requestId, result);
         } catch (RegistryException e ) {
             coordinator.notifyResponse(requestId, e);
@@ -62,33 +74,43 @@ public class KafkaSQLSink {
         }
     }
 
-    public Object internalProcessStorageAction(String artifactId, Str.StorageValue storageAction) {
-        ValueCase valueCase = storageAction.getValueCase();
+    public Object internalProcessStorageAction(ConsumerRecord<String, Str.StorageValue> record) {
+        ValueCase valueCase = record.value().getValueCase();
         switch (valueCase) {
             case ARTIFACT:
-                return handleArtifact(artifactId, storageAction);
+                return handleArtifact(record);
             case METADATA:
-                return handleMetadata(artifactId, storageAction);
+                return handleMetadata(record);
             case RULE:
-                return handleRule(artifactId, storageAction);
+                return handleRule(record);
             case STATE:
-                return handleArtifactState(artifactId, storageAction);
+                return handleArtifactState(record);
             default :
-                log.warn("Unrecognized value artifact: %s", artifactId);
+                log.warn("Unrecognized value key: %s", record.key());
                 return null;
         }
     }
 
-    private Object handleArtifact(String artifactId, StorageValue storageAction) {
+    private Object handleArtifact(ConsumerRecord<String, Str.StorageValue> record) {
+        int partition = record.partition();
+        long offset = record.offset();
+        Long globalId = toGlobalId(offset, partition);
+        GlobalIdGenerator globalIdGenerator = () -> {
+            return globalId;
+        };
+
+        String artifactId = record.key();
+        Str.StorageValue storageAction = record.value();
+
         ArtifactValue artifactValue = storageAction.getArtifact();
         ArtifactType artifactType = ArtifactType.values()[artifactValue.getArtifactType()];
 
         ActionType actionType = storageAction.getType();
         switch (actionType) {
             case CREATE:
-                return sqlStorage.createArtifact(artifactId, artifactType, ContentHandle.create(artifactValue.getContent().toByteArray()));
+                return sqlStorage.createArtifact(artifactId, artifactType, ContentHandle.create(artifactValue.getContent().toByteArray()), globalIdGenerator);
             case UPDATE:
-                return sqlStorage.updateArtifact(artifactId, artifactType, ContentHandle.create(artifactValue.getContent().toByteArray()));
+                return sqlStorage.updateArtifact(artifactId, artifactType, ContentHandle.create(artifactValue.getContent().toByteArray()), globalIdGenerator);
             case DELETE:
                 if (storageAction.getVersion() == -1L) {
                     return sqlStorage.deleteArtifact(artifactId);
@@ -107,7 +129,10 @@ public class KafkaSQLSink {
         return null;
     }
 
-    private Object handleMetadata(String artifactId, StorageValue storageAction) {
+    private Object handleMetadata(ConsumerRecord<String, Str.StorageValue> record) {
+        String artifactId = record.key();
+        Str.StorageValue storageAction = record.value();
+
         MetaDataValue metadata = storageAction.getMetadata();
 
         long artifactVersion = storageAction.getVersion();
@@ -148,7 +173,10 @@ public class KafkaSQLSink {
         return null;
     }
 
-    private Object handleArtifactState(String artifactId, StorageValue storageAction) {
+    private Object handleArtifactState(ConsumerRecord<String, Str.StorageValue> record) {
+        String artifactId = record.key();
+        Str.StorageValue storageAction = record.value();
+
         Str.ArtifactState state = storageAction.getState();
         ArtifactState newState = ArtifactState.valueOf(state.name());
 
@@ -176,7 +204,10 @@ public class KafkaSQLSink {
         return null;
     }
 
-    private Object handleRule(String artifactId, StorageValue storageAction) {
+    private Object handleRule(ConsumerRecord<String, Str.StorageValue> record) {
+        String artifactId = record.key();
+        Str.StorageValue storageAction = record.value();
+
         RuleValue ruleValue = storageAction.getRule();
 
         Str.RuleType rtv = ruleValue.getType();
@@ -231,6 +262,18 @@ public class KafkaSQLSink {
 
     private boolean isGlobalRules(String artifactId) {
         return artifactId.equals(KafkaSqlRegistryStorage.GLOBAL_RULES_ID);
+    }
+
+    public long toGlobalId(long offset, int partition) {
+        return getBaseOffset() + (offset << 16) + partition;
+    }
+
+    // just to make sure we can always move the whole system
+    // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
+    public long getBaseOffset() {
+        //TODO
+        //        return Long.parseLong(properties.getProperty("storage.base.offset", "0"));
+        return 0;
     }
 
 }

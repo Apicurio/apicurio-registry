@@ -147,17 +147,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactLatestGlobalId() {
         return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?) WHERE artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
      */
     @Override
-    public String insertVersion(boolean firstVersion) {
+    public String insertVersion(boolean firstVersion, String globalId) {
+        String query;
         if (firstVersion) {
-            return "INSERT INTO versions (artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (%s, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            return "INSERT INTO versions (artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (%s, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
+        query = String.format(query, globalId);
+        return query;
     }
 
     /**

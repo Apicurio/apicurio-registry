@@ -113,7 +113,7 @@ public interface SqlStatements {
     /**
      * A statement used to insert a row in the versions table.
      */
-    public String insertVersion(boolean firstVersion);
+    public String insertVersion(boolean firstVersion, String globalId);
 
     /**
      * A statement used to select a single row in the versions table by globalId.

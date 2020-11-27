@@ -8,9 +8,9 @@ The Registry CLI can be used in two different ways:
 * as an interactive shell [2]
 
 To ease the usage we suggest adding aliases:
-* for [1] use this: `alias rscli='java -cp "<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT.jar" io.apicurio.registry.cli.EntryCommand'`
-* for [2] use this: `alias rsmain='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT.jar'`
-* or simply start shell mode with: `java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT.jar`
+* for [1] use this: `alias rscli='java -cp "<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar" io.apicurio.registry.cli.EntryCommand'`
+* for [2] use this: `alias rsmain='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar'`
+* or simply start shell mode with: `java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar`
 
 During the build you can also find completion script in target/ directory: `rscli_completion.sh`.
 You can `source` this script and get tab completion ootb.

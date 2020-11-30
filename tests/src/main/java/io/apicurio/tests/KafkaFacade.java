@@ -62,9 +62,7 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     public void startIfNeeded() {
-        if (!TestUtils.isExternalRegistry() &&
-                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.ksql) &&
-                kafkaContainer != null) {
+        if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry() && kafkaContainer != null) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed as registry storage");
         } else {
             start();
@@ -72,14 +70,17 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     public void stopIfPossible() throws Exception {
-        if (!TestUtils.isExternalRegistry() &&
-                (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafka || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams)) {
+        if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry()) {
             LOGGER.info("Skipping stopping of kafka, because it's needed for registry storage");
         } else {
             if (kafkaContainer != null) {
                 close();
             }
         }
+    }
+
+    private boolean isKafkaBasedRegistry() {
+        return RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.ksql;
     }
 
     public void start() {

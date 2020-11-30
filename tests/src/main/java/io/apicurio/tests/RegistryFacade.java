@@ -96,7 +96,6 @@ public class RegistryFacade {
             case inmemory:
             case infinispan:
                 break;
-            case kafka:
             case streams:
                 setupKafkaStorage(appEnv);
                 break;

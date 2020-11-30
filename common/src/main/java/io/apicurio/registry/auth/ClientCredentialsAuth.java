@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth.config;
+package io.apicurio.registry.auth;
 
 /**
  * @author carnalca@redhat.com
  */
-public class BasicCredentialsConfig implements CredentialsConfig {
+public abstract class ClientCredentialsAuth implements Auth {
 
-    private final String username;
-    private final String password;
+    public static final String BEARER = "Bearer ";
 
-    public BasicCredentialsConfig(String username, String password) {
-        this.username = username;
-        this.password = password;
+    protected final String serverUrl;
+    protected final String realm;
+    protected final String clientId;
+    protected final String clientSecret;
+    
+    public ClientCredentialsAuth(String serverUrl, String realm, String clientId, String clientSecret) {
+        this.serverUrl = serverUrl;
+        this.realm = realm;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
+    
 }

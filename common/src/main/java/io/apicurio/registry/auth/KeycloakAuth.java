@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.auth.config.ClientCredentialsConfig;
+import java.util.Map;
+
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 
@@ -24,25 +25,62 @@ import org.keycloak.admin.client.KeycloakBuilder;
 /**
  * @author carnalca@redhat.com
  */
-public class KeycloakAuth implements AuthStrategy {
+public class KeycloakAuth extends ClientCredentialsAuth {
 
-    public static final String BEARER = "Bearer ";
     private static final String CLIENT_CREDENTIALS = "client_credentials";
     private final Keycloak keycloak;
 
-    public KeycloakAuth(ClientCredentialsConfig config) {
-
+    public KeycloakAuth(String serverUrl, String realm, String clientId, String clientSecret) {
+        super(serverUrl, realm, clientId, clientSecret);
         this.keycloak = KeycloakBuilder.builder()
-                .serverUrl(config.getServerUrl())
-                .realm(config.getRealm())
-                .clientId(config.getClientId())
-                .clientSecret(config.getClientSecret())
+                .serverUrl(serverUrl)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(clientSecret)
                 .grantType(CLIENT_CREDENTIALS)
                 .build();
     }
 
+    /**
+     * @see io.apicurio.registry.auth.Auth#apply(java.util.Map)
+     */
     @Override
-    public String getAuthValue() {
-        return BEARER + this.keycloak.tokenManager().getAccessToken().getToken();
+    public void apply(Map<String, String> requestHeaders) {
+        requestHeaders.put("Authorization", BEARER + this.keycloak.tokenManager().getAccessToken().getToken());
     }
+
+    public static class Builder {
+        private String serverUrl;
+        private String realm;
+        private String clientId;
+        private String clientSecret;
+
+        public Builder() {
+        }
+
+        public Builder withRealm(String realm) {
+            this.realm = realm;
+            return this;
+        }
+
+        public Builder withClientId(String clientId) {
+            this.clientId = clientId;
+            return this;
+        }
+
+        public Builder withClientSecret(String clientSecret) {
+            this.clientSecret = clientSecret;
+            return this;
+        }
+
+        public Builder withServerUrl(String serverUrl) {
+            this.serverUrl = serverUrl;
+            return this;
+        }
+
+        public KeycloakAuth build(){
+            return new KeycloakAuth(this.serverUrl, this.realm, this.clientId, this.clientSecret);
+        }
+    }
+
 }

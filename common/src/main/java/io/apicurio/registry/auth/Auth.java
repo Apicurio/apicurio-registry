@@ -30,19 +30,4 @@ public interface Auth {
      */
     public void apply(Map<String, String> requestHeaders);
 
-//    private final CredentialsConfig config;
-//
-//    public Auth(CredentialsConfig config) {
-//        this.config = config;
-//    }
-//
-//    public AuthStrategy getAuthStrategy() {
-//
-//        if (config instanceof ClientCredentialsConfig) {
-//            return new KeycloakAuth((ClientCredentialsConfig) config);
-//        } else if (config instanceof BasicCredentialsConfig) {
-//            return new BasicAuth((BasicCredentialsConfig) config);
-//        }
-//        throw new IllegalStateException("Invalid credentials configuration class");
-//    }
 }

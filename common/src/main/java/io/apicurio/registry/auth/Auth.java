@@ -16,28 +16,18 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.auth.config.BasicCredentialsConfig;
-import io.apicurio.registry.auth.config.ClientCredentialsConfig;
-import io.apicurio.registry.auth.config.CredentialsConfig;
+import java.util.Map;
 
 /**
  * @author carnalca@redhat.com
  */
-public class Auth {
+public interface Auth {
+    
+    /**
+     * Called to apply this auth mechanism to the HTTP request headers.  Typically an implementation
+     * would add an "Authorization" header or something similar.
+     * @param requestHeaders
+     */
+    public void apply(Map<String, String> requestHeaders);
 
-    private final CredentialsConfig config;
-
-    public Auth(CredentialsConfig config) {
-        this.config = config;
-    }
-
-    public AuthStrategy getAuthStrategy() {
-
-        if (config instanceof ClientCredentialsConfig) {
-            return new KeycloakAuth((ClientCredentialsConfig) config);
-        } else if (config instanceof BasicCredentialsConfig) {
-            return new BasicAuth((BasicCredentialsConfig) config);
-        }
-        throw new IllegalStateException("Invalid credentials configuration class");
-    }
 }

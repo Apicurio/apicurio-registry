@@ -16,15 +16,16 @@
 
 package io.apicurio.registry.client.request;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.BasicAuth;
-import okhttp3.Credentials;
 import okhttp3.Headers;
+import okhttp3.Headers.Builder;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
-
-import java.io.IOException;
 
 public class AuthInterceptor implements Interceptor {
 
@@ -36,21 +37,13 @@ public class AuthInterceptor implements Interceptor {
 
     @Override
     public Response intercept(Chain chain) throws IOException {
-
         final Request request = chain.request();
+        Map<String, String> headers = new HashMap<>();
+        auth.apply(headers);
 
-        String authValue = "";
-
-        if (auth.getAuthStrategy() instanceof BasicAuth) {
-            final BasicAuth basicAuth = (BasicAuth) auth.getAuthStrategy();
-            authValue = Credentials.basic(basicAuth.getUsername(), basicAuth.getPassword());
-
-        } else {
-            authValue = auth.getAuthStrategy().getAuthValue();
-        }
-
-        final Headers requestHeaders = request.headers().newBuilder()
-                .add("Authorization", authValue).build();
+        Builder builder = request.headers().newBuilder();
+        headers.entrySet().forEach(entry -> builder.add(entry.getKey(), entry.getValue()));
+        final Headers requestHeaders = builder.build();
 
         final Request requestWithHeathers = request.newBuilder()
                 .headers(requestHeaders)

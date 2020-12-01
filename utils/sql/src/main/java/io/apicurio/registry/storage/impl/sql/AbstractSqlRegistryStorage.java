@@ -874,66 +874,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("Updating meta-data for an artifact: {}", artifactId);
 
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
-        long globalId = dto.getGlobalId();
 
-        try {
-            this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.updateArtifactMetaDataLatestVersion();
-                int rowCount = handle.createUpdate(sql)
-                        .bind(0, metaData.getName())
-                        .bind(1, metaData.getDescription())
-                        .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
-                        .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                        .bind(4, artifactId)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new ArtifactNotFoundException(artifactId);
-                }
-                
-                // Delete all appropriate rows in the "labels" table
-                sql = sqlStatements.deleteLabelsByGlobalId();
-                handle.createUpdate(sql)
-                    .bind(0, globalId)
-                    .execute();
-                
-                // Delete all appropriate rows in the "properties" table
-                sql = sqlStatements.deletePropertiesByGlobalId();
-                handle.createUpdate(sql)
-                    .bind(0, globalId)
-                    .execute();
-                
-                // Insert new labels into the "labels" table
-                List<String> labels = metaData.getLabels();
-                if (labels != null && !labels.isEmpty()) {
-                    labels.forEach(label -> {
-                        String sqli = sqlStatements.insertLabel();
-                        handle.createUpdate(sqli)
-                              .bind(0, globalId)
-                              .bind(1, label)
-                              .execute();
-                    });
-                }
+        internalUpdateArtifactVersionMetadata(dto.getGlobalId(), artifactId, null, metaData);
 
-                // Insert new properties into the "properties" table
-                Map<String, String> properties = metaData.getProperties();
-                if (properties != null && !properties.isEmpty()) {
-                    properties.forEach((k,v) -> {
-                        String sqli = sqlStatements.insertProperty();
-                        handle.createUpdate(sqli)
-                              .bind(0, globalId)
-                              .bind(1, k)
-                              .bind(2, v)
-                              .execute();
-                    });
-                }
-
-                return null;
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
     }
 
     /**
@@ -1311,37 +1254,63 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating meta-data for an artifact version: {}", artifactId);
-        
+
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaDataInternal(artifactId, version);
-        long globalId = dto.getGlobalId();
-        
+
+        internalUpdateArtifactVersionMetadata(dto.getGlobalId(), artifactId, dto.getVersion(), metaData);
+
+    }
+
+    /**
+     * Common logic for updating artifact version metadata
+     * @param globalId
+     * @param artifactId
+     * @param version
+     * @param metaData
+     */
+    private void internalUpdateArtifactVersionMetadata(long globalId, String artifactId, Integer version, EditableArtifactMetaDataDto metaData) {
         try {
             this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.updateArtifactVersionMetaData();
-                int rowCount = handle.createUpdate(sql)
-                        .bind(0, metaData.getName())
-                        .bind(1, metaData.getDescription())
-                        .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
-                        .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                        .bind(4, artifactId)
-                        .bind(5, version)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new VersionNotFoundException(artifactId, version);
+                if (version == null) {
+                    String sql = sqlStatements.updateArtifactMetaDataLatestVersion();
+                    int rowCount = handle.createUpdate(sql)
+                            .bind(0, metaData.getName())
+                            .bind(1, metaData.getDescription())
+                            .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
+                            .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
+                            .bind(4, artifactId)
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new ArtifactNotFoundException(artifactId);
+                    }
+                } else {
+                    String sql = sqlStatements.updateArtifactVersionMetaData();
+                    int rowCount = handle.createUpdate(sql)
+                            .bind(0, metaData.getName())
+                            .bind(1, metaData.getDescription())
+                            .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
+                            .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
+                            .bind(4, artifactId)
+                            .bind(5, version.intValue())
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new VersionNotFoundException(artifactId, version.intValue());
+                    }
                 }
 
+
                 // Delete all appropriate rows in the "labels" table
-                sql = sqlStatements.deleteLabelsByGlobalId();
+                String sql = sqlStatements.deleteLabelsByGlobalId();
                 handle.createUpdate(sql)
                     .bind(0, globalId)
                     .execute();
-                
+
                 // Delete all appropriate rows in the "properties" table
                 sql = sqlStatements.deletePropertiesByGlobalId();
                 handle.createUpdate(sql)
                     .bind(0, globalId)
                     .execute();
-                
+
                 // Insert new labels into the "labels" table
                 List<String> labels = metaData.getLabels();
                 if (labels != null && !labels.isEmpty()) {
@@ -1366,10 +1335,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                               .execute();
                     });
                 }
-                
+
                 return null;
             });
-        } catch (VersionNotFoundException e) {
+        } catch (ArtifactNotFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);

@@ -725,6 +725,16 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (metaData.getDescription() != null) {
             storage.put(artifactId, version, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            storage.put(artifactId, version, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
+        }
+        if (metaData.getProperties() != null && !metaData.getProperties().isEmpty()) {
+            try {
+                storage.put(artifactId, version, MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getProperties()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for storage.", e);
+            }
+        }
     }
 
     /**
@@ -734,6 +744,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.remove(artifactId, version, MetaDataKeys.NAME);
         storage.remove(artifactId, version, MetaDataKeys.DESCRIPTION);
+        storage.remove(artifactId, version, MetaDataKeys.LABELS);
+        storage.remove(artifactId, version, MetaDataKeys.PROPERTIES);
     }
 
     /**

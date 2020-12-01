@@ -86,7 +86,7 @@ import io.apicurio.registry.utils.StringUtil;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
-    
+
     private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
@@ -315,6 +315,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifact(artifactId, artifactType, content, null);
+    }
+
+    protected CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
+            ContentHandle content, GlobalIdGenerator globalIdGenerator) throws ArtifactAlreadyExistsException, RegistryStorageException {
         log.debug("Inserting an artifact row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
@@ -322,7 +327,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
                 ArtifactMetaDataDto amdd = createArtifactInternal(handle, artifactId, artifactType, content,
-                        createdBy, createdOn, metaData);
+                        createdBy, createdOn, metaData, globalIdGenerator);
                 return CompletableFuture.completedFuture(amdd);
             });
         } catch (Exception e) {
@@ -353,9 +358,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactId
      * @param content
      */
-    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType, 
-            boolean firstVersion, String artifactId, String name, String description, List<String> labels, 
-            Map<String, String> properties, ContentHandle content) {
+    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
+            boolean firstVersion, String artifactId, String name, String description, List<String> labels,
+            Map<String, String> properties, ContentHandle content, GlobalIdGenerator globalIdGenerator) {
         ArtifactState state = ArtifactState.ENABLED;
         String createdBy = null;
         Date createdOn = new Date();
@@ -390,38 +395,41 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             contentId = 0l;
         }
 
+        if (globalIdGenerator == null) {
+            globalIdGenerator = SqlGlobalIdGenerator.withHandle(handle);
+        }
+
+        Long globalId = globalIdGenerator.generate();
+
         // Create a row in the "versions" table
         sql = sqlStatements.insertVersion(firstVersion);
-        Long globalId;
         if (firstVersion) {
-            globalId = handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, state)
-                    .bind(2, name)
-                    .bind(3, description)
-                    .bind(4, createdBy)
-                    .bind(5, createdOn)
-                    .bind(6, labelsStr)
-                    .bind(7, propertiesStr)
-                    .bind(8, contentId)
-                    .executeAndReturnGeneratedKeys("globalid")
-                    .mapTo(Long.class)
-                    .one();
+            handle.createUpdate(sql)
+                .bind(0, globalId)
+                .bind(1, artifactId)
+                .bind(2, state)
+                .bind(3, name)
+                .bind(4, description)
+                .bind(5, createdBy)
+                .bind(6, createdOn)
+                .bind(7, labelsStr)
+                .bind(8, propertiesStr)
+                .bind(9, contentId)
+                .execute();
         } else {
-            globalId = handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, artifactId)
-                    .bind(2, state)
-                    .bind(3, name)
-                    .bind(4, description)
-                    .bind(5, createdBy)
-                    .bind(6, createdOn)
-                    .bind(7, labelsStr)
-                    .bind(8, propertiesStr)
-                    .bind(9, contentId)
-                    .executeAndReturnGeneratedKeys("globalid")
-                    .mapTo(Long.class)
-                    .one();
+            handle.createUpdate(sql)
+                .bind(0, globalId)
+                .bind(1, artifactId)
+                .bind(2, artifactId)
+                .bind(3, state)
+                .bind(4, name)
+                .bind(5, description)
+                .bind(6, createdBy)
+                .bind(7, createdOn)
+                .bind(8, labelsStr)
+                .bind(9, propertiesStr)
+                .bind(10, contentId)
+                .execute();
         }
 
         // Insert labels into the "labels" table
@@ -468,13 +476,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifactWithMetadata(artifactId, artifactType, content, metaData, null);
+    }
+
+    protected CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            GlobalIdGenerator globalIdGenerator)
+            throws ArtifactAlreadyExistsException, RegistryStorageException {
         log.debug("Inserting an artifact (with meta-data) row for: {}", artifactId);
         String createdBy = null;
         Date createdOn = new Date();
         try {
             return this.jdbi.withHandle( handle -> {
                 ArtifactMetaDataDto amdd = createArtifactInternal(handle, artifactId, artifactType, content,
-                        createdBy, createdOn, metaData);
+                        createdBy, createdOn, metaData, globalIdGenerator);
                 return CompletableFuture.completedFuture(amdd);
             });
         } catch (Exception e) {
@@ -582,11 +597,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifact(artifactId, artifactType, content, null);
+    }
+
+    protected CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
+            ContentHandle content, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating artifact {} with a new version (content).", artifactId);
-        
+
         // Get meta-data from previous (latest) version
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
-        
+
         // Extract meta-data from the new content
         EditableArtifactMetaDataDto emd = extractMetaData(artifactType, content);
 
@@ -610,7 +630,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 properties = emd.getProperties();
             }
 
-            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content);
+            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content, globalIdGenerator);
             ArtifactMetaDataDto dto = versionToArtifactDto(artifactId, versionDto);
             dto.setCreatedOn(latest.getCreatedOn());
             dto.setCreatedBy(latest.getCreatedBy());
@@ -627,6 +647,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(artifactId, artifactType, content, metaData, null);
+    }
+
+    protected CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            GlobalIdGenerator globalIdGenerator)
+            throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating artifact {} with a new version (content).", artifactId);
 
         // Get meta-data from previous (latest) version
@@ -639,7 +666,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             List<String> labels = metaData.getLabels();
             Map<String, String> properties = metaData.getProperties();
 
-            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content);
+            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, artifactId, name, description, labels, properties, content, globalIdGenerator);
             ArtifactMetaDataDto dto = versionToArtifactDto(artifactId, versionDto);
             dto.setCreatedOn(latest.getCreatedOn());
             dto.setCreatedBy(latest.getCreatedBy());
@@ -1570,7 +1597,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param metaData
      */
     private ArtifactMetaDataDto createArtifactInternal(Handle handle, String artifactId, ArtifactType artifactType,
-            ContentHandle content, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData) {
+            ContentHandle content, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator) {
         // Create a row in the artifacts table.
         String sql = sqlStatements.insertArtifact();
         handle.createUpdate(sql)
@@ -1582,8 +1609,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         // Then create a row in the content and versions tables (for the content and version meta-data)
         ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, artifactId,
-                metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), content);
-        
+                metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), content, globalIdGenerator);
+
         // Return the new artifact meta-data
         ArtifactMetaDataDto amdd = versionToArtifactDto(artifactId, vmdd);
         amdd.setCreatedBy(createdBy);

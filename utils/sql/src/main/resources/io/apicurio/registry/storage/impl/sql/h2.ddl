@@ -6,10 +6,10 @@ CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255))
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 
-CREATE TABLE globalrules (type VARCHAR(32) NOT NULL, configuration CLOB NOT NULL);
+CREATE TABLE globalrules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (type);
 
-CREATE TABLE artifacts (artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP NOT NULL, latest BIGINT);
+CREATE TABLE artifacts (artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, latest BIGINT);
 ALTER TABLE artifacts ADD PRIMARY KEY (artifactId);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);
@@ -25,7 +25,9 @@ ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content(canonicalHash);
 CREATE INDEX IDX_content_2 ON content(contentHash);
 
-CREATE TABLE versions (globalId BIGINT AUTO_INCREMENT NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP NOT NULL, labels CLOB, properties CLOB, contentId BIGINT NOT NULL);
+CREATE SEQUENCE globalidsequence;
+
+CREATE TABLE versions (globalId BIGINT NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (artifactId) REFERENCES artifacts(artifactId);

@@ -144,17 +144,6 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.resteasy</groupId>
-                    <artifactId>resteasy-client-microprofile</artifactId>
-                </exclusion>
-            </exclusions>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-rest-client</artifactId>
             <scope>provided</scope>
         </dependency>

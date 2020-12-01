@@ -17,6 +17,7 @@
 package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
+import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -58,7 +59,7 @@ public interface ConfigResource {
      *         Error code 50001 – Error in the backend data store
      */
     @GET
-    CompatibilityLevelDto getGlobalCompatibilityLevel();
+    CompatibilityLevelParamDto getGlobalCompatibilityLevel();
 
 
     /**
@@ -98,7 +99,7 @@ public interface ConfigResource {
      */
     @Path("/{subject}")
     @GET
-    CompatibilityLevelDto getSubjectCompatibilityLevel(@PathParam("subject") String subject);
+    CompatibilityLevelParamDto getSubjectCompatibilityLevel(@PathParam("subject") String subject);
 
     /**
      * Update compatibility level for the specified subject.

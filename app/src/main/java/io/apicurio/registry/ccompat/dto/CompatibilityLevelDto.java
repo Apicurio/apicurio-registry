@@ -17,7 +17,6 @@
 package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import lombok.AllArgsConstructor;
@@ -48,15 +47,7 @@ public class CompatibilityLevelDto {
         return new CompatibilityLevelDto(Level.create(source));
     }
 
-    @JsonProperty("compatibility")
-    // Alias for compatilbility with Confluent client libraries: 
-    //.   https://docs.confluent.io/current/schema-registry/develop/api.html#get--config-(string-%20subject)
-    private Level compatibilityLevel;
-    
-    @JsonProperty("compatibilityLevel")
-    private Level getLevel() {
-        return compatibilityLevel;
-    }
+    private Level compatibility;
 
     public enum Level {
         BACKWARD("BACKWARD"),

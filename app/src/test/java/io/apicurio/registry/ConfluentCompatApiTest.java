@@ -16,8 +16,11 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
+import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -28,11 +31,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests that the REST API exposed at endpoint "/ccompat" follows the
@@ -154,6 +159,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
         this.waitForArtifact(SUBJECT);
+
         given()
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -385,6 +391,88 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals(2, versions.length);
     }
 
+    /**
+     * Endpoint: /ccompat/config PUT
+     * Endpoint: /ccompat/config GET
+     */
+    @Test
+    public void testConfigEndpoints() throws Exception {
+
+        final CompatibilityLevelParamDto noneResult = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/config/")
+                .then()
+                .statusCode(200)
+                .extract().as(CompatibilityLevelParamDto.class);
+
+        assertEquals(noneResult, new CompatibilityLevelParamDto(CompatibilityLevel.NONE.name()));
+
+        final CompatibilityLevelDto updated = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CONFIG_BACKWARD)
+                .put("/ccompat/config/")
+                .then()
+                .statusCode(200)
+                .extract().as(CompatibilityLevelDto.class);
+
+        assertEquals(updated, CompatibilityLevelDto.create(Optional.of(CompatibilityLevel.BACKWARD)));
+
+        final CompatibilityLevelParamDto get = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/config/")
+                .then()
+                .statusCode(200)
+                .extract().as(CompatibilityLevelParamDto.class);
+
+        assertEquals(get, new CompatibilityLevelParamDto(CompatibilityLevel.BACKWARD.name()));
+    }
+
+    /**
+     * Endpoint: /ccompat/config/{subject} PUT
+     * Endpoint: /ccompat/config/{subject} GET
+     */
+    @Test
+    public void testSubjectConfigEndpoints() throws Exception {
+
+        final String SUBJECT = "subject2";
+        // Prepare
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_2_WRAPPED)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body(anything());
+        this.waitForArtifact(SUBJECT);
+
+        final CompatibilityLevelDto updated = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CONFIG_BACKWARD)
+                .put("/ccompat/config/{subject}", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(CompatibilityLevelDto.class);
+
+        assertEquals(updated, CompatibilityLevelDto.create(Optional.of(CompatibilityLevel.BACKWARD)));
+
+
+        final CompatibilityLevelParamDto get = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CONFIG_BACKWARD)
+                .get("/ccompat/config/{subject}", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(CompatibilityLevelParamDto.class);
+
+        assertEquals(get, new CompatibilityLevelParamDto(CompatibilityLevel.BACKWARD.name()));
+    }
+
     @Test
     public void validateAcceptHeaders() throws Exception {
 
@@ -429,4 +517,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals("PROTOBUF", types[1]);
         assertEquals("AVRO", types[2]);
     }
+
+
 }

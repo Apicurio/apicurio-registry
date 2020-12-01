@@ -103,7 +103,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(
             CompatibilityLevelDto request) {
 
-        updateCompatibilityLevel(request.getCompatibilityLevel(),
+        updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateGlobalRule(RuleType.COMPATIBILITY, dto),
                 () -> facade.deleteGlobalRule(RuleType.COMPATIBILITY));
         return request;
@@ -114,7 +114,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,
             CompatibilityLevelDto request) {
-        updateCompatibilityLevel(request.getCompatibilityLevel(),
+        updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto),
                 () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
         return request;

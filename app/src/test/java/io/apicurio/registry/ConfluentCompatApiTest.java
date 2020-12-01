@@ -397,16 +397,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testConfigEndpoints() throws Exception {
 
-        final CompatibilityLevelParamDto noneResult = given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/config/")
-                .then()
-                .statusCode(200)
-                .extract().as(CompatibilityLevelParamDto.class);
-
-        assertEquals(noneResult, new CompatibilityLevelParamDto(CompatibilityLevel.NONE.name()));
-
         final CompatibilityLevelDto updated = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

@@ -20,6 +20,6 @@ package io.apicurio.registry.storage.impl.sql;
  */
 public interface GlobalIdGenerator {
 
-    Object get();
+    Long generate();
 
 }

@@ -15,14 +15,19 @@
  */
 package io.apicurio.registry.storage.impl.sql;
 
+import org.jdbi.v3.core.Handle;
+
 /**
  * @author Fabian Martinez
  */
-public class SqlGlobalIdGenerator implements GlobalIdGenerator {
+public class SqlGlobalIdGenerator {
 
-    @Override
-    public Object get() {
-        return "nextval('globalidsequence')";
+    public static GlobalIdGenerator withHandle(Handle handle) {
+        return () -> {
+            return handle.createQuery("SELECT nextval('globalidsequence')")
+                    .mapTo(Long.class)
+                    .one();
+        };
     }
 
 }

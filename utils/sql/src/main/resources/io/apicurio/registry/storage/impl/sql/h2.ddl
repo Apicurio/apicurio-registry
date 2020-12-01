@@ -6,10 +6,10 @@ CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255))
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 
-CREATE TABLE globalrules (type VARCHAR(32) NOT NULL, configuration CLOB NOT NULL);
+CREATE TABLE globalrules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (type);
 
-CREATE TABLE artifacts (artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP NOT NULL, latest BIGINT);
+CREATE TABLE artifacts (artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, latest BIGINT);
 ALTER TABLE artifacts ADD PRIMARY KEY (artifactId);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);

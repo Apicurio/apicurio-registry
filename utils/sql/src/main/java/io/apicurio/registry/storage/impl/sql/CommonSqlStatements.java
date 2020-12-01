@@ -152,14 +152,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
      */
     @Override
-    public String insertVersion(boolean firstVersion, String globalId) {
+    public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (%s, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (%s, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
-        query = String.format(query, globalId);
         return query;
     }
 

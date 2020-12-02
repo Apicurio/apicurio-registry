@@ -10,7 +10,7 @@ This section explains how to configure Infinispan cache-based storage for {regis
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
+* You must have already installed {registry}. See {installing-the-registry-openshift}.
 
 
 .Procedure

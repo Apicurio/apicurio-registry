@@ -10,7 +10,7 @@ This section explains how to configure Java Persistence API-based storage for {r
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
+* You must have already installed {registry}. See {installing-the-registry-openshift}.
 * You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub[].
 
 .Procedure

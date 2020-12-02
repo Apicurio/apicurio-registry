@@ -17,11 +17,12 @@
 
 import React from 'react';
 import "./header.css"
-import {Brand, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
+import {Brand, Button, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
 import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {CogIcon} from "@patternfly/react-icons";
 import {Link} from "react-router-dom";
+import {Services} from "@apicurio/registry-services";
 
 
 // tslint:disable-next-line:no-empty-interface
@@ -47,6 +48,9 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
                         <Link data-testid="masthead-lnk-settings" className="header-icon" to={ `/rules` }>
                             <CogIcon />
                         </Link>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button style={{margin: "10%"}} onClick={Services.getAuthService().doLogout()} variant="tertiary">Logout</Button>
                     </ToolbarItem>
                 </ToolbarGroup>
             </Toolbar>

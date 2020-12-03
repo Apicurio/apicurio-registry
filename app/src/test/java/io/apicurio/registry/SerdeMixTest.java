@@ -22,14 +22,13 @@ import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -46,8 +45,8 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         return new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
     }
 
-    @RegistryRestClientTest
-    public void testVersions(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testVersions() throws Exception {
         SchemaRegistryClient confClient = buildClient();
 
         String subject = generateArtifactId();
@@ -62,15 +61,15 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         ParsedSchema schema2 = confClient.getSchemaById(id);
         Assertions.assertNotNull(schema2);
 
-        ArtifactMetaData amd1 = restClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd1 = client.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         this.waitForGlobalId(amd1.getGlobalId());
 
-        restClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
+        client.getArtifactMetaDataByGlobalId(amd1.getGlobalId());
 
-        ArtifactMetaData amd2 = restClient.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
+        ArtifactMetaData amd2 = client.updateArtifact(subject, ArtifactType.AVRO, new ByteArrayInputStream(IoUtil.toBytes(schema.toString())));
         this.waitForGlobalId(amd2.getGlobalId());
 
-        restClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
+        client.getArtifactMetaDataByGlobalId(amd2.getGlobalId());
 
         List<Integer> versions1 = confClient.getAllVersions(subject);
         Assertions.assertEquals(3, versions1.size());
@@ -78,7 +77,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        List<Long> versions2 = restClient.listArtifactVersions(subject);
+        List<Long> versions2 = client.listArtifactVersions(subject);
         Assertions.assertEquals(3, versions2.size());
         Assertions.assertTrue(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
@@ -88,8 +87,8 @@ public class SerdeMixTest extends AbstractResourceTestBase {
 
         TestUtils.retry(() -> {
             try {
-                restClient.getArtifactVersionMetaData(subject, 1);
-                Assertions.fail("Expected restClient.getArtifactVersionMetaData() to fail");
+                client.getArtifactVersionMetaData(subject, 1);
+                Assertions.fail("Expected client.getArtifactVersionMetaData() to fail");
             } catch (Exception ignored) {
             }
             return null;
@@ -101,7 +100,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions1.contains(2));
         Assertions.assertTrue(versions1.contains(3));
 
-        versions2 = restClient.listArtifactVersions(subject);
+        versions2 = client.listArtifactVersions(subject);
         Assertions.assertEquals(2, versions2.size());
         Assertions.assertFalse(versions2.contains(1L));
         Assertions.assertTrue(versions2.contains(2L));
@@ -109,33 +108,33 @@ public class SerdeMixTest extends AbstractResourceTestBase {
     }
 
     @SuppressWarnings("resource")
-    @RegistryRestClientTest
-    public void testSerdeMix(RegistryRestClient restClient) throws Exception {
-        SchemaRegistryClient client = buildClient();
+    @Test
+    public void testSerdeMix() throws Exception {
+        SchemaRegistryClient schemaClient = buildClient();
 
         String subject = generateArtifactId();
 
         String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ParsedSchema schema = new AvroSchema(rawSchema);
-        client.register(subject + "-value", schema);
+        schemaClient.register(subject + "-value", schema);
 
         GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
         record.put("bar", "somebar");
 
-        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient);
+        AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(client);
         deserializer1.asLegacyId();
-        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(client)) {
+        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.waitForSchema(restClient, bytes, bb -> (long) bb.getInt());
+            TestUtils.waitForSchema(client, bytes, bb -> (long) bb.getInt());
 
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
 
-        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient);
+        AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(client);
         serializer2.asLegacyId();
-        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(client)) {
+        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient)) {
             byte[] bytes = serializer2.serialize(subject, record);
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());

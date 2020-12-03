@@ -17,10 +17,10 @@
 package io.apicurio.tests;
 
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryRestClientExtension;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.interfaces.TestSeparator;
@@ -49,11 +49,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 @DisplayNameGeneration(SimpleDisplayName.class)
 @ExtendWith(RegistryDeploymentManager.class)
-@ExtendWith(RegistryRestClientExtension.class)
 public abstract class BaseIT implements TestSeparator, Constants {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = KafkaFacade.getInstance();
+
+    protected final RegistryRestClient registryClient = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
 
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {

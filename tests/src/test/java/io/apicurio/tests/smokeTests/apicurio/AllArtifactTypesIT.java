@@ -22,12 +22,12 @@ import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -95,49 +95,49 @@ class AllArtifactTypesIT extends BaseIT {
         }
     }
 
-    @RegistryRestClientTest
+    @Test
     @Tag(ACCEPTANCE)
-    void testAvro(RegistryRestClient client) {
-        doTest(client, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
+    void testAvro() {
+        doTest(registryClient, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
     }
 
-    @RegistryRestClientTest
+    @Test
     @Tag(ACCEPTANCE)
-    void testProtobuf(RegistryRestClient client) {
-        doTest(client, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
+    void testProtobuf() {
+        doTest(registryClient, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
     }
 
-    @RegistryRestClientTest
+    @Test
     @Tag(ACCEPTANCE)
-    void testJsonSchema(RegistryRestClient client) {
-        doTest(client, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
+    void testJsonSchema() {
+        doTest(registryClient, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
     }
 
-    @RegistryRestClientTest
-    void testKafkaConnect(RegistryRestClient client) {
-        doTest(client, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
+    @Test
+    void testKafkaConnect() {
+        doTest(registryClient, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
     }
 
-    @RegistryRestClientTest
-    void testOpenApi30(RegistryRestClient client) {
-        doTest(client, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
+    @Test
+    void testOpenApi30() {
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
     }
 
-    @RegistryRestClientTest
-    void testAsyncApi(RegistryRestClient client) {
-        doTest(client, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
+    @Test
+    void testAsyncApi() {
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
     }
 
-    @RegistryRestClientTest
-    void testGraphQL(RegistryRestClient client) {
-        doTest(client, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
+    @Test
+    void testGraphQL() {
+        doTest(registryClient, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
     }
 
     @AfterEach
-    void deleteRules(RegistryRestClient client) throws Exception {
-        client.deleteAllGlobalRules();
+    void deleteRules() throws Exception {
+        registryClient.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            List<RuleType> rules = client.listGlobalRules();
+            List<RuleType> rules = registryClient.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

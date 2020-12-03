@@ -175,6 +175,7 @@ class RulesResourceIT extends BaseIT {
     }
 
     @Test
+    @Tag(ACCEPTANCE)
     void testRulesDeletedWithArtifact() throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";

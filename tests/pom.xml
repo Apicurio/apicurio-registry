@@ -17,15 +17,12 @@
         <groups></groups>
         <skipTests>true</skipTests>
         
-        <exclude.integration.tests>**/KafkaConnectConverterIT.java</exclude.integration.tests>
-        
         <!--native-image has to be build before running system tests-->
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
         <junit.version>5.7.0</junit.version>
         <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
-        <debezium.version>1.3.1.Final</debezium.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
         <vertx.version>3.9.4</vertx.version>
@@ -185,12 +182,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-testing-testcontainers</artifactId>
-            <version>${debezium.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
              <groupId>com.squareup.okhttp3</groupId>
              <artifactId>okhttp</artifactId>
              <version>${version.okhttp}</version>
@@ -215,7 +206,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>kafka</artifactId>
-            <version>${test-containers.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -370,13 +360,6 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>acceptance</groups>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>enableConverterTest</id>
-            <properties>
-                <exclude.integration.tests>**/NothingToExclude.java</exclude.integration.tests>
             </properties>
         </profile>
 

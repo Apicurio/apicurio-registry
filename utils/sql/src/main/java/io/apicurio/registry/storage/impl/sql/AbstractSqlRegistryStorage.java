@@ -980,11 +980,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRules();
-                handle.createUpdate(sql)
+                int count = handle.createUpdate(sql)
                       .bind(0, artifactId)
                       .execute();
+                if (count == 0) {
+                    //TODO replace with a faster existence check
+                    //this checks if artifact actually exists and can throw ArtifactNotFoundException
+                    getArtifactVersions(artifactId);
+                }
                 return null;
             });
+        } catch (StorageException e) {
+            throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -1038,11 +1045,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(2, rule.name())
                         .execute();
                 if (rowCount == 0) {
+                    //TODO replace with a faster existence check
+                    //this checks if artifact actually exists, and can throw ArtifactNotFoundException
+                    getArtifactVersions(artifactId);
+
                     throw new RuleNotFoundException(rule);
                 }
                 return null;
             });
-        } catch (RuleNotFoundException e) {
+        } catch (StorageException e) {
             throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1064,11 +1075,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                       .bind(1, rule.name())
                       .execute();
                 if (rowCount == 0) {
+                    //TODO replace with a faster existence check
+                    //this checks if artifact actually exists, and can throw ArtifactNotFoundException
+                    getArtifactVersions(artifactId);
+
                     throw new RuleNotFoundException(rule);
                 }
                 return null;
             });
-        } catch (RuleNotFoundException e) {
+        } catch (StorageException e) {
             throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);

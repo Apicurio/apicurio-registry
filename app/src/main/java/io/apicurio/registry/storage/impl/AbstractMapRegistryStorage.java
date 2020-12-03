@@ -51,8 +51,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.Nullable;
-
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.util.Arrays;
@@ -60,7 +58,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -188,12 +186,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
     }
 
-    @Nullable
-    private ArtifactMetaDataDto getArtifactMetadataOrNull(String artifactId) {
+    private Optional<ArtifactMetaDataDto> getOptionalArtifactMetadata(String artifactId) {
         try {
-            return getArtifactMetaData(artifactId);
+            return Optional.of(getArtifactMetaData(artifactId));
         } catch (ArtifactNotFoundException ex) {
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -432,8 +429,9 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds(null)
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
-                .map(this::getArtifactMetadataOrNull)
-                .filter(Objects::nonNull)
+                .map(this::getOptionalArtifactMetadata)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .peek(artifactId -> itemsCount.increment())
                 .sorted(SearchUtil.comparator(order))
                 .skip(offset)
@@ -470,7 +468,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         return artifactMetaDataDto;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */

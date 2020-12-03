@@ -16,11 +16,9 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.Constants;
@@ -171,8 +169,8 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
     }
 
-    @RegistryRestClientTest
-    void createConfluentQueryApicurio(RegistryRestClient client) throws IOException, RestClientException, TimeoutException {
+    @Test
+    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
         String rawSchema = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
@@ -187,15 +185,15 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return client.getLatestArtifact(subjectName) != null;
+                return registryClient.getLatestArtifact(subjectName) != null;
             } catch (WebApplicationException e) {
                 return false;
             }
         });
     }
 
-    @RegistryRestClientTest
-    void testCreateDeleteSchemaRuleIsDeleted(RegistryRestClient client) throws Exception {
+    @Test
+    void testCreateDeleteSchemaRuleIsDeleted() throws Exception {
 
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
@@ -204,11 +202,11 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(globalId));
+        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(globalId));
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                return client.getLatestArtifact(subjectName) != null;
+                return registryClient.getLatestArtifact(subjectName) != null;
             } catch (WebApplicationException e) {
                 return false;
             }
@@ -217,18 +215,18 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
-        client.createArtifactRule(subjectName, rule);
+        registryClient.createArtifactRule(subjectName, rule);
 
         TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
-                Rule r = client.getArtifactRuleConfig(subjectName, RuleType.VALIDITY);
+                Rule r = registryClient.getArtifactRuleConfig(subjectName, RuleType.VALIDITY);
                 return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
             } catch (WebApplicationException e) {
                 return false;
             }
         });
 
-        List<RuleType> rules = client.listArtifactRules(subjectName);
+        List<RuleType> rules = registryClient.listArtifactRules(subjectName);
         assertThat(1, is(rules.size()));
 
         confluentService.deleteSubject(subjectName);
@@ -241,9 +239,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(subjectName), true);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.listArtifactRules(subjectName), true);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactRuleConfig(subjectName, rules.get(0)), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(subjectName), true);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(subjectName, rules.get(0)), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

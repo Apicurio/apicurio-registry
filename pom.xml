@@ -137,7 +137,7 @@
         <picocli.version>4.5.2</picocli.version>
 
         <!-- gRPC -->
-        <grpc.version>1.33.1</grpc.version>
+        <grpc.version>1.34.0</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>5.5.1</confluent.version>
@@ -163,6 +163,7 @@
         <jdbi.version>3.17.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
+        <httpclient.version>4.5.13</httpclient.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -221,11 +222,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-ui</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -395,6 +391,11 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
             </dependency>
 
             <!-- Picocli -->

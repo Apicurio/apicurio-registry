@@ -51,8 +51,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.Nullable;
-
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.util.Arrays;
@@ -60,7 +58,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -188,12 +186,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return value != null && StringUtils.containsIgnoreCase(value, search.toLowerCase());
     }
 
-    @Nullable
-    private ArtifactMetaDataDto getArtifactMetadataOrNull(String artifactId) {
+    private Optional<ArtifactMetaDataDto> getOptionalArtifactMetadata(String artifactId) {
         try {
-            return getArtifactMetaData(artifactId);
+            return Optional.of(getArtifactMetaData(artifactId));
         } catch (ArtifactNotFoundException ex) {
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -432,8 +429,9 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         final List<SearchedArtifact> matchedArtifacts = getArtifactIds(null)
                 .stream()
                 .filter(artifactId -> filterSearchResult(search, artifactId, over))
-                .map(this::getArtifactMetadataOrNull)
-                .filter(Objects::nonNull)
+                .map(this::getOptionalArtifactMetadata)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .peek(artifactId -> itemsCount.increment())
                 .sorted(SearchUtil.comparator(order))
                 .skip(offset)
@@ -470,7 +468,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         return artifactMetaDataDto;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
@@ -725,6 +723,16 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (metaData.getDescription() != null) {
             storage.put(artifactId, version, MetaDataKeys.DESCRIPTION, metaData.getDescription());
         }
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            storage.put(artifactId, version, MetaDataKeys.LABELS, String.join(",", metaData.getLabels()));
+        }
+        if (metaData.getProperties() != null && !metaData.getProperties().isEmpty()) {
+            try {
+                storage.put(artifactId, version, MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getProperties()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for storage.", e);
+            }
+        }
     }
 
     /**
@@ -734,6 +742,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.remove(artifactId, version, MetaDataKeys.NAME);
         storage.remove(artifactId, version, MetaDataKeys.DESCRIPTION);
+        storage.remove(artifactId, version, MetaDataKeys.LABELS);
+        storage.remove(artifactId, version, MetaDataKeys.PROPERTIES);
     }
 
     /**

@@ -39,6 +39,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +63,6 @@ import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.tests.BaseIT;
 import io.restassured.RestAssured;
 
@@ -73,17 +73,17 @@ import io.restassured.RestAssured;
 @Tag(ACCEPTANCE)
 public class RegistryConverterIT extends BaseIT {
 
-    @RegistryRestClientTest
-    public void testConfiguration(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testConfiguration() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
         String artifactId = generateArtifactId();
-        
-        ArtifactMetaData amd = restClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO,
+
+        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)
-        ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        ArtifactMetaData amdById = retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         Assertions.assertNotNull(amdById);
 
         GenericData.Record record = new GenericData.Record(schema);
@@ -134,10 +134,10 @@ public class RegistryConverterIT extends BaseIT {
         }
     }
 
-    @RegistryRestClientTest
-    public void testAvro(RegistryRestClient restClient) throws Exception {
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
-             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+    @Test
+    public void testAvro() throws Exception {
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(registryClient);
+             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(registryClient)) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
@@ -154,7 +154,7 @@ public class RegistryConverterIT extends BaseIT {
                 byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
                 // some impl details ...
-                waitForSchema(restClient, bytes);
+                waitForSchema(registryClient, bytes);
 
                 Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
                 Assertions.assertEquals("somebar", ir.get("bar").toString());
@@ -162,10 +162,10 @@ public class RegistryConverterIT extends BaseIT {
         }
     }
 
-    @RegistryRestClientTest
-    public void testPrettyJson(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testPrettyJson() throws Exception {
         testJson(
-            restClient,
+            registryClient,
             new PrettyFormatStrategy(),
             input -> {
                 try {
@@ -179,10 +179,10 @@ public class RegistryConverterIT extends BaseIT {
         );
     }
 
-    @RegistryRestClientTest
-    public void testCompactJson(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testCompactJson() throws Exception {
         testJson(
-            restClient,
+            registryClient,
             new CompactFormatStrategy(),
             input -> {
                 ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);

@@ -35,11 +35,14 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
 import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;
@@ -61,7 +64,7 @@ import io.apicurio.registry.utils.serde.strategy.FindLatestIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -70,8 +73,15 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class RegistrySerdeTest extends AbstractResourceTestBase {
 
-    @RegistryRestClientTest
-    public void testFindBySchema(RegistryRestClient restClient) throws Exception {
+    private RegistryRestClient restClient;
+
+    @BeforeEach
+    public void createIsolatedClient() {
+        restClient = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+    }
+
+    @Test
+    public void testFindBySchema() throws Exception {
         String artifactId = generateArtifactId();
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
@@ -80,11 +90,11 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
     }
 
-    @RegistryRestClientTest
-    public void testGetOrCreate(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testGetOrCreate() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
         ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
@@ -93,18 +103,18 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
 
         artifactId = generateArtifactId(); // new
-        long id = idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema);
+        long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
 
         this.waitForGlobalId(id);
 
-        Assertions.assertEquals(id, idStrategy.findId(client, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
     }
 
-    @RegistryRestClientTest
-    public void testCachedSchema(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testCachedSchema() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5x\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
 
@@ -117,8 +127,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
     }
 
     @SuppressWarnings("unchecked")
-    @RegistryRestClientTest
-    public void testConfiguration(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testConfiguration() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
 
         String artifactId = generateArtifactId();
@@ -176,8 +186,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         deserializer.close();
     }
 
-    @RegistryRestClientTest
-    public void testAvro(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testAvro() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
@@ -200,8 +210,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryRestClientTest
-    public void testAvroJSON(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testAvroJSON() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
@@ -232,8 +242,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryRestClientTest
-    public void testAvroUsingHeaders(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testAvroUsingHeaders() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
@@ -262,8 +272,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryRestClientTest
-    public void testAvroReflect(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testAvroReflect() throws Exception {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
@@ -284,8 +294,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @RegistryRestClientTest
-    public void testProto(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testProto() throws Exception {
         try (ProtobufKafkaSerializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<TestCmmn.UUID>(restClient);
              Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 

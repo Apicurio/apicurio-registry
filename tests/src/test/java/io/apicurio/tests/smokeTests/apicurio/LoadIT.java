@@ -19,11 +19,11 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +60,8 @@ public class LoadIT extends BaseIT {
 
     private String base = TestUtils.generateArtifactId();
 
-    @RegistryRestClientTest
-    void concurrentLoadTest(RegistryRestClient client) throws Exception {
+    @Test
+    void concurrentLoadTest() throws Exception {
 
         Queue<String> artifactsQueue = new ConcurrentLinkedQueue<>();
         AtomicBoolean deleteLoopFlag = new AtomicBoolean(true);
@@ -74,8 +74,8 @@ public class LoadIT extends BaseIT {
                 try {
                     if (artifactId != null) {
                         LOGGER.info("Delete artifact {} START", artifactId);
-                        client.deleteArtifact(artifactId);
-                        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactMetaData(artifactId), true);
+                        registryClient.deleteArtifact(artifactId);
+                        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId), true);
                         LOGGER.info("Delete artifact {} FINISH", artifactId);
                     } else if (allCreatedFlag.get()) {
                         return null;
@@ -92,7 +92,7 @@ public class LoadIT extends BaseIT {
 
         try {
             List<CompletionStage<Void>> createResults = IntStream.range(0, 250).mapToObj(i -> {
-                return createArtifactAsync(client, i)
+                return createArtifactAsync(registryClient, i)
                         .thenAccept(m ->
                             artifactsQueue.offer(m.getId())
                         );
@@ -115,11 +115,11 @@ public class LoadIT extends BaseIT {
                 throw new IllegalStateException("Error deleteing artifacts", result);
             }
         } catch (TimeoutException e) {
-            LOGGER.info("Artifacts not deleted are {}", client.listArtifacts().toString());
+            LOGGER.info("Artifacts not deleted are {}", registryClient.listArtifacts().toString());
             throw e;
         }
 
-        assertEquals(0, client.listArtifacts().size());
+        assertEquals(0, registryClient.listArtifacts().size());
 
     }
 

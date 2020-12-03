@@ -24,15 +24,14 @@ import java.util.Collections;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -41,22 +40,22 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
 
-    @RegistryRestClientTest
-    public void testSchema(RegistryRestClient restClient) throws Exception {
+    @Test
+    public void testSchema() throws Exception {
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.JSON, jsonSchema);
+        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, jsonSchema);
 
         // make sure we have schema registered
-        retry(() -> restClient.getArtifactByGlobalId(amd.getGlobalId()));
+        retry(() -> client.getArtifactByGlobalId(amd.getGlobalId()));
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(client, true);
+             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(client, true)) {
 
             serializer.configure(Collections.emptyMap(), false);
             serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());

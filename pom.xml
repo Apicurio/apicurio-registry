@@ -226,11 +226,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-rest-client</artifactId>
                 <version>${project.version}</version>
             </dependency>

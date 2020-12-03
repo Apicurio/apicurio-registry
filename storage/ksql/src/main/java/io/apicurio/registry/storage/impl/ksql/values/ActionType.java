@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql.values;
 
-import io.apicurio.registry.rest.beans.Error;
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public enum ActionType {
 
-    private static final long serialVersionUID = 1L;
-
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
-    }
+    Create, Update, Delete, Clear
+    
 }

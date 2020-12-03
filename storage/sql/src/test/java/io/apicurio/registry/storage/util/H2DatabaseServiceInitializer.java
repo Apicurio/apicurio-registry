@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.util;
 
 import io.apicurio.registry.util.ServiceInitializer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

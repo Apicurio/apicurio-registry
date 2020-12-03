@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public class BadRequestException extends RestClientException {
 
+    private static final long serialVersionUID = 1L;
+
     public BadRequestException(Error error) {
         super(error);
     }

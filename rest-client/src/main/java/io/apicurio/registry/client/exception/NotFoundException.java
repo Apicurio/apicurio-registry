@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public abstract class NotFoundException extends RestClientException {
 
+    private static final long serialVersionUID = 1L;
+
     public NotFoundException(Error error) {
         super(error);
     }

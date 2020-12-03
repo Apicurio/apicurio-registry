@@ -375,11 +375,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return builder.build();
     }
 
-    private CompletionStage<ArtifactMetaData> updateArtifactInternal(
-            String artifactId,
-            ArtifactType xRegistryArtifactType,
-            ContentHandle content,
-            String ct) {
+    private CompletionStage<ArtifactMetaData> updateArtifactInternal(String artifactId,
+            ArtifactType xRegistryArtifactType, ContentHandle content, String ct) {
         Objects.requireNonNull(artifactId);
         if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);

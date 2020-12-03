@@ -14,17 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql.values;
 
-import io.apicurio.registry.rest.beans.Error;
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * Base class for all message value classes.
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public abstract class AbstractMessageValue implements MessageValue {
 
-    private static final long serialVersionUID = 1L;
+    private ActionType action;
 
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
+    /**
+     * @return the action
+     */
+    public ActionType getAction() {
+        return action;
     }
+
+    /**
+     * @param action the action to set
+     */
+    public void setAction(ActionType action) {
+        this.action = action;
+    }
+    
 }

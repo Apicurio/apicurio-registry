@@ -23,6 +23,8 @@ import io.apicurio.registry.rest.beans.Error;
  */
 public class RestClientException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final Error error;
 
     public RestClientException(Error error) {

@@ -23,6 +23,8 @@ import io.apicurio.registry.rest.beans.Error;
  */
 public class VersionNotFoundException extends NotFoundException {
 
+    private static final long serialVersionUID = 1L;
+
     public VersionNotFoundException(Error error) {
         super(error);
     }

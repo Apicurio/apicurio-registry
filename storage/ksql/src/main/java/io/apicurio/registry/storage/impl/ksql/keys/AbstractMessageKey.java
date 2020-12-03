@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql.keys;
 
-import io.apicurio.registry.rest.beans.Error;
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * Base class for all message keys.
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public abstract class AbstractMessageKey implements MessageKey {
 
-    private static final long serialVersionUID = 1L;
-
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
-    }
 }

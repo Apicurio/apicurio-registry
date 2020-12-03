@@ -23,6 +23,8 @@ import io.apicurio.registry.rest.beans.Error;
  */
 public class ArtifactAlreadyExistsException extends ConflictException {
 
+    private static final long serialVersionUID = 1L;
+
     public ArtifactAlreadyExistsException(Error error) {
         super(error);
     }

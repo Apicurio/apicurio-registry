@@ -18,9 +18,9 @@
     <dependencies>
 
         <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <scope>provided</scope>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
         </dependency>
 
         <dependency>

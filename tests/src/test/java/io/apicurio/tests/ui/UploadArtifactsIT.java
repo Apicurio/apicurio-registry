@@ -24,12 +24,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.RegistryRestClientTest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.Constants;
@@ -44,7 +44,7 @@ public class UploadArtifactsIT extends BaseIT {
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 
     @AfterEach
-    void cleanArtifacts(RegistryRestClient client, ExtensionContext ctx) {
+    void cleanArtifacts(ExtensionContext ctx) {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }
@@ -74,35 +74,35 @@ public class UploadArtifactsIT extends BaseIT {
 //        doTest(client, "avro/multi-field_v1.json", ArtifactType.AVRO, null, false);
 //    }
 
-    @RegistryRestClientTest
+    @Test
     @Tag(ACCEPTANCE)
-    void testProtobuf(RegistryRestClient client) throws Exception {
-        doTest(client, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
+    void testProtobuf() throws Exception {
+        doTest(registryClient, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
     }
 
-    @RegistryRestClientTest
-    void testJsonSchema(RegistryRestClient client) throws Exception {
-        doTest(client, "jsonSchema/person_v1.json", ArtifactType.JSON, null, false);
+    @Test
+    void testJsonSchema() throws Exception {
+        doTest(registryClient, "jsonSchema/person_v1.json", ArtifactType.JSON, null, false);
     }
 
-    @RegistryRestClientTest
-    void testKafkaConnect(RegistryRestClient client) throws Exception {
-        doTest(client, "kafkaConnect/simple_v1.json", ArtifactType.KCONNECT, null, false);
+    @Test
+    void testKafkaConnect() throws Exception {
+        doTest(registryClient, "kafkaConnect/simple_v1.json", ArtifactType.KCONNECT, null, false);
     }
 
-    @RegistryRestClientTest
-    void testOpenApi30(RegistryRestClient client) throws Exception {
-        doTest(client, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, false);
+    @Test
+    void testOpenApi30() throws Exception {
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, false);
     }
 
-    @RegistryRestClientTest
-    void testAsyncApi(RegistryRestClient client) throws Exception {
-        doTest(client, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, false);
+    @Test
+    void testAsyncApi() throws Exception {
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, false);
     }
 
-    @RegistryRestClientTest
-    void testGraphQL(RegistryRestClient client) throws Exception {
-        doTest(client, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, false);
+    @Test
+    void testGraphQL() throws Exception {
+        doTest(registryClient, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, false);
     }
 
     //auto-detect, kafka connect excluded because it's known it does not work
@@ -112,45 +112,45 @@ public class UploadArtifactsIT extends BaseIT {
 //        doTest(client, "avro/multi-field_v1.json", null, null);
 //    }
 
-    @RegistryRestClientTest
-    void testProtobufAutoDetect(RegistryRestClient client) throws Exception {
-        doTest(client, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, true);
+    @Test
+    void testProtobufAutoDetect() throws Exception {
+        doTest(registryClient, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, true);
     }
 
-    @RegistryRestClientTest
-    void testJsonSchemaAutoDetect(RegistryRestClient client) throws Exception {
-        doTest(client, "jsonSchema/person_v1.json", ArtifactType.JSON, null, true);
+    @Test
+    void testJsonSchemaAutoDetect() throws Exception {
+        doTest(registryClient, "jsonSchema/person_v1.json", ArtifactType.JSON, null, true);
     }
 
-    @RegistryRestClientTest
-    void testOpenApi30AutoDetect(RegistryRestClient client) throws Exception {
-        doTest(client, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, true);
+    @Test
+    void testOpenApi30AutoDetect() throws Exception {
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, null, true);
     }
 
-    @RegistryRestClientTest
-    void testAsyncApiAutoDetect(RegistryRestClient client) throws Exception {
-        doTest(client, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, true);
+    @Test
+    void testAsyncApiAutoDetect() throws Exception {
+        doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", ArtifactType.ASYNCAPI, null, true);
     }
 
-    @RegistryRestClientTest
-    void testGraphQLAutoDetect(RegistryRestClient client) throws Exception {
-        doTest(client, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, true);
+    @Test
+    void testGraphQLAutoDetect() throws Exception {
+        doTest(registryClient, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, true);
     }
 
     //provide artifact id
 
-    @RegistryRestClientTest
-    void testSetArtifactId(RegistryRestClient client) throws Exception {
-        doTest(client, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", false);
+    @Test
+    void testSetArtifactId() throws Exception {
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", false);
     }
 
-    @RegistryRestClientTest
-    void testSetArtifactIdAndAutodetect(RegistryRestClient client) throws Exception {
-        doTest(client, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", true);
+    @Test
+    void testSetArtifactIdAndAutodetect() throws Exception {
+        doTest(registryClient, "openapi/3.0-petstore_v1.json", ArtifactType.OPENAPI, "testArtifactIdOpenApi", true);
     }
 
-    @RegistryRestClientTest
-    void testCreateViaApi(RegistryRestClient client) throws Exception {
+    @Test
+    void testCreateViaApi() throws Exception {
 
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
@@ -159,8 +159,8 @@ public class UploadArtifactsIT extends BaseIT {
         assertEquals(0, webArtifacts.size());
 
         String content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        ArtifactMetaData meta = 
-                client.createArtifact(null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
+        ArtifactMetaData meta =
+            registryClient.createArtifact(null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

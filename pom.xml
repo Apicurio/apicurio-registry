@@ -163,6 +163,7 @@
         <jdbi.version>3.17.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
+        <httpclient.version>4.5.13</httpclient.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -395,6 +396,11 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
             </dependency>
 
             <!-- Picocli -->

@@ -19,12 +19,6 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-rest-client</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -32,6 +26,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
             <scope>provided</scope>
         </dependency>
 

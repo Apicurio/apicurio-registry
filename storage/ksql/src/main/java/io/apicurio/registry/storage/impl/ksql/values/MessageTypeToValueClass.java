@@ -58,8 +58,8 @@ public class MessageTypeToValueClass {
         return index.get(type);
     }
     
-    public static final Class<? extends MessageValue> ordinalToValue(byte typeOrdinal) {
-        MessageType type = types[typeOrdinal];
+    public static final Class<? extends MessageValue> ordToValue(byte typeOrdinal) {
+        MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToValue(type);
     }
     

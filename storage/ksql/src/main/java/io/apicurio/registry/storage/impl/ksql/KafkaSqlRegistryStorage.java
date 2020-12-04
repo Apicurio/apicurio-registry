@@ -309,6 +309,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         String createdBy = null; // TODO populate when authentication is available
         Date createdOn = new Date();
         
+        if (metaData == null) {
+            metaData = extractMetaData(artifactType, content);
+        }
+
         return submitter
                 .submitArtifact(artifactId, ActionType.Create, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));

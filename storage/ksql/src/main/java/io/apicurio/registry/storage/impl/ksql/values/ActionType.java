@@ -16,11 +16,40 @@
 
 package io.apicurio.registry.storage.impl.ksql.values;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 public enum ActionType {
 
-    Create, Update, Delete, Clear
+    Create(1), Update(2), Delete(3), Clear(4);
+
+    private final byte ord;
     
+    /**
+     * Constructor.
+     */
+    private ActionType(int ord) {
+        this.ord = (byte) ord;
+    }
+    
+    public final byte getOrd() {
+        return this.ord;
+    }
+    
+    private static final Map<Byte, ActionType> ordIndex = new HashMap<>();
+    static {
+        for (ActionType at : ActionType.values()) {
+            if (ordIndex.containsKey(at.getOrd())) {
+                throw new IllegalArgumentException(String.format("Duplicate ord value %d for ActionType %s", at.getOrd(), at.name()));
+            }
+            ordIndex.put(at.getOrd(), at);
+        }
+    }
+    public static final ActionType fromOrd(byte ord) {
+        return ordIndex.get(ord);
+    }
+
 }

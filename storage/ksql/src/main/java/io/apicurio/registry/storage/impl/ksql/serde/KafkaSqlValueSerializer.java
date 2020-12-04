@@ -50,7 +50,7 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
             return this.serializeContent(topic, (ContentValue) messageValue);
         }
         try (UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream()) {
-            out.write(ByteBuffer.allocate(1).put((byte) messageValue.getType().ordinal()).array());
+            out.write(ByteBuffer.allocate(1).put((byte) messageValue.getType().getOrd()).array());
             mapper.writeValue(out, messageValue);
             return out.toByteArray();
         } catch (IOException e) {
@@ -66,11 +66,11 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
     private byte[] serializeContent(String topic, ContentValue contentValue) {
         try (UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream()) {
             // Byte 0 is the message type
-            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getType().ordinal()).array());
+            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getType().getOrd()).array());
             // Byte 1 is the action type
-            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getAction().ordinal()).array());
+            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getAction().getOrd()).array());
             // Byte 2 is the artifact type
-            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getArtifactType().ordinal()).array());
+            out.write(ByteBuffer.allocate(1).put(ArtifactTypeOrdUtil.artifactTypeToOrd(contentValue.getArtifactType())).array());
             // The rest of the bytes is the content
             out.write(contentValue.getContent().bytes());
             

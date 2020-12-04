@@ -47,7 +47,7 @@ public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
     public MessageKey deserialize(String topic, byte[] data) {
         try {
             byte msgTypeOrdinal = data[0];
-            Class<? extends MessageKey> keyClass = MessageTypeToKeyClass.ordinalToKey(msgTypeOrdinal);
+            Class<? extends MessageKey> keyClass = MessageTypeToKeyClass.ordToKeyClass(msgTypeOrdinal);
             UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1);
             MessageKey key = mapper.readValue(in, keyClass);
             return key;

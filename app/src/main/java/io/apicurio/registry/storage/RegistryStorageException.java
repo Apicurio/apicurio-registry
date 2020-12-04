@@ -29,7 +29,6 @@ public class RegistryStorageException extends StorageException {
      */
     public RegistryStorageException(Throwable cause) {
         super(cause);
-        cause.printStackTrace();
     }
 
     /**
@@ -39,7 +38,6 @@ public class RegistryStorageException extends StorageException {
      */
     public RegistryStorageException(String reason, Throwable cause) {
         super(reason, cause);
-        cause.printStackTrace();
     }
 
     /**

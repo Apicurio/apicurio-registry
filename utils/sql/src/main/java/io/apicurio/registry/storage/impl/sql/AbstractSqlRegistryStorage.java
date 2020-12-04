@@ -35,6 +35,7 @@ import javax.transaction.Transactional;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jdbi.v3.core.Handle;
+import org.jdbi.v3.core.HandleCallback;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.result.ResultIterable;
@@ -71,6 +72,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
@@ -114,6 +116,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     public AbstractSqlRegistryStorage() {
     }
+    
+    protected <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
+        try {
+            return this.jdbi.withHandle(callback);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
 
     @PostConstruct
     @Transactional
@@ -155,7 +165,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private boolean isDatabaseInitialized() {
         log.info("Checking to see if the DB is initialized.");
-        return this.jdbi.withHandle(handle -> {
+        return withHandle(handle -> {
             ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
             return result.one().intValue() > 0;
         });
@@ -177,7 +187,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         final List<String> statements = this.sqlStatements.databaseInitialization();
         log.debug("---");
 
-        this.jdbi.withHandle( handle -> {
+        withHandle( handle -> {
             statements.forEach( statement -> {
                 log.debug(statement);
                 handle.createUpdate(statement).execute();
@@ -203,7 +213,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         final List<String> statements = this.sqlStatements.databaseUpgrade(fromVersion, toVersion);
         log.debug("---");
-        this.jdbi.withHandle( handle -> {
+        withHandle( handle -> {
             statements.forEach( statement -> {
                 log.debug(statement);
 
@@ -241,7 +251,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * Reuturns the current DB version by selecting the value in the 'apicurio' table.
      */
     private int getDatabaseVersion() {
-        return this.jdbi.withHandle(handle -> {
+        return withHandle(handle -> {
             ResultIterable<String> result = handle.createQuery(this.sqlStatements.getDatabaseVersion())
                     .bind(0, "db_version")
                     .mapTo(String.class);
@@ -262,26 +272,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public void updateArtifactState(String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} to {}", artifactId, state.name());
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
-        try {
-            this.jdbi.withHandle( handle -> {
-                long globalId = dto.getGlobalId();
-                ArtifactState oldState = dto.getState();
-                ArtifactState newState = state;
-                ArtifactStateExt.applyState(s -> {
-                    String sql = sqlStatements.updateArtifactVersionState();
-                    int rowCount = handle.createUpdate(sql)
-                            .bind(0, s.name())
-                            .bind(1, globalId)
-                            .execute();
-                    if (rowCount == 0) {
-                        throw new ArtifactNotFoundException(artifactId);
-                    }
-                }, oldState, newState);
-                return null;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        withHandle( handle -> {
+            long globalId = dto.getGlobalId();
+            ArtifactState oldState = dto.getState();
+            ArtifactState newState = state;
+            ArtifactStateExt.applyState(s -> {
+                String sql = sqlStatements.updateArtifactVersionState();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, s.name())
+                        .bind(1, globalId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(artifactId);
+                }
+            }, oldState, newState);
+            return null;
+        });
     }
 
     /**
@@ -291,28 +297,24 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(artifactId, version);
-        try {
-            this.jdbi.withHandle( handle -> {
-                long globalId = dto.getGlobalId();
-                ArtifactState oldState = dto.getState();
-                ArtifactState newState = state;
-                if (oldState != newState) {
-                    ArtifactStateExt.applyState(s -> {
-                        String sql = sqlStatements.updateArtifactVersionState();
-                        int rowCount = handle.createUpdate(sql)
-                                .bind(0, s.name())
-                                .bind(1, globalId)
-                                .execute();
-                        if (rowCount == 0) {
-                            throw new VersionNotFoundException(artifactId, dto.getVersion());
-                        }
-                    }, oldState, newState);
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        withHandle( handle -> {
+            long globalId = dto.getGlobalId();
+            ArtifactState oldState = dto.getState();
+            ArtifactState newState = state;
+            if (oldState != newState) {
+                ArtifactStateExt.applyState(s -> {
+                    String sql = sqlStatements.updateArtifactVersionState();
+                    int rowCount = handle.createUpdate(sql)
+                            .bind(0, s.name())
+                            .bind(1, globalId)
+                            .execute();
+                    if (rowCount == 0) {
+                        throw new VersionNotFoundException(artifactId, dto.getVersion());
+                    }
+                }, oldState, newState);
+            }
+            return null;
+        });
     }
 
     /**
@@ -484,7 +486,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = this.jdbi.withHandle(handle -> {
+        long contentId = withHandle(handle -> {
             return createOrUpdateContent(handle, artifactType, content);
         });
 
@@ -654,7 +656,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = this.jdbi.withHandle(handle -> {
+        long contentId = withHandle(handle -> {
             return createOrUpdateContent(handle, artifactType, content);
         });
 
@@ -677,7 +679,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
 
         // Create version and return
-        return this.jdbi.withHandle(handle -> {
+        return withHandle(handle -> {
             // Metadata comes from the latest version
             String name = latest.getName();
             String description = latest.getDescription();
@@ -716,18 +718,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public Set<String> getArtifactIds(Integer limit) {
         log.debug("Getting the set of all artifact IDs");
-        try {
-            return this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.selectArtifactIds();
-                List<String> ids = handle.createQuery(sql)
-                        .bind(0, limit)
-                        .mapTo(String.class)
-                        .list();
-                return new TreeSet<String>(ids);
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        return withHandle( handle -> {
+            String sql = sqlStatements.selectArtifactIds();
+            List<String> ids = handle.createQuery(sql)
+                    .bind(0, limit)
+                    .mapTo(String.class)
+                    .list();
+            return new TreeSet<String>(ids);
+        });
     }
 
     /**
@@ -737,107 +735,103 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver,
             SortOrder sortOrder) {
         log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
-        try {
-            return this.jdbi.withHandle( handle -> {
-                List<SqlStatementVariableBinder> binders = new LinkedList<>();
+        return withHandle( handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-                StringBuilder select = new StringBuilder();
-                StringBuilder where = new StringBuilder();
-                StringBuilder orderBy = new StringBuilder();
-                StringBuilder limitOffset = new StringBuilder();
+            StringBuilder select = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderBy = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
 
-                // Formulate the SELECT clause for the artifacts query
-                select.append(
-                        "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
-                        +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                        + "FROM artifacts a "
-                        + "JOIN versions v ON a.latest = v.globalId ");
+            // Formulate the SELECT clause for the artifacts query
+            select.append(
+                    "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
+                    +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                    + "FROM artifacts a "
+                    + "JOIN versions v ON a.latest = v.globalId ");
 
-                // Formulate the WHERE clause for both queries
-                if (!StringUtil.isEmpty(search)) {
-                    where.append("WHERE ");
-                    switch (searchOver) {
-                        case description:
-                            where.append("v.description LIKE ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            break;
-                        case everything:
-                            where.append("("
-                                    + "v.name LIKE ? OR "
-                                    + "a.artifactId LIKE ? OR "
-                                    + "v.description LIKE ? OR "
-                                    + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)"
-                                    + ")");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, search);
-                            });
-                            break;
-                        case labels:
-                            where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, search);
-                            });
-                            break;
-                        case name:
-                            where.append("(v.name LIKE ?) OR (a.artifactId LIKE ?)");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%" + search + "%");
-                            });
-                            break;
-                    }
+            // Formulate the WHERE clause for both queries
+            if (!StringUtil.isEmpty(search)) {
+                where.append("WHERE ");
+                switch (searchOver) {
+                    case description:
+                        where.append("v.description LIKE ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        break;
+                    case everything:
+                        where.append("("
+                                + "v.name LIKE ? OR "
+                                + "a.artifactId LIKE ? OR "
+                                + "v.description LIKE ? OR "
+                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)"
+                                + ")");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, search);
+                        });
+                        break;
+                    case labels:
+                        where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, search);
+                        });
+                        break;
+                    case name:
+                        where.append("(v.name LIKE ?) OR (a.artifactId LIKE ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + search + "%");
+                        });
+                        break;
                 }
+            }
 
-                // Add order by to artifact query
-                orderBy.append(" ORDER BY coalesce(v.name, a.artifactId) ");
-                orderBy.append(sortOrder.name());
+            // Add order by to artifact query
+            orderBy.append(" ORDER BY coalesce(v.name, a.artifactId) ");
+            orderBy.append(sortOrder.name());
 
-                // Add limit and offset to artifact query
-                limitOffset.append(" LIMIT ? OFFSET ?");
+            // Add limit and offset to artifact query
+            limitOffset.append(" LIMIT ? OFFSET ?");
 
-                // Query for the artifacts
-                String artifactsQuerySql = select.toString() + where.toString() + orderBy.toString() + limitOffset.toString();
-                Query artifactsQuery = handle.createQuery(artifactsQuerySql);
-                // Query for the total row count
-                String countSelect = "SELECT count(a.artifactId) FROM artifacts a JOIN versions v ON a.latest = v.globalId ";
-                Query countQuery = handle.createQuery(countSelect + where.toString());
+            // Query for the artifacts
+            String artifactsQuerySql = select.toString() + where.toString() + orderBy.toString() + limitOffset.toString();
+            Query artifactsQuery = handle.createQuery(artifactsQuerySql);
+            // Query for the total row count
+            String countSelect = "SELECT count(a.artifactId) FROM artifacts a JOIN versions v ON a.latest = v.globalId ";
+            Query countQuery = handle.createQuery(countSelect + where.toString());
 
-                // Bind all query parameters
-                int idx = 0;
-                for (SqlStatementVariableBinder binder : binders) {
-                    binder.bind(artifactsQuery, idx);
-                    binder.bind(countQuery, idx);
-                    idx++;
-                }
-                artifactsQuery.bind(idx++, limit);
-                artifactsQuery.bind(idx++, offset);
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(artifactsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            artifactsQuery.bind(idx++, limit);
+            artifactsQuery.bind(idx++, offset);
 
-                // Execute artifact query
-                List<SearchedArtifact> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
-                // Execute count query
-                Integer count = countQuery.mapTo(Integer.class).one();
+            // Execute artifact query
+            List<SearchedArtifact> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
 
-                ArtifactSearchResults results = new ArtifactSearchResults();
-                results.setArtifacts(artifacts);
-                results.setCount(count);
-                return results;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            ArtifactSearchResults results = new ArtifactSearchResults();
+            results.setArtifacts(artifacts);
+            results.setCount(count);
+            return results;
+        });
     }
 
     /**
@@ -937,7 +931,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
 
         internalUpdateArtifactVersionMetadata(dto.getGlobalId(), artifactId, null, metaData);
-
     }
 
     /**
@@ -1157,30 +1150,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
         log.debug("Searching for versions of artifact {}", artifactId);
-        try {
-            return this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.selectAllArtifactVersions();
-                List<SearchedVersion> versions = handle.createQuery(sql)
-                        .bind(0, artifactId)
-                        .bind(1, limit)
-                        .bind(2, offset)
-                        .map(SearchedVersionMapper.instance)
-                        .list();
-                VersionSearchResults rval = new VersionSearchResults();
-                rval.setVersions(versions);
+        return withHandle( handle -> {
+            String sql = sqlStatements.selectAllArtifactVersions();
+            List<SearchedVersion> versions = handle.createQuery(sql)
+                    .bind(0, artifactId)
+                    .bind(1, limit)
+                    .bind(2, offset)
+                    .map(SearchedVersionMapper.instance)
+                    .list();
+            VersionSearchResults rval = new VersionSearchResults();
+            rval.setVersions(versions);
 
-                sql = sqlStatements.selectAllArtifactVersionsCount();
-                Integer count = handle.createQuery(sql)
-                        .bind(0, artifactId)
-                        .mapTo(Integer.class)
-                        .one();
-                rval.setCount(count);
+            sql = sqlStatements.selectAllArtifactVersionsCount();
+            Integer count = handle.createQuery(sql)
+                    .bind(0, artifactId)
+                    .mapTo(Integer.class)
+                    .one();
+            rval.setCount(count);
 
-                return rval;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            return rval;
+        });
     }
 
     /**
@@ -1352,7 +1341,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaDataInternal(artifactId, version);
 
         internalUpdateArtifactVersionMetadata(dto.getGlobalId(), artifactId, dto.getVersion(), metaData);
-
     }
 
     /**
@@ -1491,21 +1479,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         log.debug("Getting a list of all Global Rules");
-        try {
-            return this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.selectGlobalRules();
-                return handle.createQuery(sql)
-                        .map(new RowMapper<RuleType>() {
-                            @Override
-                            public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
-                                return RuleType.fromValue(rs.getString("type"));
-                            }
-                        })
-                        .list();
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        return withHandle( handle -> {
+            String sql = sqlStatements.selectGlobalRules();
+            return handle.createQuery(sql)
+                    .map(new RowMapper<RuleType>() {
+                        @Override
+                        public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
+                            return RuleType.fromValue(rs.getString("type"));
+                        }
+                    })
+                    .list();
+        });
     }
 
     /**
@@ -1538,16 +1522,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public void deleteGlobalRules() throws RegistryStorageException {
         log.debug("Deleting all Global Rules");
-        try {
-            this.jdbi.withHandle( handle -> {
-                String sql = sqlStatements.deleteGlobalRules();
-                handle.createUpdate(sql)
-                      .execute();
-                return null;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        withHandle( handle -> {
+            String sql = sqlStatements.deleteGlobalRules();
+            handle.createUpdate(sql)
+                  .execute();
+            return null;
+        });
     }
 
     /**
@@ -1671,6 +1651,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             metaData = new EditableArtifactMetaDataDto();
         }
         return metaData;
+    }
+
+    protected ContentHandle getContent(long contentId) {
+        return withHandle( handle -> {
+            String sql = sqlStatements().selectContentById();
+            return handle.createQuery(sql)
+                    .bind(0, contentId)
+                    .map(ContentMapper.instance)
+                    .one();
+        });
     }
 
 }

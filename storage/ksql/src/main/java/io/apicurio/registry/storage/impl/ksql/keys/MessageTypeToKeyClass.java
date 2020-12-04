@@ -56,8 +56,8 @@ public class MessageTypeToKeyClass {
         return index.get(type);
     }
     
-    public static final Class<? extends MessageKey> ordinalToKey(byte typeOrdinal) {
-        MessageType type = types[typeOrdinal];
+    public static final Class<? extends MessageKey> ordToKeyClass(byte typeOrdinal) {
+        MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToKey(type);
     }
     

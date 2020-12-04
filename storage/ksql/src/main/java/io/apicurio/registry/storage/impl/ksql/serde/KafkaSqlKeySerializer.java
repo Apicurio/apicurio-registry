@@ -46,7 +46,7 @@ public class KafkaSqlKeySerializer implements Serializer<MessageKey> {
     public byte[] serialize(String topic, MessageKey messageKey) {
         try {
             UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream();
-            out.write(ByteBuffer.allocate(1).put((byte) messageKey.getType().ordinal()).array());
+            out.write(ByteBuffer.allocate(1).put((byte) messageKey.getType().getOrd()).array());
             mapper.writeValue(out, messageKey);
             return out.toByteArray();
         } catch (IOException e) {

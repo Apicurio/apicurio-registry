@@ -3,22 +3,18 @@ package io.apicurio.registry.storage.impl.ksql.sql;
 import java.util.Date;
 import java.util.concurrent.CompletionStage;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
-
-import org.jdbi.v3.core.HandleCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.transaction.Transactional;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
-import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -35,22 +31,8 @@ import io.apicurio.registry.types.RuleType;
  */
 @ApplicationScoped
 @Named("KafkaSqlStore")
+@Logged
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
-
-    private static final Logger log = LoggerFactory.getLogger(KafkaSqlStore.class);
-
-    @PostConstruct
-    void onConstruct() {
-        log.info("Using internal SQL storage.");
-    }
-
-    public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
-        try {
-            return this.jdbi.withHandle(callback);
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
 
     public boolean isArtifactExists(String artifactId) throws RegistryStorageException {
         return withHandle( handle -> {
@@ -93,6 +75,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         });
     }
     
+    @Transactional
     public void storeContent(String contentHash, ArtifactType artifactType, ContentHandle content) throws RegistryStorageException {
         withHandle( handle -> {
             super.createOrUpdateContent(handle, artifactType, content);
@@ -100,16 +83,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         });
     }
     
-    private ContentHandle getContent(long contentId) {
-        return withHandle( handle -> {
-            String sql = sqlStatements().selectContentById();
-            return handle.createQuery(sql)
-                    .bind(0, contentId)
-                    .map(ContentMapper.instance)
-                    .one();
-        });
-    }
-
+    @Transactional
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
@@ -117,14 +91,14 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         long contentId = this.contentIdFromHash(contentHash);
         
         if (metaData == null) {
-            ContentHandle content = this.getContent(contentId);
-            metaData = this.extractMetaData(artifactType, content);
+            metaData = new EditableArtifactMetaDataDto();
         }
         
         return super.createArtifactWithMetadata(artifactId, artifactType, contentId, createdBy, createdOn,
                 metaData, globalIdGenerator);
     }
     
+    @Transactional
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
@@ -139,7 +113,14 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                 metaData, globalIdGenerator);
     }
     
-    protected long contentIdFromHash(String contentHash) {
+    @Transactional
+    public void updateArtifactVersionMetaDataAndState(String artifactId, Integer version,
+            EditableArtifactMetaDataDto metaData, ArtifactState state) {
+        this.updateArtifactVersionMetaData(artifactId, version, metaData);
+        this.updateArtifactState(artifactId, state, version);
+    }
+
+    private long contentIdFromHash(String contentHash) {
         return withHandle( handle -> {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)
@@ -147,12 +128,6 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .mapTo(Long.class)
                     .one();
         });
-    }
-
-    public void updateArtifactVersionMetaDataAndState(String artifactId, Integer version,
-            EditableArtifactMetaDataDto metaData, ArtifactState state) {
-        this.updateArtifactVersionMetaData(artifactId, version, metaData);
-        this.updateArtifactState(artifactId, state, version);
     }
 
 }

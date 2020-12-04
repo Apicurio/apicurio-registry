@@ -45,8 +45,6 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
-    private static final ActionType[] actionTypes = ActionType.values();
-    private static final ArtifactType[] artifactTypes = ArtifactType.values();
 
     /**
      * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, byte[])
@@ -54,11 +52,11 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
     @Override
     public MessageValue deserialize(String topic, byte[] data) {
         byte msgTypeOrdinal = data[0];
-        if (msgTypeOrdinal == MessageType.Content.ordinal()) {
+        if (msgTypeOrdinal == MessageType.Content.getOrd()) {
             return this.deserializeContent(topic, data);
         }
         try {
-            Class<? extends MessageValue> keyClass = MessageTypeToValueClass.ordinalToValue(msgTypeOrdinal);
+            Class<? extends MessageValue> keyClass = MessageTypeToValueClass.ordToValue(msgTypeOrdinal);
             UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1);
             MessageValue key = mapper.readValue(in, keyClass);
             return key;
@@ -77,8 +75,8 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
         byte artifactTypeOrdinal = data[2];
         byte[] contentBytes = Arrays.copyOfRange(data, 3, data.length);
         
-        ActionType action = actionTypes[actionOrdinal];
-        ArtifactType artifactType = artifactTypes[artifactTypeOrdinal];
+        ActionType action = ActionType.fromOrd(actionOrdinal);
+        ArtifactType artifactType = ArtifactTypeOrdUtil.ordToArtifactType(artifactTypeOrdinal);
         ContentHandle contentHandle = ContentHandle.create(contentBytes);
         
         return ContentValue.create(action, artifactType, contentHandle);

@@ -123,7 +123,7 @@
         <jandex.version>1.0.8</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.10.0</avro.version>
+        <avro.version>1.10.1</avro.version>
         <json-schema-validator.version>1.0.45</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.14.0</protobuf.version>
@@ -160,7 +160,7 @@
         <lombok.version>1.18.16</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.17.0</jdbi.version>
+        <jdbi.version>3.18.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>

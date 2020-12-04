@@ -160,7 +160,7 @@
         <lombok.version>1.18.16</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.17.0</jdbi.version>
+        <jdbi.version>3.18.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>

@@ -41,20 +41,36 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
     }
 
     public render(): React.ReactElement {
-        const pageToolbar: React.ReactElement = (
-            <Toolbar className="header-toolbar">
-                <ToolbarGroup>
-                    <ToolbarItem>
-                        <Link data-testid="masthead-lnk-settings" className="header-icon" to={ `/rules` }>
-                            <CogIcon />
-                        </Link>
-                    </ToolbarItem>
-                    <ToolbarItem>
-                        <Button style={{margin: "10%"}} onClick={Services.getAuthService().doLogout()} variant="tertiary">Logout</Button>
-                    </ToolbarItem>
-                </ToolbarGroup>
-            </Toolbar>
-        );
+        let pageToolbar: React.ReactElement;
+        if (Services.getConfigService().authType() === "keycloakjs" && Services.getAuthService().isAuthenticated()) {
+            pageToolbar = (
+                <Toolbar className="header-toolbar">
+                    <ToolbarGroup>
+                        <ToolbarItem>
+                            <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
+                                <CogIcon/>
+                            </Link>
+                        </ToolbarItem>
+                        <ToolbarItem>
+                            <Button style={{margin: "10%"}} onClick={Services.getAuthService().doLogout()}
+                                    variant="tertiary">Logout</Button>
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                </Toolbar>
+            );
+        } else {
+            pageToolbar = (
+                <Toolbar className="header-toolbar">
+                    <ToolbarGroup>
+                        <ToolbarItem>
+                            <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
+                                <CogIcon/>
+                            </Link>
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                </Toolbar>
+            );
+        }
 
         return (<PageHeader
             logo={<Brand onClick={this.navigateTo("/artifacts")} src={brandImg} alt="Apicurio Registry"/>}

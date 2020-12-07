@@ -16,7 +16,7 @@
     <properties>
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
         <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
-        <docker.ksql.file>app-files/apicurio-registry-storage-ksql-${project.version}-all.tar.gz</docker.ksql.file>
+        <docker.kafkasql.file>app-files/apicurio-registry-storage-kafkasql-${project.version}-all.tar.gz</docker.kafkasql.file>
         <docker.infinispan.file>app-files/apicurio-registry-storage-infinispan-${project.version}-all.tar.gz</docker.infinispan.file>
         <docker.asyncmem.file>app-files/apicurio-registry-storage-asyncmem-${project.version}-all.tar.gz</docker.asyncmem.file>
         <docker.streams.file>app-files/apicurio-registry-storage-streams-${project.version}-all.tar.gz</docker.streams.file>
@@ -55,7 +55,7 @@
                                     </includes>
                                 </resource>
                                 <resource>
-                                    <directory>${basedir}/../../storage/ksql/target</directory>
+                                    <directory>${basedir}/../../storage/kafkasql/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -234,11 +234,11 @@
         </profile>
 
         <profile>
-            <id>ksql</id>
+            <id>kafkasql</id>
             <dependencies>
                 <dependency>
                     <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-ksql</artifactId>
+                    <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -259,10 +259,10 @@
                                 <configuration>
                                     <images>
                                         <image>
-                                            <name>apicurio/apicurio-registry-ksql:${project.version}</name>
+                                            <name>apicurio/apicurio-registry-kafkasql:${project.version}</name>
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.ksql.jvm</dockerFile>
+                                                <dockerFile>./Dockerfile.kafkasql.jvm</dockerFile>
                                                 <tags combine.children="append">
                                                     <tag>latest</tag>
                                                 </tags>

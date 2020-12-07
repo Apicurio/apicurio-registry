@@ -301,7 +301,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-ksql</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -802,9 +802,9 @@
             </modules>
         </profile>
         <profile>
-            <id>ksql</id>
+            <id>kafkasql</id>
             <modules>
-                <module>storage/ksql</module>
+                <module>storage/kafkasql</module>
             </modules>
         </profile>
         <profile>

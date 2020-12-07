@@ -396,9 +396,9 @@
         </profile>
 
         <profile>
-            <id>ksql</id>
+            <id>kafkasql</id>
             <properties>
-                <test.storage>ksql</test.storage>
+                <test.storage>kafkasql</test.storage>
             </properties>
         </profile>
 

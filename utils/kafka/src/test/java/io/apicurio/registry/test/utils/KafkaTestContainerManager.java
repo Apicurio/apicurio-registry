@@ -73,7 +73,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
                     new NewTopic("storage-topic", 1, (short) 1),
                     new NewTopic("global-id-topic", 1, (short) 1),
                     new NewTopic("snapshot-topic", 1, (short) 1),
-                    new NewTopic("ksql-journal", 1, (short) 1)
+                    new NewTopic("kafkasql-journal", 1, (short) 1)
             ));
             try {
                 result.all().get();

@@ -13,12 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests;
 
-public enum RegistryStorageType {
-    inmemory,
-    streams,
-    sql,
-    infinispan,
-    kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql.values;
+
+/**
+ * Base class for all message value classes.
+ * @author eric.wittmann@gmail.com
+ */
+public abstract class AbstractMessageValue implements MessageValue {
+
+    private ActionType action;
+
+    /**
+     * @return the action
+     */
+    public ActionType getAction() {
+        return action;
+    }
+
+    /**
+     * @param action the action to set
+     */
+    public void setAction(ActionType action) {
+        this.action = action;
+    }
+    
 }

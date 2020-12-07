@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests;
 
-public enum RegistryStorageType {
-    inmemory,
-    streams,
-    sql,
-    infinispan,
-    kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql.values;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public interface MessageValue {
+
+    /**
+     * Returns the message type.
+     */
+    @JsonIgnore
+    public MessageType getType();
+    
 }

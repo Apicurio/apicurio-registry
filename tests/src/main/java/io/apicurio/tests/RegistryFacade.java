@@ -102,7 +102,7 @@ public class RegistryFacade {
             case sql:
                 setupSQLStorage(appEnv);
                 break;
-            case ksql:
+            case kafkasql:
                 setupKafkaStorage(appEnv);
                 break;
         }

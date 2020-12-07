@@ -36,7 +36,9 @@ import io.apicurio.registry.client.exception.VersionNotFoundException;
 public class ExceptionMapper {
 
     public static RestClientException map(RestClientException ex) throws RestClientException {
-
+        if (ex == null || ex.getError() == null) {
+            return ex;
+        }
         switch (ex.getError().getName()) {
             case "ArtifactAlreadyExistsException":
                 return new ArtifactAlreadyExistsException(ex.getError());

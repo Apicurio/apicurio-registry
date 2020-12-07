@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public class UnprocessableEntityException extends RestClientException {
 
+    private static final long serialVersionUID = 1L;
+
     public UnprocessableEntityException(Error error) {
         super(error);
     }

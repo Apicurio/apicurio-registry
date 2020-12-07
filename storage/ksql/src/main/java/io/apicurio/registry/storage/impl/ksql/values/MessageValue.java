@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql.values;
 
-import io.apicurio.registry.rest.beans.Error;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.apicurio.registry.storage.impl.ksql.keys.MessageType;
+
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public interface MessageValue {
 
-    private static final long serialVersionUID = 1L;
-
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
-    }
+    /**
+     * Returns the message type.
+     */
+    @JsonIgnore
+    public MessageType getType();
+    
 }

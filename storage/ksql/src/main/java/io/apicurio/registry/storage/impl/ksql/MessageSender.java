@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql;
 
-import io.apicurio.registry.rest.beans.Error;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import io.apicurio.registry.storage.impl.ksql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.ksql.values.MessageValue;
+
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public interface MessageSender {
 
-    private static final long serialVersionUID = 1L;
+    /**
+     * Called to send/publish a message to Kafka.
+     * @param key
+     * @param value
+     */
+    public CompletableFuture<UUID> send(MessageKey key, MessageValue value);
 
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
-    }
 }

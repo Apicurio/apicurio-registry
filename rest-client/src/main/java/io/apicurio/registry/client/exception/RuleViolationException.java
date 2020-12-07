@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public class RuleViolationException extends RestClientException {
 
+    private static final long serialVersionUID = 1L;
+
     public RuleViolationException(Error error) {
         super(error);
     }

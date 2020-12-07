@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.RegistryException;
 
 /**
@@ -34,6 +35,7 @@ import io.apicurio.registry.types.RegistryException;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
+@Logged
 public class KafkaSqlCoordinator {
 
     private static final Object NULL = new Object();
@@ -83,7 +85,6 @@ public class KafkaSqlCoordinator {
      * @param returnValue
      */
     public void notifyResponse(UUID uuid, Object returnValue) {
-
         //we are re-using the topic from a streams based registry instance
         if (uuid == null) {
             return;

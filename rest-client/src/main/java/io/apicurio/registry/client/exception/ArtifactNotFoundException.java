@@ -23,6 +23,8 @@ import io.apicurio.registry.rest.beans.Error;
  */
 public class ArtifactNotFoundException extends NotFoundException {
 
+    private static final long serialVersionUID = 1L;
+
     public ArtifactNotFoundException(Error error) {
         super(error);
     }

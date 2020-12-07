@@ -283,4 +283,29 @@ public interface SqlStatements {
      */
     public String insertProperty();
 
+    /**
+     * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).
+     */
+    public String selectArtifactCountById();
+
+    /**
+     * A statement to select the number of content rows for a given content hash.
+     */
+    public String selectContentCountByHash();
+
+    /**
+     * A statement to select the number of artifact rule rows for a given rule type.
+     */
+    public String selectArtifactRuleCountByType();
+
+    /**
+     * A statement to select the number of global rule rows for a given rule type.
+     */
+    public String selectGlobalRuleCountByType();
+
+    /**
+     * A statement to select the bytes of a content row by contentId.
+     */
+    public String selectContentById();
+
 }

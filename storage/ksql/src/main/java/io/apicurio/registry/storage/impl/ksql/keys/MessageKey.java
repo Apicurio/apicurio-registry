@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.client.exception;
+package io.apicurio.registry.storage.impl.ksql.keys;
 
-import io.apicurio.registry.rest.beans.Error;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * When the KSQL storage publishes a message to its Kafka topic, the message key will be a class that 
+ * implements this interface.
+ * @author eric.wittmann@gmail.com
  */
-public class DefaultRuleDeletionException extends RestClientException {
+public interface MessageKey {
+    
+    /**
+     * Returns the message type.
+     */
+    @JsonIgnore
+    public MessageType getType();
+    
+    /**
+     * Returns the key that should be used when partitioning the messages.
+     */
+    @JsonIgnore
+    public String getPartitionKey();
 
-    private static final long serialVersionUID = 1L;
-
-    public DefaultRuleDeletionException(Error error) {
-        super(error);
-    }
 }

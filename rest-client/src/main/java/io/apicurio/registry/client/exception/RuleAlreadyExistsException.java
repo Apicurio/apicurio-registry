@@ -23,6 +23,8 @@ import io.apicurio.registry.rest.beans.Error;
  */
 public class RuleAlreadyExistsException extends AlreadyExistsException {
 
+    private static final long serialVersionUID = 1L;
+
     public RuleAlreadyExistsException(Error error) {
         super(error);
     }

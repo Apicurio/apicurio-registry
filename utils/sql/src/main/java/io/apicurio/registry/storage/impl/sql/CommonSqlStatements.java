@@ -432,4 +432,44 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectAllArtifactVersionsCount() {
         return "SELECT COUNT(v.globalId) FROM versions v JOIN artifacts a ON a.artifactId = v.artifactId WHERE a.artifactId = ?";
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactCountById()
+     */
+    @Override
+    public String selectArtifactCountById() {
+        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.artifactId = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRuleCountByType()
+     */
+    @Override
+    public String selectArtifactRuleCountByType() {
+        return "SELECT COUNT(r.type) FROM rules r WHERE r.artifactId = ? AND r.type = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalRuleCountByType()
+     */
+    @Override
+    public String selectGlobalRuleCountByType() {
+        return "SELECT COUNT(r.type) FROM globalrules r WHERE r.type = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentCountByHash()
+     */
+    @Override
+    public String selectContentCountByHash() {
+        return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ?";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentById()
+     */
+    @Override
+    public String selectContentById() {
+        return "SELECT c.content FROM content c WHERE c.contentId = ?";
+    }
 }

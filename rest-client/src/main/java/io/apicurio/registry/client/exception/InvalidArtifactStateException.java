@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public class InvalidArtifactStateException extends RestClientException {
 
+    private static final long serialVersionUID = 1L;
+
     public InvalidArtifactStateException(Error error) {
         super(error);
     }

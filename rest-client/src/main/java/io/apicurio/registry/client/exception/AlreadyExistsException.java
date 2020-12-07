@@ -20,6 +20,8 @@ import io.apicurio.registry.rest.beans.Error;
 
 public abstract class AlreadyExistsException extends ConflictException {
 
+    private static final long serialVersionUID = 1L;
+
     public AlreadyExistsException(Error error) {
         super(error);
     }

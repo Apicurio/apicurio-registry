@@ -68,8 +68,11 @@ public interface RegistryStorage {
      *
      * @param artifactId
      * @param state
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
      */
-    void updateArtifactState(String artifactId, ArtifactState state);
+    public void updateArtifactState(String artifactId, ArtifactState state) 
+            throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Update artifact state.
@@ -77,8 +80,12 @@ public interface RegistryStorage {
      * @param artifactId
      * @param state
      * @param version
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
      */
-    void updateArtifactState(String artifactId, ArtifactState state, Integer version);
+    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) 
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
     /**
      * Creates a new artifact (from the given value) in the storage.  The artifactId must be globally unique
@@ -105,7 +112,7 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
-        throws ArtifactAlreadyExistsException, RegistryStorageException;
+            throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes an artifact by its unique id. Returns list of artifact versions.

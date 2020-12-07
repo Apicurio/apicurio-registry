@@ -1,9 +1,14 @@
 package io.apicurio.registry.storage.util;
 
-import io.apicurio.registry.test.utils.KafkaTestContainerManager;
-import io.apicurio.registry.util.ClusterInitializer;
-import io.apicurio.registry.util.ServiceInitializer;
-import io.quarkus.test.common.QuarkusTestResource;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Initialized;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
+
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -11,13 +16,10 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import io.apicurio.registry.test.utils.KafkaTestContainerManager;
+import io.apicurio.registry.util.ClusterInitializer;
+import io.apicurio.registry.util.ServiceInitializer;
+import io.quarkus.test.common.QuarkusTestResource;
 
 /**
  * @author Ales Justin

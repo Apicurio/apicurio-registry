@@ -700,7 +700,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
-    public void testDeleteAllArtifactRulse() throws Exception {
+    public void testDeleteAllArtifactRules() throws Exception {
         String artifactId = "testDeleteAllArtifactRulse-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         ArtifactMetaDataDto dto = storage().createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();

@@ -13,12 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests;
 
-public enum RegistryStorageType {
-    inmemory,
-    streams,
-    sql,
-    infinispan,
-    kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql.keys;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+/**
+ * When the KSQL storage publishes a message to its Kafka topic, the message key will be a class that 
+ * implements this interface.
+ * @author eric.wittmann@gmail.com
+ */
+public interface MessageKey {
+    
+    /**
+     * Returns the message type.
+     */
+    @JsonIgnore
+    public MessageType getType();
+    
+    /**
+     * Returns the key that should be used when partitioning the messages.
+     */
+    @JsonIgnore
+    public String getPartitionKey();
+
 }

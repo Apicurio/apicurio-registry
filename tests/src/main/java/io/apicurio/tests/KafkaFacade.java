@@ -80,7 +80,7 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     private boolean isKafkaBasedRegistry() {
-        return RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.ksql;
+        return RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams || RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.kafkasql;
     }
 
     public void start() {

@@ -13,12 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests;
 
-public enum RegistryStorageType {
-    inmemory,
-    streams,
-    sql,
-    infinispan,
-    kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql;
+
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public interface MessageSender {
+
+    /**
+     * Called to send/publish a message to Kafka.
+     * @param key
+     * @param value
+     */
+    public CompletableFuture<UUID> send(MessageKey key, MessageValue value);
+
 }

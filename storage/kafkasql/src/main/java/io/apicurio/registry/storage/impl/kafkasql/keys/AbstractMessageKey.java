@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests;
 
-public enum RegistryStorageType {
-    inmemory,
-    streams,
-    sql,
-    infinispan,
-    kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql.keys;
+
+/**
+ * Base class for all message keys.
+ * @author eric.wittmann@gmail.com
+ */
+public abstract class AbstractMessageKey implements MessageKey {
+
 }

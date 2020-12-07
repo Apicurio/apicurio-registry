@@ -32,6 +32,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>
+        <jersey.microprofile.version>2.32</jersey.microprofile.version>
 
         <!--junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
         <junit4.version>4.13.1</junit4.version>
@@ -147,12 +148,12 @@
         <dependency>
             <groupId>org.glassfish.jersey.ext.microprofile</groupId>
             <artifactId>jersey-mp-rest-client</artifactId>
-            <version>2.32</version>
+            <version>${jersey.microprofile.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext.microprofile</groupId>
             <artifactId>jersey-mp-config</artifactId>
-            <version>3.0.0</version>
+            <version>${jersey.microprofile.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.geronimo.config</groupId>

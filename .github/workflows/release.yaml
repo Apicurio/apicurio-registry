@@ -21,15 +21,18 @@ jobs:
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
           echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
+          
       - name: Set up Node.js v12
         uses: actions/setup-node@v1
         with:
           node-version: 12
+
       - name: Set up JDK 1.8
         uses: AdoptOpenJDK/install-jdk@v1
         with:
             version: '8'
             architecture: x64
+
       - name: Set up settings.xml
         run: |
           pwd
@@ -37,8 +40,10 @@ jobs:
           chmod 755 /home/runner/.m2
           echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
           cat /home/runner/.m2/settings.xml
+
       - name: Set up Gren
         run: npm install github-release-notes -g
+
       - name: Apicurio Registry Checkout
         run: |
           mkdir registry
@@ -51,6 +56,7 @@ jobs:
           git checkout ${{ github.event.inputs.branch}}
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch}}
           git pull
+
       - name: Apicurio Registry Examples Checkout
         run: |
           mkdir registry-examples
@@ -63,6 +69,7 @@ jobs:
           git checkout master
           git branch --set-upstream-to=origin/master
           git pull
+
       - name: Apicurio Website Checkout
         run: |
           mkdir website
@@ -75,6 +82,7 @@ jobs:
           git checkout master
           git branch --set-upstream-to=origin/master
           git pull
+
       - name: Apicurio Playbook Checkout
         run: |
           mkdir docs-playbook
@@ -87,6 +95,7 @@ jobs:
           git checkout ${{ github.event.inputs.branch}}
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch}}
           git pull
+
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
           cd registry
@@ -96,14 +105,17 @@ jobs:
           cd ../registry-examples
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           mvn versions:set-property -Dproperty=apicurio-registry.version -DgenerateBackupPoms=false -DnewVersion=${{ github.event.inputs.release-version}}
+
       - name: Build Registry (All Variants)
         run: |
           cd registry
           mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests
+
       - name: Build Examples
         run: |
           cd registry-examples
           mvn clean install
+
       - name: Commit Release Version Change
         run: |
           cd registry
@@ -114,11 +126,13 @@ jobs:
           git add .
           git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
           git push
+
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v1
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }} 
+
       - name: Create GitHub Release
         uses: actions/create-release@latest
         env:
@@ -126,17 +140,21 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version}}       
           release_name: ${{ github.event.inputs.release-version}}
+
       - name: Generate Release Notes
         run: |
           cd registry
           gren release --token=${{ secrets.GITHUB_TOKEN }} --override
+
       - name: Tag Examples
         run: |
           cd registry-examples
           git tag -a -m "Tagging release ${{ github.event.inputs.release-version}}" ${{ github.event.inputs.release-version}}
           git push origin ${{ github.event.inputs.release-version}}
+
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
       - name: Build The Tagged Docker Images
         run: |
           cd registry/distro/docker
@@ -145,9 +163,9 @@ jobs:
           mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
           mvn package -Pprod -Pstreams -DskipTests -Ddocker
           mvn package -Pprod -Pasyncmem -DskipTests -Ddocker
-      - name: Push The Tagged Docker Images
+          
+      - name: Push The Tagged Docker Images To Dockerhub 
         run: |
-          cd registry
           docker push apicurio/apicurio-registry-mem:latest
           docker push apicurio/apicurio-registry-mem:latest-release
           docker push apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}}
@@ -163,6 +181,49 @@ jobs:
           docker push apicurio/apicurio-registry-asyncmem:latest
           docker push apicurio/apicurio-registry-asyncmem:latest-release
           docker push apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+          
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+      
+      - name: Tag Docker Images for Quay.io
+        run: |
+          docker image tag apicurio/apicurio-registry-mem:latest quay.io/apicurio/apicurio-registry-mem:latest
+          docker image tag apicurio/apicurio-registry-mem:latest-release quay.io/apicurio/apicurio-registry-mem:latest-release
+          docker image tag apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}}
+          docker image tag apicurio/apicurio-registry-sql:latest quay.io/apicurio/apicurio-registry-sql:latest
+          docker image tag apicurio/apicurio-registry-sql:latest-release quay.io/apicurio/apicurio-registry-sql:latest-release
+          docker image tag apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}}
+          docker image tag apicurio/apicurio-registry-infinispan:latest quay.io/apicurio/apicurio-registry-infinispan:latest
+          docker image tag apicurio/apicurio-registry-infinispan:latest-release quay.io/apicurio/apicurio-registry-infinispan:latest-release
+          docker image tag apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}}
+          docker image tag apicurio/apicurio-registry-streams:latest quay.io/apicurio/apicurio-registry-streams:latest
+          docker image tag apicurio/apicurio-registry-streams:latest-release quay.io/apicurio/apicurio-registry-streams:latest-release
+          docker image tag apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}}
+          docker image tag apicurio/apicurio-registry-asyncmem:latest quay.io/apicurio/apicurio-registry-asyncmem:latest
+          docker image tag apicurio/apicurio-registry-asyncmem:latest-release quay.io/apicurio/apicurio-registry-asyncmem:latest-release
+          docker image tag apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+          
+      - name: List All The Tagged Docker Images
+        run: docker images
+       
+      - name: Push The Tagged Docker Images to Quay.io
+        run: |  
+          docker push quay.io/apicurio/apicurio-registry-mem:latest
+          docker push quay.io/apicurio/apicurio-registry-mem:latest-release
+          docker push quay.io/apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}}
+          docker push quay.io/apicurio/apicurio-registry-sql:latest
+          docker push quay.io/apicurio/apicurio-registry-sql:latest-release
+          docker push quay.io/apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}}
+          docker push quay.io/apicurio/apicurio-registry-infinispan:latest
+          docker push quay.io/apicurio/apicurio-registry-infinispan:latest-release
+          docker push quay.io/apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}}
+          docker push quay.io/apicurio/apicurio-registry-streams:latest
+          docker push quay.io/apicurio/apicurio-registry-streams:latest-release
+          docker push quay.io/apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}}
+          docker push quay.io/apicurio/apicurio-registry-asyncmem:latest
+          docker push quay.io/apicurio/apicurio-registry-asyncmem:latest-release
+          docker push quay.io/apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+        
       - name: Maven Deploy
         run: |
           cd registry
@@ -171,6 +232,7 @@ jobs:
           (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
           (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
+
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
           cd registry
@@ -178,6 +240,7 @@ jobs:
           sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
           cd ../registry-examples
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
           cd registry
@@ -188,6 +251,7 @@ jobs:
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
+
       - name: Generate Project Documentation for Website
         run: |
           echo "********** Building Registry Documentation using Antora **********"
@@ -196,6 +260,7 @@ jobs:
           docker run -v $(pwd):/apicurio-docs-playbook apicurio/apicurio-docs-builder:latest
           rm -rf ../website/registry/docs/*
           cp -rf target/dist/* ../website/registry/docs/.
+
       - name: Updating Project Website for Release ${{ github.event.inputs.release-version}}
         run: |
           cd website
@@ -207,12 +272,14 @@ jobs:
           echo "********** Copying Latest Release JSON File **********"
           PUBLISHED_AT=$(cat latestRelease.json | jq '.tag_name' | sed 's/"//g')
           cp latestRelease.json releases/$PUBLISHED_AT.json
+
       - name: Commit Project Website Changes
         run: |
           cd website
           git add .
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{ github.event.inputs.release-version}}"
           git push
+
       # - name: Tweet About The Release
       #   uses: ethomson/send-tweet-action@v1
       #   with:
@@ -232,18 +299,25 @@ jobs:
         with:
             version: '8'
             architecture: x64
+
       - name: Checkout Code
         uses: actions/checkout@v2
+
       - name: Verify Docker Release For mem
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-mem:latest apicurio/apicurio-registry-mem:latest-release 
+     
       - name: Verify Docker Release For asyncmem
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-asyncmem:latest apicurio/apicurio-registry-asyncmem:latest-release 
+      
       - name: Verify Docker Release For streams
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-streams:latest apicurio/apicurio-registry-streams:latest-release 
+    
       - name: Verify Docker Release For sql
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-sql:latest apicurio/apicurio-registry-sql:latest-release 
+    
       - name: Verify Docker Release For infinispan
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
+  
       - name: Verify Maven Release
         run: |
           cd .github/test-mvn-deploy

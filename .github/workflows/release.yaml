@@ -109,7 +109,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests
+          mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests
 
       - name: Build Examples
         run: |
@@ -163,6 +163,7 @@ jobs:
           mvn package -Pprod -Pinfinispan -DskipTests -Ddocker
           mvn package -Pprod -Pstreams -DskipTests -Ddocker
           mvn package -Pprod -Pasyncmem -DskipTests -Ddocker
+          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker
           
       - name: Push The Tagged Docker Images To Dockerhub 
         run: |
@@ -181,6 +182,9 @@ jobs:
           docker push apicurio/apicurio-registry-asyncmem:latest
           docker push apicurio/apicurio-registry-asyncmem:latest-release
           docker push apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+          docker push apicurio/apicurio-registry-kafkasql:latest
+          docker push apicurio/apicurio-registry-kafkasql:latest-release
+          docker push apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}}
           
       - name: Login to Quay.io Registry
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
@@ -202,6 +206,9 @@ jobs:
           docker image tag apicurio/apicurio-registry-asyncmem:latest quay.io/apicurio/apicurio-registry-asyncmem:latest
           docker image tag apicurio/apicurio-registry-asyncmem:latest-release quay.io/apicurio/apicurio-registry-asyncmem:latest-release
           docker image tag apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+          docker image tag apicurio/apicurio-registry-kafkasql:latest quay.io/apicurio/apicurio-registry-kafkasql:latest
+          docker image tag apicurio/apicurio-registry-kafkasql:latest-release quay.io/apicurio/apicurio-registry-kafkasql:latest-release
+          docker image tag apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}} quay.io/apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}}
           
       - name: List All The Tagged Docker Images
         run: docker images
@@ -223,6 +230,9 @@ jobs:
           docker push quay.io/apicurio/apicurio-registry-asyncmem:latest
           docker push quay.io/apicurio/apicurio-registry-asyncmem:latest-release
           docker push quay.io/apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}}
+          docker push quay.io/apicurio/apicurio-registry-kafkasql:latest
+          docker push quay.io/apicurio/apicurio-registry-kafkasql:latest-release
+          docker push quay.io/apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}}
         
       - name: Maven Deploy
         run: |

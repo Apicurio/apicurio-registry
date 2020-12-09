@@ -23,6 +23,7 @@ import picocli.shell.jline2.PicocliJLineCompleter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Main to run as interactive shell.
@@ -38,6 +39,7 @@ public class Main {
             // set up the completion
             MainCommand commands = new MainCommand(reader);
             CommandLine cmd = new CommandLine(commands, factory);
+            cmd.registerConverter(Level.class, Level::parse);
             reader.addCompleter(new PicocliJLineCompleter(cmd.getCommandSpec()));
 
             // start the shell and process input until the user quits with Ctl-D or exit/x
@@ -46,7 +48,7 @@ public class Main {
             while ((line = reader.readLine("$> ")) != null) {
                 ArgumentCompleter.ArgumentList list = new ArgumentCompleter.WhitespaceArgumentDelimiter()
                         .delimit(line, line.length());
-                new CommandLine(commands, factory).execute(list.getArguments());
+                cmd.execute(list.getArguments());
             }
         } catch (Throwable t) {
             t.printStackTrace();

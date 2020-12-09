@@ -81,7 +81,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGlobalRule() {
-        return "INSERT INTO globalrules (type, configuration) VALUES (?, ?)";
+        return "INSERT INTO globalrules (tenantId, type, configuration) VALUES (?, ?, ?)";
     }
 
     /**
@@ -89,7 +89,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGlobalRules() {
-        return "SELECT r.type FROM globalrules r";
+        return "SELECT r.type FROM globalrules r WHERE r.tenantId = ?";
     }
     
     /**
@@ -97,7 +97,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGlobalRuleByType() {
-        return "SELECT r.* FROM globalrules r WHERE r.type = ?";
+        return "SELECT r.* FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
     }
 
     /**
@@ -105,7 +105,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGlobalRule() {
-        return "DELETE FROM globalrules WHERE type = ?";
+        return "DELETE FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
     }
     
     /**
@@ -113,7 +113,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGlobalRules() {
-        return "DELETE FROM globalrules";
+        return "DELETE FROM globalrules r WHERE r.tenantId = ?";
     }
 
     /**
@@ -121,7 +121,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGlobalRule() {
-        return "UPDATE globalrules SET configuration = ? WHERE type = ?";
+        return "UPDATE globalrules SET configuration = ? WHERE tenantId = ? AND type = ?";
     }
     
     /**
@@ -129,7 +129,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO artifacts (tenantId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?)";
     }
     
     /**
@@ -137,7 +137,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactLatest() {
-        return "UPDATE artifacts SET latest = ? WHERE artifactId = ?";
+        return "UPDATE artifacts SET latest = ? WHERE tenantId = ? AND artifactId = ?";
     }
     
     /**
@@ -145,7 +145,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactLatestGlobalId() {
-        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?) WHERE artifactId = ?";
+        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?) WHERE tenantId = ? AND artifactId = ?";
     }
 
     /**
@@ -155,9 +155,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, (SELECT MAX(version) + 1 FROM versions WHERE artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -167,7 +167,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionMetaDataByGlobalId() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.globalId = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId WHERE v.globalId = ?";
     }
     
     /**
@@ -175,7 +175,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersions() {
-        return "SELECT version FROM versions WHERE artifactId = ?";
+        return "SELECT version FROM versions WHERE tenantId = ? AND artifactId = ?";
     }
     
     /**
@@ -183,7 +183,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionMetaData() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND v.version = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?";
     }
     
     /**
@@ -191,12 +191,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByContentHash() {
-        return "SELECT v.*, a.type FROM versions v JOIN content c ON v.contentId = c.contentId JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND c.contentHash = ?";
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.artifactId = ? AND c.contentHash = ?";
     }
     
     @Override
     public String selectArtifactMetaDataByCanonicalHash() {
-        return "SELECT v.*, a.type FROM versions v JOIN content c ON v.contentId = c.contentId JOIN artifacts a ON v.artifactId = a.artifactId WHERE v.artifactId = ? AND c.canonicalHash = ?";
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
     }
     
     /**
@@ -204,7 +210,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.globalId = ?";
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
     }
     
     /**
@@ -212,7 +218,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.artifactId = ? AND v.version = ?";
+        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?";
     }
     
     /**
@@ -220,7 +226,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactContent() {
-        return "SELECT v.globalId, v.version, c.content FROM artifacts a JOIN versions v ON a.latest = v.globalId JOIN content c ON v.contentId = c.contentId WHERE a.artifactId = ?";
+        return "SELECT v.globalId, v.version, c.content FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "WHERE a.tenantId = ? AND a.artifactId = ?";
     }
     
     /**
@@ -229,8 +238,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectLatestArtifactMetaData() {
         return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                + "FROM artifacts a JOIN versions v ON a.latest = v.globalId "
-                + "WHERE a.artifactId = ?";
+                + "FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
+                + "WHERE a.tenantId = ? AND a.artifactId = ?";
     }
     
     /**
@@ -246,7 +256,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactRules() {
-        return "SELECT * FROM rules WHERE artifactId = ?";
+        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.artifactId = ?";
     }
     
     /**
@@ -254,7 +264,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifactRule() {
-        return "INSERT INTO rules (artifactId, type, configuration) VALUES (?, ?, ?)";
+        return "INSERT INTO rules (tenantId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
     }
     
     /**
@@ -262,7 +272,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactRuleByType() {
-        return "SELECT * FROM rules WHERE artifactId = ? AND type = ?";
+        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.artifactId = ? AND r.type = ?";
     }
     
     /**
@@ -270,7 +280,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactRule() {
-        return "UPDATE rules SET configuration = ? WHERE artifactId = ? AND type = ?";
+        return "UPDATE rules SET configuration = ? WHERE tenantId = ? AND artifactId = ? AND type = ?";
     }
     
     /**
@@ -278,7 +288,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteArtifactRule() {
-        return "DELETE FROM rules WHERE artifactId = ? AND type = ?";
+        return "DELETE FROM rules WHERE tenantId = ? AND artifactId = ? AND type = ?";
     }
 
     /**
@@ -286,7 +296,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteArtifactRules() {
-        return "DELETE FROM rules WHERE artifactId = ?";
+        return "DELETE FROM rules WHERE tenantId = ? AND artifactId = ?";
     }
 
     /**
@@ -294,7 +304,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactMetaDataLatestVersion() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE globalId = (SELECT latest FROM artifacts WHERE artifactId = ?)";
+        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE tenantId = ? AND globalId = (SELECT latest FROM artifacts WHERE tenantId = ? AND artifactId = ?)";
     }
     
     /**
@@ -302,7 +312,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactVersionMetaData() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE artifactId = ? AND version = ?";
+        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE tenantId = ? AND artifactId = ? AND version = ?";
     }
     
     /**
@@ -310,7 +320,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
+        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND artifactId = ?)";
     }
 
     /**
@@ -326,7 +336,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE artifactId = ?)";
+        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND artifactId = ?)";
     }
     
     /**
@@ -342,7 +352,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersions() {
-        return "DELETE FROM versions WHERE artifactId = ?";
+        return "DELETE FROM versions WHERE tenantId = ? AND artifactId = ?";
     }
     
     /**
@@ -350,7 +360,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteArtifact() {
-        return "DELETE FROM artifacts WHERE artifactId = ?";
+        return "DELETE FROM artifacts WHERE tenantId = ? AND artifactId = ?";
     }
     
     /**
@@ -358,7 +368,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactIds() {
-        return "SELECT artifactId FROM artifacts LIMIT ?";
+        return "SELECT artifactId FROM artifacts WHERE tenantId = ? LIMIT ?";
     }
 
     /**
@@ -366,7 +376,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn FROM artifacts a JOIN versions v ON a.artifactId = v.artifactId WHERE v.globalId = ?";
+        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM artifacts a "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
+                + "WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -374,7 +387,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactVersionState() {
-        return "UPDATE versions SET state = ? WHERE globalId = ?";
+        return "UPDATE versions SET state = ? WHERE tenantId = ? AND globalId = ?";
     }
     
     /**
@@ -382,7 +395,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersion() {
-        return "DELETE FROM versions WHERE artifactId = ? AND version = ?";
+        return "DELETE FROM versions WHERE tenantId = ? AND artifactId = ? AND version = ?";
     }
     
     /**
@@ -390,7 +403,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionLabels() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?)";
     }
     
     /**
@@ -398,7 +411,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionProperties() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?)";
     }
     
     /**
@@ -422,7 +435,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectAllArtifactVersions() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON a.artifactId = v.artifactId WHERE a.artifactId = ? ORDER BY v.globalId ASC LIMIT ? OFFSET ?";
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
+                + "WHERE a.tenantId = ? AND a.artifactId = ? "
+                + "ORDER BY v.globalId ASC LIMIT ? OFFSET ?";
     }
     
     /**
@@ -430,7 +446,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectAllArtifactVersionsCount() {
-        return "SELECT COUNT(v.globalId) FROM versions v JOIN artifacts a ON a.artifactId = v.artifactId WHERE a.artifactId = ?";
+        return "SELECT COUNT(v.globalId) FROM versions v JOIN artifacts a ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId WHERE a.tenantId = ? AND a.artifactId = ?";
     }
     
     /**
@@ -438,7 +454,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactCountById() {
-        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.artifactId = ?";
+        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.tenantId = ? AND a.artifactId = ?";
     }
     
     /**
@@ -446,7 +462,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactRuleCountByType() {
-        return "SELECT COUNT(r.type) FROM rules r WHERE r.artifactId = ? AND r.type = ?";
+        return "SELECT COUNT(r.type) FROM rules r WHERE r.tenantId = ? AND r.artifactId = ? AND r.type = ?";
     }
     
     /**
@@ -454,7 +470,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGlobalRuleCountByType() {
-        return "SELECT COUNT(r.type) FROM globalrules r WHERE r.type = ?";
+        return "SELECT COUNT(r.type) FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
     }
     
     /**

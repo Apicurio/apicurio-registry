@@ -327,7 +327,10 @@ jobs:
     
       - name: Verify Docker Release For infinispan
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
-  
+ 
+      - name: Verify Docker Release For kafkasql
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-kafkasql:latest apicurio/apicurio-registry-kafkasql:latest-release 
+
       - name: Verify Maven Release
         run: |
           cd .github/test-mvn-deploy

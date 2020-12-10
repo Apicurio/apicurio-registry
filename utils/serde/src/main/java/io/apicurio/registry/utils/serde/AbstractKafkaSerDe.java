@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.utils.serde;
 
+import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -99,8 +102,14 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
                 throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
             }
 
+            String authServerURL = (String) configs.get(SerdeConfig.AUTH_SERVICE_URL);
+
             try {
-                client = RegistryRestClientFactory.create(baseUrl, new HashMap<>(configs));
+                if (authServerURL != null) {
+                    client = configureClientWithAuthentication(configs, baseUrl, authServerURL);
+                } else {
+                    client = RegistryRestClientFactory.create(baseUrl, new HashMap<>(configs));
+                }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -119,6 +128,28 @@ public abstract class AbstractKafkaSerDe<T extends AbstractKafkaSerDe<T>> implem
         key = isKey;
     }
 
+    private RegistryRestClient configureClientWithAuthentication(Map<String, ?> configs, String registryUrl, String authServerUrl) {
+
+        final String realm = (String) configs.get(SerdeConfig.AUTH_REALM);
+
+        if (realm == null) {
+            throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
+        }
+        final String clientId = (String) configs.get(SerdeConfig.AUTH_CLIENT_ID);
+
+        if (clientId == null) {
+            throw new IllegalArgumentException("Missing registry auth clientId, set " + SerdeConfig.AUTH_CLIENT_ID);
+        }
+        final String clientSecret = (String) configs.get(SerdeConfig.AUTH_CLIENT_SECRET);
+
+        if (clientSecret == null) {
+            throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
+        }
+
+        Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
+
+        return RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+    }
 
     protected <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
         if (value != null) {

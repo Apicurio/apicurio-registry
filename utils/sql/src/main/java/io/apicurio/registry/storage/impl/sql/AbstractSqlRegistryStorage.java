@@ -770,11 +770,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
                     +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                     + "FROM artifacts a "
-                    + "JOIN versions v ON a.latest = v.globalId ");
+                    + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
 
+            where.append("WHERE a.tenantId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, tenantContext.tenantId());
+            });
             // Formulate the WHERE clause for both queries
             if (!StringUtil.isEmpty(search)) {
-                where.append("WHERE ");
+                where.append(" AND (");
                 switch (searchOver) {
                     case description:
                         where.append("v.description LIKE ?");
@@ -818,6 +822,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                 }
+                where.append(")");
             }
 
             // Add order by to artifact query

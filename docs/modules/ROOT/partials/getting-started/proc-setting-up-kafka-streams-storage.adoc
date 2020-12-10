@@ -85,29 +85,6 @@ spec:
 http://example-apicurioregistry.my-project.my-domain-name.com/
 ----
 
-.Overriding default Kafka topic names
-You can change the default names of the Kafka topics that {registry} will use to store data in Kafka.  It is sometimes
-necessary to do this when sharing the Kafka cluster with other applications that may already be using topics named
-`storage-topic` or `global-id-topic`.
-
-Change the default topic names by overriding them either by setting appropriate environment variables or by
-setting appropriate Java system properties:
-
-.Environment variables for Kafka topic names
-[%header,cols="1,2,2"]
-|===
-|Topic default
-|Environment variable
-|System property
-|`storage-topic`
-a| `REGISTRY_STREAMS_TOPOLOGY_STORAGE_TOPIC`
-a| `registry.streams.topology.storage.topic`
-|`global-id-topic`
-a| `REGISTRY_STREAMS_TOPOLOGY_GLOBAL_ID_TOPIC`
-a| `registry.streams.topology.global.id.topic`
-|===
-
-
 .Additional resources
 
 ifdef::apicurio-registry[]

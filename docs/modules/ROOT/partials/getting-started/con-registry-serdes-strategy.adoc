@@ -69,10 +69,10 @@ custom Java class that implements `io.apicurio.registry.utils.serde.strategy.Glo
 
 [discrete]
 [id='configuring-globalid-strategy-{context}']
-== Configuring the global ID strategy
+== Global ID strategy configuration
 You can configure the following application property for the global ID strategy:
 
 * `apicurio.registry.check-period-ms`: Configures the remote schema lookup period in milliseconds
 
 You can configure application properties as Java system properties or include them in the Quarkus
-application.properties file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+`application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

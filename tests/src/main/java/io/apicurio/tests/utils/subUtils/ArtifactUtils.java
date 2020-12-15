@@ -25,6 +25,10 @@ import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
@@ -42,7 +46,7 @@ public class ArtifactUtils {
 
     public static Response getArtifact(String artifactId, String version, int returnCode) {
         return
-            BaseHttpUtils.getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/" + version, returnCode);
+            BaseHttpUtils.getRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
     }
 
     public static Response getArtifactSpecificVersion(String artifactId, String version) {
@@ -62,7 +66,7 @@ public class ArtifactUtils {
     }
 
     public static Response listArtifactVersions(String artifactId, int returnCode) {
-        return BaseHttpUtils.getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions", returnCode);
+        return BaseHttpUtils.getRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/versions", returnCode);
     }
 
     public static Response createArtifact(String artifact) {
@@ -73,12 +77,16 @@ public class ArtifactUtils {
         return  BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts", returnCode);
     }
 
+    public static Response createArtifact(String artifactId, String artifact, int returnCode) {
+        return  BaseHttpUtils.artifactPostRequest(artifactId, RestConstants.JSON, artifact, "/artifacts", returnCode);
+    }
+
     public static ArtifactMetaData createArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
         return client.createArtifact(artifactId, atype, artifactData);
     }
 
     public static Response createArtifactNewVersion(String artifactId, String artifact, int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId + "/versions", returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, artifact, "/artifacts/" + encodeURIComponent(artifactId) + "/versions", returnCode);
     }
 
     public static Response updateArtifact(String artifactId, String artifact) {
@@ -86,19 +94,19 @@ public class ArtifactUtils {
     }
 
     public static Response updateArtifact(String artifactId, String artifact, int returnCode) {
-        return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + artifactId, returnCode);
+        return BaseHttpUtils.putRequest(RestConstants.JSON, artifact, "/artifacts/" + encodeURIComponent(artifactId), returnCode);
     }
 
     public static ArtifactMetaData updateArtifact(RegistryRestClient client, ArtifactType atype, String artifactId, InputStream artifactData) {
         return client.updateArtifact(artifactId, atype, artifactData);
     }
 
-    public static Response deleteArtifact(String artifactId) {
+    public static Response deleteArtifact(String artifactId) throws Exception {
         return deleteArtifact(artifactId, 204);
     }
 
-    public static Response deleteArtifact(String artifactId, int returnCode) {
-        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId, returnCode);
+    public static Response deleteArtifact(String artifactId, int returnCode) throws Exception {
+        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId), returnCode);
     }
 
     public static Response deleteArtifactVersion(String artifactId, String version) {
@@ -106,7 +114,7 @@ public class ArtifactUtils {
     }
 
     public static Response deleteArtifactVersion(String artifactId, String version, int returnCode) {
-        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions/" + version, returnCode);
+        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/versions/" + version, returnCode);
     }
 
     public static Response createArtifactRule(String artifactId, String rule) {
@@ -114,7 +122,7 @@ public class ArtifactUtils {
     }
 
     public static Response createArtifactRule(String artifactId, String rule, int returnCode) {
-        return BaseHttpUtils.rulesPostRequest(RestConstants.JSON, rule, "/artifacts/" + artifactId + "/rules", returnCode);
+        return BaseHttpUtils.rulesPostRequest(RestConstants.JSON, rule, "/artifacts/" + encodeURIComponent(artifactId) + "/rules", returnCode);
     }
 
     public static Response getArtifactRule(String artifactId, RuleType ruleType) {
@@ -122,7 +130,7 @@ public class ArtifactUtils {
     }
 
     public static Response getArtifactRule(String artifactId, RuleType ruleType, int returnCode) {
-        return BaseHttpUtils.rulesGetRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/rules/" + ruleType, returnCode);
+        return BaseHttpUtils.rulesGetRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/rules/" + ruleType, returnCode);
     }
 
     public static Response updateArtifactRule(String artifactId, RuleType ruleType, String rule) {
@@ -130,7 +138,7 @@ public class ArtifactUtils {
     }
 
     public static Response updateArtifactRule(String artifactId, RuleType ruleType, String rule, int returnCode) {
-        return BaseHttpUtils.rulesPutRequest(RestConstants.JSON, rule, "/artifacts/" + artifactId + "/rules/" + ruleType, returnCode);
+        return BaseHttpUtils.rulesPutRequest(RestConstants.JSON, rule, "/artifacts/" + encodeURIComponent(artifactId) + "/rules/" + ruleType, returnCode);
     }
 
     public static Response deleteArtifactString(String artifactId, RuleType ruleType) {
@@ -138,11 +146,11 @@ public class ArtifactUtils {
     }
 
     public static Response deleteArtifactRule(String artifactId, RuleType ruleType, int returnCode) {
-        return BaseHttpUtils.rulesDeleteRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/rules/" + ruleType, returnCode);
+        return BaseHttpUtils.rulesDeleteRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/rules/" + ruleType, returnCode);
     }
 
     public static Response listArtifactRules(String artifactId) {
-        return getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/rules", 200);
+        return getRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/rules", 200);
     }
 
     public static Response getArtifactMetadata(String artifactId) {
@@ -150,7 +158,7 @@ public class ArtifactUtils {
     }
 
     public static Response getArtifactMetadata(String artifactId, int returnCode) {
-        return getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/meta", returnCode);
+        return getRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/meta", returnCode);
     }
 
     public static Response getArtifactVersionMetadata(String artifactId, String version) {
@@ -158,7 +166,7 @@ public class ArtifactUtils {
     }
 
     public static Response getArtifactVersionMetadata(String artifactId, String version, int returnCode) {
-        return getRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions/" + version + "/meta", returnCode);
+        return getRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/versions/" + version + "/meta", returnCode);
     }
 
     public static Response updateArtifactMetadata(String artifactId, String metadata) {
@@ -166,7 +174,7 @@ public class ArtifactUtils {
     }
 
     public static Response updateArtifactMetadata(String artifactId, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, "/artifacts/" + artifactId + "/meta", returnCode);
+        return putRequest(RestConstants.JSON, metadata, "/artifacts/" + encodeURIComponent(artifactId) + "/meta", returnCode);
     }
 
     public static Response updateArtifactVersionMetadata(String artifactId, String version, String metadata) {
@@ -174,7 +182,7 @@ public class ArtifactUtils {
     }
 
     public static Response updateArtifactVersionMetadata(String artifactId, String version, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, "/artifacts/" + artifactId + "/versions/" + version + "/meta", returnCode);
+        return putRequest(RestConstants.JSON, metadata, "/artifacts/" + encodeURIComponent(artifactId) + "/versions/" + version + "/meta", returnCode);
     }
 
     public static Response deleteArtifactVersionMetadata(String artifactId, String version) {
@@ -182,7 +190,7 @@ public class ArtifactUtils {
     }
 
     public static Response deleteArtifactVersionMetadata(String artifactId, String version, int returnCode) {
-        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/versions/" + version + "/meta", returnCode);
+        return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + encodeURIComponent(artifactId) + "/versions/" + version + "/meta", returnCode);
     }
 
     public static HashMap<String, String> getFieldsFromResponse(JsonPath jsonPath) {
@@ -205,5 +213,14 @@ public class ArtifactUtils {
 
     public static Response updateSchemaMetadata(String schemaName, String metadata, int returnCode) {
         return putRequest(RestConstants.JSON, metadata, "/ccompat/subjects/" + schemaName + "/meta", returnCode);
+    }
+
+    private static String encodeURIComponent(String value) {
+        try {
+            //TODO what to use here ASCII or UTF_8 ??
+            return URLEncoder.encode(value, StandardCharsets.US_ASCII.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

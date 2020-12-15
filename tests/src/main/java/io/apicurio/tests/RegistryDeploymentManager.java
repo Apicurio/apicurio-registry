@@ -73,6 +73,7 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
         RestAssured.baseURI = TestUtils.getRegistryApiUrl();
         LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
+        RestAssured.urlEncodingEnabled = false;
     }
 
     @Override

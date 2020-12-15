@@ -36,12 +36,10 @@ public class ArtifactsListPage extends BasePage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsListPage.class);
 
     private UploadArtifactDialog uploadArtifactDialog;
-    private ArtifactDetailsPage artifactDetailsPage;
 
     public ArtifactsListPage(SeleniumProvider selenium) {
         super(selenium);
         this.uploadArtifactDialog = new UploadArtifactDialog(selenium);
-        this.artifactDetailsPage = new ArtifactDetailsPage(selenium);
     }
 
     public void verifyIsOpen() throws Exception {
@@ -83,7 +81,7 @@ public class ArtifactsListPage extends BasePage {
         return items;
     }
 
-    public WebElement getViewArtifactButton(String artifactId) throws Exception {
+    private WebElement getViewArtifactButton(String artifactId) throws Exception {
         return getArtifactListItems()
                 .stream()
                 .filter(item -> item.getArtifactId().equals(artifactId))
@@ -98,8 +96,9 @@ public class ArtifactsListPage extends BasePage {
         return this.uploadArtifactDialog;
     }
 
-    public ArtifactDetailsPage getArtifactDetailsPage() {
-        return this.artifactDetailsPage;
+    public ArtifactDetailsPage openArtifactDetailsPage(String artifactId) throws Exception {
+        selenium.clickOnItem(this.getViewArtifactButton(artifactId));
+        return new ArtifactDetailsPage(selenium);
     }
 
 }

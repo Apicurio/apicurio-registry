@@ -17,6 +17,9 @@ package io.apicurio.tests.ui;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
@@ -27,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.tests.selenium.SeleniumProvider;
 import io.apicurio.tests.selenium.resources.ArtifactListItem;
+import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
 import io.apicurio.tests.ui.pages.ArtifactsListPage;
 import io.apicurio.tests.ui.pages.UploadArtifactDialog;
 
@@ -50,13 +54,12 @@ public class RegistryUITester {
         verifyArtifactsListOpen();
     }
 
-    public String uploadArtifact(String artifactId, ArtifactType type, String content) {
-        selenium.clickOnItem(artifactsListPage.getUploadArtifactOpenDialogButton());
+    public String uploadArtifact(String artifactId, ArtifactType type, String content) throws UnsupportedEncodingException {
 
-        UploadArtifactDialog uploadDialog = artifactsListPage.getUploadArtifactDialogPage();
+        UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
 
         if (artifactId != null) {
-            selenium.fillInputItem(uploadDialog.getArtifactIdInput(), artifactId);
+            uploadDialog.fillArtifactId(artifactId);
         }
 
         selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownToggle());
@@ -75,11 +78,16 @@ public class RegistryUITester {
                     ExpectedConditions.urlContains("/versions/latest"));
             String[] slices = selenium.getDriver().getCurrentUrl().split("/");
             String aid = slices[slices.length - 3 ];
-            return aid;
+            return URLDecoder.decode(aid, StandardCharsets.UTF_8.name());
         } finally {
             selenium.takeScreenShot();
         }
 
+    }
+
+    public UploadArtifactDialog openUploadArtifactDialog() {
+        selenium.clickOnItem(artifactsListPage.getUploadArtifactOpenDialogButton());
+        return artifactsListPage.getUploadArtifactDialogPage();
     }
 
     public void goBackToArtifactsList() throws Exception {
@@ -99,9 +107,11 @@ public class RegistryUITester {
     }
 
     public void deleteArtifact(String artifactId) throws Exception {
-        selenium.clickOnItem(artifactsListPage.getViewArtifactButton(artifactId));
-        selenium.clickOnItem(artifactsListPage.getArtifactDetailsPage().getDeleteButton());
-        selenium.clickOnItem(artifactsListPage.getArtifactDetailsPage().getDeleteButtonDeleteDialog());
+
+        ArtifactDetailsPage detailsPage = artifactsListPage.openArtifactDetailsPage(artifactId);
+
+        selenium.clickOnItem(detailsPage.getDeleteButton());
+        selenium.clickOnItem(detailsPage.getDeleteButtonDeleteDialog());
         try {
             verifyArtifactsListOpen();
         } finally {
@@ -111,6 +121,10 @@ public class RegistryUITester {
 
     private void verifyArtifactsListOpen() throws Exception {
         artifactsListPage.verifyIsOpen();
+    }
+
+    public ArtifactsListPage getArtifactsListPage() {
+        return this.artifactsListPage;
     }
 
 }

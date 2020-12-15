@@ -17,6 +17,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
@@ -31,6 +32,7 @@ import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -353,6 +355,74 @@ class ArtifactsIT extends BaseIT {
     @Test
     void deleteNonexistingSchema() throws Exception {
         TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.deleteArtifact("non-existing"));
+    }
+
+    @Test
+    void testForbiddenSpecialCharacters() throws Exception {
+        forbiddenSpecialCharactersTestClient("ab%c");
+        forbiddenSpecialCharactersTestClient("._:-ç'`¡¿?0=)(/&$·!ªº<>,;,:");
+    }
+
+    void forbiddenSpecialCharactersTestClient(String artifactId) {
+        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertThrows(InvalidArtifactIdException.class, () -> {
+            registryClient.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
+        });
+
+        ArtifactUtils.createArtifact(artifactId, content, 400);
+
+    }
+
+    @Test
+    void testAllowedSpecialCharacters() throws Exception {
+        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
+
+        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        ArtifactMetaData metaData = registryClient.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
+
+        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
+
+        registryClient.getArtifactMetaData(artifactId);
+
+        registryClient.getArtifactMetaDataByContent(artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.listArtifactVersions(artifactId);
+
+        registryClient.testUpdateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.getLatestArtifact(artifactId);
+
+        ArtifactUtils.getArtifact(artifactId);
+    }
+
+    @Test
+    void testAllowedSpecialCharactersCreateViaApi() throws Exception {
+        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
+
+        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        ArtifactUtils.createArtifact(artifactId, content, 200);
+
+        TestUtils.retry(() -> registryClient.getArtifactMetaData(artifactId));
+
+        registryClient.getArtifactMetaData(artifactId);
+
+        registryClient.getArtifactMetaDataByContent(artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.listArtifactVersions(artifactId);
+
+        registryClient.testUpdateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.getLatestArtifact(artifactId);
+
+        ArtifactUtils.getArtifact(artifactId);
     }
 
     @AfterEach

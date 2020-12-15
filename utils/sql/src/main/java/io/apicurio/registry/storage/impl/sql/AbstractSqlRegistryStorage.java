@@ -32,6 +32,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jdbi.v3.core.Handle;
@@ -102,6 +103,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     @Inject
     SqlStatements sqlStatements;
+
+    @Inject
+    SecurityIdentity securityIdentity;
+
     protected SqlStatements sqlStatements() {
         return sqlStatements;
     }
@@ -482,7 +487,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             GlobalIdGenerator globalIdGenerator)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
         
-        String createdBy = null; // TODO populate once we have auth available
+        String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
@@ -510,7 +515,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 handle.createUpdate(sql)
                       .bind(0, artifactId)
                       .bind(1, artifactType.name())
-                      .bind(2, (String) null) // no createdBy (yet)
+                      .bind(2, createdBy)
                       .bind(3, new Date())
                       .execute();
 
@@ -652,7 +657,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
             GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
 
-        String createdBy = null; // TODO populate once auth is implemented
+        String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.

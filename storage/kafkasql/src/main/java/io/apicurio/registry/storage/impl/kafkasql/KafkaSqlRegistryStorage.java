@@ -44,6 +44,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -147,6 +148,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
     
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     private boolean stopped = true;
     private ProducerActions<MessageKey, MessageValue> producer;
@@ -306,7 +310,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         }
         
         String contentHash = ensureContent(content, artifactId, artifactType);
-        String createdBy = null; // TODO populate when authentication is available
+        String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
         
         if (metaData == null) {
@@ -359,7 +363,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         }
 
         String contentHash = ensureContent(content, artifactId, artifactType);
-        String createdBy = null; // TODO populate when authentication is available
+        String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
         
         if (metaData == null) {

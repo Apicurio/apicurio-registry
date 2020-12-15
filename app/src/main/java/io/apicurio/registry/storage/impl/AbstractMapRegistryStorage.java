@@ -247,7 +247,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         contents.put(MetaDataKeys.CREATED_ON, creationTimeValue);
         contents.put(MetaDataKeys.MODIFIED_ON, creationTimeValue);
 
-        contents.put(MetaDataKeys.CREATED_BY, securityIdentity.toString());
+        contents.put(MetaDataKeys.CREATED_BY, securityIdentity.getPrincipal().getName());
 
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);

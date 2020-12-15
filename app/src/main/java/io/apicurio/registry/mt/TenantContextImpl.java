@@ -23,14 +23,32 @@ import javax.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 public class TenantContextImpl implements TenantContext {
-    
+
+    private static final String DEFAULT_TENANT_ID = "_";
+    private static ThreadLocal<String> tid = ThreadLocal.withInitial(() -> DEFAULT_TENANT_ID);
+
     /**
      * @see io.apicurio.registry.mt.TenantContext#tenantId()
      */
     @Override
     public String tenantId() {
-        // TODO implement this!
-        return "_";
+        return tid.get();
+    }
+
+    /**
+     * @see io.apicurio.registry.mt.TenantContext#tenantId(java.lang.String)
+     */
+    @Override
+    public void tenantId(String tenantId) {
+        tid.set(tenantId);
+    }
+    
+    /**
+     * @see io.apicurio.registry.mt.TenantContext#clearTenantId()
+     */
+    @Override
+    public void clearTenantId() {
+        this.tenantId(DEFAULT_TENANT_ID);
     }
 
 }

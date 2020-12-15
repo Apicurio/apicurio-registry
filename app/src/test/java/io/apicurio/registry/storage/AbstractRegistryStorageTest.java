@@ -42,7 +42,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
  */
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
     
-    private static final String OPENAPI_CONTENT = "{" + 
+    protected static final String OPENAPI_CONTENT = "{" + 
             "    \"openapi\": \"3.0.2\"," + 
             "    \"info\": {" + 
             "        \"title\": \"Empty API\"," + 
@@ -50,7 +50,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             "        \"description\": \"An example API design using OpenAPI.\"" + 
             "    }" + 
             "}";
-    private static final String OPENAPI_CONTENT_V2 = "{" + 
+    protected static final String OPENAPI_CONTENT_V2 = "{" + 
             "    \"openapi\": \"3.0.2\"," + 
             "    \"info\": {" + 
             "        \"title\": \"Empty API 2\"," + 
@@ -58,7 +58,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             "        \"description\": \"An example API design using OpenAPI.\"" + 
             "    }" + 
             "}";
-    private static final String OPENAPI_CONTENT_TEMPLATE = "{" + 
+    protected static final String OPENAPI_CONTENT_TEMPLATE = "{" + 
             "    \"openapi\": \"3.0.2\"," + 
             "    \"info\": {" + 
             "        \"title\": \"Empty API 2\"," + 

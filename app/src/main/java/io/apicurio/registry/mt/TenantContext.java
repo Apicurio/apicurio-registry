@@ -22,5 +22,9 @@ package io.apicurio.registry.mt;
 public interface TenantContext {
     
     public String tenantId();
+    
+    public void tenantId(String tenantId);
+    
+    public void clearTenantId();
 
 }

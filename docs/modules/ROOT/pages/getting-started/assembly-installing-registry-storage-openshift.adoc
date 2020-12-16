@@ -9,6 +9,7 @@ This chapter explains how to install and configure your chosen registry storage 
 .{kafka-streams} storage
 * xref:installing-kafka-streams-operatorhub[]
 * xref:setting-up-kafka-streams-storage[]
+* xref:registry-kafka-topic-names[]
 
 ifdef::apicurio-registry[]
 .Embedded Infinispan storage
@@ -42,6 +43,7 @@ endif::[]
 //include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-kafka-topic-names.adoc[leveloffset=+2]
 include::{mod-loc}getting-started/proc-setting-up-infinispan-storage.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-installing-postgresql-operatorhub.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-setting-up-postgresql-storage.adoc[leveloffset=+1]

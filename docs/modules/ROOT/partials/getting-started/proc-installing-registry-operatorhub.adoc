@@ -21,31 +21,29 @@ You can install the {registry} Operator on your OpenShift cluster from the Opera
 .. In the left navigation menu, click *Home* > *Project* > *Create Project*.
 .. Enter a project name, for example, `my-project`, and click *Create*.
 
-. In the left navigation menu, click *Catalog* > *OperatorHub*.
+. In the left navigation menu, click *Operators* > *OperatorHub*.
 ifdef::apicurio-registry[]
-. In the *Filter by keyword* text box, enter `Registry` to find the *{registry} Operator*.
+. In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
 endif::[]
 ifdef::rh-service-registry[]
-. In the *Filter by keyword* text box, enter `Registry` to find the *Red Hat Integration - {registry} Operator*.
+. In the *Filter by keyword* text box, enter `registry` to find the *Red Hat Integration - {registry} Operator*.
 endif::[]
-. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+. Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ifdef::rh-service-registry[]
 ** *Update Channel* > Select one of the following channels:
-*** *serviceregistry-1*: All minor and patch updates, such as version 1.1.0 and 1.0.1. For example, a {registry} installation on version 1.0.x automatically upgrades to 1.1.x releases. 
-*** *serviceregistry-1.0*: Patch updates only, such as version 1.0.1 and 1.0.2. For example, a {registry} installation on version 1.0.x automatically ignores any 1.1.x releases.
+*** *serviceregistry-1*: All minor and patch updates, such as 1.1.0 and 1.0.1. An installation on 1.0.x automatically upgrades to 1.1.x. 
+*** *serviceregistry-1.0*: Patch updates only, such as 1.0.1 and 1.0.2. An installation on 1.0.x automatically ignores 1.1.x.
+*** *serviceregistry-1.1*: Patch updates only, such as 1.1.1 and 1.1.2. An installation on 1.1.x automatically ignores 1.0.x.
 endif::[]
 ifdef::apicurio-registry[]
 ** *Update Channel* > *alpha*
 endif::[]
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Approval Strategy* > *Manual*
 
-. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
-
-. Wait a few moments until the *Status* for the {registry} Operator displays *Succeeded* and the subscription is *Up to Date*. 
-
+. Click *Install*, and wait a few moments until the Operator is ready for use.
 
 .Additional resources
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

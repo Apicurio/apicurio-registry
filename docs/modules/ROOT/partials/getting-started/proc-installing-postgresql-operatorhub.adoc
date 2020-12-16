@@ -18,20 +18,18 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 
 . Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
 
-. In the left navigation menu, click *Catalog* > *OperatorHub*.
+. In the left navigation menu, click *Operators* > *OperatorHub*.
 
 . In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
 
-. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+. Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Update Channel* > *stable*
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Approval Strategy* > *Manual*
 
-. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
-
-. Wait a few moments until the *Status* for the PostgreSQL Operator displays *Succeeded* and the subscription is *Up to Date*. 
+. Click *Install*, and wait a few moments until the Operator is ready for use.
 +
 IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operator for details on how to create and manage your database.
 

@@ -29,10 +29,12 @@ public class GlobalRuleKey extends AbstractMessageKey {
     
     /**
      * Creator method.
+     * @param tenantId
      * @param ruleType
      */
-    public static final GlobalRuleKey create(RuleType ruleType) {
+    public static final GlobalRuleKey create(String tenantId, RuleType ruleType) {
         GlobalRuleKey key = new GlobalRuleKey();
+        key.setTenantId(tenantId);
         key.setRuleType(ruleType);
         return key;
     }
@@ -50,7 +52,7 @@ public class GlobalRuleKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return GLOBAL_RULE_PARTITION_KEY;
+        return getTenantId() + GLOBAL_RULE_PARTITION_KEY;
     }
 
     /**

@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
@@ -45,6 +46,9 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlStore sqlStore;
+
+    @Inject
+    TenantContext tenantContext;
 
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
@@ -105,22 +109,28 @@ public class KafkaSqlSink {
             Long globalId = toGlobalId(offset, partition);
             return globalId;
         };
-
-        MessageType messageType = key.getType();
-        switch (messageType) {
-            case Artifact:
-                return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
-            case ArtifactRule:
-                return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
-            case ArtifactVersion:
-                return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
-            case Content:
-                return processContent((ContentKey) key, (ContentValue) value);
-            case GlobalRule:
-                return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
-            default:
-                log.warn("Unrecognized message type: %s", record.key());
-                throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+        
+        String tenantId = key.getTenantId();
+        tenantContext.tenantId(tenantId);
+        try {
+            MessageType messageType = key.getType();
+            switch (messageType) {
+                case Artifact:
+                    return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
+                case ArtifactRule:
+                    return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
+                case ArtifactVersion:
+                    return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
+                case Content:
+                    return processContent((ContentKey) key, (ContentValue) value);
+                case GlobalRule:
+                    return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
+                default:
+                    log.warn("Unrecognized message type: %s", record.key());
+                    throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+            }
+        } finally {
+            tenantContext.clearTenantId();
         }
     }
     

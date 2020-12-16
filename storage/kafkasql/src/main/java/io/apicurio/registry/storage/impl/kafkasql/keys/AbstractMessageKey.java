@@ -21,5 +21,22 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
  * @author eric.wittmann@gmail.com
  */
 public abstract class AbstractMessageKey implements MessageKey {
+    
+    private String tenantId;
+
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey#getTenantId()
+     */
+    @Override
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    /**
+     * @param tenantId the tenantId to set
+     */
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
 }

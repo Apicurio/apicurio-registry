@@ -28,11 +28,13 @@ public class ArtifactRuleKey extends AbstractMessageKey {
 
     /**
      * Creator method.
+     * @param tenantId
      * @param artifactId
      * @param ruleType
      */
-    public static final ArtifactRuleKey create(String artifactId, RuleType ruleType) {
+    public static final ArtifactRuleKey create(String tenantId, String artifactId, RuleType ruleType) {
         ArtifactRuleKey key = new ArtifactRuleKey();
+        key.setTenantId(tenantId);
         key.setArtifactId(artifactId);
         key.setRuleType(ruleType);
         return key;
@@ -51,7 +53,7 @@ public class ArtifactRuleKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return artifactId;
+        return getTenantId() + "/" + artifactId;
     }
 
     /**

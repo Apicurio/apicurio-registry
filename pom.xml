@@ -193,7 +193,7 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.10.4</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.38</version.puppycrawl>

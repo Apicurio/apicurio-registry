@@ -1055,6 +1055,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(globalRules.get(0), RuleType.COMPATIBILITY);
     }
     
+    @Test
     public void testMultiTenant_ArtifactNotFound() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testArtifactNotFound();
@@ -1062,6 +1063,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testArtifactNotFound();
     }
     
+    @Test
     public void testMultiTenant_CreateArtifactRule() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testCreateArtifactRule();
@@ -1069,6 +1071,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testCreateArtifactRule();
     }
     
+    @Test
     public void testMultiTenant_CreateArtifactVersionWithMetaData() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testCreateArtifactVersionWithMetaData();
@@ -1076,6 +1079,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testCreateArtifactVersionWithMetaData();
     }
     
+    @Test
     public void testMultiTenant_CreateDuplicateArtifact() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testCreateDuplicateArtifact();
@@ -1083,6 +1087,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testCreateDuplicateArtifact();
     }
     
+    @Test
     public void testMultiTenant_UpdateArtifactMetaData() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testUpdateArtifactMetaData();
@@ -1090,6 +1095,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactMetaData();
     }
     
+    @Test
     public void testMultiTenant_UpdateArtifactRule() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testUpdateArtifactRule();
@@ -1097,6 +1103,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactRule();
     }
     
+    @Test
     public void testMultiTenant_UpdateArtifactState() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testUpdateArtifactState();
@@ -1104,6 +1111,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactState();
     }
     
+    @Test
     public void testMultiTenant_UpdateArtifactVersionMetaData() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testUpdateArtifactVersionMetaData();
@@ -1111,6 +1119,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactVersionMetaData();
     }
     
+    @Test
     public void testMultiTenant_UpdateArtifactVersionState() throws Exception {
         tenantCtx.tenantId(tenantId1);
         this.testUpdateArtifactVersionState();

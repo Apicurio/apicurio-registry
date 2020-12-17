@@ -450,8 +450,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
 
     private String encodeURIComponent(String value) {
         try {
-            //TODO what to use here ASCII or UTF_8 ??
-            return URLEncoder.encode(value, StandardCharsets.US_ASCII.name());
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
         } catch ( UnsupportedEncodingException e ) {
             throw new UncheckedIOException(e);
         }

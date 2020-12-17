@@ -29,14 +29,17 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
-import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ArtifactsIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     @Tag(ACCEPTANCE)
@@ -74,9 +79,10 @@ class ArtifactsIT extends BaseIT {
         ArtifactMetaData amd1 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
 
-        JsonObject response = new JsonObject(IoUtil.toString(registryClient.getLatestArtifact(artifactId)));
+        InputStream latest = registryClient.getLatestArtifact(artifactId);
+        JsonNode response = mapper.readTree(latest);
 
-        LOGGER.info("Artifact with name:{} and content:{} was created", response.getString("name"), response);
+        LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(), response);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
@@ -93,7 +99,8 @@ class ArtifactsIT extends BaseIT {
         ArtifactMetaData amd2 = metaData;
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        response = new JsonObject(IoUtil.toString(registryClient.getLatestArtifact(artifactId)));
+        latest = registryClient.getLatestArtifact(artifactId);
+        response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
@@ -102,11 +109,12 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems(1L, 2L));
 
-        response = new JsonObject(IoUtil.toString(registryClient.getArtifactVersion(artifactId, 1)));
+        InputStream version1 = registryClient.getArtifactVersion(artifactId, 1);
+        response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
 
-        assertThat(response.getJsonArray("fields").getJsonObject(0).getString("name"), is("foo"));
+        assertThat(response.get("fields").elements().next().get("name").asText(), is("foo"));
     }
 
     @Test
@@ -134,11 +142,12 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, amd);
 
-        JsonObject response = new JsonObject(IoUtil.toString(registryClient.getLatestArtifact(artifactId)));
+        InputStream latest = registryClient.getLatestArtifact(artifactId);
+        JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
-        assertThat(response.getString("type"), is("INVALID"));
-        assertThat(response.getString("config"), is("invalid"));
+        assertThat(response.get("type").asText(), is("INVALID"));
+        assertThat(response.get("config").asText(), is("invalid"));
     }
 
     @Test

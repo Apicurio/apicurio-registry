@@ -15,7 +15,12 @@
  */
 package io.apicurio.tests.ui.pages;
 
+import static org.junit.Assert.assertNotNull;
+
+import java.time.Duration;
+
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 import io.apicurio.tests.selenium.SeleniumProvider;
 
@@ -31,6 +36,12 @@ public class ArtifactDetailsPage extends BasePage {
 
     public WebElement getDeleteButtonDeleteDialog() {
         return selenium.getDriver().findElement(byDataTestId("modal-btn-delete"));
+    }
+
+    public void verifyIsOpen() throws Exception {
+        selenium.getDriverWait().withTimeout(Duration.ofSeconds(30)).until(ExpectedConditions.and(
+                ExpectedConditions.urlContains("/versions/")));
+        assertNotNull(selenium.getWebElement(() -> getDeleteButton()));
     }
 
 }

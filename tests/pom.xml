@@ -25,7 +25,6 @@
         <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
-        <vertx.version>3.9.4</vertx.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>
         <logback.version>1.2.3</logback.version>
@@ -118,14 +117,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
             <version>${kafka.version}</version>
-        </dependency>
-
-<!--         TODO remove as we use this vertx dep only for JsonObject -->
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-client</artifactId>
-            <version>${vertx.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

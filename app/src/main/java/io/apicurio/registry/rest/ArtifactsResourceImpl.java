@@ -71,6 +71,7 @@ import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.StoredArtifact;
@@ -84,6 +85,7 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.util.DtoUtil;
+import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.ProtoUtil;
 
 /**
@@ -318,6 +320,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
             if (artifactId == null || artifactId.trim().isEmpty()) {
                 artifactId = idGenerator.generate();
+            } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+                throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
             if (ContentTypeUtil.isApplicationYaml(ct)) {
                 content = ContentTypeUtil.yamlToJson(content);

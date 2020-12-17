@@ -29,6 +29,10 @@ import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQU
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -51,6 +55,7 @@ import javax.net.ssl.X509TrustManager;
 
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.BasicAuth;
+import io.apicurio.registry.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.client.request.AuthInterceptor;
 import io.apicurio.registry.client.request.HeadersInterceptor;
 import io.apicurio.registry.client.request.RequestExecutor;
@@ -70,6 +75,7 @@ import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
@@ -240,6 +246,9 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     @Override
     public ArtifactMetaData createArtifact(String artifactId, ArtifactType artifactType, InputStream data,
                                            IfExistsType ifExists, Boolean canonical) {
+        if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+            throw new InvalidArtifactIdException();
+        }
         return requestExecutor.execute(artifactsService.createArtifact(requestHeaders.get(), artifactType, artifactId, ifExists, canonical,
                 RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
@@ -247,126 +256,126 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     @Override
     public InputStream getLatestArtifact(String artifactId) {
 
-        return requestExecutor.execute(artifactsService.getLatestArtifact(requestHeaders.get(), artifactId)).byteStream();
+        return requestExecutor.execute(artifactsService.getLatestArtifact(requestHeaders.get(), encodeURIComponent(artifactId))).byteStream();
     }
 
     @Override
     public ArtifactMetaData updateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestExecutor.execute(artifactsService.updateArtifact(requestHeaders.get(), artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestExecutor.execute(artifactsService.updateArtifact(requestHeaders.get(), encodeURIComponent(artifactId), artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
     public void deleteArtifact(String artifactId) {
 
-        requestExecutor.execute(artifactsService.deleteArtifact(requestHeaders.get(), artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifact(requestHeaders.get(), encodeURIComponent(artifactId)));
     }
 
     @Override
     public void updateArtifactState(String artifactId, UpdateState data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactState(requestHeaders.get(), artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactState(requestHeaders.get(), encodeURIComponent(artifactId), data));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
 
-        return requestExecutor.execute(artifactsService.getArtifactMetaData(requestHeaders.get(), artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactMetaData(requestHeaders.get(), encodeURIComponent(artifactId)));
     }
 
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactMetaData(requestHeaders.get(), artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactMetaData(requestHeaders.get(), encodeURIComponent(artifactId), data));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaDataByContent(String artifactId, Boolean canonical, InputStream data) {
-        return requestExecutor.execute(artifactsService.getArtifactMetaDataByContent(requestHeaders.get(), artifactId, canonical, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestExecutor.execute(artifactsService.getArtifactMetaDataByContent(requestHeaders.get(), encodeURIComponent(artifactId), canonical, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
 
-        return requestExecutor.execute(artifactsService.listArtifactVersions(requestHeaders.get(), artifactId));
+        return requestExecutor.execute(artifactsService.listArtifactVersions(requestHeaders.get(), encodeURIComponent(artifactId)));
     }
 
     @Override
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        return requestExecutor.execute(artifactsService.createArtifactVersion(requestHeaders.get(), artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        return requestExecutor.execute(artifactsService.createArtifactVersion(requestHeaders.get(), encodeURIComponent(artifactId), artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
     public InputStream getArtifactVersion(String artifactId, Integer version) {
 
-        return requestExecutor.execute(artifactsService.getArtifactVersion(requestHeaders.get(), version, artifactId)).byteStream();
+        return requestExecutor.execute(artifactsService.getArtifactVersion(requestHeaders.get(), version, encodeURIComponent(artifactId))).byteStream();
     }
 
     @Override
     public void updateArtifactVersionState(String artifactId, Integer version, UpdateState data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactVersionState(requestHeaders.get(), version, artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactVersionState(requestHeaders.get(), version, encodeURIComponent(artifactId), data));
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(String artifactId, Integer version) {
 
-        return requestExecutor.execute(artifactsService.getArtifactVersionMetaData(requestHeaders.get(), version, artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactVersionMetaData(requestHeaders.get(), version, encodeURIComponent(artifactId)));
     }
 
     @Override
     public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData data) {
 
-        requestExecutor.execute(artifactsService.updateArtifactVersionMetaData(requestHeaders.get(), version, artifactId, data));
+        requestExecutor.execute(artifactsService.updateArtifactVersionMetaData(requestHeaders.get(), version, encodeURIComponent(artifactId), data));
     }
 
     @Override
     public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactVersionMetaData(requestHeaders.get(), version, artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactVersionMetaData(requestHeaders.get(), version, encodeURIComponent(artifactId)));
     }
 
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
 
-        return requestExecutor.execute(artifactsService.listArtifactRules(requestHeaders.get(), artifactId));
+        return requestExecutor.execute(artifactsService.listArtifactRules(requestHeaders.get(), encodeURIComponent(artifactId)));
     }
 
     @Override
     public void createArtifactRule(String artifactId, Rule data) {
 
-        requestExecutor.execute(artifactsService.createArtifactRule(requestHeaders.get(), artifactId, data));
+        requestExecutor.execute(artifactsService.createArtifactRule(requestHeaders.get(), encodeURIComponent(artifactId), data));
     }
 
     @Override
     public void deleteArtifactRules(String artifactId) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactRules(requestHeaders.get(), artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactRules(requestHeaders.get(), encodeURIComponent(artifactId)));
     }
 
     @Override
     public Rule getArtifactRuleConfig(String artifactId, RuleType rule) {
 
-        return requestExecutor.execute(artifactsService.getArtifactRuleConfig(requestHeaders.get(), rule, artifactId));
+        return requestExecutor.execute(artifactsService.getArtifactRuleConfig(requestHeaders.get(), rule, encodeURIComponent(artifactId)));
     }
 
     @Override
     public Rule updateArtifactRuleConfig(String artifactId, RuleType rule, Rule data) {
 
-        return requestExecutor.execute(artifactsService.updateArtifactRuleConfig(requestHeaders.get(), rule, artifactId, data));
+        return requestExecutor.execute(artifactsService.updateArtifactRuleConfig(requestHeaders.get(), rule, encodeURIComponent(artifactId), data));
     }
 
     @Override
     public void deleteArtifactRule(String artifactId, RuleType rule) {
 
-        requestExecutor.execute(artifactsService.deleteArtifactRule(requestHeaders.get(), rule, artifactId));
+        requestExecutor.execute(artifactsService.deleteArtifactRule(requestHeaders.get(), rule, encodeURIComponent(artifactId)));
     }
 
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType artifactType, InputStream data) {
 
-        requestExecutor.execute(artifactsService.testUpdateArtifact(requestHeaders.get(), artifactId, artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
+        requestExecutor.execute(artifactsService.testUpdateArtifact(requestHeaders.get(), encodeURIComponent(artifactId), artifactType, RequestBody.create(MediaType.parse("*/*"), IoUtil.toBytes(data))));
     }
 
     @Override
@@ -390,7 +399,7 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     @Override
     public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
 
-        return requestExecutor.execute(searchService.searchVersions(requestHeaders.get(), artifactId, offset, limit));
+        return requestExecutor.execute(searchService.searchVersions(requestHeaders.get(), encodeURIComponent(artifactId), offset, limit));
     }
 
     @Override
@@ -446,5 +455,13 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     @Override
     public Map<String, String> getHeaders() {
         return requestHeaders.get();
+    }
+
+    private String encodeURIComponent(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch ( UnsupportedEncodingException e ) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

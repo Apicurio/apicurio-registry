@@ -117,7 +117,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.10.2.Final</quarkus.version>
+        <quarkus.version>1.10.4.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
@@ -137,7 +137,7 @@
         <picocli.version>4.5.2</picocli.version>
 
         <!-- gRPC -->
-        <grpc.version>1.34.0</grpc.version>
+        <grpc.version>1.34.1</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>5.5.1</confluent.version>
@@ -174,7 +174,7 @@
         <cdi-api.version>2.0</cdi-api.version>
         
         <!-- Gatling -->
-        <version.gatling>3.4.2</version.gatling>
+        <version.gatling>3.5.0</version.gatling>
         <version.gatling.plugin>3.1.1</version.gatling.plugin>
 
         <!-- Scala -->
@@ -194,7 +194,7 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.10.4</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.38</version.puppycrawl>
@@ -204,7 +204,7 @@
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.15.0</test-containers.version>
+        <test-containers.version>1.15.1</test-containers.version>
     </properties>
 
     <dependencyManagement>

@@ -39,7 +39,7 @@ public interface SearchService {
                                                 @Query("over") SearchOver over, @Query("order") SortOrder order);
 
     @GET("search/artifacts/{artifactId}/versions")
-    Call<VersionSearchResults> searchVersions(@HeaderMap Map<String, String> headers, @Path("artifactId") String artifactId,
+    Call<VersionSearchResults> searchVersions(@HeaderMap Map<String, String> headers, @Path(value = "artifactId", encoded = true) String artifactId,
                                         @Query("offset") Integer offset, @Query("limit") Integer limit);
 
 }

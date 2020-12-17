@@ -43,7 +43,7 @@ public class DeleteArtifactIT extends BaseIT {
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 
     @AfterEach
-    void cleanArtifacts(ExtensionContext ctx) {
+    void logIfError(ExtensionContext ctx) {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }

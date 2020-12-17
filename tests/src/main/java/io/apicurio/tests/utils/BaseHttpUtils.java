@@ -114,4 +114,17 @@ public class BaseHttpUtils {
                 .response();
     }
 
+    public static Response artifactPostRequest(String artifactId, String contentType, String body, String endpoint, int returnCode) {
+        return given()
+            .when()
+                .header("X-Registry-Artifactid", artifactId)
+                .contentType(contentType)
+                .body(body)
+                .post(endpoint)
+            .then()
+                .statusCode(returnCode)
+                .extract()
+                .response();
+    }
+
 }

@@ -40,62 +40,48 @@ jobs:
       - name: Build All Variants
         run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pkafka -Pstreams -Pasyncmem -pl !tests
       - name: Login to DockerHub Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
       - name: Build The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: |
           cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-      - name: Push The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
+      - name: Push The Tagged Docker Images to Dockerhub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: |
-          docker push apicurio/apicurio-registry-mem:latest-snapshot
-          docker push apicurio/apicurio-registry-jpa:latest-snapshot
-          docker push apicurio/apicurio-registry-infinispan:latest-snapshot
-          docker push apicurio/apicurio-registry-kafka:latest-snapshot
-          docker push apicurio/apicurio-registry-streams:latest-snapshot
-          docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
-
-  kubernetes-tests:
-    name: Kubernetes Tests
-    runs-on: ubuntu-18.04
-    needs: ["build-verify"]
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      - name: Set up JDK 1.8
-        uses: AdoptOpenJDK/install-jdk@v1
-        with:
-          version: '8'
-          architecture: x64
-      - name: Cache Dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Build Converters Distro (used in testsuite)
-        run: mvn install -pl distro/connect-converter -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
-
-      - name: Kubernetes Tests
-        run: ./.github/scripts/test_apicurio_kubernetes.sh
-
-      - name: Collect logs
-        if: failure()
-        run: ./.github/scripts/collect_kubernetes_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: tests-logs
-          path: artifacts
+          docker push apicurio/apicurio-registry-mem:1.3.x-snapshot
+          docker push apicurio/apicurio-registry-jpa:1.3.x-snapshot
+          docker push apicurio/apicurio-registry-infinispan:1.3.x-snapshot
+          docker push apicurio/apicurio-registry-kafka:1.3.x-snapshot
+          docker push apicurio/apicurio-registry-streams:1.3.x-snapshot
+          docker push apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
+      - name: Login to Quay.io Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+      - name: Tag Docker Images for Quay.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        run: |
+          docker image tag apicurio/apicurio-registry-mem:1.3.x-snapshot quay.io/apicurio/apicurio-registry-mem:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-sql:1.3.x-snapshot quay.io/apicurio/apicurio-registry-sql:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-infinispan:1.3.x-snapshot quay.io/apicurio/apicurio-registry-infinispan:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-streams:1.3.x-snapshot quay.io/apicurio/apicurio-registry-streams:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-asyncmem:1.3.x-snapshot quay.io/apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-kafkasql:1.3.x-snapshot quay.io/apicurio/apicurio-registry-kafkasql:1.3.x-snapshot
+      - name: List All The Tagged Docker Images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        run: docker images
+      - name: Push The Tagged Docker Images to Quay.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        run: |
+          docker push quay.io/apicurio/apicurio-registry-mem:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-sql:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-infinispan:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-streams:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-kafkasql:1.3.x-snapshot            

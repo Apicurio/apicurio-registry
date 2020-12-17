@@ -27,7 +27,8 @@ import {
     FileUpload,
     Form,
     FormGroup,
-    TextInput
+    TextInput,
+    FormHelperText
 } from "@patternfly/react-core";
 import {CaretDownIcon} from "@patternfly/react-icons";
 import {CreateArtifactData} from "@apicurio/registry-services";
@@ -64,7 +65,8 @@ export interface UploadArtifactFormState extends PureComponentState {
     content: string;
     contentFilename: string;
     contentIsLoading: boolean;
-    valid: boolean;
+    formValid: boolean;
+    idValid: boolean;
     debouncedOnChange: ((data: CreateArtifactData) => void) | null;
 }
 
@@ -95,7 +97,14 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                         value={this.state.id}
                         placeholder="ID of the artifact"
                         onChange={this.onIdChange}
+                        validated={this.idValidated()}
                     />
+                    <FormHelperText
+                        isError={true}
+                        isHidden={this.state.idValid}
+                    >
+                        Character % and non ASCII characters are not allowed
+                    </FormHelperText>
                 </FormGroup>
                 <FormGroup
                     label="Type"
@@ -153,7 +162,8 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             id: "",
             type: "",
             typeIsExpanded: false,
-            valid: false
+            formValid: false,
+            idValid: true
         };
     }
 
@@ -168,21 +178,21 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             typeIsExpanded: false
         }, () => {
             this.fireOnChange();
-            this.checkValid();
+            this.checkFormValid();
         });
     };
 
     private onIdChange = (value: any): void => {
         this.setSingleState("id", value, () => {
             this.fireOnChange();
-            this.checkValid();
+            this.checkIdValid();
         });
     };
 
     private onContentChange = (value: any, filename: string, event: any): void => {
         this.setSingleState("content", value, () => {
             this.fireOnChange();
-            this.checkValid();
+            this.checkFormValid();
         });
     };
 
@@ -194,22 +204,54 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         this.setSingleState("contentIsLoading", false);
     };
 
-    private checkValid(): void {
+    private checkFormValid(): void {
         const data: CreateArtifactData = this.currentData();
-        const oldValid: boolean = this.state.valid;
-        const newValid: boolean = this.isValid(data);
+        const oldValid: boolean = this.state.formValid;
+        const newValid: boolean = this.isFormValid(data);
         const validityChanged: boolean = oldValid !== newValid;
         this.setState({
-            valid: newValid
+            formValid: newValid
         }, () => {
             if (validityChanged) {
-                this.fireOnValid();
+                this.fireOnFormValid();
             }
         });
     }
 
-    private isValid(data: CreateArtifactData): boolean {
-        return !!data.content;
+    private isFormValid(data: CreateArtifactData): boolean {
+        return !!data.content && this.isIdValid(data);
+    }
+
+    private checkIdValid(): void {
+        const data: CreateArtifactData = this.currentData();
+        const oldValid: boolean = this.state.idValid;
+        const newValid: boolean = this.isIdValid(data);
+        const validityChanged: boolean = oldValid !== newValid;
+        this.setState({
+            idValid: newValid
+        }, () => {
+            if (validityChanged) {
+                this.fireOnIdValid();
+            }
+        });
+    }
+
+    private isIdValid(data: CreateArtifactData): boolean {
+        if (!data.id) {
+            //id is optional, server can generate it
+            return true;
+        } else {
+            // character % breaks the ui
+            var isAscii = (str: string) => {
+                for(var i=0;i<str.length;i++){
+                    if(str.charCodeAt(i)>127){
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return data.id.indexOf("%") == -1 && isAscii(data.id);
+        }
     }
 
     private currentData(): CreateArtifactData {
@@ -227,9 +269,15 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         }
     }
 
-    private fireOnValid(): void {
+    private fireOnFormValid(): void {
         if (this.props.onValid) {
-            this.props.onValid(this.state.valid);
+            this.props.onValid(this.state.formValid);
+        }
+    }
+
+    private fireOnIdValid(): void {
+        if (this.props.onValid) {
+            this.props.onValid(this.state.idValid);
         }
     }
 
@@ -237,6 +285,18 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         return artifactTypes.filter( t => {
             return t.id === type;
         }).map( t => t.label )[0];
+    }
+
+    private idValidated(): any {
+        const data: CreateArtifactData = this.currentData();
+        if (this.isIdValid(data)) {
+            if (!data.id) {
+                return "default"
+            }
+            return "success"
+        } else {
+            return "error"
+        }
     }
 
 }

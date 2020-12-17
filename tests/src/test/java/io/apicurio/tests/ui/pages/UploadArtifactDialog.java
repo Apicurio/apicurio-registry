@@ -63,4 +63,8 @@ public class UploadArtifactDialog extends BasePage {
         return selenium.getDriver().findElement(byDataTestId("breadcrumb-lnk-artifacts"));
     }
 
+    public void fillArtifactId(String artifactId) {
+        selenium.fillInputItem(this.getArtifactIdInput(), artifactId);
+    }
+
 }

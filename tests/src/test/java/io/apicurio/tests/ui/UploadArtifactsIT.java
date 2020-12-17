@@ -21,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.openqa.selenium.WebElement;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
@@ -36,6 +36,8 @@ import io.apicurio.tests.Constants;
 import io.apicurio.tests.selenium.SeleniumChrome;
 import io.apicurio.tests.selenium.SeleniumProvider;
 import io.apicurio.tests.selenium.resources.ArtifactListItem;
+import io.apicurio.tests.ui.pages.ArtifactDetailsPage;
+import io.apicurio.tests.ui.pages.UploadArtifactDialog;
 
 @Tag(UI)
 @SeleniumChrome
@@ -44,7 +46,7 @@ public class UploadArtifactsIT extends BaseIT {
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 
     @AfterEach
-    void cleanArtifacts(ExtensionContext ctx) {
+    void logIfError(ExtensionContext ctx) {
         if (ctx.getExecutionException().isPresent()) {
             LOGGER.error("", ctx.getExecutionException().get());
         }
@@ -174,6 +176,68 @@ public class UploadArtifactsIT extends BaseIT {
 
         webArtifacts = page.getArtifactsList();
         assertEquals(meta.getId(), webArtifacts.get(0).getArtifactId());
+    }
+
+    @Test
+    void testSpecialCharactersAccepted() throws Exception {
+
+        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
+
+        String content = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
+
+        RegistryUITester page = new RegistryUITester(selenium);
+        page.openWebPage();
+        String webArtifactId = page.uploadArtifact(artifactId, ArtifactType.JSON, content);
+
+        assertEquals(artifactId, webArtifactId);
+
+        assertEquals(1, registryClient.listArtifacts().size());
+        page.goBackToArtifactsList();
+
+        selenium.refreshPage();
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return page.getArtifactsList().size() == 1;
+            } catch (Exception e) {
+                LOGGER.error("", e);
+                return false;
+            }
+        });
+
+        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
+        assertEquals(artifactId, webArtifacts.get(0).getArtifactId());
+
+
+        ArtifactDetailsPage artifactPage = page.getArtifactsListPage().openArtifactDetailsPage(artifactId);
+
+        artifactPage.verifyIsOpen();
+
+    }
+
+    @Test
+    void testForbiddenSpecialCharacters() throws Exception {
+        forbiddenSpecialCharactersTest("ab%c");
+        forbiddenSpecialCharactersTest("._:-ç'`¡¿?0=)(/&$·!ªº<>,;,:");
+    }
+
+
+    void forbiddenSpecialCharactersTest(String artifactId) throws Exception {
+
+        RegistryUITester page = new RegistryUITester(selenium);
+        page.openWebPage();
+
+        UploadArtifactDialog dialog = page.openUploadArtifactDialog();
+
+        dialog.fillArtifactId(artifactId);
+
+        WebElement inputElement = dialog.getArtifactIdInput();
+
+        String invalid = inputElement.getAttribute("aria-invalid");
+
+        selenium.takeScreenShot();
+
+        assertEquals("true", invalid, "UI is not marking " + artifactId + " artifact id as invalid");
+
     }
 
 }

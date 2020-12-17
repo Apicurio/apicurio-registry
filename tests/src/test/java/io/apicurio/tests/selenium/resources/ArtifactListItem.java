@@ -17,6 +17,10 @@ package io.apicurio.tests.selenium.resources;
 
 import static io.apicurio.tests.ui.pages.BasePage.byDataTestId;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
@@ -26,12 +30,13 @@ public class ArtifactListItem extends WebItem {
     private String description;
     private WebElement viewArtifactButton;
 
-    public ArtifactListItem(int index, WebElement webItem) {
+    public ArtifactListItem(int index, WebElement webItem) throws UnsupportedEncodingException {
         super(webItem);
 
         viewArtifactButton = webItem.findElement(byDataTestId("artifacts-lnk-view-" + index));
         String[] slices = viewArtifactButton.getAttribute("href").split("/");
-        artifactId = slices[slices.length - 1];
+
+        artifactId = URLDecoder.decode(slices[slices.length - 1], StandardCharsets.UTF_8.name());
 
         description = webItem.findElement(By.className("artifact-description")).getText();
     }

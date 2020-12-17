@@ -1,7 +1,7 @@
 name: Release Workflow
 on:
   pull_request:
-    branches: [master, 1.3.x]
+    branches: [1.3.x]
     types: [closed]
     paths:
       - '.github/project.yaml'
@@ -122,23 +122,22 @@ jobs:
       - name: Push The Tagged Docker Images
         run: |
           cd registry
-          docker push apicurio/apicurio-registry-mem:latest
-          docker push apicurio/apicurio-registry-mem:latest-release
+          docker push apicurio/apicurio-registry-mem:1.3.x
           docker push apicurio/apicurio-registry-mem:${{steps.metadata.outputs.release-version}}
-          docker push apicurio/apicurio-registry-jpa:latest
-          docker push apicurio/apicurio-registry-jpa:latest-release
+          docker push apicurio/apicurio-registry-jpa:1.3.x
+          docker push apicurio/apicurio-registry-jpa:1.3.x-release
           docker push apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}}
-          docker push apicurio/apicurio-registry-infinispan:latest
-          docker push apicurio/apicurio-registry-infinispan:latest-release
+          docker push apicurio/apicurio-registry-infinispan:1.3.x
+          docker push apicurio/apicurio-registry-infinispan:1.3.x-release
           docker push apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}}
-          docker push apicurio/apicurio-registry-kafka:latest
-          docker push apicurio/apicurio-registry-kafka:latest-release
+          docker push apicurio/apicurio-registry-kafka:1.3.x
+          docker push apicurio/apicurio-registry-kafka:1.3.x-release
           docker push apicurio/apicurio-registry-kafka:${{steps.metadata.outputs.release-version}}
-          docker push apicurio/apicurio-registry-streams:latest
-          docker push apicurio/apicurio-registry-streams:latest-release
+          docker push apicurio/apicurio-registry-streams:1.3.x
+          docker push apicurio/apicurio-registry-streams:1.3.x-release
           docker push apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}}
-          docker push apicurio/apicurio-registry-asyncmem:latest
-          docker push apicurio/apicurio-registry-asyncmem:latest-release
+          docker push apicurio/apicurio-registry-asyncmem:1.3.x
+          docker push apicurio/apicurio-registry-asyncmem:1.3.x-release
           docker push apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}}
       - name: Maven Deploy
         run: |
@@ -172,12 +171,12 @@ jobs:
           cd website
           echo "********** Downloading Latest Release JSON File **********"
           cd _data/registry
-          rm latestRelease.json
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          rm 1.3.x.json
+          touch 1.3.x.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > 1.3.x.json
           
           echo "********** Copying Latest Release JSON File **********"
           PUBLISHED_AT=$(cat latestRelease.json | jq '.tag_name' | sed 's/"//g')
-          cp latestRelease.json releases/$PUBLISHED_AT.json
+          cp 1.3.x.json releases/$PUBLISHED_AT.json
       - name: Commit Project Website Changes
         run: |
           cd website
@@ -212,17 +211,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Verify Docker Release For mem
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-mem:latest apicurio/apicurio-registry-mem:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-mem:1.3.x
       - name: Verify Docker Release For asyncmem
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-asyncmem:latest apicurio/apicurio-registry-asyncmem:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-asyncmem:1.3.x
       - name: Verify Docker Release For kafka
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafka:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-kafka:latest apicurio/apicurio-registry-kafka:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafka:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-kafka:1.3.x
       - name: Verify Docker Release For streams
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-streams:latest apicurio/apicurio-registry-streams:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-streams:1.3.x
       - name: Verify Docker Release For jpa
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-jpa:latest apicurio/apicurio-registry-jpa:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-jpa:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-jpa:1.3.x
       - name: Verify Docker Release For infinispan
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release 
+        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{steps.metadata.outputs.release-version}} apicurio/apicurio-registry-infinispan:1.3.x
 # Commented out because artifacts are not immediately available in central
 #      - name: Verify Maven Release
 #        run: |

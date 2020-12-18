@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.ui.beans.ConfigJs;
 import io.apicurio.registry.ui.config.UiConfigProperties;
 import io.apicurio.registry.utils.StringUtil;
+import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * Generates the 'config.js' file imported by the UI.
@@ -47,6 +48,9 @@ public class ConfigJsServlet extends HttpServlet {
 
     @Inject
     UiConfigProperties uiConfig;
+    
+    @Inject
+    SecurityIdentity identity;
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)

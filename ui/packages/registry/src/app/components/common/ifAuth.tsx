@@ -21,10 +21,11 @@ import {Services} from "@apicurio/registry-services";
 /**
  * Properties
  */
-export interface IfFeatureProps extends PureComponentProps {
-    feature: string;
-    is?: any;
-    isNot?: any;
+export interface IfAuthProps extends PureComponentProps {
+    enabled?: boolean;
+    isAuthenticated?: boolean;
+    isAdmin?: boolean;
+    isDeveloper?: boolean;
     children?: React.ReactNode;
 }
 
@@ -32,18 +33,17 @@ export interface IfFeatureProps extends PureComponentProps {
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface IfFeatureState extends PureComponentState {
+export interface IfAuthState extends PureComponentState {
 }
 
 
 /**
  * Wrapper around a set of arbitrary child elements and displays them only if the
- * indicated feature matches the given criteria.  Use this if you want to show/hide
- * UI elements based on the configured application feature set.
+ * indicated authentication parameters are true.
  */
-export class IfFeature extends PureComponent<IfFeatureProps, IfFeatureState> {
+export class IfAuth extends PureComponent<IfAuthProps, IfAuthState> {
 
-    constructor(props: Readonly<IfFeatureProps>) {
+    constructor(props: Readonly<IfAuthProps>) {
         super(props);
     }
 
@@ -55,20 +55,26 @@ export class IfFeature extends PureComponent<IfFeatureProps, IfFeatureState> {
         }
     }
 
-    protected initializeState(): IfFeatureState {
+    protected initializeState(): IfAuthState {
         return {};
     }
 
     private accept(): boolean {
-        const features: any = Services.getConfigService().features();
-        const featureValue: any = features[this.props.feature];
-        if (this.props.is !== undefined) {
-            return featureValue === this.props.is;
-        } else if (this.props.isNot !== undefined) {
-            return featureValue !== this.props.isNot;
-        } else {
-            return featureValue !== undefined;
+        const auth: any = Services.getAuthService();
+        let rval: boolean = true;
+        if (this.props.enabled !== undefined) {
+            rval = rval && (auth.isAuthEnabled() === this.props.enabled);
         }
+        if (this.props.isAuthenticated !== undefined) {
+            rval = rval && (auth.isAuthenticated() === this.props.isAuthenticated);
+        }
+        if (this.props.isAdmin !== undefined) {
+            rval = rval && (auth.isUserAdmin() === this.props.isAdmin);
+        }
+        if (this.props.isDeveloper !== undefined) {
+            rval = rval && (auth.isUserDeveloper() === this.props.isDeveloper);
+        }
+        return rval;
     }
 
 }

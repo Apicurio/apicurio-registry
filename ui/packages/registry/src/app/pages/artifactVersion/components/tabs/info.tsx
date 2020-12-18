@@ -18,13 +18,13 @@
 import React from "react";
 import "./info.css";
 import {
-    ArtifactTypeIcon,
+    ArtifactTypeIcon, IfAuth,
     PureComponent,
     PureComponentProps,
     PureComponentState,
     RuleList
 } from "../../../../components";
-import {Badge, Button, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
+import {Badge, Button, EmptyStateBody, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
 import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {DownloadIcon, EditIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
@@ -70,13 +70,15 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
                             <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
                             <SplitItem className="actions">
-                                <IfFeature feature="readOnly" isNot={true}>
-                                    <Button id="edit-action"
-                                            data-testid="artifact-btn-edit"
-                                            title="Edit artifact meta-data"
-                                            onClick={this.props.onEditMetaData}
-                                            variant="plain"><EditIcon /></Button>
-                                </IfFeature>
+                                <IfAuth isDeveloper={true}>
+                                    <IfFeature feature="readOnly" isNot={true}>
+                                        <Button id="edit-action"
+                                                data-testid="artifact-btn-edit"
+                                                title="Edit artifact meta-data"
+                                                onClick={this.props.onEditMetaData}
+                                                variant="plain"><EditIcon /></Button>
+                                    </IfFeature>
+                                </IfAuth>
                             </SplitItem>
                         </Split>
                     </div>

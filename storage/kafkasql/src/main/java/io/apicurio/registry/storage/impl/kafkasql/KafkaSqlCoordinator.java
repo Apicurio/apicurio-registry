@@ -23,6 +23,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.RegistryException;
@@ -42,6 +45,10 @@ public class KafkaSqlCoordinator {
     private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
     private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
 
+    @Inject
+    @ConfigProperty(name = "registry.kafkasql.coordinator.response-timeout", defaultValue = "30000")
+    Integer responseTimeout;
+
     /**
      * Creates a UUID for a single operation.
      */
@@ -60,9 +67,8 @@ public class KafkaSqlCoordinator {
      * @throws InterruptedException
      */
     public Object waitForResponse(UUID uuid) {
-        // TODO timeout should be configurable
         try {
-            latches.get(uuid).await(30, TimeUnit.SECONDS);
+            latches.get(uuid).await(responseTimeout, TimeUnit.MILLISECONDS);
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {

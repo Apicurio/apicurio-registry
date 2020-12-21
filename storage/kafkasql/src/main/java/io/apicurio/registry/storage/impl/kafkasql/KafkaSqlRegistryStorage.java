@@ -134,12 +134,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
     @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
     String bootstrapServers;
 
+    @Inject
     @RegistryProperties(
             value = {"registry.kafka.common", "registry.kafkasql.producer"},
             empties = {"ssl.endpoint.identification.algorithm="}
     )
     Properties producerProperties;
 
+    @Inject
     @RegistryProperties(
             value = {"registry.kafka.common", "registry.kafkasql.consumer"},
             empties = {"ssl.endpoint.identification.algorithm="}

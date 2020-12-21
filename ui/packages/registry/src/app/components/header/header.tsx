@@ -17,11 +17,13 @@
 
 import React from 'react';
 import "./header.css"
-import {Brand, Button, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
-import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
+import {Brand, Button, EmptyStateBody, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
+import brandImg from "../../../../assets/images/apicurio_logo_darkbkg_350px.png";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {CogIcon} from "@patternfly/react-icons";
 import {Link} from "react-router-dom";
+import {IfAuth} from "../common/ifAuth";
+import {AvatarDropdown} from "./avatarDropdown";
 import {Services} from "@apicurio/registry-services";
 
 
@@ -42,35 +44,24 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
 
     public render(): React.ReactElement {
         let pageToolbar: React.ReactElement;
-        if (Services.getConfigService().authType() === "keycloakjs" && Services.getAuthService().isAuthenticated()) {
-            pageToolbar = (
-                <Toolbar className="header-toolbar">
-                    <ToolbarGroup>
-                        <ToolbarItem>
+        pageToolbar = (
+            <Toolbar className="header-toolbar">
+                <ToolbarGroup>
+                    <ToolbarItem>
+                        <IfAuth isAdmin={true}>
                             <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
                                 <CogIcon/>
                             </Link>
-                        </ToolbarItem>
-                        <ToolbarItem>
-                            <Button style={{margin: "10%"}} onClick={Services.getAuthService().doLogout()}
-                                    variant="tertiary">Logout</Button>
-                        </ToolbarItem>
-                    </ToolbarGroup>
-                </Toolbar>
-            );
-        } else {
-            pageToolbar = (
-                <Toolbar className="header-toolbar">
-                    <ToolbarGroup>
-                        <ToolbarItem>
-                            <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
-                                <CogIcon/>
-                            </Link>
-                        </ToolbarItem>
-                    </ToolbarGroup>
-                </Toolbar>
-            );
-        }
+                        </IfAuth>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <IfAuth enabled={true}>
+                            <AvatarDropdown />
+                        </IfAuth>
+                    </ToolbarItem>
+                </ToolbarGroup>
+            </Toolbar>
+        );
 
         return (<PageHeader
             logo={<Brand onClick={this.navigateTo("/artifacts")} src={brandImg} alt="Apicurio Registry"/>}

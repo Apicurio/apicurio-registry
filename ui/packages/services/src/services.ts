@@ -55,7 +55,7 @@ export class Services {
         return Services.all.globals;
     }
 
-    public static getAuthService() {
+    public static getAuthService(): AuthService {
         return Services.all.auth;
     }
 

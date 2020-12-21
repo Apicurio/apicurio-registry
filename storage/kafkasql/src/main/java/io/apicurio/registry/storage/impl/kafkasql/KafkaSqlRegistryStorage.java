@@ -234,6 +234,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topic);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
 
         // Create the Kafka producer
@@ -459,8 +460,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
             throw new ArtifactNotFoundException(artifactId);
         }
 
-        // TODO find a better way to implement deleting all rules?  This isn't very scalable if we add more rules.
-        
         submitter.submitArtifactRule(artifactId, RuleType.COMPATIBILITY, ActionType.Delete);
         
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(artifactId, RuleType.VALIDITY, ActionType.Delete));
@@ -622,8 +621,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
      */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
-        // TODO find a better way to implement deleting all global rules?  This isn't very scalable if we add more rules.
-        
         submitter.submitGlobalRule(RuleType.COMPATIBILITY, ActionType.Delete);
         
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(RuleType.VALIDITY, ActionType.Delete));

@@ -398,7 +398,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertLabel();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, label)
+                      .bind(1, label.toLowerCase())
                       .execute();
             });
         }
@@ -409,8 +409,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertProperty();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, k)
-                      .bind(2, v)
+                      .bind(1, k.toLowerCase())
+                      .bind(2, v.toLowerCase())
                       .execute();
             });
         }
@@ -777,13 +777,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                             query.bind(idx, "%" + search + "%");
                         });
                         binders.add((query, idx) -> {
-                            query.bind(idx, search);
+                            // Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                            query.bind(idx, search.toLowerCase());
                         });
                         break;
                     case labels:
                         where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, search);
+                            // Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                            query.bind(idx, search.toLowerCase());
                         });
                         break;
                     case name:
@@ -1400,7 +1402,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, label)
+                              .bind(1, label.toLowerCase())
                               .execute();
                     });
                 }
@@ -1412,8 +1414,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, k)
-                              .bind(2, v)
+                              .bind(1, k.toLowerCase())
+                              .bind(2, v.toLowerCase())
                               .execute();
                     });
                 }

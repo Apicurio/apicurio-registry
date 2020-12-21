@@ -31,6 +31,7 @@ import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -77,19 +78,21 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         metaData.setProperties(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
         client.updateArtifactMetaData(artifactId, metaData);
         
-        // Now try various cases when seaching by labels and properties
-        results = client.searchArtifacts("testCaseInsensitiveSearchLabel", SearchOver.labels, SortOrder.asc, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.getCount());
-        results = client.searchArtifacts("testCaseInsensitiveSearchLabel".toLowerCase(), SearchOver.labels, SortOrder.asc, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.getCount());
-        results = client.searchArtifacts("testCaseInsensitiveSearchLabel".toUpperCase(), SearchOver.labels, SortOrder.asc, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.getCount());
-        results = client.searchArtifacts("TESTCaseInsensitiveSEARCHLabel", SearchOver.labels, SortOrder.asc, 0, 10);
-        Assertions.assertNotNull(results);
-        Assertions.assertEquals(1, results.getCount());
+        TestUtils.retry(() -> {
+            // Now try various cases when seaching by labels and properties
+            ArtifactSearchResults ires = client.searchArtifacts("testCaseInsensitiveSearchLabel", SearchOver.labels, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(ires);
+            Assertions.assertEquals(1, ires.getCount());
+            ires = client.searchArtifacts("testCaseInsensitiveSearchLabel".toLowerCase(), SearchOver.labels, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(ires);
+            Assertions.assertEquals(1, ires.getCount());
+            ires = client.searchArtifacts("testCaseInsensitiveSearchLabel".toUpperCase(), SearchOver.labels, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(ires);
+            Assertions.assertEquals(1, ires.getCount());
+            ires = client.searchArtifacts("TESTCaseInsensitiveSEARCHLabel", SearchOver.labels, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(ires);
+            Assertions.assertEquals(1, ires.getCount());
+        });
     }
 
 }

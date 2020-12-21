@@ -176,6 +176,11 @@
             <artifactId>apicurio-registry-utils-tests</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

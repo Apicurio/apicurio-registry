@@ -1,0 +1,47 @@
+[id="registry-logging"]
+= {registry} Logging
+
+{registry} logging configuration can be modified while {registry} it's running. There is a REST endpoint that allows to configure the log level for specific loggers, allowing for finer grained logging configurations.
+
+[id="configuring-registry-logging"]
+== Configuring {registry} Logging during runtime
+
+This section explains how to check and configure log level in {registry} during runtime using the admin REST API.
+
+.Prerequisites
+
+* Obtain the URL to access your {registry} instance, get the route of your {registry} in case you have {registry} deployed on Openshift. In this guide we are using `localhost:8080`
+
+[discrete]
+== Check the current log level for a specific logger
+
+Use this `curl` command to obtain the current log level for the logger `io.apicurio.registry.storage`
+
+[source,bash]
+----
+$ curl -i localhost:8080/api/admin/logging/io.apicurio.registry.storage
+HTTP/1.1 200 OK
+[...]
+Content-Type: text/plain;charset=UTF-8
+Content-Length: 4
+
+INFO
+----
+
+[discrete]
+== Change the log level for a specific logger
+
+Use this `curl` command to change the log level for the logger `io.apicurio.registry.storage` to `DEBUG`
+
+[source,bash]
+----
+$ curl -i localhost:8080/api/admin/logging/io.apicurio.registry.storage?level=DEBUG
+HTTP/1.1 200 OK
+Date: Tue, 22 Dec 2020 10:48:24 GMT
+Expires: Wed, 22 Dec 2021 10:48:24 GMT
+Cache-control: public, max-age=31536000
+Content-Type: text/plain;charset=UTF-8
+Content-Length: 5
+
+DEBUG
+----

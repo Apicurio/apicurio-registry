@@ -8,14 +8,17 @@ import javax.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
@@ -48,8 +51,10 @@ public class KafkaSqlSink {
     KafkaSqlStore sqlStore;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.global-id.base-offset", defaultValue = "1")
-    Integer baseOffset;
+    KafkaSqlConfiguration configuration;
+    
+    @Inject
+    KafkaSqlSubmitter submitter;
 
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
@@ -141,29 +146,36 @@ public class KafkaSqlSink {
                 throw new RegistryStorageException("Unexpected message type: " + messageType.name());
         }
     }
-    
+
     /**
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
      * @param key
      * @param value
      * @param globalIdGenerator 
      */
-    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) {
-        switch (value.getAction()) {
-            case Create:
-                return sqlStore.createArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
-                        value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                        value.getMetaData(), globalIdGenerator);
-            case Update:
-                return sqlStore.updateArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
-                        value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                        value.getMetaData(), globalIdGenerator);
-            case Delete:
-                return sqlStore.deleteArtifact(key.getArtifactId());
-            case Clear:
-            default:
-                log.warn("Unsupported artifact message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
+    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) throws RegistryStorageException {
+        try {
+            switch (value.getAction()) {
+                case Create:
+                    return sqlStore.createArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getMetaData(), globalIdGenerator);
+                case Update:
+                    return sqlStore.updateArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getMetaData(), globalIdGenerator);
+                case Delete:
+                    return sqlStore.deleteArtifact(key.getArtifactId());
+                case Clear:
+                default:
+                    log.warn("Unsupported artifact message action: %s", key.getType().name());
+                    throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
+            }
+        } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
+            // Send a tombstone message to clean up the unique Kafka message that caused this failure.  We may be
+            // able to do this for other errors, but these two are definitely safe.
+            submitter.send(key, null);
+            throw e;
         }
     }
 
@@ -275,7 +287,7 @@ public class KafkaSqlSink {
     // just to make sure we can always move the whole system
     // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
     public long getBaseOffset() {
-        return baseOffset;
+        return configuration.baseOffset();
     }
 
 }

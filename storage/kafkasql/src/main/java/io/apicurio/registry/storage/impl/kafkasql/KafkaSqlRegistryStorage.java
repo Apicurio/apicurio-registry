@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
@@ -45,13 +44,8 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.internals.RecordHeader;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -82,11 +76,6 @@ import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeySerializer;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlPartitioner;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueDeserializer;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueSerializer;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
@@ -97,9 +86,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.RegistryProperties;
-import io.apicurio.registry.utils.kafka.AsyncProducer;
-import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.quarkus.runtime.StartupEvent;
 
 /**
@@ -117,9 +103,12 @@ import io.quarkus.runtime.StartupEvent;
 @Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
 @Logged
 @SuppressWarnings("unchecked")
-public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements MessageSender {
+public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlRegistryStorage.class);
+    
+    @Inject
+    KafkaSqlConfiguration configuration;
 
     @Inject
     KafkaSqlCoordinator coordinator;
@@ -131,67 +120,25 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
     KafkaSqlStore sqlStore;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
-    String bootstrapServers;
-
-    @Inject
-    @RegistryProperties(
-            value = {"registry.kafka.common", "registry.kafkasql.producer"},
-            empties = {"ssl.endpoint.identification.algorithm="}
-    )
-    Properties producerProperties;
-
-    @Inject
-    @RegistryProperties(
-            value = {"registry.kafka.common", "registry.kafkasql.consumer"},
-            empties = {"ssl.endpoint.identification.algorithm="}
-    )
-    Properties consumerProperties;
-
-    @Inject
-    @ConfigProperty(name = "registry.kafkasql.topic", defaultValue = "kafkasql-journal")
-    String topic;
-
-    @Inject
-    @ConfigProperty(name = "registry.kafkasql.consumer.startupLag", defaultValue = "1000")
-    Integer startupLag;
-
-    @Inject
-    @ConfigProperty(name = "registry.kafkasql.consumer.poll.timeout", defaultValue = "1000")
-    Integer pollTimeout;
+    ArtifactTypeUtilProviderFactory factory;
     
     @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    KafkaConsumer<MessageKey, MessageValue> consumer;
+    
+    @Inject
+    KafkaSqlSubmitter submitter;
 
     private boolean stopped = true;
-    private ProducerActions<MessageKey, MessageValue> producer;
-    private KafkaConsumer<MessageKey, MessageValue> consumer;
-    private KafkaSqlSubmitter submitter;
 
     void onConstruct(@Observes StartupEvent ev) {
         log.info("Using Kafka-SQL storage.");
         // Start the Kafka Consumer thread
-        consumer = createKafkaConsumer();
         startConsumerThread(consumer);
-
-        producer = createKafkaProducer();
-        submitter = new KafkaSqlSubmitter(this);
     }
 
     @PreDestroy
     void onDestroy() {
         stopped = true;
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.MessageSender#send(io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey, io.apicurio.registry.storage.impl.kafkasql.values.MessageValue)
-     */
-    @Override
-    public CompletableFuture<UUID> send(MessageKey key, MessageValue value) {
-        UUID requestId = coordinator.createUUID();
-        RecordHeader header = new RecordHeader("req", requestId.toString().getBytes());
-        ProducerRecord<MessageKey, MessageValue> record = new ProducerRecord<>(topic, 0, key, value, Collections.singletonList(header));
-        return producer.apply(record).thenApply(rm -> requestId);
     }
 
     /**
@@ -201,24 +148,24 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
      * @param consumer
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
-        log.info("Starting KSQL consumer thread on topic: {}", topic);
-        log.info("Bootstrap servers: " + bootstrapServers);
+        log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
+        log.info("Bootstrap servers: " + configuration.bootstrapServers());
         Runnable runner = () -> {
-            log.info("KSQL consumer thread startup lag: {}", startupLag);
+            log.info("KSQL consumer thread startup lag: {}", configuration.startupLag());
 
             try {
                 // Startup lag
-                try { Thread.sleep(startupLag); } catch (InterruptedException e) { }
+                try { Thread.sleep(configuration.startupLag()); } catch (InterruptedException e) { }
 
-                log.info("Subscribing to {}", topic);
+                log.info("Subscribing to {}", configuration.topic());
 
                 // Subscribe to the journal topic
-                Collection<String> topics = Collections.singleton(topic);
+                Collection<String> topics = Collections.singleton(configuration.topic());
                 consumer.subscribe(topics);
 
                 // Main consumer loop
                 while (!stopped) {
-                    final ConsumerRecords<MessageKey, MessageValue> records = consumer.poll(Duration.ofMillis(pollTimeout));
+                    final ConsumerRecords<MessageKey, MessageValue> records = consumer.poll(Duration.ofMillis(configuration.pollTimeout()));
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
@@ -236,44 +183,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         thread.setDaemon(true);
         thread.setName("KSQL Kafka Consumer Thread");
         thread.start();
-    }
-
-    /**
-     * Creates the Kafka producer.
-     */
-    private ProducerActions<MessageKey, MessageValue> createKafkaProducer() {
-        Properties props = (Properties) producerProperties.clone();
-
-        // Configure kafka settings
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topic);
-        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
-        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
-
-        // Create the Kafka producer
-        KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
-        KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
-        return new AsyncProducer<MessageKey, MessageValue>(props, keySerializer, valueSerializer);
-    }
-
-    /**
-     * Creates the Kafka consumer.
-     */
-    private KafkaConsumer<MessageKey, MessageValue> createKafkaConsumer() {
-        Properties props = (Properties) consumerProperties.clone();
-
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-        props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
-        props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        // Create the Kafka Consumer
-        KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
-        KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
-        KafkaConsumer<MessageKey, MessageValue> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
-        return consumer;
     }
 
     /**

@@ -305,6 +305,28 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.testOutputDirectory}/test-application.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

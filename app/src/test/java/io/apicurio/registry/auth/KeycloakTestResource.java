@@ -40,6 +40,7 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         Map<String, String> props = new HashMap<>();
         props.put("registry.keycloak.url", container.getAuthServerUrl());
         props.put("registry.keycloak.realm", "registry");
+        props.put("registry.auth.enabled", "true");
         return props;
     }
 

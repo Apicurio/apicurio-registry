@@ -21,20 +21,24 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
 
-import javax.ws.rs.NotAuthorizedException;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.ForbiddenException;
+import io.apicurio.registry.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -44,6 +48,8 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 public class SimpleAuthTest extends AbstractResourceTestBase {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleAuthTest.class);
 
     @ConfigProperty(name = "registry.keycloak.url")
     String authServerUrl;
@@ -60,6 +66,14 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     String clientSecret = "test1";
 
+    @Override
+    @BeforeAll
+    protected void beforeAll() throws Exception {
+        registryUrl = "http://localhost:8081/api";
+        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+    }
+
     @BeforeEach
     void verifyAuth() {
         System.out.println("Auth is " + authEnabled);
@@ -75,15 +89,28 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
                 client.deleteArtifact(artifactId);
             } catch (AssertionError e) {
                 //because of async storage artifact may be already deleted but listed anyway
-//                LOGGER.info(e.getMessage());
+                LOGGER.info(e.getMessage());
             } catch (Exception e) {
-//                LOGGER.error("", e);
+                LOGGER.error("", e);
             }
         }
     }
 
     @Test
-    public void testReadOnly() {
+    public void testWrongCreds() throws Exception {
+
+        Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test55");
+
+        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            client.listArtifacts();
+        });
+
+    }
+
+    @Test
+    public void testReadOnly() throws Exception {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test1");
 
@@ -99,9 +126,18 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.getLatestArtifact("abc");
         });
 
-        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+        Assertions.assertThrows(ForbiddenException.class, () -> {
             client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
+
+        {
+            Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
+            RegistryRestClient devClient = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), devAuth);
+            ArtifactMetaData meta = devClient.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> devClient.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
+        }
+
+        assertNotNull(client.getLatestArtifact("ccc"));
 
     }
 
@@ -122,9 +158,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
+            ruleConfig.setConfig(ValidityLevel.NONE.name());
             client.createArtifactRule(meta.getId(), ruleConfig);
 
-            Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            Assertions.assertThrows(ForbiddenException.class, () -> {
                 client.createGlobalRule(ruleConfig);
             });
         } finally {
@@ -152,6 +189,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
+            ruleConfig.setConfig(ValidityLevel.NONE.name());
             client.createArtifactRule(meta.getId(), ruleConfig);
 
             client.createGlobalRule(ruleConfig);

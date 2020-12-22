@@ -19,9 +19,13 @@ package io.apicurio.registry.client.request;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import javax.ws.rs.NotAuthorizedException;
 
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.beans.Error;
 import okhttp3.Headers;
 import okhttp3.Headers.Builder;
 import okhttp3.Interceptor;
@@ -40,7 +44,20 @@ public class AuthInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws IOException {
         final Request request = chain.request();
         Map<String, String> headers = new HashMap<>();
-        auth.apply(headers);
+        try {
+            auth.apply(headers);
+        } catch (Exception e) {
+            if (e instanceof NotAuthorizedException) {
+                NotAuthorizedException nae = (NotAuthorizedException) e;
+                Error error = new Error();
+                error.setErrorCode(nae.getResponse().getStatus());
+                error.setMessage(nae.getResponse().getStatusInfo().getReasonPhrase());
+                error.setDetail(Optional.ofNullable(nae.getChallenges()).map(Object::toString).orElse(null));
+                throw new io.apicurio.registry.client.exception.NotAuthorizedException(error);
+            }
+            throw e;
+        }
+
         Builder builder = request.headers().newBuilder();
         headers.entrySet().forEach(entry -> builder.add(entry.getKey(), entry.getValue()));
         final Headers requestHeaders = builder.build();

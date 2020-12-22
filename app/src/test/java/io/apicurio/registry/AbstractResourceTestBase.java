@@ -26,6 +26,8 @@ import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -38,6 +40,7 @@ import static org.hamcrest.Matchers.is;
  * Abstract base class for all tests that test via the jax-rs layer.
  * @author eric.wittmann@gmail.com
  */
+@TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
 
     protected static final String CT_JSON = "application/json";
@@ -48,11 +51,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     @Inject
     Instance<ServiceInitializer> initializers;
 
-    protected static String registryUrl;
-    protected static RegistryRestClient client;
+    protected String registryUrl;
+    protected RegistryRestClient client;
+
 
     @BeforeAll
-    protected static void beforeAll() throws Exception {
+    protected void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
         client = RegistryRestClientFactory.create(registryUrl);
     }

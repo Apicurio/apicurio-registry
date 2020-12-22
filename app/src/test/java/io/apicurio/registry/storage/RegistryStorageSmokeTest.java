@@ -47,7 +47,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Inject
     @Current
-    private RegistryStorage storage;
+    RegistryStorage storage;
 
     protected RegistryStorage getStorage() {
         return storage;

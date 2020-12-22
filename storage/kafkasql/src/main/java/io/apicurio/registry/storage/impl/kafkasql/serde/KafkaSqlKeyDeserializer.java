@@ -17,10 +17,11 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 
 import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,8 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.MessageTypeToKeyClass;
  * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlKeyDeserializer.class);
 
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
@@ -52,7 +55,8 @@ public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
             MessageKey key = mapper.readValue(in, keyClass);
             return key;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            log.error("Error deserializing a Kafka+SQL message (key).", e);
+            return null;
         }
     }
 

@@ -46,6 +46,10 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
      */
     @Override
     public byte[] serialize(String topic, MessageValue messageValue) {
+        if (messageValue == null) {
+            return null;
+        }
+        
         if (messageValue.getType() == MessageType.Content) {
             return this.serializeContent(topic, (ContentValue) messageValue);
         }

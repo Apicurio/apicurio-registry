@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Arrays;
 
 import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +40,8 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
 
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlValueDeserializer.class);
+
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -51,17 +53,23 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
      */
     @Override
     public MessageValue deserialize(String topic, byte[] data) {
-        byte msgTypeOrdinal = data[0];
-        if (msgTypeOrdinal == MessageType.Content.getOrd()) {
-            return this.deserializeContent(topic, data);
+        // Return null for tombstone messages
+        if (data == null) {
+            return null;
         }
+        
         try {
+            byte msgTypeOrdinal = data[0];
+            if (msgTypeOrdinal == MessageType.Content.getOrd()) {
+                return this.deserializeContent(topic, data);
+            }
             Class<? extends MessageValue> keyClass = MessageTypeToValueClass.ordToValue(msgTypeOrdinal);
             UnsynchronizedByteArrayInputStream in = new UnsynchronizedByteArrayInputStream(data, 1);
             MessageValue key = mapper.readValue(in, keyClass);
             return key;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } catch (Exception e) {
+            log.error("Error deserializing a Kafka+SQL message (value).", e);
+            return null;
         }
     }
 

@@ -343,6 +343,17 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(artifactId, ActionType.Delete));
         SortedSet<Long> versionIds = (SortedSet<Long>) coordinator.waitForResponse(reqId);
+        
+        // Add tombstone messages for all version metda-data updates
+        versionIds.forEach(vid -> {
+            submitter.submitArtifactVersionTombstone(artifactId, vid.intValue());
+        });
+
+        // Add tombstone messages for all artifact rules
+        RuleType[] ruleTypes = RuleType.values();
+        for (RuleType ruleType : ruleTypes) {
+            submitter.submitArtifactRuleTombstone(artifactId, ruleType);
+        }
 
         return versionIds;
     }
@@ -565,6 +576,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
         handleVersion(artifactId, version, null, value -> {
             UUID reqId = ConcurrentUtil.get(submitter.submitVersion(artifactId, (int) version, ActionType.Delete));
             coordinator.waitForResponse(reqId);
+            
+            // Add a tombstone message for this version's metadata
+            submitter.submitArtifactVersionTombstone(artifactId, (int) version);
+            
             return null;
         });
     }

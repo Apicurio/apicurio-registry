@@ -82,4 +82,12 @@ public class ArtifactRuleKey extends AbstractMessageKey {
         this.ruleType = ruleType;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[artifactId=" + getArtifactId() + ", ruleType=" + getRuleType() + "]";
+    }
+
 }

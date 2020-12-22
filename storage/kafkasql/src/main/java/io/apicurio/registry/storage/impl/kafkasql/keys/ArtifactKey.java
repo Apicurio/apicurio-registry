@@ -72,5 +72,13 @@ public class ArtifactKey extends AbstractMessageKey {
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[artifactId=" + getArtifactId() + "]";
+    }
 
 }

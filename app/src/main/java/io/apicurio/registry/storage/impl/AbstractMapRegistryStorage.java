@@ -750,6 +750,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         storage.remove(artifactId, version, MetaDataKeys.DESCRIPTION);
         storage.remove(artifactId, version, MetaDataKeys.LABELS);
         storage.remove(artifactId, version, MetaDataKeys.PROPERTIES);
+        storage.remove(artifactId, version, MetaDataKeys.CREATED_BY);
     }
 
     /**

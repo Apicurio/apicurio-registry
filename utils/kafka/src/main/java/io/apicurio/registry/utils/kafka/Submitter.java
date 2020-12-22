@@ -32,6 +32,9 @@ import java.util.function.Function;
  * @author Ales Justin
  */
 public class Submitter<T> {
+
+    private static final String CREATED_BY = "createdBy";
+
     private Function<Str.StorageValue, CompletableFuture<T>> submitFn;
 
     public Submitter(Function<Str.StorageValue, CompletableFuture<T>> submitFn) {
@@ -54,13 +57,17 @@ public class Submitter<T> {
         return builder;
     }
 
-    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content) {
+    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content, String createdBy) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
         }
         if (content != null) {
             builder.setContent(ByteString.copyFrom(content));
+        }
+
+        if (createdBy != null) {
+            builder.putMetadata(CREATED_BY, createdBy);
         }
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.ARTIFACT, actionType, artifactId, version).setArtifact(builder);

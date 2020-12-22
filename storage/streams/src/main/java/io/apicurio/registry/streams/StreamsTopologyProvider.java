@@ -365,6 +365,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
                         avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
                         avb.putMetadata(MetaDataKeys.LABELS, metaData.getLabels());
+                        avb.putMetadata(MetaDataKeys.CREATED_BY, metaData.getCreatedBy());
                         try {
                             avb.putMetadata(MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getPropertiesMap()));
                         } catch (JsonProcessingException e) {
@@ -375,6 +376,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.removeMetadata(MetaDataKeys.DESCRIPTION);
                         avb.removeMetadata(MetaDataKeys.LABELS);
                         avb.removeMetadata(MetaDataKeys.PROPERTIES);
+                        avb.removeMetadata(MetaDataKeys.CREATED_BY);
                     }
                     builder.setArtifacts(index, avb.build()); // override with new value
                 }
@@ -432,7 +434,8 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             String currentTimeMillis = String.valueOf(System.currentTimeMillis());
             contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
             contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
-            // TODO -- createdBy, modifiedBy
+            contents.put(MetaDataKeys.CREATED_BY, artifact.getMetadataOrDefault(MetaDataKeys.CREATED_BY, ""));
+            // TODO -- modifiedBy
 
             contents.put(MetaDataKeys.STATE, ArtifactState.ENABLED.name());
 

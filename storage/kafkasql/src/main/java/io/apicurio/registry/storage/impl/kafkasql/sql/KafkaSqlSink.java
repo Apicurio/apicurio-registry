@@ -60,7 +60,7 @@ public class KafkaSqlSink {
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
         // If the value is null, then this is a tombstone (or unrecognized) message and should not 
         // be processed.
-        if (record.value() == null) {
+        if (record.key() == null || record.value() == null) {
             log.info("Discarded a tombstone message with key: {}", record.key());
             return;
         }

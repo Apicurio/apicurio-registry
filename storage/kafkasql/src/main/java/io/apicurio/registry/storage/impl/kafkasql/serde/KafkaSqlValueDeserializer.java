@@ -68,7 +68,7 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
             MessageValue key = mapper.readValue(in, keyClass);
             return key;
         } catch (Exception e) {
-            log.error("Error deserializing a Kafka+SQL message.", e);
+            log.error("Error deserializing a Kafka+SQL message (value).", e);
             return null;
         }
     }

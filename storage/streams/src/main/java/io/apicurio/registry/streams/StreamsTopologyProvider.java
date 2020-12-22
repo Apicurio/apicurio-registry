@@ -365,7 +365,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
                         avb.putMetadata(MetaDataKeys.DESCRIPTION, metaData.getDescription());
                         avb.putMetadata(MetaDataKeys.LABELS, metaData.getLabels());
-                        avb.putMetadata(MetaDataKeys.CREATED_BY, metaData.getCreatedBy());
                         try {
                             avb.putMetadata(MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getPropertiesMap()));
                         } catch (JsonProcessingException e) {
@@ -376,7 +375,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         avb.removeMetadata(MetaDataKeys.DESCRIPTION);
                         avb.removeMetadata(MetaDataKeys.LABELS);
                         avb.removeMetadata(MetaDataKeys.PROPERTIES);
-                        avb.removeMetadata(MetaDataKeys.CREATED_BY);
                     }
                     builder.setArtifacts(index, avb.build()); // override with new value
                 }

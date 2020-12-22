@@ -97,6 +97,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.quarkus.runtime.StartupEvent;
@@ -132,6 +133,20 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.bootstrap.servers")
     String bootstrapServers;
+
+    @Inject
+    @RegistryProperties(
+            value = {"registry.kafka.common", "registry.kafkasql.producer"},
+            empties = {"ssl.endpoint.identification.algorithm="}
+    )
+    Properties producerProperties;
+
+    @Inject
+    @RegistryProperties(
+            value = {"registry.kafka.common", "registry.kafkasql.consumer"},
+            empties = {"ssl.endpoint.identification.algorithm="}
+    )
+    Properties consumerProperties;
 
     @Inject
     @ConfigProperty(name = "registry.kafkasql.topic", defaultValue = "kafkasql-journal")
@@ -227,8 +242,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
      * Creates the Kafka producer.
      */
     private ProducerActions<MessageKey, MessageValue> createKafkaProducer() {
-        // TODO properties should be injected similar to StreamsRegistryConfiguration#storageProducer
-        Properties props = new Properties();
+        Properties props = (Properties) producerProperties.clone();
 
         // Configure kafka settings
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -246,8 +260,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage implements 
      * Creates the Kafka consumer.
      */
     private KafkaConsumer<MessageKey, MessageValue> createKafkaConsumer() {
-        // TODO properties should be injected similar to StreamsRegistryConfiguration#storageProducer
-        Properties props = new Properties();
+        Properties props = (Properties) consumerProperties.clone();
 
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());

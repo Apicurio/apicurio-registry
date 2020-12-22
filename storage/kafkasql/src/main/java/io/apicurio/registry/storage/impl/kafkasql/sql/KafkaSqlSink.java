@@ -8,6 +8,7 @@ import javax.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,10 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlStore sqlStore;
+
+    @Inject
+    @ConfigProperty(name = "registry.kafkasql.global-id.base-offset", defaultValue = "1")
+    Integer baseOffset;
 
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
@@ -257,8 +262,7 @@ public class KafkaSqlSink {
     // just to make sure we can always move the whole system
     // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
     public long getBaseOffset() {
-        //TODO return Long.parseLong(properties.getProperty("storage.base.offset", "0"));
-        return 0;
+        return baseOffset;
     }
 
 }

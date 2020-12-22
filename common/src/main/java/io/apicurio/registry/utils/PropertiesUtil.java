@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.inject.spi.InjectionPoint;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -58,13 +60,31 @@ public class PropertiesUtil {
                     Arrays.toString(prefixes), ip.getMember(), dump);
         }
 
+        // some security properties take empty value as config
+        Map<String, String> defaults = new HashMap<>();
+        if (cp != null) {
+            String[] empties = cp.empties();
+            for (String e : empties) {
+                int p = e.indexOf("=");
+                defaults.put(e.substring(0, p), e.substring(p + 1));
+            }
+        }
+
         // collect properties with specified prefixes in order of prefixes (later prefix overrides earlier)
         for (String prefix : prefixes) {
             for (String key : config.getPropertyNames()) {
                 if (key.startsWith(prefix)) {
                     // property can exist with key, but no value ...
                     Optional<String> value = config.getOptionalValue(key, String.class);
-                    value.ifPresent(s -> properties.setProperty(key.substring(prefix.length()), s));
+                    if (value.isPresent()) {
+                        properties.put(key.substring(prefix.length()), value.get());
+                    } else if (defaults.size() > 0) {
+                        String sKey = key.substring(prefix.length());
+                        String defaultValue = defaults.get(sKey);
+                        if (defaultValue != null) {
+                            properties.put(sKey, defaultValue);
+                        }
+                    }
                 }
             }
         }

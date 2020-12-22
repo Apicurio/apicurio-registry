@@ -16,11 +16,19 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
+
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
@@ -28,38 +36,61 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.kafka.ProducerActions;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
+@Logged
 public class KafkaSqlSubmitter {
     
-    private final MessageSender sender;
+    @Inject
+    KafkaSqlConfiguration configuration;
+
+    @Inject
+    KafkaSqlCoordinator coordinator;
     
+    @Inject
+    ProducerActions<MessageKey, MessageValue> producer;
+
     /**
      * Constructor.
-     * @param sender
      */
-    public KafkaSqlSubmitter(MessageSender sender) {
-        this.sender = sender;
+    public KafkaSqlSubmitter() {
     }
 
+    /**
+     * Sends a message to the Kafka topic.
+     * @param key
+     * @param value
+     */
+    public CompletableFuture<UUID> send(MessageKey key, MessageValue value) {
+        UUID requestId = coordinator.createUUID();
+        RecordHeader header = new RecordHeader("req", requestId.toString().getBytes());
+        ProducerRecord<MessageKey, MessageValue> record = new ProducerRecord<>(configuration.topic(), 0, key, value, Collections.singletonList(header));
+        return producer.apply(record).thenApply(rm -> requestId);
+    }
+
+    
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitContent(String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
         ContentKey key = ContentKey.create(artifactId, contentHash);
         ContentValue value = ContentValue.create(ActionType.Create, artifactType, content);
-        return sender.send(key, value);
+        return send(key, value);
     }
 
     
@@ -71,7 +102,7 @@ public class KafkaSqlSubmitter {
             EditableArtifactMetaDataDto metaData) {
         ArtifactKey key = ArtifactKey.create(artifactId);
         ArtifactValue value = ArtifactValue.create(action, artifactType, contentHash, createdBy, createdOn, metaData);
-        return sender.send(key, value);
+        return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifact(String artifactId, ActionType action) {
         return this.submitArtifact(artifactId, action,  null, null, null, null, null);
@@ -85,7 +116,7 @@ public class KafkaSqlSubmitter {
             EditableArtifactMetaDataDto metaData) {
         ArtifactVersionKey key = ArtifactVersionKey.create(artifactId, version);
         ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
-        return sender.send(key, value);
+        return send(key, value);
     }
     public CompletableFuture<UUID> submitVersion(String artifactId, int version, ActionType action) {
         return submitArtifactVersion(artifactId, version, action, null, null);
@@ -99,7 +130,7 @@ public class KafkaSqlSubmitter {
             RuleConfigurationDto config) {
         ArtifactRuleKey key = ArtifactRuleKey.create(artifactId, rule);
         ArtifactRuleValue value = ArtifactRuleValue.create(action, config);
-        return sender.send(key, value);
+        return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifactRule(String artifactId, RuleType rule, ActionType action) {
         return submitArtifactRule(artifactId, rule, action, null);
@@ -112,7 +143,7 @@ public class KafkaSqlSubmitter {
     public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action, RuleConfigurationDto config) {
         GlobalRuleKey key = GlobalRuleKey.create(rule);
         GlobalRuleValue value = GlobalRuleValue.create(action, config);
-        return sender.send(key, value);
+        return send(key, value);
     }
     public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action) {
         return submitGlobalRule(rule, action, null);
@@ -125,11 +156,11 @@ public class KafkaSqlSubmitter {
      * ****************************************************************************************** */
     public void submitArtifactVersionTombstone(String artifactId, int version) {
         ArtifactVersionKey key = ArtifactVersionKey.create(artifactId, version);
-        sender.send(key, null);
+        send(key, null);
     }
     public void submitArtifactRuleTombstone(String artifactId, RuleType rule) {
         ArtifactRuleKey key = ArtifactRuleKey.create(artifactId, rule);
-        sender.send(key, null);
+        send(key, null);
     }
     
 }

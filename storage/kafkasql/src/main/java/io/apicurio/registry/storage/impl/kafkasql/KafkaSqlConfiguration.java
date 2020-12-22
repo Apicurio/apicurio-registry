@@ -16,22 +16,20 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
-import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import java.util.Properties;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface MessageSender {
+public interface KafkaSqlConfiguration {
 
-    /**
-     * Called to send/publish a message to Kafka.
-     * @param key
-     * @param value
-     */
-    public CompletableFuture<UUID> send(MessageKey key, MessageValue value);
-
+    public String bootstrapServers();
+    public String topic();
+    public Integer startupLag();
+    public Integer pollTimeout();
+    public Integer baseOffset();
+    public Integer responseTimeout();
+    public Properties producerProperties();
+    public Properties consumerProperties();
+    
 }

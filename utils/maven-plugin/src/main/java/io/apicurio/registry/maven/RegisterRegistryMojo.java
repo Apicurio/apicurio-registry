@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
@@ -37,6 +38,18 @@ import io.apicurio.registry.types.ArtifactType;
 public class RegisterRegistryMojo extends ContentRegistryMojo {
 
     /**
+     * What to do if the artifact already exists.  Default is: RETURN_OR_UPDATE.  Options found in enum {@link IfExistsType}
+     */
+    @Parameter(defaultValue="RETURN_OR_UPDATE")
+    IfExistsType ifExists;
+
+    /**
+     * Whether to canonicalize the content when using the RETURN_OR_UPDATE setting for the <code>ifExists</code> parameter.
+     */
+    @Parameter(defaultValue="false")
+    boolean canonicalize;
+
+    /**
      * Artifact versions / results of registry.
      */
     Map<String, Integer> artifactVersions;
@@ -44,9 +57,7 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
     public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) {
         try {
             try (InputStream stream = handle.stream()) {
-                // TODO add "ifExists" option to the mojo
-                // TODO add "canonicalize" option to the mojo
-                return getClient().createArtifact(artifactId, artifactType, stream, IfExistsType.RETURN_OR_UPDATE, false);
+                return getClient().createArtifact(artifactId, artifactType, stream, ifExists, canonicalize);
             }
         } catch (Exception e) {
             throw new IllegalStateException(String.format(

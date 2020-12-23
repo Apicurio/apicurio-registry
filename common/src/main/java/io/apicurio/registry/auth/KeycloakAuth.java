@@ -16,10 +16,11 @@
 
 package io.apicurio.registry.auth;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.authorization.client.AuthzClient;
+import org.keycloak.authorization.client.Configuration;
 
 
 /**
@@ -27,18 +28,14 @@ import org.keycloak.admin.client.KeycloakBuilder;
  */
 public class KeycloakAuth extends ClientCredentialsAuth {
 
-    private static final String CLIENT_CREDENTIALS = "client_credentials";
-    private final Keycloak keycloak;
+    private final AuthzClient keycloak;
 
     public KeycloakAuth(String serverUrl, String realm, String clientId, String clientSecret) {
         super(serverUrl, realm, clientId, clientSecret);
-        this.keycloak = KeycloakBuilder.builder()
-                .serverUrl(serverUrl)
-                .realm(realm)
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .grantType(CLIENT_CREDENTIALS)
-                .build();
+        final HashMap<String, Object> credentials = new HashMap<>();
+        credentials.put("secret", clientSecret);
+        final Configuration configuration = new Configuration(serverUrl, realm, clientId, credentials, null);
+        this.keycloak = AuthzClient.create(configuration);
     }
 
     /**
@@ -46,7 +43,7 @@ public class KeycloakAuth extends ClientCredentialsAuth {
      */
     @Override
     public void apply(Map<String, String> requestHeaders) {
-        requestHeaders.put("Authorization", BEARER + this.keycloak.tokenManager().getAccessToken().getToken());
+        requestHeaders.put("Authorization", BEARER + this.keycloak.obtainAccessToken().getToken());
     }
 
     public static class Builder {

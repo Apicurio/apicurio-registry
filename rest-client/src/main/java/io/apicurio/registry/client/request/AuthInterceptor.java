@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+
 import io.apicurio.registry.auth.Auth;
 import okhttp3.Headers;
 import okhttp3.Headers.Builder;
@@ -40,7 +41,6 @@ public class AuthInterceptor implements Interceptor {
         final Request request = chain.request();
         Map<String, String> headers = new HashMap<>();
         auth.apply(headers);
-
         Builder builder = request.headers().newBuilder();
         headers.entrySet().forEach(entry -> builder.add(entry.getKey(), entry.getValue()));
         final Headers requestHeaders = builder.build();

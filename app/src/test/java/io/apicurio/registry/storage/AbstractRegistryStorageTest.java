@@ -22,12 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.UUID;
 
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
@@ -66,7 +72,24 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             "        \"description\": \"An example API design using OpenAPI.\"" + 
             "    }" + 
             "}";
-    
+
+    @Inject
+    TenantContext tenantCtx;
+
+    protected String tenantId1;
+    protected String tenantId2;
+
+    @BeforeEach
+    protected void setTenantIds() throws Exception {
+        tenantId1 = randomTenantId();
+        tenantId2 = randomTenantId();
+    }
+
+    @AfterEach
+    protected void resetTenant() throws Exception {
+        tenantCtx.clearTenantId();
+    }
+
     /**
      * Gets the storage to use.  Subclasses must provide this.
      */
@@ -870,4 +893,284 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    @Test
+    public void testMultiTenant_CreateArtifact() throws Exception {
+        initTenants();
+        
+        // Add an artifact for tenantId 1
+        switchToTenant1();
+        String artifactId = "testMultiTenant_CreateArtifact";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = storage().createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+
+        StoredArtifact storedArtifact = storage().getArtifact(artifactId);
+        Assertions.assertNotNull(storedArtifact);
+        Assertions.assertEquals(OPENAPI_CONTENT, storedArtifact.getContent().content());
+        Assertions.assertEquals(dto.getGlobalId(), storedArtifact.getGlobalId());
+        Assertions.assertEquals(dto.getVersion(), storedArtifact.getVersion());
+
+        ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(artifactId);
+        Assertions.assertNotNull(amdDto);
+        Assertions.assertEquals(dto.getGlobalId(), amdDto.getGlobalId());
+        Assertions.assertEquals("Empty API", amdDto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", amdDto.getDescription());
+        Assertions.assertEquals(ArtifactState.ENABLED, amdDto.getState());
+        Assertions.assertEquals(1, amdDto.getVersion());
+        Assertions.assertNull(amdDto.getLabels());
+        Assertions.assertNull(amdDto.getProperties());
+
+        // Switch to tenantId 2 and make sure the GET operations no longer work
+        switchToTenant2();
+        try {
+            storage().getArtifact(artifactId);
+            Assertions.fail("Expected 404 not found for TENANT-2");
+        } catch (ArtifactNotFoundException e) {
+            // correct response
+        }
+    }
+
+    @Test
+    public void testMultiTenant_CreateSameArtifact() throws Exception {
+        initTenants();
+        
+        // Add an artifact for tenantId 1
+        switchToTenant1();
+        String artifactId = "testMultiTenant_CreateSameArtifact";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactMetaDataDto dto = storage().createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+
+        // Switch to tenantId 2 and create the same artifact
+        switchToTenant2();
+        content = ContentHandle.create(OPENAPI_CONTENT);
+        dto = storage().createArtifact(artifactId, ArtifactType.OPENAPI, content).toCompletableFuture().get();
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals("Empty API", dto.getName());
+        Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
+        Assertions.assertNull(dto.getLabels());
+        Assertions.assertNull(dto.getProperties());
+        Assertions.assertEquals(ArtifactState.ENABLED, dto.getState());
+        Assertions.assertEquals(1, dto.getVersion());
+    }
+
+    @Test
+    public void testMultiTenant_Search() throws Exception {
+        initTenants();
+        
+        // Add 10 artifacts for tenantId 1
+        switchToTenant1();
+        String artifactIdPrefix = "testMultiTenant_Search-";
+        for (int idx = 1; idx <= 10; idx++) {
+            String artifactId = artifactIdPrefix + idx;
+            ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+            List<String> labels = Collections.singletonList("testMultiTenant_Search");
+            Map<String, String> properties = Collections.emptyMap();
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    artifactId + "-name",
+                    artifactId + "-description",
+                    labels,
+                    properties);
+            storage().createArtifactWithMetadata(artifactId, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+        }
+
+        // Search for the artifacts using Tenant 2 (0 results expected)
+        switchToTenant2();
+        ArtifactSearchResults searchResults = storage().searchArtifacts("testMultiTenant_Search", 0, 100, SearchOver.labels, SortOrder.asc);
+        Assertions.assertNotNull(searchResults);
+        Assertions.assertEquals(0, searchResults.getCount());
+        Assertions.assertTrue(searchResults.getArtifacts().isEmpty());
+
+        // Search for the artifacts using Tenant 1 (10 results expected)
+        switchToTenant1();
+        searchResults = storage().searchArtifacts("testMultiTenant_Search", 0, 100, SearchOver.labels, SortOrder.asc);
+        Assertions.assertNotNull(searchResults);
+        Assertions.assertEquals(10, searchResults.getCount());
+        Assertions.assertEquals(10, searchResults.getArtifacts().size());
+    }
+
+    @Test
+    public void testMultiTenant_GlobalRules() {
+        initTenants();
+        
+        switchToTenant1();
+
+        List<RuleType> globalRules = storage().getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertTrue(globalRules.isEmpty());
+
+        RuleConfigurationDto config = new RuleConfigurationDto();
+        config.setConfiguration("FULL");
+        storage().createGlobalRule(RuleType.COMPATIBILITY, config);
+        try {
+            storage().createGlobalRule(RuleType.COMPATIBILITY, config);
+            Assertions.fail("Expected a RuleAlreadyExistsException for " + RuleType.COMPATIBILITY);
+        } catch (RuleAlreadyExistsException e) {
+            // this is expected
+        }
+
+        RuleConfigurationDto rule = storage().getGlobalRule(RuleType.COMPATIBILITY);
+        Assertions.assertEquals(rule.getConfiguration(), config.getConfiguration());
+
+        globalRules = storage().getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertFalse(globalRules.isEmpty());
+        Assertions.assertEquals(globalRules.size(), 1);
+        Assertions.assertEquals(globalRules.get(0), RuleType.COMPATIBILITY);
+
+        ///////////////////////////////////////////////////
+        // Now switch to tenant #2 and do the same stuff
+        ///////////////////////////////////////////////////
+
+        switchToTenant2();
+        globalRules = storage().getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertTrue(globalRules.isEmpty());
+
+        config = new RuleConfigurationDto();
+        config.setConfiguration("FULL");
+        storage().createGlobalRule(RuleType.COMPATIBILITY, config);
+        try {
+            storage().createGlobalRule(RuleType.COMPATIBILITY, config);
+            Assertions.fail("Expected a RuleAlreadyExistsException for " + RuleType.COMPATIBILITY);
+        } catch (RuleAlreadyExistsException e) {
+            // this is expected
+        }
+
+        rule = storage().getGlobalRule(RuleType.COMPATIBILITY);
+        Assertions.assertEquals(rule.getConfiguration(), config.getConfiguration());
+
+        globalRules = storage().getGlobalRules();
+        Assertions.assertNotNull(globalRules);
+        Assertions.assertFalse(globalRules.isEmpty());
+        Assertions.assertEquals(globalRules.size(), 1);
+        Assertions.assertEquals(globalRules.get(0), RuleType.COMPATIBILITY);
+    }
+
+    @Test
+    public void testMultiTenant_ArtifactNotFound() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testArtifactNotFound();
+        switchToTenant2();
+        this.testArtifactNotFound();
+    }
+
+    @Test
+    public void testMultiTenant_CreateArtifactRule() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testCreateArtifactRule();
+        switchToTenant2();
+        this.testCreateArtifactRule();
+    }
+
+    @Test
+    public void testMultiTenant_CreateArtifactVersionWithMetaData() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testCreateArtifactVersionWithMetaData();
+        switchToTenant2();
+        this.testCreateArtifactVersionWithMetaData();
+    }
+
+    @Test
+    public void testMultiTenant_CreateDuplicateArtifact() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testCreateDuplicateArtifact();
+        switchToTenant2();
+        this.testCreateDuplicateArtifact();
+    }
+
+    @Test
+    public void testMultiTenant_UpdateArtifactMetaData() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testUpdateArtifactMetaData();
+        switchToTenant2();
+        this.testUpdateArtifactMetaData();
+    }
+
+    @Test
+    public void testMultiTenant_UpdateArtifactRule() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testUpdateArtifactRule();
+        switchToTenant2();
+        this.testUpdateArtifactRule();
+    }
+
+    @Test
+    public void testMultiTenant_UpdateArtifactState() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testUpdateArtifactState();
+        switchToTenant2();
+        this.testUpdateArtifactState();
+    }
+
+    @Test
+    public void testMultiTenant_UpdateArtifactVersionMetaData() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testUpdateArtifactVersionMetaData();
+        switchToTenant2();
+        this.testUpdateArtifactVersionMetaData();
+    }
+
+    @Test
+    public void testMultiTenant_UpdateArtifactVersionState() throws Exception {
+        initTenants();
+        
+        switchToTenant1();
+        this.testUpdateArtifactVersionState();
+        switchToTenant2();
+        this.testUpdateArtifactVersionState();
+    }
+
+    /**
+     * Generates a random tentant id.
+     */
+    protected String randomTenantId() {
+        return "t_" + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /**
+     * Initializes the DB schemas for tenant1 and tenant2. This must be called for the
+     * multi-tenancy tests to work.
+     */
+    protected abstract void initTenants();
+
+    protected void switchToTenant2() {
+        tenantCtx.tenantId(tenantId2);
+    }
+
+    protected void switchToTenant1() {
+        tenantCtx.tenantId(tenantId1);
+    }
+    
 }

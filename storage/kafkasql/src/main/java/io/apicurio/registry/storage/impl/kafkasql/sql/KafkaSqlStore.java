@@ -35,7 +35,7 @@ import io.apicurio.registry.types.RuleType;
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     public boolean isArtifactExists(String artifactId) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet(handle -> {
             String sql = sqlStatements().selectArtifactCountById();
             return handle.createQuery(sql)
                     .bind(0, artifactId)
@@ -45,7 +45,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements().selectContentCountByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
@@ -55,7 +55,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     public boolean isArtifactRuleExists(String artifactId, RuleType rule) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements().selectArtifactRuleCountByType();
             return handle.createQuery(sql)
                     .bind(0, artifactId)
@@ -66,7 +66,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     public boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements().selectGlobalRuleCountByType();
             return handle.createQuery(sql)
                     .bind(0, rule.name())
@@ -77,7 +77,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     
     @Transactional
     public void storeContent(String contentHash, ArtifactType artifactType, ContentHandle content) throws RegistryStorageException {
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             super.createOrUpdateContent(handle, artifactType, content);
             return null;
         });
@@ -121,7 +121,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     private long contentIdFromHash(String contentHash) {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)

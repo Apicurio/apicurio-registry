@@ -18,6 +18,8 @@ package io.apicurio.registry.storage.impl.sql;
 
 import javax.inject.Inject;
 
+import org.junit.jupiter.api.Assertions;
+
 import io.apicurio.registry.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.quarkus.test.junit.QuarkusTest;
@@ -37,6 +39,29 @@ class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
     @Override
     protected RegistryStorage storage() {
         return storage;
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#initTenants()
+     */
+    @Override
+    protected void initTenants() {
+        // Create DB schemas for tenant 1 and 2
+        Assertions.assertNotNull(storage);
+        Assertions.assertNotNull(storage.handleFactory());
+        storage.handleFactory().withHandleQuiet(handle -> {
+            handle.createUpdate("CREATE SCHEMA IF NOT EXISTS " + tenantId1).execute();
+            handle.createUpdate("CREATE SCHEMA IF NOT EXISTS " + tenantId2).execute();
+            return null;
+        });
+        
+        // Initialize tenant 1
+        switchToTenant1();
+        storage.initializeDatabase();
+        
+        // Initialize tenant 2
+        switchToTenant2();
+        storage.initializeDatabase();
     }
 
 }

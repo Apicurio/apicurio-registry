@@ -48,6 +48,7 @@ import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -95,6 +96,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     private static final Object dbMutex = new Object();
 
     @Inject
+    TenantContext tenantContext;
+    protected TenantContext tenantContext() {
+        return tenantContext;
+    }
+
+    @Inject
     AgroalDataSource dataSource;
 
     @Inject
@@ -109,7 +116,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
     boolean initDB;
 
-    protected Jdbi jdbi;
+    private Jdbi jdbi;
 
     /**
      * Constructor.
@@ -117,13 +124,28 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public AbstractSqlRegistryStorage() {
     }
     
-    protected <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
-        try {
-            return this.jdbi.withHandle(callback);
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
+    public class HandleFactory {
+        public <R, X extends Exception> R withHandleQuiet(HandleCallback<R, X> callback) {
+            try {
+                return withHandle(callback);
+            } catch (Exception e) {
+                throw new RegistryStorageException(e);
+            }
+        }
+        public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
+            return jdbi.withHandle((handle) -> {
+                // Whenever we get a handle, we need to set the current schema based on the tenant context.
+                // TODO different logic here for H2 vs. Postgresql
+                String schemaName = tenantContext().tenantId() != null ? tenantContext().tenantId() : "PUBLIC";
+                log.debug("Using DB schema: {}", schemaName);
+                handle.createUpdate("SET SCHEMA " + schemaName).execute();
+                return (R) callback.withHandle(handle);
+            });
         }
     }
+    private HandleFactory _handleFactory = null;
+    public HandleFactory handleFactory() { return _handleFactory; }
+    
 
     @PostConstruct
     @Transactional
@@ -131,6 +153,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("SqlRegistryStorage constructed successfully.");
 
         jdbi = Jdbi.create(dataSource);
+        _handleFactory = new HandleFactory();
 
         if (initDB) {
             // TODO create the JDBI handle once and pass it in to all these DB related methods
@@ -163,9 +186,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseInitialized() {
+    protected boolean isDatabaseInitialized() {
         log.info("Checking to see if the DB is initialized.");
-        return withHandle(handle -> {
+        return handleFactory().withHandleQuiet(handle -> {
             ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
             return result.one().intValue() > 0;
         });
@@ -174,20 +197,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseCurrent() {
+    protected boolean isDatabaseCurrent() {
         log.info("Checking to see if the DB is up-to-date.");
         int version = this.getDatabaseVersion();
         return version == DB_VERSION;
     }
 
-    private void initializeDatabase() {
+    protected void initializeDatabase() {
         log.info("Initializing the Apicurio Registry database.");
         log.info("\tDatabase type: " + this.sqlStatements.dbType());
 
         final List<String> statements = this.sqlStatements.databaseInitialization();
         log.debug("---");
 
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             statements.forEach( statement -> {
                 log.debug(statement);
                 handle.createUpdate(statement).execute();
@@ -201,7 +224,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * Upgrades the database by executing a number of DDL statements found in DB-specific
      * DDL upgrade scripts.
      */
-    private void upgradeDatabase() {
+    protected void upgradeDatabase() {
         log.info("Upgrading the Apicurio Hub API database.");
 
         int fromVersion = this.getDatabaseVersion();
@@ -213,7 +236,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         final List<String> statements = this.sqlStatements.databaseUpgrade(fromVersion, toVersion);
         log.debug("---");
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             statements.forEach( statement -> {
                 log.debug(statement);
 
@@ -251,7 +274,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * Reuturns the current DB version by selecting the value in the 'apicurio' table.
      */
     private int getDatabaseVersion() {
-        return withHandle(handle -> {
+        return handleFactory().withHandleQuiet(handle -> {
             ResultIterable<String> result = handle.createQuery(this.sqlStatements.getDatabaseVersion())
                     .bind(0, "db_version")
                     .mapTo(String.class);
@@ -272,7 +295,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public void updateArtifactState(String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} to {}", artifactId, state.name());
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(artifactId);
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             long globalId = dto.getGlobalId();
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
@@ -297,7 +320,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public void updateArtifactState(String artifactId, ArtifactState state, Integer version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {}, version {} to {}", artifactId, version, state.name());
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(artifactId, version);
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             long globalId = dto.getGlobalId();
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
@@ -486,7 +509,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = withHandle(handle -> {
+        long contentId = handleFactory().withHandleQuiet(handle -> {
             return createOrUpdateContent(handle, artifactType, content);
         });
 
@@ -504,7 +527,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {}", artifactId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 // Create a row in the artifacts table.
                 String sql = sqlStatements.insertArtifact();
                 handle.createUpdate(sql)
@@ -543,7 +566,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting an artifact: {}", artifactId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 // Get the list of versions of the artifact (will be deleted)
                 String sql = sqlStatements.selectArtifactVersions();
                 List<Long> versions = handle.createQuery(sql)
@@ -612,7 +635,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact (latest version) by artifactId: {}", artifactId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactContent();
                 return handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -656,7 +679,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = withHandle(handle -> {
+        long contentId = handleFactory().withHandleQuiet(handle -> {
             return createOrUpdateContent(handle, artifactType, content);
         });
 
@@ -679,7 +702,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(artifactId);
 
         // Create version and return
-        return withHandle(handle -> {
+        return handleFactory().withHandleQuiet(handle -> {
             // Metadata comes from the latest version
             String name = latest.getName();
             String description = latest.getDescription();
@@ -718,7 +741,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public Set<String> getArtifactIds(Integer limit) {
         log.debug("Getting the set of all artifact IDs");
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements.selectArtifactIds();
             List<String> ids = handle.createQuery(sql)
                     .bind(0, limit)
@@ -735,7 +758,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver,
             SortOrder sortOrder) {
         log.info("Searching for artifacts: {} over {} with {} ordering", search, searchOver, sortOrder);
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
             StringBuilder select = new StringBuilder();
@@ -852,7 +875,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private ArtifactMetaDataDto getLatestArtifactMetaDataInternal(String artifactId) {
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactMetaData();
                 return handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -882,7 +905,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
 
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactMetaDataByContentHash();
                 if (canonical) {
                     sql = sqlStatements.selectArtifactMetaDataByCanonicalHash();
@@ -908,7 +931,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting meta-data for globalId: {}", globalId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactMetaDataByGlobalId();
                 return handle.createQuery(sql)
                         .bind(0, globalId)
@@ -943,7 +966,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of all artifact rules for: {}", artifactId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactRules();
                 List<RuleType> rules = handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -977,7 +1000,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         log.debug("Inserting an artifact rule row for artifact: {} rule: {}", artifactId, rule.name());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.insertArtifactRule();
                 handle.createUpdate(sql)
                       .bind(0, artifactId)
@@ -1007,7 +1030,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting all artifact rules for artifact: {}", artifactId);
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRules();
                 int count = handle.createUpdate(sql)
                       .bind(0, artifactId)
@@ -1034,7 +1057,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactRuleByType();
                 try {
                     return handle.createQuery(sql)
@@ -1066,7 +1089,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         log.debug("Updating an artifact rule for artifact: {} and rule: {}::{}", artifactId, rule.name(), config.getConfiguration());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactRule();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, config.getConfiguration())
@@ -1097,7 +1120,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         log.debug("Deleting an artifact rule for artifact: {} and rule: {}", artifactId, rule.name());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRule();
                 int rowCount = handle.createUpdate(sql)
                       .bind(0, artifactId)
@@ -1127,7 +1150,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for an artifact");
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersions();
                 List<Long> versions = handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -1152,7 +1175,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
         log.debug("Searching for versions of artifact {}", artifactId);
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements.selectAllArtifactVersions();
             List<SearchedVersion> versions = handle.createQuery(sql)
                     .bind(0, artifactId)
@@ -1182,7 +1205,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by globalId: {}", globalId);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContentByGlobalId();
                 return handle.createQuery(sql)
                         .bind(0, globalId)
@@ -1204,7 +1227,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by artifactId: {} and version {}", artifactId, version);
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContent();
                 return handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -1244,7 +1267,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         // Otherwise, delete just the one version and then reset the "latest" column on the artifacts table.
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 // Set the 'latest' version of an artifact to NULL
                 String sql = sqlStatements.updateArtifactLatest();
                 handle.createUpdate(sql)
@@ -1316,7 +1339,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     private ArtifactVersionMetaDataDto getArtifactVersionMetaDataInternal(String artifactId, long version) {
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();
                 return handle.createQuery(sql)
                         .bind(0, artifactId)
@@ -1354,7 +1377,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private void internalUpdateArtifactVersionMetadata(long globalId, String artifactId, Integer version, EditableArtifactMetaDataDto metaData) {
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 if (version == null) {
                     String sql = sqlStatements.updateArtifactMetaDataLatestVersion();
                     int rowCount = handle.createUpdate(sql)
@@ -1437,7 +1460,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Deleting user-defined meta-data for artifact {} version {}", artifactId, version);
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactVersionMetaData();
                 // NULL out the name, description, labels, and properties columns of the "versions" table.
                 int rowCount = handle.createUpdate(sql)
@@ -1481,7 +1504,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         log.debug("Getting a list of all Global Rules");
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements.selectGlobalRules();
             return handle.createQuery(sql)
                     .map(new RowMapper<RuleType>() {
@@ -1502,7 +1525,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws RuleAlreadyExistsException, RegistryStorageException {
         log.debug("Inserting a global rule row for: {}", rule.name());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.insertGlobalRule();
                 handle.createUpdate(sql)
                       .bind(0, rule.name())
@@ -1524,7 +1547,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public void deleteGlobalRules() throws RegistryStorageException {
         log.debug("Deleting all Global Rules");
-        withHandle( handle -> {
+        handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements.deleteGlobalRules();
             handle.createUpdate(sql)
                   .execute();
@@ -1540,7 +1563,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws RuleNotFoundException, RegistryStorageException {
         log.debug("Selecting a single global rule: {}", rule.name());
         try {
-            return this.jdbi.withHandle( handle -> {
+            return handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.selectGlobalRuleByType();
                 return handle.createQuery(sql)
                         .bind(0, rule.name())
@@ -1562,7 +1585,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws RuleNotFoundException, RegistryStorageException {
         log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.updateGlobalRule();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, config.getConfiguration())
@@ -1587,7 +1610,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         log.debug("Deleting a global rule: {}", rule.name());
         try {
-            this.jdbi.withHandle( handle -> {
+            handleFactory().withHandle( handle -> {
                 String sql = sqlStatements.deleteGlobalRule();
                 int rowCount = handle.createUpdate(sql)
                       .bind(0, rule.name())
@@ -1656,7 +1679,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     protected ContentHandle getContent(long contentId) {
-        return withHandle( handle -> {
+        return handleFactory().withHandleQuiet( handle -> {
             String sql = sqlStatements().selectContentById();
             return handle.createQuery(sql)
                     .bind(0, contentId)

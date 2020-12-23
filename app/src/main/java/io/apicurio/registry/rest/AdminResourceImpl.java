@@ -18,35 +18,30 @@ package io.apicurio.registry.rest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import javax.enterprise.context.ApplicationScoped;
+import io.apicurio.registry.logging.Logged;
 
 /**
  * @author Fabian Martinez
  */
-@Path("admin")
-public class AdminResourceImpl {
+@ApplicationScoped
+@Logged
+public class AdminResourceImpl implements AdminResource {
 
     private static final Logger log = Logger.getLogger(AdminResourceImpl.class.getName());
 
     private static Level getLogLevel(Logger logger) {
-        for (Logger current = logger; current != null;) {
-           Level level = current.getLevel();
-           if (level != null)
-              return level;
-           current = current.getParent();
+        for ( Logger current = logger; current != null; ) {
+            Level level = current.getLevel();
+            if (level != null)
+                return level;
+            current = current.getParent();
         }
         return Level.INFO;
-     }
+    }
 
-     @GET
-     @Path("logging/{logger}")
-     @Produces(MediaType.TEXT_PLAIN)
-     public String logger(@PathParam("logger") String loggerName, @QueryParam("level") String level) {
+    @Override
+    public String logger(String loggerName, String level) {
         // get the logger instance
         Logger logger = Logger.getLogger(loggerName);
 
@@ -58,6 +53,6 @@ public class AdminResourceImpl {
 
         // return the current log-level
         return getLogLevel(logger).getName();
-     }
+    }
 
 }

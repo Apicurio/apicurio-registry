@@ -193,10 +193,9 @@
                         <configuration>
                             <output>${project.build.testOutputDirectory}/application.properties</output>
                             <inputs>
-                                <param>${project.build.testOutputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
                             </inputs>
-                            <deleteInputs>true</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>

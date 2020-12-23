@@ -139,6 +139,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         Error error = toError(t, code);
         if (isCompatEndpoint()) {
             error.setDetail(null);
+            error.setName(null);
         }
         return builder.type(MediaType.APPLICATION_JSON)
                       .entity(error)

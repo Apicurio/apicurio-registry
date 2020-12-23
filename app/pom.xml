@@ -311,7 +311,7 @@
                 <version>${project.version}</version>
                 <executions>
                     <execution>
-                        <id>merge-test-properties</id>
+                        <id>merge-test-properties-base</id>
                         <phase>process-test-classes</phase>
                         <goals>
                             <goal>merge</goal>
@@ -322,7 +322,6 @@
                                 <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.testOutputDirectory}/test-application.properties</param>
                             </inputs>
-                            <deleteInputs>true</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>

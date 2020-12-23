@@ -25,7 +25,7 @@ public class AuthTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.auth.enabled", "true");
+        return Collections.emptyMap();
     }
 
     @Override

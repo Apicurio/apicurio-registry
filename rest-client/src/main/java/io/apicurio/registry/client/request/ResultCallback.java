@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.client.exception.ForbiddenException;
+import io.apicurio.registry.client.exception.NotAuthorizedException;
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.response.ExceptionMapper;
 import io.apicurio.registry.rest.Headers;
@@ -37,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpStatus;
+import org.keycloak.authorization.client.util.HttpResponseException;
 
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
@@ -90,7 +92,18 @@ public class ResultCallback<T> implements Callback<T> {
 
     @Override
     public void onFailure(Call<T> call, Throwable t) {
-        result.completeExceptionally(t);
+        Throwable rootCause = extractRootCause(t);
+        if (rootCause instanceof HttpResponseException) {
+            //authorization error
+            HttpResponseException hre = (HttpResponseException) rootCause;
+            Error error = new Error();
+            error.setErrorCode(hre.getStatusCode());
+            error.setMessage(hre.getMessage());
+            error.setDetail(hre.getReasonPhrase());
+            result.completeExceptionally(new NotAuthorizedException(error));
+        } else {
+            result.completeExceptionally(t);
+        }
     }
 
     public T getResult() throws RestClientException {
@@ -101,20 +114,7 @@ public class ResultCallback<T> implements Callback<T> {
         } catch (RestClientException ex) {
             throw ExceptionMapper.map(ex);
         } catch (Exception e) {
-            Throwable cause = null;
-            while (true) {
-                if (cause == null) {
-                    cause = e;
-                } else {
-                    if (cause.getCause() == null || cause.getCause().equals(cause)) {
-                        break;
-                    }
-                    cause = cause.getCause();
-                }
-            }
-            if (cause.getSuppressed().length != 0) {
-                cause = cause.getSuppressed()[0];
-            }
+            Throwable cause = extractRootCause(e);
             if (cause instanceof RestClientException) {
                 throw (RestClientException) cause;
             } else {
@@ -126,6 +126,24 @@ public class ResultCallback<T> implements Callback<T> {
                 throw new RestClientException(error);
             }
         }
+    }
+
+    private Throwable extractRootCause(Throwable e) {
+        Throwable cause = null;
+        while (true) {
+            if (cause == null) {
+                cause = e;
+            } else {
+                if (cause.getCause() == null || cause.getCause().equals(cause)) {
+                    break;
+                }
+                cause = cause.getCause();
+            }
+        }
+        if (cause.getSuppressed().length != 0) {
+            cause = cause.getSuppressed()[0];
+        }
+        return cause;
     }
 
     private static void checkIfDeprecated(okhttp3.Headers headers) {

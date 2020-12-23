@@ -34,7 +34,7 @@ import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -76,9 +76,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
-        given().when().delete("/rules").then().statusCode(204);
+        client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            given().when().get("/rules").then().statusCode(200).body("size()", is(expectedDefaultRulesCount));
+            assertEquals(expectedDefaultRulesCount, client.listGlobalRules().size());
         });
     }
 

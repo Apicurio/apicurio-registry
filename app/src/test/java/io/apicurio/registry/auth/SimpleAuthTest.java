@@ -25,7 +25,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,14 +68,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     @Override
     @BeforeAll
     protected void beforeAll() throws Exception {
+        System.out.println("Auth is " + authEnabled);
         registryUrl = "http://localhost:8081/api";
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
         client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-    }
-
-    @BeforeEach
-    void verifyAuth() {
-        System.out.println("Auth is " + authEnabled);
     }
 
     @AfterEach

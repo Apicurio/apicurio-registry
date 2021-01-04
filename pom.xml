@@ -134,7 +134,7 @@
         <infinispan.version>12.0.0.Dev07</infinispan.version>
 
         <!-- Picocli -->
-        <picocli.version>4.5.2</picocli.version>
+        <picocli.version>4.6.1</picocli.version>
 
         <!-- gRPC -->
         <grpc.version>1.34.1</grpc.version>

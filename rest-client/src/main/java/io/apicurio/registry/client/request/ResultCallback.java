@@ -100,7 +100,11 @@ public class ResultCallback<T> implements Callback<T> {
             error.setErrorCode(hre.getStatusCode());
             error.setMessage(hre.getMessage());
             error.setDetail(hre.getReasonPhrase());
-            result.completeExceptionally(new NotAuthorizedException(error));
+            if (hre.getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
+                result.completeExceptionally(new NotAuthorizedException(error));
+            } else {
+                result.completeExceptionally(new RestClientException(error));
+            }
         } else {
             result.completeExceptionally(t);
         }

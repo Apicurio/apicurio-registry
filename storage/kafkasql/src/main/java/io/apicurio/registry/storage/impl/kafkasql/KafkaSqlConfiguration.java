@@ -25,11 +25,14 @@ public interface KafkaSqlConfiguration {
 
     public String bootstrapServers();
     public String topic();
+    public Properties topicProperties();
+    public Boolean isTopicAutoCreate();
     public Integer startupLag();
     public Integer pollTimeout();
     public Integer baseOffset();
     public Integer responseTimeout();
     public Properties producerProperties();
     public Properties consumerProperties();
+    public Properties adminProperties();
     
 }

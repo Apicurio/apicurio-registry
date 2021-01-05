@@ -16,12 +16,7 @@
 
 package io.apicurio.registry.test.utils;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
@@ -30,7 +25,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Fabian Martinez Gonzalez
@@ -69,10 +67,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
         properties.put("connections.max.idle.ms", 10000);
         properties.put("request.timeout.ms", 5000);
         try (AdminClient client = AdminClient.create(properties)) {
-            CreateTopicsResult result = client.createTopics(Arrays.asList(
-                    new NewTopic("storage-topic", 1, (short) 1),
-                    new NewTopic("global-id-topic", 1, (short) 1),
-                    new NewTopic("snapshot-topic", 1, (short) 1),
+            CreateTopicsResult result = client.createTopics(Collections.singletonList(
                     new NewTopic("kafkasql-journal", 1, (short) 1)
             ));
             try {

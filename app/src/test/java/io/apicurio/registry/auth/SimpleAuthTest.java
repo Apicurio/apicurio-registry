@@ -125,14 +125,15 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
 
+        String artifactId = TestUtils.generateArtifactId();
         {
             Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
             RegistryRestClient devClient = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), devAuth);
-            ArtifactMetaData meta = devClient.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = devClient.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
         }
 
-        assertNotNull(client.getLatestArtifact("ccc"));
+        assertNotNull(client.getLatestArtifact(artifactId));
 
     }
 
@@ -143,10 +144,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
 
+        String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifacts();
 
-            ArtifactMetaData meta = client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
 
             assertNotNull(client.getLatestArtifact(meta.getId()));
@@ -160,7 +162,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
                 client.createGlobalRule(ruleConfig);
             });
         } finally {
-            client.deleteArtifact("ccc");
+            client.deleteArtifact(artifactId);
         }
 
 
@@ -174,10 +176,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
 
+        String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifacts();
 
-            ArtifactMetaData meta = client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
 
             assertNotNull(client.getLatestArtifact(meta.getId()));
@@ -189,7 +192,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             client.createGlobalRule(ruleConfig);
         } finally {
-            client.deleteArtifact("ccc");
+            client.deleteArtifact(artifactId);
         }
 
     }

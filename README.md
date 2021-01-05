@@ -25,7 +25,13 @@ Additionally, there are 2 main configuration profiles:
  
 ### Getting started
 
+ `./mvnw clean package -DskipTests`
  `./mvnw quarkus:dev`
+ 
+This should result in Quarkus starting up and the registry available on localhost port 8080.  Here some some links you can point your browser to once registry is started:
+
+* [User Interface](http://localhost:8080/)
+* [API documentation](http://localhost:8080/api)
 
 ### Build Options
  

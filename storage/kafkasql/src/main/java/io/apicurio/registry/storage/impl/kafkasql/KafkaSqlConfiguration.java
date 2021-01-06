@@ -26,7 +26,7 @@ public interface KafkaSqlConfiguration {
     public String bootstrapServers();
     public String topic();
     public Properties topicProperties();
-    public Boolean isTopicAutoCreate();
+    public boolean isTopicAutoCreate();
     public Integer startupLag();
     public Integer pollTimeout();
     public Integer baseOffset();

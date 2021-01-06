@@ -112,8 +112,7 @@ public class KafkaUtil {
                 }
                 int minimumInSyncReplicas = Math.max(replicationFactor - 1, 1);
                 topicProperties.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minimumInSyncReplicas));
-                return new NewTopic(topicName, 1, (short) replicationFactor)
-                        .configs(Collections.singletonMap(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minimumInSyncReplicas)));
+                return new NewTopic(topicName, 1, (short) replicationFactor).configs(topicProperties);
             }).whenComplete((nt, t) -> log.info("Created new topic: {}", topicName, t));
             NewTopic newTopic = KafkaUtil.result(newTopicKF);
             return newTopic;

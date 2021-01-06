@@ -115,7 +115,7 @@ public class KafkaSqlFactory {
                 return topicProperties;
             }
             @Override
-            public Boolean isTopicAutoCreate() {
+            public boolean isTopicAutoCreate() {
                 return topicAutoCreate;
             }
             @Override

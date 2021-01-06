@@ -18,9 +18,6 @@ package io.apicurio.registry.test.utils;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
@@ -28,7 +25,6 @@ import org.testcontainers.containers.KafkaContainer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Fabian Martinez Gonzalez
@@ -66,16 +62,6 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
         properties.put("bootstrap.servers", bootstrapServers);
         properties.put("connections.max.idle.ms", 10000);
         properties.put("request.timeout.ms", 5000);
-        try (AdminClient client = AdminClient.create(properties)) {
-            CreateTopicsResult result = client.createTopics(Collections.singletonList(
-                    new NewTopic("kafkasql-journal", 1, (short) 1)
-            ));
-            try {
-                result.all().get();
-            } catch ( InterruptedException | ExecutionException e ) {
-                throw new IllegalStateException(e);
-            }
-        }
     }
 
     public void stop() {

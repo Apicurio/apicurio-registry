@@ -16,6 +16,7 @@
 package io.apicurio.registry;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,11 +60,21 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     void testLoggerSetsLevel(String level) {
         RestAssured.given()
                 .when()
-                .get("/admin/logging/" + TEST_LOGGER_NAME + "?level=" + level)
+                .put("/admin/logging/" + TEST_LOGGER_NAME + "?level=" + level)
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.TEXT)
                 .body(is(level));
+        assertEquals(level, Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+    }
+
+    @Test
+    void testInvalidLevel() {
+        RestAssured.given()
+                .when()
+                .put("/admin/logging/" + TEST_LOGGER_NAME + "?level=" + "FOO")
+                .then()
+                .statusCode(400);
     }
 
 }

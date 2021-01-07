@@ -35,7 +35,7 @@ Use this `curl` command to change the log level for the logger `io.apicurio.regi
 
 [source,bash]
 ----
-$ curl -i localhost:8080/api/admin/logging/io.apicurio.registry.storage?level=DEBUG
+$ curl -X PUT -i localhost:8080/api/admin/logging/io.apicurio.registry.storage?level=DEBUG
 HTTP/1.1 200 OK
 Date: Tue, 22 Dec 2020 10:48:24 GMT
 Expires: Wed, 22 Dec 2021 10:48:24 GMT

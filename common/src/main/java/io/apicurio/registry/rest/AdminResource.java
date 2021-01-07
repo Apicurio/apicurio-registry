@@ -16,6 +16,7 @@
 package io.apicurio.registry.rest;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -29,7 +30,7 @@ import javax.ws.rs.core.MediaType;
 public interface AdminResource {
 
     /**
-     * Returns the configured log level for the provided loggerName. If level is provided it configures the logger with the given log level.
+     * Returns the configured log level for the provided loggerName
      * @param loggerName
      * @param level
      * @return log level
@@ -37,6 +38,20 @@ public interface AdminResource {
     @GET
     @Path("logging/{logger}")
     @Produces(MediaType.TEXT_PLAIN)
-    String logger(@PathParam("logger") String loggerName, @QueryParam("level") String level);
+    String getLogLevel(@PathParam("logger") String loggerName);
+
+    /**
+     * Configures the logger referenced by the provided loggerName with the given log level and returns the configured log level.
+     *
+     * Returns http status code 400 if level is not provided.
+     *
+     * @param loggerName
+     * @param level
+     * @return log level
+     */
+    @PUT
+    @Path("logging/{logger}")
+    @Produces(MediaType.TEXT_PLAIN)
+    String setLogLevel(@PathParam("logger") String loggerName, @QueryParam("level") String level);
 
 }

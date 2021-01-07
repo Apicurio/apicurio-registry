@@ -19,6 +19,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.BadRequestException;
+
 import io.apicurio.registry.logging.Logged;
 
 /**
@@ -33,25 +35,35 @@ public class AdminResourceImpl implements AdminResource {
     private static Level getLogLevel(Logger logger) {
         for ( Logger current = logger; current != null; ) {
             Level level = current.getLevel();
-            if (level != null)
+            if (level != null) {
                 return level;
+            }
             current = current.getParent();
         }
         return Level.INFO;
     }
 
     @Override
-    public String logger(String loggerName, String level) {
-        // get the logger instance
-        Logger logger = Logger.getLogger(loggerName);
+    public String getLogLevel(String loggerName) {
+        return getLogLevel(Logger.getLogger(loggerName)).getName();
+    }
 
-        // change the log-level if requested
-        if (level != null && level.length() > 0) {
-            logger.setLevel(Level.parse(level));
-            log.info("Changing log level for logger " + loggerName + " to " + level);
+    @Override
+    public String setLogLevel(String loggerName, String level) {
+
+        if (level == null || level.isEmpty()) {
+            throw new BadRequestException("level is mandatory");
         }
 
-        // return the current log-level
+        Logger logger = Logger.getLogger(loggerName);
+
+        try {
+            logger.setLevel(Level.parse(level));
+            log.info("Changing log level for logger " + loggerName + " to " + level);
+        } catch (Exception e) {
+            throw new BadRequestException("level is not a valid log level");
+        }
+
         return getLogLevel(logger).getName();
     }
 

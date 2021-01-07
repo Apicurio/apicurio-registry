@@ -54,6 +54,14 @@ public class KafkaSqlFactory {
     String topic;
 
     @Inject
+    @RegistryProperties(value = "registry.kafkasql.topic")
+    Properties topicProperties;
+
+    @Inject
+    @ConfigProperty(name = "registry.kafkasql.topic.auto-create", defaultValue = "true")
+    Boolean topicAutoCreate;
+
+    @Inject
     @ConfigProperty(name = "registry.kafkasql.consumer.startupLag", defaultValue = "1000")
     Integer startupLag;
 
@@ -83,6 +91,13 @@ public class KafkaSqlFactory {
     )
     Properties consumerProperties;
 
+    @Inject
+    @RegistryProperties(
+            value = {"registry.kafka.common", "registry.kafkasql.admin"},
+            empties = {"ssl.endpoint.identification.algorithm="}
+    )
+    Properties adminProperties;
+
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
@@ -94,6 +109,14 @@ public class KafkaSqlFactory {
             @Override
             public String topic() {
                 return topic;
+            }
+            @Override
+            public Properties topicProperties() {
+                return topicProperties;
+            }
+            @Override
+            public boolean isTopicAutoCreate() {
+                return topicAutoCreate;
             }
             @Override
             public Integer startupLag() {
@@ -118,6 +141,10 @@ public class KafkaSqlFactory {
             @Override
             public Properties consumerProperties() {
                 return consumerProperties;
+            }
+            @Override
+            public Properties adminProperties() {
+                return adminProperties;
             }
             
         };

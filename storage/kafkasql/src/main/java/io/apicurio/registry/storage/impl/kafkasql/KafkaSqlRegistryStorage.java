@@ -30,7 +30,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
@@ -44,8 +48,10 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.TopicConfig;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -86,6 +92,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
+import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.runtime.StartupEvent;
 
 /**
@@ -132,6 +139,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     void onConstruct(@Observes StartupEvent ev) {
         log.info("Using Kafka-SQL storage.");
+        
+        // Create Kafka topics if needed
+        if (configuration.isTopicAutoCreate()) {
+            autoCreateTopics();
+        }
+        
         // Start the Kafka Consumer thread
         startConsumerThread(consumer);
     }
@@ -139,6 +152,21 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @PreDestroy
     void onDestroy() {
         stopped = true;
+    }
+
+    /**
+     * Automatically create the Kafka topics.
+     */
+    private void autoCreateTopics() {
+        Set<String> topicNames = new LinkedHashSet<>();
+        topicNames.add(configuration.topic());
+        Map<String, String> topicProperties = new HashMap<>();
+        configuration.topicProperties().entrySet().forEach(entry -> topicProperties.put(entry.getKey().toString(), entry.getValue().toString()));
+        // Use log compaction by default.
+        topicProperties.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
+        Properties adminProperties = configuration.adminProperties();
+        adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
+        KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
     }
 
     /**

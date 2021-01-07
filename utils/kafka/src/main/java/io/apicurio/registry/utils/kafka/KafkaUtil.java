@@ -16,7 +16,15 @@
 
 package io.apicurio.registry.utils.kafka;
 
-import io.apicurio.registry.utils.ConcurrentUtil;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.KafkaFuture;
@@ -24,13 +32,7 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import io.apicurio.registry.utils.ConcurrentUtil;
 
 /**
  * @author Ales Justin
@@ -60,11 +62,15 @@ public class KafkaUtil {
      *
      * @param properties the Kafka properties to create Kafka admin
      * @param topicNames topics to create, if they don't exist
+     * @param topicConfig the config to use for the new topic
      */
-    public static void createTopics(Properties properties, Set<String> topicNames) {
+    public static void createTopics(Properties properties, Set<String> topicNames, Map<String, String> topicConfig) {
         try (Admin admin = Admin.create(properties)) {
-            createTopics(admin, topicNames);
+            createTopics(admin, topicNames, topicConfig);
         }
+    }
+    public static void createTopics(Properties properties, Set<String> topicNames) {
+        createTopics(properties, topicNames, null);
     }
 
     /**
@@ -72,29 +78,44 @@ public class KafkaUtil {
      *
      * @param admin the Kafka admin to use
      * @param topicNames topics to create, if they don't exist
+     * @param topicConfig the config to use for the new topic
      */
-    public static void createTopics(Admin admin, Set<String> topicNames) {
+    public static void createTopics(Admin admin, Set<String> topicNames, Map<String, String> topicConfig) {
+        if (topicConfig == null) {
+            topicConfig = new HashMap<>();
+        }
+
         Set<String> topics = result(admin.listTopics().names());
         List<NewTopic> topicsToCreate = new ArrayList<>();
         for (String topicName : topicNames) {
-            createTopic(admin, topics, topicsToCreate, topicName);
+            NewTopic newTopic = createTopic(admin, topics, topicName, topicConfig);
+            if (newTopic != null) {
+                topicsToCreate.add(newTopic);
+            }
         }
         if (topicsToCreate.size() > 0) {
             result(admin.createTopics(topicsToCreate).all());
         }
     }
-
-    private static void createTopic(Admin admin, Set<String> topics, List<NewTopic> topicsToCreate, String topicName) {
-        if (!topics.contains(topicName)) {
+    public static void createTopics(Admin admin, Set<String> topicNames) {
+        createTopics(admin, topicNames, null);
+    }
+    
+    private static NewTopic createTopic(Admin admin, Set<String> existingTopicNames, String topicName, final Map<String, String> topicProperties) {
+        if (!existingTopicNames.contains(topicName)) {
             KafkaFuture<NewTopic> newTopicKF = admin.describeCluster().nodes().thenApply(nodes -> {
-                log.info("Creating new topic: {}", topicName);
-                int rf = Math.min(3, nodes.size());
-                int minISR = Math.max(rf - 1, 1);
-                return new NewTopic(topicName, 1, (short) rf)
-                        .configs(Collections.singletonMap(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minISR)));
+                log.info("Creating new Kafka topic: {}", topicName);
+                int replicationFactor = Math.min(3, nodes.size());
+                if (topicProperties.containsKey("replication.factor")) {
+                    replicationFactor = Integer.parseInt(topicProperties.get("replication.factor"));
+                }
+                int minimumInSyncReplicas = Math.max(replicationFactor - 1, 1);
+                topicProperties.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minimumInSyncReplicas));
+                return new NewTopic(topicName, 1, (short) replicationFactor).configs(topicProperties);
             }).whenComplete((nt, t) -> log.info("Created new topic: {}", topicName, t));
             NewTopic newTopic = KafkaUtil.result(newTopicKF);
-            topicsToCreate.add(newTopic);
+            return newTopic;
         }
+        return null;
     }
 }

@@ -56,7 +56,11 @@ public abstract class BaseIT implements TestSeparator, Constants {
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = KafkaFacade.getInstance();
 
-    protected final RegistryRestClient registryClient = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+    protected final RegistryRestClient registryClient = createRegistryClient();
+
+    protected RegistryRestClient createRegistryClient() {
+        return RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+    }
 
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {

@@ -157,7 +157,7 @@ public class TestUtils {
             boolean result;
             try {
                 result = ready.getAsBoolean();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 result = false;
             }
             long timeLeft = deadline - System.currentTimeMillis();

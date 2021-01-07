@@ -136,8 +136,8 @@ public class RegistryConverterIT extends BaseIT {
 
     @Test
     public void testAvro() throws Exception {
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(registryClient);
-             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(registryClient)) {
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(createRegistryClient());
+             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(createRegistryClient())) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
@@ -165,7 +165,7 @@ public class RegistryConverterIT extends BaseIT {
     @Test
     public void testPrettyJson() throws Exception {
         testJson(
-            registryClient,
+            createRegistryClient(),
             new PrettyFormatStrategy(),
             input -> {
                 try {
@@ -182,7 +182,7 @@ public class RegistryConverterIT extends BaseIT {
     @Test
     public void testCompactJson() throws Exception {
         testJson(
-            registryClient,
+            createRegistryClient(),
             new CompactFormatStrategy(),
             input -> {
                 ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);

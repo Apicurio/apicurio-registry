@@ -9,6 +9,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
+import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
 import io.apicurio.registry.utils.streams.diservice.AsyncBiFunctionService;
@@ -33,11 +34,14 @@ import io.grpc.ServerInterceptors;
 import io.grpc.Status;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.kstream.ForeachAction;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.slf4j.Logger;
@@ -51,7 +55,11 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * @author Ales Justin
@@ -99,16 +107,34 @@ public class StreamsRegistryConfiguration {
         producer.close();
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Produces
+    @Singleton // required (cannot be ApplicationScoped), as we don't want proxy
+    public KafkaClientSupplier kafkaClientSupplier(StreamsProperties properties) {
+        KafkaClientSupplier kcs = new DefaultKafkaClientSupplier();
+        if (!properties.ignoreAutoCreate()) {
+            Map<String, Object> configMap = new HashMap(properties.getProperties());
+            try (Admin admin = kcs.getAdmin(configMap)) {
+                Set<String> topicNames = new LinkedHashSet<>();
+                topicNames.add(properties.getStorageTopic());
+                topicNames.add(properties.getGlobalIdTopic());
+                KafkaUtil.createTopics(admin, topicNames);
+            }
+        }
+        return kcs;
+    }
+
     @Produces
     @Singleton
     public KafkaStreams storageStreams(
         StreamsProperties properties,
+        KafkaClientSupplier kafkaClientSupplier, // this injection is here to create a dependency on previous auto-create topics code
         ForeachAction<? super String, ? super Str.Data> dataDispatcher,
         ArtifactTypeUtilProviderFactory factory
     ) {
         Topology topology = new StreamsTopologyProvider(properties, dataDispatcher, factory).get();
 
-        KafkaStreams streams = new KafkaStreams(topology, properties.getProperties());
+        KafkaStreams streams = new KafkaStreams(topology, properties.getProperties(), kafkaClientSupplier);
         streams.setGlobalStateRestoreListener(new LoggingStateRestoreListener());
 
         return streams;

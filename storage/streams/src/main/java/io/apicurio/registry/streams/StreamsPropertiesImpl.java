@@ -47,4 +47,8 @@ public class StreamsPropertiesImpl implements StreamsProperties {
     public String getApplicationServer() {
         return properties.getProperty(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost:9000");
     }
+
+    public boolean ignoreAutoCreate() {
+        return Boolean.parseBoolean(properties.getProperty("ignore.auto-create", "false"));
+    }
 }

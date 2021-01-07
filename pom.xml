@@ -117,14 +117,14 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.10.4.Final</quarkus.version>
+        <quarkus.version>1.10.5.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.1</avro.version>
-        <json-schema-validator.version>1.0.45</json-schema-validator.version>
+        <json-schema-validator.version>1.0.46</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.14.0</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
@@ -134,7 +134,7 @@
         <infinispan.version>12.0.0.Dev07</infinispan.version>
 
         <!-- Picocli -->
-        <picocli.version>4.5.2</picocli.version>
+        <picocli.version>4.6.1</picocli.version>
 
         <!-- gRPC -->
         <grpc.version>1.34.1</grpc.version>
@@ -197,7 +197,7 @@
         <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.38</version.puppycrawl>
+        <version.puppycrawl>8.39</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

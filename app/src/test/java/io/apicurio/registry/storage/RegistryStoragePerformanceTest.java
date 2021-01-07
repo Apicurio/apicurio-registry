@@ -54,7 +54,7 @@ public class RegistryStoragePerformanceTest {
     
     @Inject
     @Current
-    private RegistryStorage storage;
+    RegistryStorage storage;
 
     protected RegistryStorage getStorage() {
         return storage;

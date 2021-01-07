@@ -67,4 +67,12 @@ public class GlobalRuleKey extends AbstractMessageKey {
         this.ruleType = ruleType;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[ruleType=" + getRuleType() + "]";
+    }
+
 }

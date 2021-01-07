@@ -19,4 +19,4 @@ Shell mode also comes with full tab completion and suggestion support.
 
 Once you have things up-n-running, simply ask CLI for `help`. It will print out the usage, etc ;-) 
 
-This is a wip, not all client methods are yet supported. Fill free to contribute!
+This is a wip, not all client methods are yet supported. Feel free to contribute!

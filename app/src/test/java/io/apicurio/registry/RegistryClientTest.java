@@ -89,7 +89,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     void testSearchArtifact() throws Exception {
-        try {
         // warm-up
         client.listArtifacts();
 
@@ -114,10 +113,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         results = client.searchArtifacts(null, null, null, null, null);
         Assertions.assertNotNull(results);
         Assertions.assertTrue(results.getCount() > 0);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
     }
 
     @Test

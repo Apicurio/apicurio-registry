@@ -12,9 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
@@ -46,6 +50,12 @@ public class KafkaSqlSink {
     @Inject
     KafkaSqlStore sqlStore;
 
+    @Inject
+    KafkaSqlConfiguration configuration;
+    
+    @Inject
+    KafkaSqlSubmitter submitter;
+
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
@@ -58,6 +68,19 @@ public class KafkaSqlSink {
      * @param record
      */
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
+        // If the key is null, we couldn't deserialize the message
+        if (record.key() == null) {
+            log.info("Discarded an unreadable/unrecognized message.");
+            return;
+        }
+
+        // If the value is null, then this is a tombstone (or unrecognized) message and should not 
+        // be processed.
+        if (record.value() == null) {
+            log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
+            return;
+        }
+        
         UUID requestId = extractUuid(record);
         log.debug("Processing Kafka message with UUID: {}", requestId.toString());
 
@@ -123,29 +146,36 @@ public class KafkaSqlSink {
                 throw new RegistryStorageException("Unexpected message type: " + messageType.name());
         }
     }
-    
+
     /**
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
      * @param key
      * @param value
      * @param globalIdGenerator 
      */
-    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) {
-        switch (value.getAction()) {
-            case Create:
-                return sqlStore.createArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
-                        value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                        value.getMetaData(), globalIdGenerator);
-            case Update:
-                return sqlStore.updateArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
-                        value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
-                        value.getMetaData(), globalIdGenerator);
-            case Delete:
-                return sqlStore.deleteArtifact(key.getArtifactId());
-            case Clear:
-            default:
-                log.warn("Unsupported artifact message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
+    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) throws RegistryStorageException {
+        try {
+            switch (value.getAction()) {
+                case Create:
+                    return sqlStore.createArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getMetaData(), globalIdGenerator);
+                case Update:
+                    return sqlStore.updateArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                            value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
+                            value.getMetaData(), globalIdGenerator);
+                case Delete:
+                    return sqlStore.deleteArtifact(key.getArtifactId());
+                case Clear:
+                default:
+                    log.warn("Unsupported artifact message action: %s", key.getType().name());
+                    throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
+            }
+        } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
+            // Send a tombstone message to clean up the unique Kafka message that caused this failure.  We may be
+            // able to do this for other errors, but these two are definitely safe.
+            submitter.send(key, null);
+            throw e;
         }
     }
 
@@ -257,8 +287,7 @@ public class KafkaSqlSink {
     // just to make sure we can always move the whole system
     // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
     public long getBaseOffset() {
-        //TODO return Long.parseLong(properties.getProperty("storage.base.offset", "0"));
-        return 0;
+        return configuration.baseOffset();
     }
 
 }

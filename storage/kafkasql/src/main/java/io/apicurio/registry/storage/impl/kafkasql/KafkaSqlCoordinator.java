@@ -23,8 +23,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
-import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.types.RegistryException;
 
 /**
@@ -35,8 +35,10 @@ import io.apicurio.registry.types.RegistryException;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-@Logged
 public class KafkaSqlCoordinator {
+
+    @Inject
+    KafkaSqlConfiguration configuration;
 
     private static final Object NULL = new Object();
     private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
@@ -60,9 +62,8 @@ public class KafkaSqlCoordinator {
      * @throws InterruptedException
      */
     public Object waitForResponse(UUID uuid) {
-        // TODO timeout should be configurable
         try {
-            latches.get(uuid).await(30, TimeUnit.SECONDS);
+            latches.get(uuid).await(configuration.responseTimeout(), TimeUnit.MILLISECONDS);
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {

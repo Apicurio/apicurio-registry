@@ -83,4 +83,12 @@ public class ContentKey extends AbstractMessageKey {
         this.contentHash = contentHash;
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[contentHash=" + getContentHash() + "]";
+    }
+
 }

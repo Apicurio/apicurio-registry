@@ -1,0 +1,49 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="installing-registry-storage"]
+= Installing {registry} storage on OpenShift
+
+This chapter explains how to install and configure your chosen registry storage option: {kafka-streams}, embedded Infinispan, or PostgreSQL database.
+
+.{kafka-streams} storage
+* xref:installing-kafka-streams-operatorhub[]
+* xref:setting-up-kafka-streams-storage[]
+* xref:registry-kafka-topic-names[]
+
+ifdef::apicurio-registry[]
+.Embedded Infinispan storage
+* xref:setting-up-infinispan-storage[]
+
+.PostgreSQL database storage
+* xref:installing-postgresql-operatorhub[]
+* xref:setting-up-postgresql-storage[]
+endif::[]
+
+ifdef::rh-service-registry[]
+.Embedded Infinispan storage (Technology Preview)
+* xref:setting-up-infinispan-storage[]
+
+.PostgreSQL database storage (Technology Preview)
+* xref:installing-postgresql-operatorhub[]
+* xref:setting-up-postgresql-storage[]
+
+[IMPORTANT]
+====
+{registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production.
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
+
+.Prerequisites
+* {installing-the-registry-openshift}
+
+//INCLUDES
+//include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-kafka-streams-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-kafka-streams-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-kafka-topic-names.adoc[leveloffset=+2]
+include::{mod-loc}getting-started/proc-setting-up-infinispan-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-installing-postgresql-operatorhub.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-setting-up-postgresql-storage.adoc[leveloffset=+1]

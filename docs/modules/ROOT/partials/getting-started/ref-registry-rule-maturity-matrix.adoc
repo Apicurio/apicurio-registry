@@ -2,18 +2,17 @@
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-rule-maturity-matrix"]
-= {registry} content rule maturity matrix
+= {registry} content rule maturity
 
-Not all rules are fully implemented for every artifact type supported by the registry.
-The following table documents the current maturity level for each rule and each
-artifact type.
+Not all content rules are fully implemented for every artifact type supported by {registry}.
+The following table shows the current maturity level for each rule and artifact type.
 
 .{registry} content rule maturity matrix
 [%header,cols=3*] 
 |===
-|Artifact Type
-|Validity Rule
-|Compatibility Rule
+|Artifact type
+|Validity rule
+|Compatibility rule
 |*Avro*
 a| Full
 a| Full

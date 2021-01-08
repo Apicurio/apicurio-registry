@@ -2,30 +2,49 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="writing-registry-client"]
-= Writing a {registry} client application
+= Writing {registry} client applications
 
-This section explains how to manage artifacts stored in {registry} using a Java client application... 
-
-More TBD 
+This section explains how to manage artifacts stored in {registry} using a Java client application. The {registry} Java client extends the `Autocloseable` interface.
 
 .Prerequisites
-
 * See {registry-overview}
 * {registry} must be installed and running in your environment
 
 .Procedure
+. Add the following dependency to your Maven project:
++
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-rest-client</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
 
-. Enter step one here.
+. Create a registry client as follows:
 +
 [source,java,subs="+quotes,attributes"]
 ----
-Insert client code sample here <1>
-...
+public class ClientExample {
+
+    private static final RegistryRestClient client;
+
+     public static void main(String[] args) throws Exception {
+        // Create a registry client
+        String registryUrl = "https://registry.my-domain.com/api"; <1>
+        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl); <2>
+    }
+}
 ----
-<1> Describe the client code sample here
+<1> You must specify the {registry} URL with the `/api` endpoint. 
+<2> For more options when creating a {registry} client, see the Java client configuration in the next section.
+
+. When the client is created, you can use all the operations from the {registry} REST API through the client. For more details, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 .Additional resources
-* For an example Java client application, see https://github.com/Apicurio/apicurio-registry-demo.
+* For an example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry-examples/blob/master/rest-client[Registry client demonstration example].
+
 ifdef::rh-service-registry[]
 * For details on how to use the {registry} Kafka client serializer/deserializer for Apache Avro in AMQ Streams producer and consumer applications, see
 link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/service-registry-str[Using AMQ Streams on Openshift].

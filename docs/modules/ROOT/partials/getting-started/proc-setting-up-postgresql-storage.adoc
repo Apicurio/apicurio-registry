@@ -8,19 +8,10 @@
 
 This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 
-ifdef::rh-service-registry[]
-[IMPORTANT]
-====
-{registry} storage in a PostgreSQL database is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
-
-These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
-====
-endif::[]
-
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
-* You must have already installed {registry}. See xref:installing-registry-operatorhub[].
-* You must have already installed a PostgreSQL Operator on OpenShift. For examaple, see xref:installing-postgresql-operatorhub[].
+* You must have already installed {registry}. See {installing-the-registry-openshift}.
+* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub[].
 
 .Procedure
 

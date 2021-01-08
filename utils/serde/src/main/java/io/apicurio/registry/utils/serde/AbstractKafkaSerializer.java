@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.serde;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
@@ -35,6 +36,8 @@ import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
  */
 public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSerializer<T, U, S>> extends AbstractKafkaStrategyAwareSerDe<T, S> implements Serializer<U> {
 
+    private SchemaCache<T> cache;
+
     public AbstractKafkaSerializer() {
         this(null);
     }
@@ -50,6 +53,20 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
     ) {
         super(client, artifactIdStrategy, globalIdStrategy);
     }
+
+    public synchronized SchemaCache<T> getCache() {
+        if (cache == null) {
+            cache = new SchemaCache<T>(getClient()) {
+                @Override
+                protected T toSchema(InputStream response) {
+                    return readSchema(response);
+                }
+            };
+        }
+        return cache;
+    }
+
+    protected abstract T readSchema(InputStream response);
 
     protected abstract T toSchema(U data);
 
@@ -74,6 +91,7 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
             T schema = toSchema(data);
             String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schema);
             long id = getGlobalIdStrategy().findId(getClient(), artifactId, artifactType(), schema);
+            schema = getCache().getSchema(id); // use registry's schema!
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             if (headerUtils != null) {
                 headerUtils.addSchemaHeaders(headers, artifactId, id);

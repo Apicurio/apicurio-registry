@@ -69,6 +69,11 @@ public class SerdeConfig {
      * <em>Serializer</em> serde class.
      */
     public static final String GLOBAL_ID_STRATEGY = "apicurio.registry.global-id";
+    /**
+     * Indicates how long to cache the global id in a global-id strategy.  If not included, the global id will
+     * be fetched every time.
+     */
+    public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
 
     /**
      * Config prefix that allows configuration of arbitrary HTTP client request headers used by

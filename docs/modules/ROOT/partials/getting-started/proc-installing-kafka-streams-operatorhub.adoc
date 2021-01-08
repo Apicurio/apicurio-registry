@@ -23,28 +23,26 @@ endif::[]
 
 . Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
 
-. In the left navigation menu, click *Catalog* > *OperatorHub*.
+. In the left navigation menu, click *Operators* > *OperatorHub*.
 ifdef::apicurio-registry[]
-. In the *Filter by keyword* text box, enter `Strimzi` to find the *{kafka-streams}* Operator.
+. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{kafka-streams}* Operator.
 endif::[]
 ifdef::rh-service-registry[]
-. In the *Filter by keyword* text box, enter `AMQ` to find the *Red Hat Integration - {kafka-streams}* Operator.
+. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *Red Hat Integration - {kafka-streams}* Operator.
 endif::[]
-. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+. Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ifdef::apicurio-registry[]
 ** *Update Channel* > *stable*
 endif::[]
 ifdef::rh-service-registry[]
 ** *Update Channel* > *amq-streams-1.5.x*
 endif::[]
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Approval Strategy* > *Manual*
 
-. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
-
-. Wait a few moments until the *Status* for the {kafka-streams} Operator displays *Succeeded* and the subscription is *Up to Date*. 
+. Click *Install*, and wait a few moments until the Operator is ready for use.
 
 .Additional resources
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

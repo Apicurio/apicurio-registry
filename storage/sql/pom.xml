@@ -27,7 +27,6 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
         </dependency>
-
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -88,6 +87,11 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -193,10 +197,9 @@
                         <configuration>
                             <output>${project.build.testOutputDirectory}/application.properties</output>
                             <inputs>
-                                <param>${project.build.testOutputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/application.properties</param>
                                 <param>${project.build.testOutputDirectory}/test-overlay.properties</param>
                             </inputs>
-                            <deleteInputs>true</deleteInputs>
                         </configuration>
                     </execution>
                 </executions>

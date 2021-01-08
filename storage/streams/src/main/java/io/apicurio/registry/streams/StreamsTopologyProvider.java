@@ -432,7 +432,8 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             String currentTimeMillis = String.valueOf(System.currentTimeMillis());
             contents.put(MetaDataKeys.CREATED_ON, currentTimeMillis);
             contents.put(MetaDataKeys.MODIFIED_ON, currentTimeMillis);
-            // TODO -- createdBy, modifiedBy
+            contents.put(MetaDataKeys.CREATED_BY, artifact.getMetadataOrDefault(MetaDataKeys.CREATED_BY, ""));
+            // TODO -- modifiedBy
 
             contents.put(MetaDataKeys.STATE, ArtifactState.ENABLED.name());
 

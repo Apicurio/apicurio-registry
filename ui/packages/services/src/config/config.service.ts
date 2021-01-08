@@ -23,6 +23,15 @@ const DEFAULT_CONFIG: ConfigType = {
         type: "rest",
         url: "http://localhost:8080/api/"
     },
+    auth: {
+        options: {
+            clientId:'registry-ui',
+            onLoad: 'login-required',
+            realm: 'registry',
+            url: 'http://localhost:8090/auth'
+        },
+        type: "keycloakjs"
+    },
     features: {
         readOnly: false
     },
@@ -97,4 +106,17 @@ export class ConfigService implements Service {
         return this.config.features.readOnly;
     }
 
+    public authType(): string {
+        if (!this.config.auth || !this.config.auth.type) {
+            return "";
+        }
+        return this.config.auth.type;
+    }
+
+    public authOptions(): any {
+        if (!this.config.auth || !this.config.auth.options) {
+            return "";
+        }
+        return this.config.auth.options;
+    }
 }

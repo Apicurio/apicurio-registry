@@ -163,6 +163,7 @@
         <jdbi.version>3.18.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
+        <keycloak.version>11.0.3</keycloak.version>
         <httpclient.version>4.5.13</httpclient.version>
 
         <!-- Search -->
@@ -204,6 +205,7 @@
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.15.1</test-containers.version>
+        <keycloak.testcontainers.version>1.4.0</keycloak.testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -562,6 +564,12 @@
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.dasniko</groupId>
+                <artifactId>testcontainers-keycloak</artifactId>
+                <version>${keycloak.testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
 

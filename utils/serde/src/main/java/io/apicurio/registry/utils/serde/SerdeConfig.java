@@ -37,6 +37,26 @@ public class SerdeConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
+     * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registrry.
+     */
+    public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
+
+    /**
+     * The Realm of the Auth Service.
+     */
+    public static final String AUTH_REALM = "apicurio.auth.realm";
+
+    /**
+     * The Client Id of the Auth Service.
+     */
+    public static final String AUTH_CLIENT_ID = "apicurio.auth.client.id";
+
+    /**
+     * The Secret of the Auth Service.
+     */
+    public static final String AUTH_CLIENT_SECRET = "apicurio.auth.clinet.secret";
+
+    /**
      * Fully qualified Java classname of a class that implements {@link IdHandler} and is responsible
      * for writing the schema's Global ID to the message payload.  Only used when "USE_HEADERS" is 
      * missing or 'false'.

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -euxo pipefail
 
 # Initializing the variable with the Passed Parameters
 BRANCH_REF="$1"

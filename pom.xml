@@ -205,7 +205,7 @@
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.15.1</test-containers.version>
-        <keycloak.testcontainers.version>1.4.0</keycloak.testcontainers.version>
+        <keycloak.testcontainers.version>1.5.0</keycloak.testcontainers.version>
     </properties>
 
     <dependencyManagement>

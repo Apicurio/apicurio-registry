@@ -1,0 +1,62 @@
+// Metadata created by nebel
+
+[id="registry-security"]
+
+= Configuring {registry} with Authentication
+
+This section explains how to configure authentication and authorization for {registry}. In order to configure the authentication the following environment variables should be used:
+
+.Environment variables for {registry} authentication configuration.
+//[%header,cols="5,5,2,5"]
+[.table-expandable,width="100%",cols="5,5,2,5",options="header"]
+|===
+|Name
+|Description
+|Type
+|Default
+|`AUTH_ENABLED`
+|If set to true, then the other environment variables are required.
+|String
+|`false`
+|`KEYCLOAK_URL`
+|The url of the auth server to be used. Must end with `/auth.
+|String
+|
+|`KEYCLOAK_REALM`
+|The realm to be used.
+|String
+|
+|`KEYCLOAK_API_CLIENT_ID`
+|The client id for the rest API.
+|String
+|`registry-api`
+|`KEYCLOAK_UI_CLIENT_ID`
+|The client id to be used by the user interface
+|String
+|`apicurio-registry`
+|===
+
+By default, {registry} provides some default roles and configuration that are described below.
+
+
+.Environment variables for {registry} authentication configuration.
+//[%header,cols="5,5,2,5"]
+[.table-expandable,width="100%",cols="5,5,2,5",options="header"]
+|===
+|Role
+|Read artifacts
+|Write artifacts
+|Global rules
+|`sr-admin`
+|Yes
+|Yes
+|Yes
+|`sr-developer`
+|Yes
+|Yes
+|No
+|`sr-readonly`
+|Yes
+|No
+|No
+|===

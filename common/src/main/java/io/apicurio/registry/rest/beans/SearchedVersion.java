@@ -47,7 +47,6 @@ public class SearchedVersion {
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Date createdOn;
     /**
      * 
@@ -140,6 +139,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("createdOn")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public Date getCreatedOn() {
         return createdOn;
     }

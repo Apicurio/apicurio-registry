@@ -179,6 +179,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("createdOn")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     public Date getCreatedOn() {
         return createdOn;
     }

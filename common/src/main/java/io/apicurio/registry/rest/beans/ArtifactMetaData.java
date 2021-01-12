@@ -17,14 +17,11 @@
 
 package io.apicurio.registry.rest.beans;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -74,7 +71,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    private long createdOn;
+    private Date createdOn;
     /**
      * 
      * (Required)
@@ -88,7 +85,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    private long modifiedOn;
+    private Date modifiedOn;
     /**
      * 
      * (Required)
@@ -187,7 +184,8 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public long getCreatedOn() {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    public Date getCreatedOn() {
         return createdOn;
     }
 
@@ -197,7 +195,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(long createdOn) {
+    public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
     }
 
@@ -227,7 +225,8 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    public long getModifiedOn() {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    public Date getModifiedOn() {
         return modifiedOn;
     }
 
@@ -237,7 +236,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(long modifiedOn) {
+    public void setModifiedOn(Date modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 

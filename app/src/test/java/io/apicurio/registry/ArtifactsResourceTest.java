@@ -1006,9 +1006,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .pathParam("version", version2)
                 .put("/artifacts/{artifactId}/versions/{version}/meta")
             .then()
-                .statusCode(204)
-        .extract()
-            .as(VersionMetaData.class);
+                .statusCode(204);
 
         // Get the (updated) artifact meta-data
         TestUtils.retry(() -> {

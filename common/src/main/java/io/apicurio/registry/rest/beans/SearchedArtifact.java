@@ -183,7 +183,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("createdOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     public Date getCreatedOn() {
         return createdOn;
     }
@@ -290,7 +290,7 @@ public class SearchedArtifact {
      * 
      */
     @JsonProperty("modifiedOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     public Date getModifiedOn() {
         return modifiedOn;
     }

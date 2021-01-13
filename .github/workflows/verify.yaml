@@ -7,10 +7,10 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 1.2.x, 2.0.x]
+    branches: [master, '[1-9].[1-9].x']
   pull_request:
     paths-ignore:
-      - '.github/project.yaml'
+      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -47,7 +47,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build The Tagged Docker Images
+      - name: Build The Snapshot Docker Images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           cd distro/docker
@@ -58,7 +58,7 @@ jobs:
           mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
           mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
 
-      - name: Push The Tagged Docker Images To Dockerhub
+      - name: Push The Snapshot Docker Images To Dockerhub
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           docker push apicurio/apicurio-registry-mem:latest-snapshot
@@ -72,7 +72,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Tag Docker Images for Quay.io
+      - name: Tag Snapshot Docker Images for Quay.io
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           docker image tag apicurio/apicurio-registry-mem:latest-snapshot quay.io/apicurio/apicurio-registry-mem:latest-snapshot
@@ -86,7 +86,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: docker images
 
-      - name: Push The Tagged Docker Images to Quay.io
+      - name: Push The Sanpshot Docker Images to Quay.io
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           docker push quay.io/apicurio/apicurio-registry-mem:latest-snapshot

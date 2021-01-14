@@ -23,7 +23,7 @@ import io.apicurio.multitenant.persistence.RegistryTenantRepository;
 import io.apicurio.multitenant.persistence.TenantNotFoundException;
 import io.apicurio.multitenant.persistence.dto.RegistryTenantDto;
 
-@Path("v1/tenants")
+@Path("/v1/tenants")
 public class RegistryTenantResource {
 
     private RegistryTenantRepository tenantsRepository;

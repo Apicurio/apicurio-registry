@@ -46,5 +46,5 @@ endif::[]
 
 * Operator-based installation of {registry} on OpenShift
 
-* Support for oidc based authentication
+* Support for OpenID Connect (OIDC) authentication
 

@@ -23,6 +23,9 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.ext.Provider;
 
+import io.apicurio.registry.mt.metadata.TenantMetadataService;
+import io.apicurio.registry.types.Current;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -31,7 +34,11 @@ public class TenantRequestFilter implements ContainerRequestFilter {
 
     @Inject
     TenantContext tenantContext;
-    
+
+    @Inject
+    @Current
+    TenantMetadataService tenantMetadataService;
+
     /**
      * @see javax.ws.rs.container.ContainerRequestFilter#filter(javax.ws.rs.container.ContainerRequestContext)
      */
@@ -39,6 +46,9 @@ public class TenantRequestFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String tenantId = requestContext.getHeaderString("X-Registry-Tenant-Id");
         if (tenantId != null) {
+            //TODO remove this call
+            tenantMetadataService.getTenantMetadata(tenantId);
+
             tenantContext.tenantId(tenantId);
         } else {
             tenantContext.clearTenantId();

@@ -30,11 +30,11 @@ jobs:
         with:
           node-version: 12
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-            version: '8'
-            architecture: x64
+          version: '11'
+          architecture: x64
 
       - name: Set up settings.xml
         run: |
@@ -249,11 +249,11 @@ jobs:
     needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
     if: github.repository_owner == 'Apicurio' && github.event.inputs.branch == 'master'
     steps:
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-            version: '8'
-            architecture: x64
+          version: '11'
+          architecture: x64
 
       - name: Checkout Code
         uses: actions/checkout@v2

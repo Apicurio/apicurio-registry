@@ -7,10 +7,10 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 2.0.x]
+    branches: [master, '[1-9].[1-9].x']
   pull_request:
     paths-ignore:
-      - '.github/project.yaml'
+      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'

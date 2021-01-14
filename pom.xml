@@ -98,8 +98,8 @@
         <module>docs</module>
         <module>tests</module>
         <module>rest-client</module>
-        <module>multitenantcy/tenant-manager-datamodel</module>
-        <module>multitenantcy/tenant-manager-api</module>
+        <module>multitenancy/tenant-manager-datamodel</module>
+        <module>multitenancy/tenant-manager-api</module>
     </modules>
 
     <properties>

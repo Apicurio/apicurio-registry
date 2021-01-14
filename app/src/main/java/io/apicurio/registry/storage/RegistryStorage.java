@@ -71,7 +71,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public void updateArtifactState(String artifactId, ArtifactState state) 
+    public void updateArtifactState(String artifactId, ArtifactState state)
             throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
@@ -403,4 +403,32 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Returns the logging configuration persisted in the storage for the given logger
+     * @param logger
+     * @throws RegistryStorageException
+     */
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException;
+
+    /**
+     * Persists the given loggingConfiguration
+     * @param loggingConfiguration
+     * @throws RegistryStorageException
+     */
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException;
+
+    /**
+     * Removes the persisted logging configuration for the giveng logger
+     * @param logger
+     * @throws RegistryStorageException
+     */
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException;
+
+    /**
+     * Returns the list of logging configuration persisted in the storage
+     * @throws RegistryStorageException
+     */
+    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException;
+
 }

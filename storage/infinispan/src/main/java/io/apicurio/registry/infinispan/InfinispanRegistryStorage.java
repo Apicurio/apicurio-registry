@@ -64,6 +64,8 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     static String ARTIFACT_RULES_CACHE = "artifact-rules-cache";
     static String GLOBAL_CACHE = "global-cache";
     static String GLOBAL_RULES_CACHE = "global-rules-cache";
+    static String LOG_CONFIGURATION_CACHE = "log-configuration-cache";
+
 
     @Inject
     EmbeddedCacheManager manager;
@@ -126,6 +128,18 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         );
 
         return manager.getCache(GLOBAL_RULES_CACHE, true);
+    }
+
+    @Override
+    protected Map<String, String> createLogConfigurationMap() {
+        manager.defineConfiguration(
+                LOG_CONFIGURATION_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(LOG_CONFIGURATION_CACHE, true);
     }
 
     /**

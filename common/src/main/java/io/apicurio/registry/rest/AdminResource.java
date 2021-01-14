@@ -15,6 +15,9 @@
  */
 package io.apicurio.registry.rest;
 
+import java.util.List;
+
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -23,6 +26,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import io.apicurio.registry.rest.beans.LoggingConfiguration;
+import io.apicurio.registry.types.LogLevel;
+
 /**
  * JAX-RS interface for the admin API of Apicurio Registry.
  */
@@ -30,15 +36,26 @@ import javax.ws.rs.core.MediaType;
 public interface AdminResource {
 
     /**
+     * Returns the list of persisted logging configurations
+     *
+     * @return the list of persisted logging configurations
+     */
+    @GET
+    @Path("logging")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<LoggingConfiguration> listLoggingConfigurations();
+
+    /**
      * Returns the configured log level for the provided loggerName
+     *
      * @param loggerName
      * @param level
      * @return log level
      */
     @GET
     @Path("logging/{logger}")
-    @Produces(MediaType.TEXT_PLAIN)
-    String getLogLevel(@PathParam("logger") String loggerName);
+    @Produces(MediaType.APPLICATION_JSON)
+    LoggingConfiguration getLogLevel(@PathParam("logger") String loggerName);
 
     /**
      * Configures the logger referenced by the provided loggerName with the given log level and returns the configured log level.
@@ -51,7 +68,18 @@ public interface AdminResource {
      */
     @PUT
     @Path("logging/{logger}")
-    @Produces(MediaType.TEXT_PLAIN)
-    String setLogLevel(@PathParam("logger") String loggerName, @QueryParam("level") String level);
+    @Produces(MediaType.APPLICATION_JSON)
+    LoggingConfiguration setLogLevel(@PathParam("logger") String loggerName, @QueryParam("level") LogLevel level);
+
+    /**
+     * Removes the configured log level (if any) for the given logger
+     *
+     * @param loggerName
+     * @return the resulting configuration (the default log level)
+     */
+    @DELETE
+    @Path("logging/{logger}")
+    @Produces(MediaType.APPLICATION_JSON)
+    LoggingConfiguration removeLogLevelConfiguration(@PathParam("logger") String loggerName);
 
 }

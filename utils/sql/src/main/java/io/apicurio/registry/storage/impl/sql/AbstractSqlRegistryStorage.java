@@ -63,6 +63,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -1668,6 +1669,30 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+    @Override
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /**

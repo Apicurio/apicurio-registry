@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.InvalidPropertiesException;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -45,6 +46,7 @@ import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -96,6 +98,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected Map<Long, TupleId> global;
     protected MultiMap<String, String, String> artifactRules;
     protected Map<String, String> globalRules;
+    protected Map<String, String> logConfiguration;
 
     protected void beforeInit() {
     }
@@ -107,6 +110,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         global = createGlobalMap();
         globalRules = createGlobalRulesMap();
         artifactRules = createArtifactRulesMap();
+        logConfiguration = createLogConfigurationMap();
         afterInit();
     }
 
@@ -122,6 +126,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected abstract Map<String, String> createGlobalRulesMap();
 
     protected abstract MultiMap<String, String, String> createArtifactRulesMap();
+
+    protected abstract Map<String, String> createLogConfigurationMap();
 
     private Map<Long, Map<String, String>> getVersion2ContentMap(String artifactId) throws ArtifactNotFoundException {
         Map<Long, Map<String, String>> v2c = storage.get(artifactId);
@@ -817,4 +823,44 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             throw new RuleNotFoundException(rule);
         }
     }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getLoggingConfiguration(java.lang.String)
+     */
+    @Override
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
+        String level = logConfiguration.get(logger);
+        if (level == null) {
+            return null;
+        }
+        return new LoggingConfigurationDto(logger, LogLevel.fromValue(level));
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#setLoggingConfiguration(io.apicurio.registry.storage.LoggingConfigurationDto)
+     */
+    @Override
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
+        logConfiguration.put(loggingConfiguration.getLogger(), loggingConfiguration.getLogLevel().value());
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listLoggingConfiguration()
+     */
+    @Override
+    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
+        return logConfiguration.entrySet()
+                .stream()
+                .map(e -> new LoggingConfigurationDto(e.getKey(), LogLevel.fromValue(e.getValue())))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#clearLoggingConfiguration(java.lang.String)
+     */
+    @Override
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException {
+        logConfiguration.remove(logger);
+    }
+
 }

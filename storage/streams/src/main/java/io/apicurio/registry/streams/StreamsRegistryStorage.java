@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -780,6 +781,32 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         deleteArtifactRule(GLOBAL_RULES_ID, rule);
     }
+
+    @Override
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
+        // TODO
+        return Collections.emptyList();
+    }
+
+
 
     @AllArgsConstructor
     @Getter

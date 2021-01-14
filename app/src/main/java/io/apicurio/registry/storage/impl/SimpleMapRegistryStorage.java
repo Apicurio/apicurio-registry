@@ -39,6 +39,11 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
         return new ConcurrentHashMultiMap<>();
     }
 
+    @Override
+    protected Map<String, String> createLogConfigurationMap() {
+        return new ConcurrentHashMap<>();
+    }
+
     private static class ConcurrentHashMultiMap<K, MK, MV> implements MultiMap<K, MK, MV> {
         private final Map<K, Map<MK, MV>> delegate = new ConcurrentHashMap<>();
 

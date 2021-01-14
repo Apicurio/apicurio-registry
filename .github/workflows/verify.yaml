@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [1.3.x]
+    branches: [master]
 
 jobs:
   build-verify:
@@ -44,11 +44,11 @@ jobs:
         run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -pl !tests
 
       - name: Login to DockerHub Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Build The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           cd distro/docker
           mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot

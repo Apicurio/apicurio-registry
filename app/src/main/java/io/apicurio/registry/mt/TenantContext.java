@@ -14,28 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
-
-import javax.inject.Inject;
-
-import io.apicurio.registry.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.quarkus.test.junit.QuarkusTest;
+package io.apicurio.registry.mt;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@QuarkusTest
-class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+public interface TenantContext {
     
-    @Inject
-    SqlRegistryStorage storage;
+    public String tenantId();
     
-    /**
-     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
-     */
-    @Override
-    protected RegistryStorage storage() {
-        return storage;
-    }
+    public void tenantId(String tenantId);
+    
+    public void clearTenantId();
+
 }

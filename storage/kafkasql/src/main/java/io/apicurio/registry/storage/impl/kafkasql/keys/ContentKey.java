@@ -29,11 +29,13 @@ public class ContentKey extends AbstractMessageKey {
 
     /**
      * Creator method.
+     * @param tenantId
      * @param artifactId
      * @param contentHash
      */
-    public static final ContentKey create(String artifactId, String contentHash) {
+    public static final ContentKey create(String tenantId, String artifactId, String contentHash) {
         ContentKey key = new ContentKey();
+        key.setTenantId(tenantId);
         key.setArtifactId(artifactId);
         key.setContentHash(contentHash);
         return key;
@@ -52,7 +54,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return artifactId;
+        return getTenantId() + "/" + artifactId;
     }
 
     /**

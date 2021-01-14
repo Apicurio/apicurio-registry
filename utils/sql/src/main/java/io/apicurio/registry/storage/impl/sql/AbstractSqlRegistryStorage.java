@@ -49,6 +49,7 @@ import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -94,6 +95,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
+    
+    @Inject
+    TenantContext tenantContext;
+    protected TenantContext tenantContext() {
+        return tenantContext;
+    }
 
     @Inject
     AgroalDataSource dataSource;
@@ -285,7 +292,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.updateArtifactVersionState();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, s.name())
-                        .bind(1, globalId)
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, globalId)
                         .execute();
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(artifactId);
@@ -311,7 +319,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     String sql = sqlStatements.updateArtifactVersionState();
                     int rowCount = handle.createUpdate(sql)
                             .bind(0, s.name())
-                            .bind(1, globalId)
+                            .bind(1, tenantContext.tenantId())
+                            .bind(2, globalId)
                             .execute();
                     if (rowCount == 0) {
                         throw new VersionNotFoundException(artifactId, dto.getVersion());
@@ -371,20 +380,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (firstVersion) {
             handle.createUpdate(sql)
                 .bind(0, globalId)
-                .bind(1, artifactId)
-                .bind(2, state)
-                .bind(3, name)
-                .bind(4, description)
-                .bind(5, createdBy)
-                .bind(6, createdOn)
-                .bind(7, labelsStr)
-                .bind(8, propertiesStr)
-                .bind(9, contentId)
-                .execute();
-        } else {
-            handle.createUpdate(sql)
-                .bind(0, globalId)
-                .bind(1, artifactId)
+                .bind(1, tenantContext.tenantId())
                 .bind(2, artifactId)
                 .bind(3, state)
                 .bind(4, name)
@@ -394,6 +390,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(8, labelsStr)
                 .bind(9, propertiesStr)
                 .bind(10, contentId)
+                .execute();
+        } else {
+            handle.createUpdate(sql)
+                .bind(0, globalId)
+                .bind(1, tenantContext.tenantId())
+                .bind(2, artifactId)
+                .bind(3, tenantContext.tenantId())
+                .bind(4, artifactId)
+                .bind(5, state)
+                .bind(6, name)
+                .bind(7, description)
+                .bind(8, createdBy)
+                .bind(9, createdOn)
+                .bind(10, labelsStr)
+                .bind(11, propertiesStr)
+                .bind(12, contentId)
                 .execute();
         }
 
@@ -424,7 +436,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         sql = sqlStatements.updateArtifactLatest();
         handle.createUpdate(sql)
               .bind(0, globalId)
-              .bind(1, artifactId)
+              .bind(1, tenantContext.tenantId())
+              .bind(2, artifactId)
               .execute();
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
@@ -513,10 +526,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Create a row in the artifacts table.
                 String sql = sqlStatements.insertArtifact();
                 handle.createUpdate(sql)
-                      .bind(0, artifactId)
-                      .bind(1, artifactType.name())
-                      .bind(2, createdBy)
-                      .bind(3, new Date())
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, artifactId)
+                      .bind(2, artifactType.name())
+                      .bind(3, createdBy)
+                      .bind(4, createdOn)
                       .execute();
 
                 // Then create a row in the content and versions tables (for the content and version meta-data)
@@ -552,7 +566,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Get the list of versions of the artifact (will be deleted)
                 String sql = sqlStatements.selectArtifactVersions();
                 List<Long> versions = handle.createQuery(sql)
-                        .bind(0, artifactId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
                         .mapTo(Long.class)
                         .list();
                 SortedSet<Long> rval = new TreeSet<Long>(versions);
@@ -561,7 +576,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 sql = sqlStatements.updateArtifactLatest();
                 handle.createUpdate(sql)
                       .bind(0, (Long) null)
-                      .bind(1, artifactId)
+                      .bind(1, tenantContext.tenantId())
+                      .bind(2, artifactId)
                       .execute();
 
                 // TODO use CASCADE when deleting rows from the "versions" table
@@ -569,19 +585,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Delete labels
                 sql = sqlStatements.deleteLabels();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteProperties();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .execute();
 
                 // Delete versions
                 sql = sqlStatements.deleteVersions();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .execute();
 
                 // TODO reap orphaned rows in the "content" table?
@@ -589,13 +608,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Delete artifact rules
                 sql = sqlStatements.deleteArtifactRules();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .execute();
 
                 // Delete artifact row (should be just one)
                 sql = sqlStatements.deleteArtifact();
                 int rowCount = handle.createUpdate(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .execute();
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(artifactId);
@@ -620,7 +641,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactContent();
                 return handle.createQuery(sql)
-                        .bind(0, artifactId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
                         .map(StoredArtifactMapper.instance)
                         .one();
             });
@@ -726,7 +748,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return withHandle( handle -> {
             String sql = sqlStatements.selectArtifactIds();
             List<String> ids = handle.createQuery(sql)
-                    .bind(0, limit)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, limit)
                     .mapTo(String.class)
                     .list();
             return new TreeSet<String>(ids);
@@ -753,11 +776,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
                     +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                     + "FROM artifacts a "
-                    + "JOIN versions v ON a.latest = v.globalId ");
+                    + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
 
+            where.append("WHERE a.tenantId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, tenantContext.tenantId());
+            });
             // Formulate the WHERE clause for both queries
             if (!StringUtil.isEmpty(search)) {
-                where.append("WHERE ");
+                where.append(" AND (");
                 switch (searchOver) {
                     case description:
                         where.append("v.description LIKE ?");
@@ -803,6 +830,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                 }
+                where.append(")");
             }
 
             // Add order by to artifact query
@@ -860,7 +888,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectLatestArtifactMetaData();
                 return handle.createQuery(sql)
-                        .bind(0, artifactId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
                         .map(ArtifactMetaDataDtoMapper.instance)
                         .one();
             });
@@ -893,8 +922,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     sql = sqlStatements.selectArtifactMetaDataByCanonicalHash();
                 }
                 return handle.createQuery(sql)
-                        .bind(0, artifactId)
-                        .bind(1, hash)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
+                        .bind(2, hash)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
                         .one();
             });
@@ -916,7 +946,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactMetaDataByGlobalId();
                 return handle.createQuery(sql)
-                        .bind(0, globalId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, globalId)
                         .map(ArtifactMetaDataDtoMapper.instance)
                         .one();
             });
@@ -951,7 +982,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactRules();
                 List<RuleType> rules = handle.createQuery(sql)
-                        .bind(0, artifactId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
                         .map(new RowMapper<RuleType>() {
                             @Override
                             public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
@@ -985,9 +1017,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.insertArtifactRule();
                 handle.createUpdate(sql)
-                      .bind(0, artifactId)
-                      .bind(1, rule.name())
-                      .bind(2, config.getConfiguration())
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, artifactId)
+                      .bind(2, rule.name())
+                      .bind(3, config.getConfiguration())
                       .execute();
                 return null;
             });
@@ -1015,7 +1048,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRules();
                 int count = handle.createUpdate(sql)
-                      .bind(0, artifactId)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, artifactId)
                       .execute();
                 if (count == 0) {
                     //TODO replace with a faster existence check
@@ -1043,8 +1077,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.selectArtifactRuleByType();
                 try {
                     return handle.createQuery(sql)
-                            .bind(0, artifactId)
-                            .bind(1, rule.name())
+                            .bind(0, tenantContext.tenantId())
+                            .bind(1, artifactId)
+                            .bind(2, rule.name())
                             .mapToBean(RuleConfigurationDto.class)
                             .one();
                 } catch (IllegalStateException e) {
@@ -1075,8 +1110,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.updateArtifactRule();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, config.getConfiguration())
-                        .bind(1, artifactId)
-                        .bind(2, rule.name())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, artifactId)
+                        .bind(3, rule.name())
                         .execute();
                 if (rowCount == 0) {
                     //TODO replace with a faster existence check
@@ -1105,8 +1141,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteArtifactRule();
                 int rowCount = handle.createUpdate(sql)
-                      .bind(0, artifactId)
-                      .bind(1, rule.name())
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, artifactId)
+                      .bind(2, rule.name())
                       .execute();
                 if (rowCount == 0) {
                     //TODO replace with a faster existence check
@@ -1135,7 +1172,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersions();
                 List<Long> versions = handle.createQuery(sql)
-                        .bind(0, artifactId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
                         .mapTo(Long.class)
                         .list();
                 SortedSet<Long> rval = new TreeSet<Long>(versions);
@@ -1160,9 +1198,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return withHandle( handle -> {
             String sql = sqlStatements.selectAllArtifactVersions();
             List<SearchedVersion> versions = handle.createQuery(sql)
-                    .bind(0, artifactId)
-                    .bind(1, limit)
-                    .bind(2, offset)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, limit)
+                    .bind(3, offset)
                     .map(SearchedVersionMapper.instance)
                     .list();
             VersionSearchResults rval = new VersionSearchResults();
@@ -1170,7 +1209,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
             sql = sqlStatements.selectAllArtifactVersionsCount();
             Integer count = handle.createQuery(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
                     .mapTo(Integer.class)
                     .one();
             rval.setCount(count);
@@ -1190,7 +1230,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContentByGlobalId();
                 return handle.createQuery(sql)
-                        .bind(0, globalId)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, globalId)
                         .map(StoredArtifactMapper.instance)
                         .one();
             });
@@ -1212,8 +1253,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionContent();
                 return handle.createQuery(sql)
-                        .bind(0, artifactId)
-                        .bind(1, version)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
+                        .bind(2, version)
                         .map(StoredArtifactMapper.instance)
                         .one();
             });
@@ -1254,7 +1296,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.updateArtifactLatest();
                 handle.createUpdate(sql)
                       .bind(0, (Long) null)
-                      .bind(1, artifactId)
+                      .bind(1, tenantContext.tenantId())
+                      .bind(2, artifactId)
                       .execute();
 
                 // TODO use CASCADE when deleting rows from the "versions" table
@@ -1262,22 +1305,25 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Delete labels
                 sql = sqlStatements.deleteVersionLabels();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, version)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, version)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteVersionProperties();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, version)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, version)
                     .execute();
 
                 // Delete version
                 sql = sqlStatements.deleteVersion();
                 int rows = handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, version)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, version)
                     .execute();
 
                 // TODO reap orphaned rows in the "content" table?
@@ -1290,9 +1336,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     long latestVersion = versions.last();
                     sql = sqlStatements.updateArtifactLatestGlobalId();
                     handle.createUpdate(sql)
-                          .bind(0, artifactId)
-                          .bind(1, latestVersion)
-                          .bind(2, artifactId)
+                          .bind(0, tenantContext.tenantId())
+                          .bind(1, artifactId)
+                          .bind(2, latestVersion)
+                          .bind(3, tenantContext.tenantId())
+                          .bind(4, artifactId)
                           .execute();
                 }
 
@@ -1324,8 +1372,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectArtifactVersionMetaData();
                 return handle.createQuery(sql)
-                        .bind(0, artifactId)
-                        .bind(1, version)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, artifactId)
+                        .bind(2, version)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
                         .one();
             });
@@ -1367,7 +1416,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                             .bind(1, metaData.getDescription())
                             .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
                             .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                            .bind(4, artifactId)
+                            .bind(4, tenantContext.tenantId())
+                            .bind(5, tenantContext.tenantId())
+                            .bind(6, artifactId)
                             .execute();
                     if (rowCount == 0) {
                         throw new ArtifactNotFoundException(artifactId);
@@ -1379,8 +1430,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                             .bind(1, metaData.getDescription())
                             .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
                             .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                            .bind(4, artifactId)
-                            .bind(5, version.intValue())
+                            .bind(4, tenantContext.tenantId())
+                            .bind(5, artifactId)
+                            .bind(6, version.intValue())
                             .execute();
                     if (rowCount == 0) {
                         throw new VersionNotFoundException(artifactId, version.intValue());
@@ -1450,22 +1502,25 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(1, (String) null)
                         .bind(2, (String) null)
                         .bind(3, (String) null)
-                        .bind(4, artifactId)
-                        .bind(5, version)
+                        .bind(4, tenantContext.tenantId())
+                        .bind(5, artifactId)
+                        .bind(6, version)
                         .execute();
 
                 // Delete labels
                 sql = sqlStatements.deleteVersionLabels();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, version)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, version)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteVersionProperties();
                 handle.createUpdate(sql)
-                    .bind(0, artifactId)
-                    .bind(1, version)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, version)
                     .execute();
 
                 if (rowCount == 0) {
@@ -1489,6 +1544,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return withHandle( handle -> {
             String sql = sqlStatements.selectGlobalRules();
             return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
                     .map(new RowMapper<RuleType>() {
                         @Override
                         public RuleType map(ResultSet rs, StatementContext ctx) throws SQLException {
@@ -1510,8 +1566,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.insertGlobalRule();
                 handle.createUpdate(sql)
-                      .bind(0, rule.name())
-                      .bind(1, config.getConfiguration())
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, rule.name())
+                      .bind(2, config.getConfiguration())
                       .execute();
                 return null;
             });
@@ -1532,6 +1589,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         withHandle( handle -> {
             String sql = sqlStatements.deleteGlobalRules();
             handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
                   .execute();
             return null;
         });
@@ -1548,7 +1606,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectGlobalRuleByType();
                 return handle.createQuery(sql)
-                        .bind(0, rule.name())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, rule.name())
                         .mapToBean(RuleConfigurationDto.class)
                         .one();
             });
@@ -1571,7 +1630,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.updateGlobalRule();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, config.getConfiguration())
-                        .bind(1, rule.name())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, rule.name())
                         .execute();
                 if (rowCount == 0) {
                     throw new RuleNotFoundException(rule);
@@ -1595,7 +1655,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteGlobalRule();
                 int rowCount = handle.createUpdate(sql)
-                      .bind(0, rule.name())
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, rule.name())
                       .execute();
                 if (rowCount == 0) {
                     throw new RuleNotFoundException(rule);

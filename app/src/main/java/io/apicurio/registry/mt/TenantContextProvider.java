@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.mt;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
-import io.apicurio.registry.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.quarkus.test.junit.QuarkusTest;
+import io.apicurio.registry.types.Current;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@QuarkusTest
-class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+@ApplicationScoped
+public class TenantContextProvider {
     
     @Inject
-    SqlRegistryStorage storage;
-    
-    /**
-     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
-     */
-    @Override
-    protected RegistryStorage storage() {
-        return storage;
+    TenantContextImpl impl;
+
+    @Produces
+    @ApplicationScoped
+    @Current
+    public TenantContext tenant() {
+        return impl;
     }
+
 }

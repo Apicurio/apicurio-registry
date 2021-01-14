@@ -17,8 +17,10 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -853,7 +855,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
-                .body("description", equalTo("An example API design using OpenAPI."));
+                .body("description", equalTo("An example API design using OpenAPI."))
+        .extract()
+            .as(ArtifactMetaData.class);
         
         // Try to get artifact meta-data for an artifact that doesn't exist.
         given()
@@ -988,7 +992,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API (v2)"))
-                .body("description", equalTo("An example API design using OpenAPI."));
+                .body("description", equalTo("An example API design using OpenAPI."))
+        .extract()
+            .as(VersionMetaData.class);
 
         // Update the version meta-data
         String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";

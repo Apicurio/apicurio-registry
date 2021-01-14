@@ -23,6 +23,7 @@ import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 
 import java.util.Comparator;
+import java.util.Date;
 
 /**
  * @author Ales Justin
@@ -52,10 +53,10 @@ public class SearchUtil {
         searchedArtifact.setName(artifactMetaData.getName());
         searchedArtifact.setState(artifactMetaData.getState());
         searchedArtifact.setDescription(artifactMetaData.getDescription());
-        searchedArtifact.setCreatedOn(artifactMetaData.getCreatedOn());
+        searchedArtifact.setCreatedOn(new Date(artifactMetaData.getCreatedOn()));
         searchedArtifact.setCreatedBy(artifactMetaData.getCreatedBy());
         searchedArtifact.setModifiedBy(artifactMetaData.getModifiedBy());
-        searchedArtifact.setModifiedOn(artifactMetaData.getModifiedOn());
+        searchedArtifact.setModifiedOn(new Date(artifactMetaData.getModifiedOn()));
         searchedArtifact.setType(artifactMetaData.getType());
         searchedArtifact.setLabels(artifactMetaData.getLabels());
 
@@ -66,7 +67,7 @@ public class SearchUtil {
 
         final SearchedVersion searchedVersion = new SearchedVersion();
         searchedVersion.setCreatedBy(artifactVersionMetaData.getCreatedBy());
-        searchedVersion.setCreatedOn(artifactVersionMetaData.getCreatedOn());
+        searchedVersion.setCreatedOn(new Date(artifactVersionMetaData.getCreatedOn()));
         searchedVersion.setDescription(artifactVersionMetaData.getDescription());
         searchedVersion.setGlobalId(artifactVersionMetaData.getGlobalId());
         searchedVersion.setName(artifactVersionMetaData.getName());

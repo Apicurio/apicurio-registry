@@ -154,12 +154,12 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Tombstones
      * ****************************************************************************************** */
-    public void submitArtifactVersionTombstone(String artifactId, int version) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(artifactId, version);
+    public void submitArtifactVersionTombstone(String tenantId, String artifactId, int version) {
+        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, artifactId, version);
         send(key, null);
     }
-    public void submitArtifactRuleTombstone(String artifactId, RuleType rule) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(artifactId, rule);
+    public void submitArtifactRuleTombstone(String tenantId, String artifactId, RuleType rule) {
+        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
         send(key, null);
     }
     

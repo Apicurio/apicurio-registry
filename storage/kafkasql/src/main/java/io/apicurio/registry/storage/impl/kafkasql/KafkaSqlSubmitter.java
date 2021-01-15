@@ -87,8 +87,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
-        ContentKey key = ContentKey.create(artifactId, contentHash);
+    public CompletableFuture<UUID> submitContent(String tenantId, String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
+        ContentKey key = ContentKey.create(tenantId, artifactId, contentHash);
         ContentValue value = ContentValue.create(ActionType.Create, artifactType, content);
         return send(key, value);
     }
@@ -97,56 +97,56 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Artifact
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifact(String artifactId, ActionType action,
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String artifactId, ActionType action,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
-        ArtifactKey key = ArtifactKey.create(artifactId);
+        ArtifactKey key = ArtifactKey.create(tenantId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, artifactType, contentHash, createdBy, createdOn, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifact(String artifactId, ActionType action) {
-        return this.submitArtifact(artifactId, action,  null, null, null, null, null);
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String artifactId, ActionType action) {
+        return this.submitArtifact(tenantId, artifactId, action,  null, null, null, null, null);
     }
 
     
     /* ******************************************************************************************
      * Version
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactVersion(String artifactId, int version, ActionType action, ArtifactState state, 
+    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String artifactId, int version, ActionType action, ArtifactState state, 
             EditableArtifactMetaDataDto metaData) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(artifactId, version);
+        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, artifactId, version);
         ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitVersion(String artifactId, int version, ActionType action) {
-        return submitArtifactVersion(artifactId, version, action, null, null);
+    public CompletableFuture<UUID> submitVersion(String tenantId, String artifactId, int version, ActionType action) {
+        return submitArtifactVersion(tenantId, artifactId, version, action, null, null);
     }
 
     
     /* ******************************************************************************************
      * Artifact Rule
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactRule(String artifactId, RuleType rule, ActionType action,
+    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String artifactId, RuleType rule, ActionType action,
             RuleConfigurationDto config) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(artifactId, rule);
+        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
         ArtifactRuleValue value = ArtifactRuleValue.create(action, config);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifactRule(String artifactId, RuleType rule, ActionType action) {
-        return submitArtifactRule(artifactId, rule, action, null);
+    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String artifactId, RuleType rule, ActionType action) {
+        return submitArtifactRule(tenantId, artifactId, rule, action, null);
     }
 
     
     /* ******************************************************************************************
      * Global Rule
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action, RuleConfigurationDto config) {
-        GlobalRuleKey key = GlobalRuleKey.create(rule);
+    public CompletableFuture<UUID> submitGlobalRule(String tenantId, RuleType rule, ActionType action, RuleConfigurationDto config) {
+        GlobalRuleKey key = GlobalRuleKey.create(tenantId, rule);
         GlobalRuleValue value = GlobalRuleValue.create(action, config);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitGlobalRule(RuleType rule, ActionType action) {
-        return submitGlobalRule(rule, action, null);
+    public CompletableFuture<UUID> submitGlobalRule(String tenantId, RuleType rule, ActionType action) {
+        return submitGlobalRule(tenantId, rule, action, null);
     }
 
     
@@ -154,12 +154,12 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Tombstones
      * ****************************************************************************************** */
-    public void submitArtifactVersionTombstone(String artifactId, int version) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(artifactId, version);
+    public void submitArtifactVersionTombstone(String tenantId, String artifactId, int version) {
+        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, artifactId, version);
         send(key, null);
     }
-    public void submitArtifactRuleTombstone(String artifactId, RuleType rule) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(artifactId, rule);
+    public void submitArtifactRuleTombstone(String tenantId, String artifactId, RuleType rule) {
+        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
         send(key, null);
     }
     

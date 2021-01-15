@@ -26,11 +26,13 @@ public class ArtifactVersionKey extends AbstractMessageKey {
 
     /**
      * Creator method.
+     * @param tenantId
      * @param artifactId
      * @param version
      */
-    public static final ArtifactVersionKey create(String artifactId, Integer version) {
+    public static final ArtifactVersionKey create(String tenantId, String artifactId, Integer version) {
         ArtifactVersionKey key = new ArtifactVersionKey();
+        key.setTenantId(tenantId);
         key.setArtifactId(artifactId);
         key.setVersion(version);
         return key;
@@ -49,7 +51,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return artifactId;
+        return getTenantId() + "/" + artifactId;
     }
 
     /**

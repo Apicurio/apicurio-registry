@@ -28,10 +28,12 @@ public class ArtifactKey extends AbstractMessageKey {
     
     /**
      * Creator method.
+     * @param tenantId
      * @param artifactId
      */
-    public static final ArtifactKey create(String artifactId) {
+    public static final ArtifactKey create(String tenantId, String artifactId) {
         ArtifactKey key = new ArtifactKey();
+        key.setTenantId(tenantId);
         key.setArtifactId(artifactId);
         return key;
     }
@@ -49,7 +51,7 @@ public class ArtifactKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return artifactId;
+        return getTenantId() + "/" + artifactId;
     }
 
     /**

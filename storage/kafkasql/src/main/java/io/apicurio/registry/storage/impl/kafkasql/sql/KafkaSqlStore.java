@@ -38,7 +38,8 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         return withHandle( handle -> {
             String sql = sqlStatements().selectArtifactCountById();
             return handle.createQuery(sql)
-                    .bind(0, artifactId)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, artifactId)
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -58,8 +59,9 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         return withHandle( handle -> {
             String sql = sqlStatements().selectArtifactRuleCountByType();
             return handle.createQuery(sql)
-                    .bind(0, artifactId)
-                    .bind(1, rule.name())
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, artifactId)
+                    .bind(2, rule.name())
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -69,7 +71,8 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         return withHandle( handle -> {
             String sql = sqlStatements().selectGlobalRuleCountByType();
             return handle.createQuery(sql)
-                    .bind(0, rule.name())
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, rule.name())
                     .mapTo(Integer.class)
                     .one() > 0;
         });

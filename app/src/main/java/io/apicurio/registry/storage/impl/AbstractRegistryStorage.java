@@ -27,6 +27,7 @@ public abstract class AbstractRegistryStorage implements RegistryStorage {
 
     // workaround for Quarkus issue #9887
 
+
     @Override
     public boolean isReady() {
         return getGlobalRules() != null;

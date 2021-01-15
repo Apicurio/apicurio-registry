@@ -51,7 +51,6 @@ jobs:
           mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
           mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
           mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
-          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=1.3.x-snapshot
       - name: Push The Tagged Docker Images to Dockerhub
         if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: |
@@ -60,7 +59,6 @@ jobs:
           docker push apicurio/apicurio-registry-infinispan:1.3.x-snapshot
           docker push apicurio/apicurio-registry-kafka:1.3.x-snapshot
           docker push apicurio/apicurio-registry-streams:1.3.x-snapshot
-          docker push apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
       - name: Login to Quay.io Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
@@ -68,11 +66,10 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: |
           docker image tag apicurio/apicurio-registry-mem:1.3.x-snapshot quay.io/apicurio/apicurio-registry-mem:1.3.x-snapshot
-          docker image tag apicurio/apicurio-registry-sql:1.3.x-snapshot quay.io/apicurio/apicurio-registry-sql:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-jpa:1.3.x-snapshot quay.io/apicurio/apicurio-registry-jpa:1.3.x-snapshot
           docker image tag apicurio/apicurio-registry-infinispan:1.3.x-snapshot quay.io/apicurio/apicurio-registry-infinispan:1.3.x-snapshot
+          docker image tag apicurio/apicurio-registry-kafka:1.3.x-snapshot quay.io/apicurio/apicurio-registry-kafka:1.3.x-snapshot
           docker image tag apicurio/apicurio-registry-streams:1.3.x-snapshot quay.io/apicurio/apicurio-registry-streams:1.3.x-snapshot
-          docker image tag apicurio/apicurio-registry-asyncmem:1.3.x-snapshot quay.io/apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
-          docker image tag apicurio/apicurio-registry-kafkasql:1.3.x-snapshot quay.io/apicurio/apicurio-registry-kafkasql:1.3.x-snapshot
       - name: List All The Tagged Docker Images
         if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: docker images
@@ -80,8 +77,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/1.3.x'
         run: |
           docker push quay.io/apicurio/apicurio-registry-mem:1.3.x-snapshot
-          docker push quay.io/apicurio/apicurio-registry-sql:1.3.x-snapshot
+          docker push quay.io/apicurio/apicurio-registry-jpa:1.3.x-snapshot
           docker push quay.io/apicurio/apicurio-registry-infinispan:1.3.x-snapshot
           docker push quay.io/apicurio/apicurio-registry-streams:1.3.x-snapshot
-          docker push quay.io/apicurio/apicurio-registry-asyncmem:1.3.x-snapshot
-          docker push quay.io/apicurio/apicurio-registry-kafkasql:1.3.x-snapshot            
+          docker push quay.io/apicurio/apicurio-registry-kafka:1.3.x-snapshot            

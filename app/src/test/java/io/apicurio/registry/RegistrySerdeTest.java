@@ -138,7 +138,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         byte[] schemaContent = IoUtil.toBytes(schema.toString());
         CompletionStage<ArtifactMetaData> csa = service.createArtifact(ArtifactType.AVRO, artifactId, null, new ByteArrayInputStream(schemaContent));
-        ConcurrentUtil.result(csa);
+        ArtifactMetaData amd = ConcurrentUtil.result(csa);
+        this.waitForGlobalId(amd.getGlobalId());
 
         long pc = 5000L; // 5seconds check period ...
 

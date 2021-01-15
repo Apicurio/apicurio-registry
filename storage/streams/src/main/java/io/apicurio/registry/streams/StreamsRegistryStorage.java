@@ -57,6 +57,7 @@ import io.apicurio.registry.utils.kafka.Submitter;
 import io.apicurio.registry.utils.streams.diservice.AsyncBiFunctionService;
 import io.apicurio.registry.utils.streams.distore.ExtReadOnlyKeyValueStore;
 import io.apicurio.registry.utils.streams.distore.FilterPredicate;
+import io.quarkus.security.identity.SecurityIdentity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -141,6 +142,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     private final Submitter<RecordMetadata> submitter = new Submitter<>(this::send);
 
@@ -346,7 +350,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content.bytes());
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, artifactId, -1, artifactType, content.bytes(), securityIdentity.getPrincipal().getName());
         return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
                        .thenApply(rd -> {
                            RecordMetadata rmd = rd.getRmd();
@@ -379,7 +383,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             // Delete any rules configured for the artifact.
             this.deleteArtifactRulesInternal(artifactId);
 
-            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null));
+            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, -1, null, null, null));
 
             SortedSet<Long> result = new TreeSet<>();
             List<Str.ArtifactValue> list = data.getArtifactsList();
@@ -409,7 +413,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content.bytes());
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, artifactId, -1, artifactType, content.bytes(), securityIdentity.getPrincipal().getName());
         return submitCF.thenCompose(r -> storageFunction.apply(artifactId, r.offset()).thenApply(d -> new RecordData(r, d)))
                        .thenApply(rd -> {
                            RecordMetadata rmd = rd.getRmd();
@@ -719,7 +723,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        handleVersion(artifactId, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null)));
+        handleVersion(artifactId, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, artifactId, version, null, null, null)));
     }
 
     @Override

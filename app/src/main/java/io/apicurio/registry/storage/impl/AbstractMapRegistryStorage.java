@@ -50,6 +50,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.util.SearchUtil;
+import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.lang3.StringUtils;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -87,6 +88,9 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
     @Inject
     protected ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    protected SecurityIdentity securityIdentity;
 
     protected StorageMap storage;
     protected Map<Long, TupleId> global;
@@ -242,6 +246,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         String creationTimeValue = String.valueOf(creationTime);
         contents.put(MetaDataKeys.CREATED_ON, creationTimeValue);
         contents.put(MetaDataKeys.MODIFIED_ON, creationTimeValue);
+
+        contents.put(MetaDataKeys.CREATED_BY, securityIdentity.getPrincipal().getName());
 
         contents.put(MetaDataKeys.TYPE, artifactType.value());
         ArtifactStateExt.applyState(contents, ArtifactState.ENABLED);
@@ -744,6 +750,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         storage.remove(artifactId, version, MetaDataKeys.DESCRIPTION);
         storage.remove(artifactId, version, MetaDataKeys.LABELS);
         storage.remove(artifactId, version, MetaDataKeys.PROPERTIES);
+        storage.remove(artifactId, version, MetaDataKeys.CREATED_BY);
     }
 
     /**

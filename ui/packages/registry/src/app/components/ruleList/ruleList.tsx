@@ -24,7 +24,7 @@ import {
     DataListCell,
     DataListItem,
     DataListItemCells,
-    DataListItemRow
+    DataListItemRow, EmptyStateBody
 } from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
@@ -32,6 +32,7 @@ import {Rule} from "@apicurio/registry-models";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
 import {ValidityDropdown} from "./validity-dropdown";
 import {IfFeature} from "../common/ifFeature";
+import {IfAuth} from "../common";
 
 
 export interface RuleListProps extends PureComponentProps {
@@ -104,15 +105,17 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                             <DataListCell key="rule-description">Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
                         ]}
                         />
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <DataListAction
-                                aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                id="selectable-action-action1"
-                                aria-label="Actions"
-                            >
-                                { validityRuleActions}
-                            </DataListAction>
-                        </IfFeature>
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <DataListAction
+                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                    id="selectable-action-action1"
+                                    aria-label="Actions"
+                                >
+                                    { validityRuleActions}
+                                </DataListAction>
+                            </IfFeature>
+                        </IfAuth>
                     </DataListItemRow>
                 </DataListItem>
                 <DataListItem aria-labelledby="compatibility-rule-name">
@@ -125,15 +128,17 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                             <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (e.g. Backwards Compatibility).</DataListCell>
                         ]}
                         />
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <DataListAction
-                                aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                id="selectable-action-action2"
-                                aria-label="Actions"
-                            >
-                                { compatibilityRuleActions }
-                            </DataListAction>
-                        </IfFeature>
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <DataListAction
+                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                    id="selectable-action-action2"
+                                    aria-label="Actions"
+                                >
+                                    { compatibilityRuleActions }
+                                </DataListAction>
+                            </IfFeature>
+                        </IfAuth>
                     </DataListItemRow>
                 </DataListItem>
             </DataList>

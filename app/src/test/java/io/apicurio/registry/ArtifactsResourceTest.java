@@ -17,8 +17,10 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -277,7 +279,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("error_code", equalTo(404))
                     .body("message", equalTo("No artifact with ID 'testDeleteArtifact/EmptyAPI' was found."));
         });
-    
+
         // Try to delete an artifact that doesn't exist.
         given()
             .when()
@@ -384,7 +386,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .post("/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(404);
-        
+
         // Try to create a new version of the artifact with empty content
         given()
             .when()
@@ -500,7 +502,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGetArtifactVersion() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        
+
         // Create an artifact
         createArtifact("testGetArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
@@ -840,7 +842,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
         
         // Create OpenAPI artifact
         createArtifact("testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
-        
+
         // Get the artifact meta-data
         given()
             .when()
@@ -853,7 +855,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
-                .body("description", equalTo("An example API design using OpenAPI."));
+                .body("description", equalTo("An example API design using OpenAPI."))
+        .extract()
+            .as(ArtifactMetaData.class);
         
         // Try to get artifact meta-data for an artifact that doesn't exist.
         given()
@@ -864,7 +868,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(404)
                 .body("error_code", equalTo(404))
                 .body("message", equalTo("No artifact with ID 'testGetArtifactMetaData/MissingAPI' was found."));
-        
+
         // Update the artifact meta-data
         String metaData = "{\"name\": \"Empty API Name\", \"description\": \"Empty API description.\", \"labels\":[\"Empty API label 1\",\"Empty API label 2\"], \"properties\":{\"additionalProp1\": \"Empty API additional property\"}}";
         given()
@@ -896,7 +900,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("labels", equalToObject(expectedLabels))
                     .body("properties", equalToObject(expectedProperties))
                 .extract().body().path("version");
-            
+
             // Make sure the version specific meta-data also returns all the custom meta-data
             given()
                 .when()
@@ -911,7 +915,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                     .body("properties", equalToObject(expectedProperties))
                 .extract().body().path("version");
         });
-        
+
         // Update the artifact content and then make sure the name/description meta-data is still available
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         given()
@@ -938,7 +942,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("Empty API (Updated)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
     }
-    
+
     @Test
     public void testArtifactVersionMetaData() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
@@ -988,7 +992,9 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .body("createdOn", anything())
                 .body("name", equalTo("Empty API (v2)"))
-                .body("description", equalTo("An example API design using OpenAPI."));
+                .body("description", equalTo("An example API design using OpenAPI."))
+        .extract()
+            .as(VersionMetaData.class);
 
         // Update the version meta-data
         String metaData = "{\"name\": \"Updated Name\", \"description\": \"Updated description.\"}";
@@ -1203,7 +1209,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     public void testDeleteArtifactWithRule() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testDeleteArtifactWithRule/EmptyAPI";
-        
+
         // Create an artifact
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
@@ -1220,7 +1226,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get a single rule by name
         TestUtils.retry(() -> {
             given()
@@ -1241,7 +1247,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .delete("/artifacts/{artifactId}")
             .then()
                 .statusCode(204);
-        
+
         // Get a single rule by name (should be 404 because the artifact is gone)
         // Also try to get the artifact itself (should be 404)
         TestUtils.retry(() -> {
@@ -1269,7 +1275,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .get("/artifacts/{artifactId}/rules/VALIDITY")
             .then()
                 .statusCode(404);
-        
+
         // Add the same rule - should work because the old rule was deleted when the artifact was deleted.
         rule = new Rule();
         rule.setType(RuleType.VALIDITY);

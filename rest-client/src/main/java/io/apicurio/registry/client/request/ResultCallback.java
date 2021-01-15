@@ -18,6 +18,9 @@ package io.apicurio.registry.client.request;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.client.exception.ForbiddenException;
+import io.apicurio.registry.client.exception.NotAuthorizedException;
 import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.response.ExceptionMapper;
 import io.apicurio.registry.rest.Headers;
@@ -33,6 +36,9 @@ import java.io.StringWriter;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.http.HttpStatus;
+import org.keycloak.authorization.client.util.HttpResponseException;
 
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
@@ -55,7 +61,22 @@ public class ResultCallback<T> implements Callback<T> {
             result.complete(response);
         } else {
             try {
-                result.completeExceptionally(new RestClientException(objectMapper.readValue(response.errorBody().byteStream(), Error.class)));
+                if (response.errorBody().contentLength() == 0) {
+                    if (response.code() == HttpStatus.SC_FORBIDDEN) {
+                        Error error = new Error();
+                        error.setName("ForbiddenException");
+                        error.setMessage(response.message());
+                        error.setErrorCode(response.code());
+                        result.completeExceptionally(new ForbiddenException(error));
+                    } else {
+                        Error error = new Error();
+                        error.setMessage(response.message());
+                        error.setErrorCode(response.code());
+                        result.completeExceptionally(new RestClientException(error));
+                    }
+                } else {
+                    result.completeExceptionally(new RestClientException(objectMapper.readValue(response.errorBody().byteStream(), Error.class)));
+                }
             } catch (IOException | NullPointerException e) {
 
                 logger.log(Level.SEVERE, "Error trying to parse error response message", e);
@@ -71,7 +92,22 @@ public class ResultCallback<T> implements Callback<T> {
 
     @Override
     public void onFailure(Call<T> call, Throwable t) {
-        result.completeExceptionally(t);
+        Throwable rootCause = extractRootCause(t);
+        if (rootCause instanceof HttpResponseException) {
+            //authorization error
+            HttpResponseException hre = (HttpResponseException) rootCause;
+            Error error = new Error();
+            error.setErrorCode(hre.getStatusCode());
+            error.setMessage(hre.getMessage());
+            error.setDetail(hre.getReasonPhrase());
+            if (hre.getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
+                result.completeExceptionally(new NotAuthorizedException(error));
+            } else {
+                result.completeExceptionally(new RestClientException(error));
+            }
+        } else {
+            result.completeExceptionally(t);
+        }
     }
 
     public T getResult() throws RestClientException {
@@ -81,7 +117,37 @@ public class ResultCallback<T> implements Callback<T> {
             return callResult.body();
         } catch (RestClientException ex) {
             throw ExceptionMapper.map(ex);
+        } catch (Exception e) {
+            Throwable cause = extractRootCause(e);
+            if (cause instanceof RestClientException) {
+                throw (RestClientException) cause;
+            } else {
+                // completely unknown exception
+                Error error = new Error();
+                error.setMessage(cause.getMessage());
+                error.setErrorCode(000);
+                logger.log(Level.SEVERE, "Unkown client exception", cause);
+                throw new RestClientException(error);
+            }
         }
+    }
+
+    private Throwable extractRootCause(Throwable e) {
+        Throwable cause = null;
+        while (true) {
+            if (cause == null) {
+                cause = e;
+            } else {
+                if (cause.getCause() == null || cause.getCause().equals(cause)) {
+                    break;
+                }
+                cause = cause.getCause();
+            }
+        }
+        if (cause.getSuppressed().length != 0) {
+            cause = cause.getSuppressed()[0];
+        }
+        return cause;
     }
 
     private static void checkIfDeprecated(okhttp3.Headers headers) {

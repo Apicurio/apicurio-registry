@@ -26,7 +26,7 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class SubjectsResourceTest extends AbstractResourceTestBase {
 
-    @Test    
+    @Test
     public void testListSubjectsEndpoint() {
         given()
             .when().contentType(CT_JSON).get("/ccompat/subjects")

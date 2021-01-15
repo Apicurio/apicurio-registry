@@ -7,10 +7,10 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [master, '[1-9].[0-9].x']
   pull_request:
     paths-ignore:
-      - '.github/project.yaml'
+      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Checkout Code
+      - name: Checkout Code with Ref '${{ github.ref }}' 
         uses: actions/checkout@v2
 
       - name: Set up JDK 1.8
@@ -44,57 +44,35 @@ jobs:
         run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -pl !tests
 
       - name: Login to DockerHub Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |
-          cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+      - name: Build The Snapshot Docker Images
+        if: github.event_name == 'push'
+        run: ./.github/scripts/build-snapshot-images-for-docker.sh ${{ github.ref }}
 
-      - name: Push The Tagged Docker Images To Dockerhub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |
-          docker push apicurio/apicurio-registry-mem:latest-snapshot
-          docker push apicurio/apicurio-registry-sql:latest-snapshot
-          docker push apicurio/apicurio-registry-infinispan:latest-snapshot
-          docker push apicurio/apicurio-registry-streams:latest-snapshot
-          docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
-          docker push apicurio/apicurio-registry-kafkasql:latest-snapshot
-
-      - name: Login to Quay.io Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
-
-      - name: Tag Docker Images for Quay.io
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |
-          docker image tag apicurio/apicurio-registry-mem:latest-snapshot quay.io/apicurio/apicurio-registry-mem:latest-snapshot
-          docker image tag apicurio/apicurio-registry-sql:latest-snapshot quay.io/apicurio/apicurio-registry-sql:latest-snapshot
-          docker image tag apicurio/apicurio-registry-infinispan:latest-snapshot quay.io/apicurio/apicurio-registry-infinispan:latest-snapshot
-          docker image tag apicurio/apicurio-registry-streams:latest-snapshot quay.io/apicurio/apicurio-registry-streams:latest-snapshot
-          docker image tag apicurio/apicurio-registry-asyncmem:latest-snapshot quay.io/apicurio/apicurio-registry-asyncmem:latest-snapshot
-          docker image tag apicurio/apicurio-registry-kafkasql:latest-snapshot quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
-          
       - name: List All The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: docker images
 
-      - name: Push The Tagged Docker Images to Quay.io
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |
-          docker push quay.io/apicurio/apicurio-registry-mem:latest-snapshot
-          docker push quay.io/apicurio/apicurio-registry-sql:latest-snapshot
-          docker push quay.io/apicurio/apicurio-registry-infinispan:latest-snapshot
-          docker push quay.io/apicurio/apicurio-registry-streams:latest-snapshot
-          docker push quay.io/apicurio/apicurio-registry-asyncmem:latest-snapshot
-          docker push quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot            
+      - name: Push The Snapshot Docker Images To Dockerhub
+        if: github.event_name == 'push'
+        run: ./.github/scripts/push-snapshot-images-to-docker.sh ${{ github.ref }}
+
+      - name: Login to Quay.io Registry
+        if: github.event_name == 'push'
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Tag Snapshot Docker Images for Quay.io
+        if: github.event_name == 'push'
+        run: ./.github/scripts/tag-snapshot-images-for-quay.sh ${{ github.ref }}
+          
+      - name: List All The Tagged Docker Images
+        if: github.event_name == 'push'
+        run: docker images
+
+      - name: Push The Sanpshot Docker Images to Quay.io
+        if: github.event_name == 'push'
+        run: ./.github/scripts/push-snapshot-images-to-quay.sh ${{ github.ref }}   
           
 
   kubernetes-tests:

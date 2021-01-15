@@ -17,11 +17,14 @@
 
 import React from 'react';
 import "./header.css"
-import {Brand, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
-import brandImg from '../../../../assets/images/apicurio_logo_darkbkg_350px.png';
+import {Brand, Button, EmptyStateBody, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
+import brandImg from "../../../../assets/images/apicurio_logo_darkbkg_350px.png";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {CogIcon} from "@patternfly/react-icons";
 import {Link} from "react-router-dom";
+import {IfAuth} from "../common/ifAuth";
+import {AvatarDropdown} from "./avatarDropdown";
+import {Services} from "@apicurio/registry-services";
 
 
 // tslint:disable-next-line:no-empty-interface
@@ -40,13 +43,21 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
     }
 
     public render(): React.ReactElement {
-        const pageToolbar: React.ReactElement = (
+        let pageToolbar: React.ReactElement;
+        pageToolbar = (
             <Toolbar className="header-toolbar">
                 <ToolbarGroup>
                     <ToolbarItem>
-                        <Link data-testid="masthead-lnk-settings" className="header-icon" to={ `/rules` }>
-                            <CogIcon />
-                        </Link>
+                        <IfAuth isAdmin={true}>
+                            <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
+                                <CogIcon/>
+                            </Link>
+                        </IfAuth>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <IfAuth enabled={true}>
+                            <AvatarDropdown />
+                        </IfAuth>
                     </ToolbarItem>
                 </ToolbarGroup>
             </Toolbar>

@@ -64,6 +64,10 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-oidc</artifactId>
+        </dependency>
 
         <!-- Third Party Libraries -->
         <dependency>
@@ -170,6 +174,11 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

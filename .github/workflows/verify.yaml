@@ -6,14 +6,14 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-    branches: [master]
+    branches: [1.2.x]
   pull_request:
     paths-ignore:
       - '.github/project.yaml'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-    branches: [master]
+    branches: [1.2.x]
 
 jobs:
   build-verify:
@@ -39,27 +39,27 @@ jobs:
       - name: Verify (Standard)
         run: mvn test package -Pprod -Pjpa -Pasyncmem
       - name: Login to DockerHub Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.2.x'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
       - name: Build The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.2.x'
         run: |
           cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
+          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
+          mvn package -Pprod -Pkafka -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
+          mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=1.2.x-snapshot
       - name: Push The Tagged Docker Images
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/1.2.x'
         run: |
-          docker push apicurio/apicurio-registry-mem:latest-snapshot
-          docker push apicurio/apicurio-registry-jpa:latest-snapshot
-          docker push apicurio/apicurio-registry-infinispan:latest-snapshot
-          docker push apicurio/apicurio-registry-kafka:latest-snapshot
-          docker push apicurio/apicurio-registry-streams:latest-snapshot
-          docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
+          docker push apicurio/apicurio-registry-mem:1.2.x-snapshot
+          docker push apicurio/apicurio-registry-jpa:1.2.x-snapshot
+          docker push apicurio/apicurio-registry-infinispan:1.2.x-snapshot
+          docker push apicurio/apicurio-registry-kafka:1.2.x-snapshot
+          docker push apicurio/apicurio-registry-streams:1.2.x-snapshot
+          docker push apicurio/apicurio-registry-asyncmem:1.2.x-snapshot
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest

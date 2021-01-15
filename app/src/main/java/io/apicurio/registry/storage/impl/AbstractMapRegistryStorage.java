@@ -120,6 +120,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected abstract Map<String, String> createGlobalRulesMap();
 
     protected abstract MultiMap<String, String, String> createArtifactRulesMap();
+    
 
     private Map<Long, Map<String, String>> getVersion2ContentMap(String artifactId) throws ArtifactNotFoundException {
         Map<Long, Map<String, String>> v2c = storage.get(artifactId);

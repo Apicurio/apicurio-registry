@@ -26,18 +26,21 @@ import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
  * @author eric.wittmann@gmail.com
  */
+@TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
 
     protected static final String CT_JSON = "application/json";
@@ -48,11 +51,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     @Inject
     Instance<ServiceInitializer> initializers;
 
-    protected static String registryUrl;
-    protected static RegistryRestClient client;
+    protected String registryUrl;
+    protected RegistryRestClient client;
+
 
     @BeforeAll
-    protected static void beforeAll() throws Exception {
+    protected void beforeAll() throws Exception {
         registryUrl = "http://localhost:8081/api";
         client = RegistryRestClientFactory.create(registryUrl);
     }
@@ -72,9 +76,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
-        given().when().delete("/rules").then().statusCode(204);
+        client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            given().when().get("/rules").then().statusCode(200).body("size()", is(expectedDefaultRulesCount));
+            assertEquals(expectedDefaultRulesCount, client.listGlobalRules().size());
         });
     }
 

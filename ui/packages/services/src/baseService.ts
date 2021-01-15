@@ -20,6 +20,9 @@ import {LoggerService} from "./logger";
 import {ConfigService} from "./config";
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import {ContentTypes} from "@apicurio/registry-models";
+import {AuthService} from "./auth";
+
+const AXIOS = axios.create();
 
 /**
  * Interface implemented by all services.
@@ -28,7 +31,6 @@ export interface Service {
     init(): void;
 }
 
-
 /**
  * Base class for all services.
  */
@@ -36,7 +38,7 @@ export abstract class BaseService implements Service {
 
     protected logger: LoggerService = null;
     protected config: ConfigService = null;
-
+    protected auth: AuthService = null;
     private apiBaseHref: string;
 
     public init(): void {
@@ -45,6 +47,12 @@ export abstract class BaseService implements Service {
             this.apiBaseHref = this.apiBaseHref.substring(0, this.apiBaseHref.length - 1);
         }
         this.logger.debug("[BaseService] Base HREF of REST API: ", this.apiBaseHref);
+
+        this.initAuthInterceptor();
+    }
+
+    public initAuthInterceptor() {
+        AXIOS.interceptors.request.use(this.auth.getAuthInterceptor());
     }
 
     /**
@@ -103,7 +111,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("get", url, options);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: T = response.data;
                 if (successCallback) {
@@ -131,7 +139,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 if (successCallback) {
                     return successCallback();
@@ -158,7 +166,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: O = response.data;
                 if (successCallback) {
@@ -186,7 +194,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 if (successCallback) {
                     return successCallback();
@@ -213,7 +221,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("put", url, options, body);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(response => {
                 const data: O = response.data;
                 if (successCallback) {
@@ -239,7 +247,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("delete", url, options);
-        return axios.request(config)
+        return AXIOS.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;
             }).catch(error => {

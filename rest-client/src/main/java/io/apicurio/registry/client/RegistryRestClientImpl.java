@@ -17,42 +17,15 @@
 
 package io.apicurio.registry.client;
 
-import io.apicurio.registry.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.client.request.HeadersInterceptor;
-import io.apicurio.registry.client.request.RequestExecutor;
-import io.apicurio.registry.client.service.ArtifactsService;
-import io.apicurio.registry.client.service.IdsService;
-import io.apicurio.registry.client.service.RulesService;
-import io.apicurio.registry.client.service.SearchService;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.IfExistsType;
-import io.apicurio.registry.rest.beans.Rule;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.UpdateState;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ArtifactIdValidator;
-import io.apicurio.registry.utils.IoUtil;
-import okhttp3.Credentials;
-import okhttp3.HttpUrl;
-import okhttp3.Interceptor;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
-import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,14 +46,44 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
-import static io.apicurio.registry.client.request.RestClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.BasicAuth;
+import io.apicurio.registry.client.exception.InvalidArtifactIdException;
+import io.apicurio.registry.client.request.AuthInterceptor;
+import io.apicurio.registry.client.request.HeadersInterceptor;
+import io.apicurio.registry.client.request.RequestExecutor;
+import io.apicurio.registry.client.service.ArtifactsService;
+import io.apicurio.registry.client.service.IdsService;
+import io.apicurio.registry.client.service.RulesService;
+import io.apicurio.registry.client.service.SearchService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.SearchOver;
+import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.ArtifactIdValidator;
+import io.apicurio.registry.utils.IoUtil;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import retrofit2.Retrofit;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -101,7 +104,11 @@ public class RegistryRestClientImpl implements RegistryRestClient {
     }
 
     RegistryRestClientImpl(String baseUrl, Map<String, Object> config) {
-        this(baseUrl, createHttpClientWithConfig(baseUrl, config));
+        this(baseUrl, createHttpClientWithConfig(baseUrl, config, null));
+    }
+
+    RegistryRestClientImpl(String baseUrl, Map<String, Object> config, Auth auth) {
+        this(baseUrl, createHttpClientWithConfig(baseUrl, config, auth));
     }
 
     RegistryRestClientImpl(String baseUrl, OkHttpClient okHttpClient) {
@@ -122,15 +129,14 @@ public class RegistryRestClientImpl implements RegistryRestClient {
         initServices(retrofit);
     }
 
-    private static OkHttpClient createHttpClientWithConfig(String baseUrl, Map<String, Object> configs) {
+    private static OkHttpClient createHttpClientWithConfig(String baseUrl, Map<String, Object> configs, Auth auth) {
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
-        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs);
+        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs, auth);
         okHttpClientBuilder = addSSL(okHttpClientBuilder, configs);
         return okHttpClientBuilder.build();
     }
 
-    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs) {
-
+    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs, Auth auth) {
         Map<String, String> requestHeaders = configs.entrySet().stream()
                 .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
                 .collect(Collectors.toMap(map -> map.getKey()
@@ -142,9 +148,12 @@ public class RegistryRestClientImpl implements RegistryRestClient {
             HttpUrl url = HttpUrl.parse(baseUrl);
             String user = url.encodedUsername();
             String pwd = url.encodedPassword();
-            if (user != null && !user.isEmpty()) {
-                String credentials = Credentials.basic(user, pwd);
-                requestHeaders.put("Authorization", credentials);
+            if (auth == null && user != null && !user.isEmpty()) {
+                auth = new BasicAuth(user, pwd);
+            }
+
+            if (auth != null) {
+                okHttpClientBuilder.addInterceptor(new AuthInterceptor(auth));
             }
         }
 

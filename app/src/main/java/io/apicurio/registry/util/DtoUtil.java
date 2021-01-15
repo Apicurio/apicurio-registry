@@ -24,6 +24,8 @@ import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.Date;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -40,7 +42,7 @@ public final class DtoUtil {
                                                   ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         if (artifactId != null) {
             metaData.setId(artifactId);
@@ -48,7 +50,7 @@ public final class DtoUtil {
             metaData.setId(dto.getId());
         }
         metaData.setModifiedBy(dto.getModifiedBy());
-        metaData.setModifiedOn(dto.getModifiedOn());
+        metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setName(dto.getName());
         if (artifactType != null) {
             metaData.setType(artifactType);
@@ -67,11 +69,11 @@ public final class DtoUtil {
             ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setId(artifactId);
         metaData.setModifiedBy(dto.getCreatedBy());
-        metaData.setModifiedOn(dto.getCreatedOn());
+        metaData.setModifiedOn(new Date(dto.getCreatedOn()));
         metaData.setName(dto.getName());
         if (artifactType != null) {
             metaData.setType(artifactType);
@@ -99,7 +101,7 @@ public final class DtoUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
@@ -147,7 +149,7 @@ public final class DtoUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(dto.getCreatedOn());
+        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);

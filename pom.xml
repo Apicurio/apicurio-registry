@@ -137,10 +137,10 @@
         <picocli.version>4.6.1</picocli.version>
 
         <!-- gRPC -->
-        <grpc.version>1.34.1</grpc.version>
+        <grpc.version>1.35.0</grpc.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>5.5.1</confluent.version>
+        <confluent.version>6.0.1</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -154,7 +154,7 @@
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.12.1</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.0</jackson-datatype-json-org.version>
+        <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.16</lombok.version>
@@ -163,6 +163,7 @@
         <jdbi.version>3.18.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
+        <keycloak.version>11.0.3</keycloak.version>
         <httpclient.version>4.5.13</httpclient.version>
 
         <!-- Search -->
@@ -178,6 +179,7 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
+        <scala.version>2.13.4</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
@@ -204,6 +206,7 @@
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.15.1</test-containers.version>
+        <keycloak.testcontainers.version>1.5.0</keycloak.testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -516,6 +519,12 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-serializer</artifactId>
                 <version>${confluent.version}</version>
@@ -562,6 +571,12 @@
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.dasniko</groupId>
+                <artifactId>testcontainers-keycloak</artifactId>
+                <version>${keycloak.testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
 
@@ -667,7 +682,33 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>${version.scala-maven.plugin}</version>
+                    <version>4.4.0</version>
+                    <configuration>
+                        <recompileMode>incremental</recompileMode>
+                        <args>
+                            <arg>-deprecation</arg>
+                            <arg>-explaintypes</arg>
+                            <arg>-target:jvm-1.8</arg>
+                        </args>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>scala-compile-first</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>add-source</goal>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>scala-test-compile</id>
+                            <phase>process-test-resources</phase>
+                            <goals>
+                                <goal>add-source</goal>
+                                <goal>testCompile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

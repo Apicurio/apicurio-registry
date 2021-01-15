@@ -15,9 +15,16 @@
  * limitations under the License.
  */
 import React from "react";
-import {Button, Flex, FlexItem, FlexModifiers, Text, TextContent, TextVariants} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {Services} from "@apicurio/registry-services";
+import {
+    Button,
+    Flex,
+    FlexItem,
+    FlexModifiers,
+    Text,
+    TextContent,
+    TextVariants
+} from '@patternfly/react-core';
+import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {IfFeature} from "../../../../components/common/ifFeature";
 
 
@@ -55,9 +62,11 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
                     </TextContent>
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
-                    <IfFeature feature="readOnly" isNot={true}>
-                        <Button data-testid="btn-header-upload-artifact" variant="secondary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
-                    </IfFeature>
+                    <IfAuth isDeveloper={true}>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <Button data-testid="btn-header-upload-artifact" variant="secondary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                        </IfFeature>
+                    </IfAuth>
                 </FlexItem>
             </Flex>
         );

@@ -16,6 +16,14 @@
 
 package io.apicurio.registry.utils.kafka;
 
+import io.apicurio.registry.utils.ConcurrentUtil;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.config.TopicConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,15 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.config.TopicConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.utils.ConcurrentUtil;
+import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
@@ -76,46 +76,66 @@ public class KafkaUtil {
     /**
      * Create topics with sensible defaults.
      *
-     * @param admin the Kafka admin to use
+     * @param admin      the Kafka admin to use
      * @param topicNames topics to create, if they don't exist
      * @param topicConfig the config to use for the new topic
      */
     public static void createTopics(Admin admin, Set<String> topicNames, Map<String, String> topicConfig) {
-        if (topicConfig == null) {
-            topicConfig = new HashMap<>();
-        }
-
-        Set<String> topics = result(admin.listTopics().names());
-        List<NewTopic> topicsToCreate = new ArrayList<>();
-        for (String topicName : topicNames) {
-            NewTopic newTopic = createTopic(admin, topics, topicName, topicConfig);
-            if (newTopic != null) {
-                topicsToCreate.add(newTopic);
-            }
-        }
-        if (topicsToCreate.size() > 0) {
-            result(admin.createTopics(topicsToCreate).all());
-        }
+        ConcurrentUtil.result(createTopicsAsync(admin, topicNames, topicConfig));
     }
     public static void createTopics(Admin admin, Set<String> topicNames) {
         createTopics(admin, topicNames, null);
     }
-    
-    private static NewTopic createTopic(Admin admin, Set<String> existingTopicNames, String topicName, final Map<String, String> topicProperties) {
-        if (!existingTopicNames.contains(topicName)) {
+
+    /**
+     * Create topics with sensible defaults, async.
+     *
+     * @param admin      the Kafka admin to use
+     * @param topicNames topics to create, if they don't exist
+     */
+    public static CompletionStage<Void> createTopicsAsync(Admin admin, Set<String> topicNames, Map<String, String> topicConfig) {
+        List<CompletionStage<NewTopic>> topicsToCreate = new ArrayList<>();
+        return toCompletionStage(admin.listTopics().names())
+                .thenCompose(topics -> {
+                    for (String topicName : topicNames) {
+                        createTopic(admin, topics, topicsToCreate, topicName, topicConfig);
+                    }
+                    //noinspection SuspiciousToArrayCall
+                    return CompletableFuture.allOf(topicsToCreate.toArray(new CompletableFuture[0]));
+                })
+                .thenCompose(v -> {
+                    if (topicsToCreate.size() > 0) {
+                        return toCompletionStage(
+                                admin.createTopics(
+                                        topicsToCreate.stream()
+                                                .map(ConcurrentUtil::result)
+                                                .collect(Collectors.toList())
+                                )
+                                .all()
+                        );
+                    } else {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                });
+    }
+
+    private static void createTopic(Admin admin, Set<String> topics, List<CompletionStage<NewTopic>> topicsToCreate, String topicName, Map<String, String> topicConfig) {
+        if (!topics.contains(topicName)) {
             KafkaFuture<NewTopic> newTopicKF = admin.describeCluster().nodes().thenApply(nodes -> {
+                Map<String, String> configs = new HashMap<>();
+                if (topicConfig != null) {
+                    configs.putAll(topicConfig);
+                }
                 log.info("Creating new Kafka topic: {}", topicName);
                 int replicationFactor = Math.min(3, nodes.size());
-                if (topicProperties.containsKey("replication.factor")) {
-                    replicationFactor = Integer.parseInt(topicProperties.get("replication.factor"));
+                if (configs.containsKey("replication.factor")) {
+                    replicationFactor = Integer.parseInt(configs.get("replication.factor"));
                 }
                 int minimumInSyncReplicas = Math.max(replicationFactor - 1, 1);
-                topicProperties.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minimumInSyncReplicas));
-                return new NewTopic(topicName, 1, (short) replicationFactor).configs(topicProperties);
+                configs.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, String.valueOf(minimumInSyncReplicas));
+                return new NewTopic(topicName, 1, (short) replicationFactor).configs(configs);
             }).whenComplete((nt, t) -> log.info("Created new topic: {}", topicName, t));
-            NewTopic newTopic = KafkaUtil.result(newTopicKF);
-            return newTopic;
+            topicsToCreate.add(toCompletionStage(newTopicKF));
         }
-        return null;
     }
 }

@@ -8,6 +8,9 @@ var ApicurioRegistryConfig = {
         contextPath: null,
         url: "http://localhost:8888/ui"
     },
+    auth: {
+        type: "none"
+    },
     features: {
         readOnly: false
     }

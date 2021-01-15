@@ -31,7 +31,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 
-/** 
+/**
  * Tests registry via its jax-rs interface.  This test performs more realistic
  * usage scenarios than the more unit-test focused {@link RulesResourceTest}
  * and {@link ArtifactsResourceTest}.
@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.equalTo;
  */
 @QuarkusTest
 public class FullApiTest extends AbstractResourceTestBase {
-    
+
     @Test
     public void testGlobalRuleApplicationOpenAPI() throws Exception {
         ArtifactType artifactType = ArtifactType.OPENAPI;
@@ -47,7 +47,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationOpenAPI/API", artifactType, artifactContent);
-        
+
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -59,7 +59,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
             given()
@@ -72,7 +72,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                     .body("config", equalTo("SYNTAX_ONLY"));
         });
 
-        
+
         // Try to create an artifact that is not valid - now it should fail.
         String artifactId = "testGlobalRuleApplicationOpenAPI/InvalidAPI";
         given()
@@ -96,7 +96,7 @@ public class FullApiTest extends AbstractResourceTestBase {
 
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationProtobuf/API", artifactType, artifactContent);
-        
+
         // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
@@ -108,7 +108,7 @@ public class FullApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
             given()

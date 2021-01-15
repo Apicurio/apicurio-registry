@@ -37,7 +37,9 @@ export interface IfFeatureState extends PureComponentState {
 
 
 /**
- * Models the list of artifacts.
+ * Wrapper around a set of arbitrary child elements and displays them only if the
+ * indicated feature matches the given criteria.  Use this if you want to show/hide
+ * UI elements based on the configured application feature set.
  */
 export class IfFeature extends PureComponent<IfFeatureProps, IfFeatureState> {
 

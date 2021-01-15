@@ -25,5 +25,6 @@ public class ConfigJs {
     public ConfigJsArtifacts artifacts = new ConfigJsArtifacts();
     public ConfigJsUi ui = new ConfigJsUi();
     public ConfigJsFeatures features = new ConfigJsFeatures();
+    public ConfigJsAuth auth = new ConfigJsAuth();
 
 }

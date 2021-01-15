@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-storage"]
-= Storage options
+= {registry} storage options
 {registry} provides the following underlying storage implementations for registry artifacts: 
 
 ifdef::apicurio-registry[]
@@ -12,7 +12,7 @@ ifdef::apicurio-registry[]
 * Apache Kafka Streams
 * Embedded Infinispan cache
 
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting this storage implementation. All other storage options are suitable for development and production environments.
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka Streams storage option is recommended for production environments.
 
 endif::[]
 
@@ -43,10 +43,8 @@ These features provide early access to upcoming product features, enabling custo
 endif::[]
 
 .Additional resources
-
-For details on how to install into your preferred storage option, see: 
-
 ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
 endif::[]
 * {installing-the-registry-openshift}
+* {installing-the-registry-storage-openshift}

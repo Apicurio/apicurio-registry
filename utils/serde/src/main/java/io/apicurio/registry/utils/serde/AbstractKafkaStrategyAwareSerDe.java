@@ -77,5 +77,6 @@ public abstract class AbstractKafkaStrategyAwareSerDe<T, S extends AbstractKafka
 
         Object gis = configs.get(SerdeConfig.GLOBAL_ID_STRATEGY);
         instantiate(GlobalIdStrategy.class, gis, this::setGlobalIdStrategy);
+        getGlobalIdStrategy().configure(configs, isKey);
     }
 }

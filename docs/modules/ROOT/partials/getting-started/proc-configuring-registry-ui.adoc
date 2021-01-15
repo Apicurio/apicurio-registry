@@ -1,0 +1,39 @@
+
+[id="configuring-registry-ui"]
+= Configuring the {registry} web console 
+
+You can configure the {registry} web console specifically for your deployment environment or to customize its behavior. This section provides details on how to configure optional environment variables for the {registry} web console.
+
+.Prerequisites
+* You must have already installed {registry}.
+
+[discrete]
+== Configuring the web console deployment environment
+
+When a user navigates their browser to the {registry} web console, some initial configuration settings are loaded. Two important configuration properties are:
+
+* URL for backend {registry} REST API
+* URL for frontend {registry} web console
+
+Typically, {registry} automatically detects and generates these settings, but there are some deployment environments where this automatic detection can fail. If this happens, you can configure environment variables to explicitly set these URLs for your environment.
+
+.Procedure
+Configure the following environment variables to override the default URLs:
+
+* `REGISTRY_UI_CONFIG_APIURL`: Set the URL for the backend {registry} REST API. For example,`\https://registry.my-domain.com/api`
+* `REGISTRY_UI_CONFIG_UIURL`: Set the URL for the frontend {registry} web console. For example, `\https://registry.my-domain.com/ui`
+
+[discrete]
+== Configuring the console in read-only mode
+
+You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
+
+* Creating an artifact
+* Uploading a new version of an artifact
+* Updating an artifact's metadata
+* Deleting an artifact
+
+.Procedure
+Configure the following environment variable to set the {registry} web console in read-only mode: 
+
+* `REGISTRY_UI_FEATURES_READONLY`: Set to `true` to enable read-only mode. Defaults to `false`.

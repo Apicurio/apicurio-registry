@@ -21,7 +21,7 @@ ifdef::rh-service-registry[]
 endif::[]
 
 [discrete]
-== {registry} main features
+== {registry} capabilities
 
 * Support for multiple payload formats for standard event schemas and API specifications 
 
@@ -45,3 +45,6 @@ endif::[]
 * Compatibility with existing Confluent schema registry client applications
 
 * Operator-based installation of {registry} on OpenShift
+
+* Support for OpenID Connect (OIDC) authentication
+

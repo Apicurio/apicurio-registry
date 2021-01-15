@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.serde;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,7 @@ import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
 import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 import io.apicurio.registry.utils.serde.util.HeaderUtils;
+import io.apicurio.registry.utils.serde.util.ResponseUtils;
 import io.apicurio.registry.utils.serde.util.Utils;
 
 /**
@@ -86,6 +88,11 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
         instantiate(AvroDatumProvider.class, adp, consumer);
         avroDatumProvider.configure(configs);
+    }
+
+    @Override
+    protected Schema readSchema(InputStream response) {
+        return ResponseUtils.toAvroSchema(response);
     }
 
     @Override

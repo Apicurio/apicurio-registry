@@ -1,0 +1,58 @@
+// Metadata created by nebel
+
+[id="registry-artifact-metadata"]
+= {registry} artifact metadata
+
+When an artifact is added to {registry}, a set of metadata properties is stored along with the artifact content. This metadata consists of a set of generated read-only properties, along with some properties that you can set.
+
+.{registry} metadata properties
+[%header,cols=3*]
+|===
+|Property
+|Type
+|Editable
+|`id`
+a| string
+a| false
+|`type`
+a| ArtifactType
+a| false
+|`state`
+a| ArtifactState
+a| true
+|`version`
+a| integer
+a| false
+|`createdBy`
+a| string
+a| false
+|`createdOn`
+a| date
+a| false
+|`modifiedBy`
+a| string
+a| false
+|`modifiedOn`
+a| date
+a| false
+|`name`
+a| string
+a| true
+|`description`
+a| string
+a| true
+|`labels`
+a| array of string
+a| true
+|`properties`
+a| map
+a| true
+|===
+
+.Updating artifact metadata
+* You can use the {registry} REST API to update the set of editable properties using the metadata endpoints. 
+
+* You can edit the `state` property only by using the state transition API. For example, you can mark an artifact as `deprecated` or `disabled`.  
+
+.Additional resources
+For more details, see the `/artifacts/\{artifactId\}/meta` sections in the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].

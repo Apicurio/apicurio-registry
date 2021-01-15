@@ -1,17 +1,39 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-client.adoc
 
-[id="registry-client-types"]
-= {registry} Java client reference
-The {registry} Java client includes the following...
+[id="registry-client-config"]
+= {registry} Java client configuration
+The {registry} Java client includes the following configuration options, based on the client factory:
 
-More TBD
-
-.{registry} Java client types
-[%header,cols=2*] 
+.{registry} Java client configuration options
+[%header,cols="1,2,1"]
 |===
-|Type
+|Option
 |Description
-|`TBD`
-| TBD
+|Arguments
+|Plain client
+|Basic REST client used to interact with a running registry.
+|`baseUrl`
+|Custom HTTP client
+|Registry client using an OkHttpClient provided by the user.
+|`baseUrl`, `okhttpClient`
+|Custom configuration
+|Registry client that accepts a map containing custom configuration. This is useful, for example, to add custom headers to the calls.
+|`baseUrl`, `Map<String Object> configs`
 |===
+
+[discrete]
+== Custom header configuration
+To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: xxxxx` results in a header of `Authorization` with value of `Basic: xxxxx`.
+
+[discrete]
+== TLS configuration
+You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
+
+* `apicurio.registry.request.ssl.truststore.location`
+* `apicurio.registry.request.ssl.truststore.password`
+* `apicurio.registry.request.ssl.truststore.type`
+* `apicurio.registry.request.ssl.keystore.location`
+* `apicurio.registry.request.ssl.keystore.password`
+* `apicurio.registry.request.ssl.keystore.type`
+* `apicurio.registry.request.ssl.key.password`

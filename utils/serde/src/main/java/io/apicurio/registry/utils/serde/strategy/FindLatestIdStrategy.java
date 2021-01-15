@@ -24,10 +24,15 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * @author Ales Justin
  */
-public class FindLatestIdStrategy<T> implements GlobalIdStrategy<T> {
+public class FindLatestIdStrategy<T> extends CheckPeriodIdStrategy<T> {
+
+    /**
+     * @see io.apicurio.registry.utils.serde.strategy.CheckPeriodIdStrategy#findIdInternal(io.apicurio.registry.client.RegistryRestClient, java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.Object)
+     */
     @Override
-    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+    long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
         return amd.getGlobalId();
     }
+    
 }

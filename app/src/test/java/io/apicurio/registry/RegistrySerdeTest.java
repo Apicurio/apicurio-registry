@@ -132,7 +132,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5x\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = generateArtifactId();
         byte[] schemaContent = IoUtil.toBytes(schema.toString());
-        restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        this.waitForGlobalId(amd.getGlobalId());
 
         long pc = 5000L; // 5seconds check period ...
 
@@ -146,7 +147,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         Assertions.assertEquals(id1, id2); // should be less than 5seconds ...
         retry(() -> restClient.getArtifactMetaDataByGlobalId(id2));
 
-        restClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        ArtifactMetaData amd_v2 = restClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        this.waitForGlobalId(amd_v2.getGlobalId());
         Thread.sleep(pc + 1);
         retry(() -> Assertions.assertNotEquals(id2, restClient.getArtifactMetaData(artifactId).getGlobalId()));
 

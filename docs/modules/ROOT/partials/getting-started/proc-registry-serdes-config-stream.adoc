@@ -1,0 +1,48 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-config-stream-{context}']
+= Using a schema from a Kafka Streams application
+
+This procedure describes how to configure a Kafka Streams client written in Java to use a schema from {registry}.
+
+.Prerequisites
+
+* {registry} is installed
+* The schema is registered with {registry}
+
+.Procedure
+
+. Create and configure a REST client with the {registry}. For example:
++
+[source,shell,subs="+quotes,attributes"]
+----
+String registryUrl = "https://registry.example.com/api";
+RegistryService client = RegistryClient.cached(registryUrl);
+----
+
+. Configure the serializer, deserializer, and create the Kafka Streams client. For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+Serializer<LogInput> serializer = new AvroKafkaSerializer<>( <1>
+    client,
+    new DefaultAvroDatumProvider<LogInput>().setUseSpecificAvroReader(true)
+);
+Deserializer<LogInput> deserializer = new AvroKafkaDeserializer <> ( <2>
+    client,
+    new DefaultAvroDatumProvider<LogInput>().setUseSpecificAvroReader(true)
+);
+Serde<LogInput> logSerde = Serdes.serdeFrom( <3>
+    serializer,
+    deserializer
+);
+KStream<String, LogInput> input = builder.stream( <4>
+    INPUT_TOPIC,
+    Consumed.with(Serdes.String(), logSerde)
+);
+----
+<1> The serializer provided by {registry}.
+<2> The deserializer provided by {registry}.
+<3> The deserialization is in Apache Avro format.
+<4> The Kafka Streams client application.

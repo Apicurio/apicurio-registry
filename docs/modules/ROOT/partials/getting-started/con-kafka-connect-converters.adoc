@@ -2,7 +2,7 @@
 
 
 [id="kafka-connect"]
-= Kafka Connect converters 
+= Stream data to external systems with Kafka Connect converters 
 You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
 
 .{registry} and Kafka Connect architecture
@@ -27,4 +27,4 @@ ifdef::rh-service-registry[]
 * link:{LinkDebeziumUserGuide}#avro-serialization[Avro serialization in Debezium User Guide] 
 * link:{LinkCamelKafkaConnectorGetStart}[{NameCamelKafkaConnectorGetStart}]
 endif::[] 
-* link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kakfa Connect with Debezium and Apicurio Registry]
+* link:https://debezium.io/blog/2020/04/09/using-debezium-wit-apicurio-api-schema-registry/[Demonstration of using Kafka Connect with Debezium and Apicurio Registry]

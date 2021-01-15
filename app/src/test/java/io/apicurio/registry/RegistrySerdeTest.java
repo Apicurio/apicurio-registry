@@ -47,6 +47,7 @@ import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.AvroEncoding;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
@@ -124,6 +125,34 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         retry(() -> restClient.getArtifactMetaDataByGlobalId(id));
 
         Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+    }
+
+    @Test
+    public void testCheckPeriod() throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord5x\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        String artifactId = generateArtifactId();
+        byte[] schemaContent = IoUtil.toBytes(schema.toString());
+        ArtifactMetaData amd = restClient.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        this.waitForGlobalId(amd.getGlobalId());
+
+        long pc = 5000L; // 5seconds check period ...
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.CHECK_PERIOD_MS, String.valueOf(pc));
+        GlobalIdStrategy<Schema> idStrategy = new FindLatestIdStrategy<>();
+        idStrategy.configure(config, false);
+
+        long id1 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
+        long id2 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
+        Assertions.assertEquals(id1, id2); // should be less than 5seconds ...
+        retry(() -> restClient.getArtifactMetaDataByGlobalId(id2));
+
+        ArtifactMetaData amd_v2 = restClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schemaContent));
+        this.waitForGlobalId(amd_v2.getGlobalId());
+        Thread.sleep(pc + 1);
+        retry(() -> Assertions.assertNotEquals(id2, restClient.getArtifactMetaData(artifactId).getGlobalId()));
+
+        Assertions.assertNotEquals(id2, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
     }
 
     @SuppressWarnings("unchecked")

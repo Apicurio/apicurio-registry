@@ -24,11 +24,15 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * @author Ales Justin
  */
-public class FindBySchemaIdStrategy<T> implements GlobalIdStrategy<T> {
+public class FindBySchemaIdStrategy<T> extends CheckPeriodIdStrategy<T> {
+
+    /**
+     * @see io.apicurio.registry.utils.serde.strategy.CheckPeriodIdStrategy#findIdInternal(io.apicurio.registry.client.RegistryRestClient, java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.Object)
+     */
     @Override
-    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
-        // TODO add an option to search by strict content?
+    long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
         ArtifactMetaData amd = client.getArtifactMetaDataByContent(artifactId, true, toStream(schema));
         return amd.getGlobalId();
     }
+
 }

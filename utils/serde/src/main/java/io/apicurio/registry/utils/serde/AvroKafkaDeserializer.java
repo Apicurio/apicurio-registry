@@ -32,11 +32,10 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
-import io.apicurio.registry.utils.serde.avro.AvroSchemaUtils;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.util.HeaderUtils;
+import io.apicurio.registry.utils.serde.util.ResponseUtils;
 
 /**
  * @author Ales Justin
@@ -79,7 +78,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
 
     @Override
     protected Schema toSchema(InputStream schemaData) {
-        return AvroSchemaUtils.parse(IoUtil.toString((InputStream) schemaData));
+        return ResponseUtils.toAvroSchema(schemaData);
     }
 
     @Override

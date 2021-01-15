@@ -1,5 +1,4 @@
 // Metadata created by nebel
-
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="intro-to-the-registry"]
@@ -14,6 +13,7 @@ This chapter introduces {registry} concepts and features and provides details on
 * xref:registry-rest-api[]
 * xref:registry-security[]
 * xref:registry-storage[]
+* xref:registry-web-console[]
 * xref:client-serde[]
 * xref:kafka-connect[]
 * xref:registry-demo[]
@@ -26,6 +26,7 @@ include::{mod-loc}getting-started/con-registry-web-console.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-security.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-storage.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/con-registry-web-console.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-serde.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-kafka-connect-converters.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-demo.adoc[leveloffset=+1]

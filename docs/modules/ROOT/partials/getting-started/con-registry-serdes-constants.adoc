@@ -6,7 +6,7 @@
 
 You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly into a client using the constants outlined in this section.
 
-Alternatively, you can use specify the constants in a properties file, or a properties instance.
+Alternatively, you can specify the constants in a properties file, or a properties instance.
 
 [discrete]
 == Constants for serializer/deserializer services

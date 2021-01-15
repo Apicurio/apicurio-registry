@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-rest-api"]
-= Registry REST API
+= Registry REST API overview
 Using the Registry REST API, client applications can manage the artifacts in {registry}. This API provides create, read, update, and delete operations for:
 
 Artifacts::

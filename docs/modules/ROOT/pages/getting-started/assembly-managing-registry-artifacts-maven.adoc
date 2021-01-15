@@ -1,0 +1,17 @@
+// Metadata created by nebel
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="managing-registry-artifacts-maven"]
+= Managing {registry} content using the Maven plug-in
+
+This chapter explains how to manage artifacts stored in the registry using the {registry} Maven plug-in:
+
+* xref:managing-artifacts-using-maven-plugin[]
+
+.Prerequisites
+* See {registry-overview}
+* {registry} must be installed and running in your environment
+* Maven must be installed and configured in your environment
+
+//INCLUDES
+include::{mod-loc}getting-started/proc-managing-artifacts-using-maven-plugin.adoc[leveloffset=+1]

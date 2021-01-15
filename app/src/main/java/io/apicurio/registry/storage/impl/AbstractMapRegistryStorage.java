@@ -62,6 +62,7 @@ public abstract class AbstractMapRegistryStorage implements RegistryStorage {
     protected Map<Long, TupleId> global;
     protected MultiMap<String, String, String> artifactRules;
     protected Map<String, String> globalRules;
+    
 
     protected void beforeInit() {
     }

@@ -45,3 +45,6 @@ endif::[]
 * Compatibility with existing Confluent schema registry client applications
 
 * Operator-based installation of {registry} on OpenShift
+
+* Support for OpenID Connect (OIDC) authentication
+

@@ -25,18 +25,43 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
+	private static final String TENANT_ID_KEY = "tenant-id";
+
 	@Override
 	public OidcTenantConfig resolve(RoutingContext context) {
 
-		//TODO Fetch tenantId either from url, header, or any other expected source
+		final String tenantId = context.request().getHeader(TENANT_ID_KEY);
 
-		//TODO set config according to fetched tenantId, if possible.
+		if (null == tenantId) {
+			// resolve to default tenant configuration
+			return null;
+		}
 
-		OidcTenantConfig config = new OidcTenantConfig();
+		//TODO fetch oidc config from the database
 
-		//TODO any other setting support by the quarkus-oidc extension
+		if ("tenant-a".equals(tenantId)) {
+			final OidcTenantConfig config = new OidcTenantConfig();
 
-		//TODO If we cannot find any tenant from the expected sources we can return null and the application will fall back to the default tenant configuration
+			config.setTenantId(tenantId);
+			config.setAuthServerUrl("http://localhost:8090/auth/realms/registry");
+			config.setClientId("tenant-a-api-client");
+			OidcTenantConfig.Credentials credentials = new OidcTenantConfig.Credentials();
+			config.setCredentials(credentials);
+
+			return config;
+
+		} else if ("tenant-b".equals(tenantId)) {
+			final OidcTenantConfig config = new OidcTenantConfig();
+
+			config.setTenantId(tenantId);
+			config.setAuthServerUrl("http://localhost:8090/auth/realms/registry");
+			config.setClientId("tenant-b-api-client");
+			OidcTenantConfig.Credentials credentials = new OidcTenantConfig.Credentials();
+			config.setCredentials(credentials);
+
+			return config;
+		}
+
 		return null;
 	}
 }

@@ -56,8 +56,10 @@ export class AuthService implements Service {
             if (this.keycloak.realmAccess && this.keycloak.realmAccess.roles) {
                 user.roles = user.roles.concat(this.keycloak.realmAccess.roles);
             }
-            if (this.keycloak.resourceAccess && this.keycloak.resourceAccess.account && this.keycloak.resourceAccess.account.roles) {
-                user.roles = user.roles.concat(this.keycloak.resourceAccess.account.roles);
+
+            if (this.keycloak.resourceAccess) {
+                Object.keys(this.keycloak.resourceAccess)
+                    .forEach(key => (user.roles = user.roles.concat(this.keycloak.resourceAccess[key].roles)))
             }
 
             this.logger.info("----------------");

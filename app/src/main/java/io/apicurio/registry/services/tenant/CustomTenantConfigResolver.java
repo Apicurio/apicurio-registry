@@ -16,16 +16,21 @@
 
 package io.apicurio.registry.services.tenant;
 
+import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.vertx.ext.web.RoutingContext;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
 	private static final String TENANT_ID_KEY = "tenant-id";
+
+	@Inject
+	TenantContext tenantContext;
 
 	@Override
 	public OidcTenantConfig resolve(RoutingContext context) {
@@ -36,6 +41,8 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
 			// resolve to default tenant configuration
 			return null;
 		}
+
+		tenantContext.tenantId(tenantId);
 
 		//TODO fetch oidc config from the database
 
@@ -51,6 +58,7 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
 			return config;
 
 		} else if ("tenant-b".equals(tenantId)) {
+
 			final OidcTenantConfig config = new OidcTenantConfig();
 
 			config.setTenantId(tenantId);

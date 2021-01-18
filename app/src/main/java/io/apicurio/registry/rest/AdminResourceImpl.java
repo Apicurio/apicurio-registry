@@ -52,6 +52,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Scheduled(concurrentExecution = ConcurrentExecution.SKIP, delayed = "{registry.logconfigjob.delayed}", every = "{registry.logconfigjob.every}")
     public void checkLogLevel() {
+        if (!storage.isAlive() || !storage.isReady()) {
+            return;
+        }
         LOGGER.fine("Running periodic log configuration process");
         for (LoggingConfigurationDto logConfig : storage.listLoggingConfigurations()) {
             Logger logger = Logger.getLogger(logConfig.getLogger());

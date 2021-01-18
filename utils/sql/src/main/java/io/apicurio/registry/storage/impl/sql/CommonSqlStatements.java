@@ -488,4 +488,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentById() {
         return "SELECT c.content FROM content c WHERE c.contentId = ?";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectTenantMetadataByTenantId()
+     */
+    @Override
+    public String selectTenantMetadataByTenantId() {
+        return "SELECT t.* FROM tenants t WHERE t.tenantId = ?";
+    }
+
 }

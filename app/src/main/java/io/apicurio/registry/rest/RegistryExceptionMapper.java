@@ -20,6 +20,7 @@ import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
+import io.apicurio.registry.mt.metadata.TenantNotFoundException;
 import io.apicurio.registry.rest.beans.Error;
 import io.apicurio.registry.rest.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
@@ -99,6 +100,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
+        map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 
@@ -124,7 +126,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
-            // If the error is not something we should ignore, then we report it to the liveness object 
+            // If the error is not something we should ignore, then we report it to the liveness object
             // and log it.  Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
@@ -148,7 +150,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     /**
      * Returns true if the endpoint that caused the error is a "ccompat" endpoint.  If so
-     * we need to simplify the error we return.  The apicurio error structure has at least 
+     * we need to simplify the error we return.  The apicurio error structure has at least
      * one additional property.
      */
     private boolean isCompatEndpoint() {
@@ -175,7 +177,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         error.setName(t.getClass().getSimpleName());
         return error;
     }
-    
+
     /**
      * Gets the full stack trace for the given exception and returns it as a
      * string.

@@ -18,7 +18,7 @@ services:
       - postgres
       - registry-app
   registry-app:
-    image: quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+    image: apicurio/apicurio-registry-sql:latest
     ports:
       - 8080:8080
     environment:

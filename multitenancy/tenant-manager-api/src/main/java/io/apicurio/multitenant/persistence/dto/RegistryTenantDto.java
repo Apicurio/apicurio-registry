@@ -4,7 +4,6 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
@@ -15,9 +14,6 @@ import io.apicurio.multitenant.datamodel.RegistryTenant;
 public class RegistryTenantDto {
 
     @Id
-    @GeneratedValue
-    private Long id;
-
     @Column(name = "tenantId")
     private String tenantId;
 

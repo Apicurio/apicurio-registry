@@ -44,7 +44,7 @@ public interface AdminResource {
     List<LoggingConfiguration> listLoggingConfigurations();
 
     /**
-     * Returns the configured log level for the provided loggerName
+     * Returns the configured log level for the provided loggerName, if no logging configuration is persisted it will return the current log level in the system.
      *
      * @param loggerName
      * @param level

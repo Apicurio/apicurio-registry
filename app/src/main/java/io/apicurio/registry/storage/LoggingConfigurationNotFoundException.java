@@ -11,10 +11,12 @@ public class LoggingConfigurationNotFoundException extends StorageException {
 
     public LoggingConfigurationNotFoundException(String logger, Throwable cause) {
         super(cause);
+        this.logger = logger;
     }
 
     public LoggingConfigurationNotFoundException(String logger) {
         super();
+        this.logger = logger;
     }
 
     /**

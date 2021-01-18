@@ -1,16 +1,16 @@
 [id="registry-logging"]
-= {registry} Logging
+= {registry} logging
 
-{registry} logging configuration can be modified while {registry} it's running. There is a REST endpoint that allows to configure the log level for specific loggers, allowing for finer grained logging configurations.
+You can update {registry} logging configuration at runtime. {registry} provides a REST endpoint to set the log level for specific loggers for finer grained logging.
 
 [id="configuring-registry-logging"]
-== Configuring {registry} Logging during runtime
+== Configuring {registry} logging at runtime
 
-This section explains how to check and configure log level in {registry} during runtime using the admin REST API.
+This section explains how to view and set {registry} log levels at runtime using the admin REST API.
 
 .Prerequisites
 
-* Obtain the URL to access your {registry} instance, get the route of your {registry} in case you have {registry} deployed on Openshift. In this guide we are using `localhost:8080`
+* Get the URL to access your {registry} instance, or get your {registry} route if you have {registry} deployed on OpenShift. This simple example uses localhost:8080.
 
 [discrete]
 == Check the current log level for a specific logger
@@ -22,10 +22,10 @@ Use this `curl` command to obtain the current log level for the logger `io.apicu
 $ curl -i localhost:8080/api/admin/logging/io.apicurio.registry.storage
 HTTP/1.1 200 OK
 [...]
-Content-Type: text/plain;charset=UTF-8
-Content-Length: 4
+Content-Type: application/json
+Content-Length: 60
 
-INFO
+{"logger":"io.apicurio.registry.storage","logLevel":"INFO"}
 ----
 
 [discrete]
@@ -35,13 +35,25 @@ Use this `curl` command to change the log level for the logger `io.apicurio.regi
 
 [source,bash]
 ----
-$ curl -X PUT -i localhost:8080/api/admin/logging/io.apicurio.registry.storage?level=DEBUG
+$ curl -X PUT -i -H "Content-Type: application/json" --data '{"logger":"io.apicurio.registry.storage","logLevel":"DEBUG"}' localhost:8080/api/admin/logging
 HTTP/1.1 200 OK
-Date: Tue, 22 Dec 2020 10:48:24 GMT
-Expires: Wed, 22 Dec 2021 10:48:24 GMT
-Cache-control: public, max-age=31536000
-Content-Type: text/plain;charset=UTF-8
-Content-Length: 5
+[...]
+Content-Type: application/json
+Content-Length: 60
 
-DEBUG
+{"logger":"io.apicurio.registry.storage","logLevel":"DEBUG"}
+----
+
+You can revert to the default log level the configuration of a specific logger.
+Use this `curl` command to change the log level for the logger `io.apicurio.registry.storage` to it's default value
+
+[source,bash]
+----
+$ curl -X DELETE -i localhost:8080/api/admin/logging/io.apicurio.registry.storage
+HTTP/1.1 200 OK
+[...]
+Content-Type: application/json
+Content-Length: 59
+
+{"logger":"io.apicurio.registry.storage","logLevel":"INFO"}
 ----

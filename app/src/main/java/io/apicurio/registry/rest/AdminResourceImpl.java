@@ -28,6 +28,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.rest.beans.LoggingConfiguration;
 import io.apicurio.registry.storage.LoggingConfigurationDto;
+import io.apicurio.registry.storage.LoggingConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.LogLevel;
@@ -76,7 +77,12 @@ public class AdminResourceImpl implements AdminResource {
 
     @Override
     public LoggingConfiguration getLogLevel(String loggerName) {
-        LoggingConfigurationDto logConfig = storage.getLoggingConfiguration(loggerName);
+        LoggingConfigurationDto logConfig = null;
+        try {
+             logConfig = storage.getLoggingConfiguration(loggerName);
+        } catch (LoggingConfigurationNotFoundException e) {
+            //ignored
+        }
         Logger logger = Logger.getLogger(loggerName);
         Level actualLevel = getLogLevel(logger);
         if (logConfig == null) {

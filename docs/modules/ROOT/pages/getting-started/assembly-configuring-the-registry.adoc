@@ -4,7 +4,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="configuring-the-registry"]
 = Configuring {registry} deployment on OpenShift
 
-This chapter explain various optional configuration settings for {registry}, such as health checks settings on OpenShift or Logging settings.
+This chapter explains various optional configuration settings for {registry}, such as health checks on OpenShift and logging.
 
 * xref:configuring-liveness-readiness-probes[]
 * xref:registry-liveness-env-vars[]

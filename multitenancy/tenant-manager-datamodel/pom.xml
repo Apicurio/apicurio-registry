@@ -12,6 +12,11 @@
   <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>11</maven.compiler.source>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.quarkus</groupId>

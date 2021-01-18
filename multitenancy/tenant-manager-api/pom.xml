@@ -12,12 +12,23 @@
     <artifactId>apicurio-registry-tenant-manager-api</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
         </dependency>
     
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-orm</artifactId>

@@ -99,6 +99,7 @@
         <module>tests</module>
         <module>rest-client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
+        <module>multitenancy/tenant-manager-client</module>
         <module>multitenancy/tenant-manager-api</module>
     </modules>
 
@@ -312,6 +313,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-tenant-manager-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

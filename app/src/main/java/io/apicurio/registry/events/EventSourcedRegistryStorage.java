@@ -64,6 +64,16 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public boolean isReady() {
+        return storage.isReady();
+    }
+
+    @Override
+    public boolean isAlive() {
+        return storage.isAlive();
+    }
+
+    @Override
     public void updateArtifactState(String artifactId, ArtifactState state) {
         storage.updateArtifactState(artifactId, state);
     }

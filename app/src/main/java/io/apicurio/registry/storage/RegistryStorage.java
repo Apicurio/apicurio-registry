@@ -409,7 +409,7 @@ public interface RegistryStorage {
      * @param logger
      * @throws RegistryStorageException
      */
-    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException;
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException;
 
     /**
      * Persists the given loggingConfiguration
@@ -423,12 +423,12 @@ public interface RegistryStorage {
      * @param logger
      * @throws RegistryStorageException
      */
-    public void clearLoggingConfiguration(String logger) throws RegistryStorageException;
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException;
 
     /**
      * Returns the list of logging configuration persisted in the storage
      * @throws RegistryStorageException
      */
-    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException;
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException;
 
 }

@@ -26,10 +26,10 @@ import javax.ws.rs.BadRequestException;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rest.beans.LoggingConfiguration;
 import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.LogLevel;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
@@ -38,37 +38,37 @@ import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
  * @author Fabian Martinez
  */
 @ApplicationScoped
-@Logged
 public class AdminResourceImpl implements AdminResource {
 
     private static final Logger LOGGER = Logger.getLogger(AdminResourceImpl.class.getName());
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     @ConfigProperty(name = "quarkus.log.level")
     String defaultLogLevel;
 
     @Scheduled(concurrentExecution = ConcurrentExecution.SKIP, delayed = "{registry.logconfigjob.delayed}", every = "{registry.logconfigjob.every}")
-    private void checkLogLevel() {
+    public void checkLogLevel() {
         LOGGER.fine("Running periodic log configuration process");
-        for (LoggingConfigurationDto logConfig : storage.listLoggingConfiguration()) {
+        for (LoggingConfigurationDto logConfig : storage.listLoggingConfigurations()) {
             Logger logger = Logger.getLogger(logConfig.getLogger());
             Level expectedLevel = Level.parse(logConfig.getLogLevel().value());
             if (!getLogLevel(logger).equals(expectedLevel)) {
                 LOGGER.info(String.format("Updating logger %s to log level %s", logConfig.getLogger(), logConfig.getLogLevel().value()));
                 logger.setLevel(expectedLevel);
-                if (logConfig.getLogLevel().value().equals(defaultLogLevel)) {
-                    LOGGER.info(String.format("Cleaning persisted config for logger %s because default log level is configured %s", logConfig.getLogger(), logConfig.getLogLevel().value()));
-                    storage.clearLoggingConfiguration(logConfig.getLogger());
-                }
+            }
+            if (logConfig.getLogLevel().value().equals(defaultLogLevel)) {
+                LOGGER.info(String.format("Cleaning persisted config for logger %s because default log level is configured %s", logConfig.getLogger(), logConfig.getLogLevel().value()));
+                storage.clearLoggingConfiguration(logConfig.getLogger());
             }
         }
     }
 
     @Override
     public List<LoggingConfiguration> listLoggingConfigurations() {
-        return storage.listLoggingConfiguration()
+        return storage.listLoggingConfigurations()
                 .stream()
                 .map(c -> new LoggingConfiguration(c.getLogger(), c.getLogLevel()))
                 .collect(Collectors.toList());
@@ -91,28 +91,28 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     @Override
-    public LoggingConfiguration setLogLevel(String loggerName, LogLevel level) {
+    public LoggingConfiguration setLogLevel(LoggingConfiguration loggingConfiguration) {
 
-        if (level == null) {
-            throw new BadRequestException("level is mandatory");
+        if (loggingConfiguration == null || loggingConfiguration.getLogger() == null || loggingConfiguration.getLogLevel() == null) {
+            throw new BadRequestException("Missing parameters");
         }
 
         try {
-            Logger logger = Logger.getLogger(loggerName);
-            logger.setLevel(Level.parse(level.value()));
-            LOGGER.info("Changing log level for logger " + loggerName + " to " + level);
+            Logger logger = Logger.getLogger(loggingConfiguration.getLogger());
+            logger.setLevel(Level.parse(loggingConfiguration.getLogLevel().value()));
+            LOGGER.info("Changing log level for logger " + loggingConfiguration.getLogger() + " to " + loggingConfiguration.getLogLevel());
         } catch ( Exception e ) {
             throw new BadRequestException("level is not a valid log level");
         }
 
-        storage.setLoggingConfiguration(new LoggingConfigurationDto(loggerName, level));
+        storage.setLoggingConfiguration(new LoggingConfigurationDto(loggingConfiguration.getLogger(), loggingConfiguration.getLogLevel()));
 
-        return new LoggingConfiguration(loggerName, level);
+        return loggingConfiguration;
     }
 
     @Override
     public LoggingConfiguration removeLogLevelConfiguration(String loggerName) {
-        return setLogLevel(loggerName, LogLevel.fromValue(defaultLogLevel));
+        return setLogLevel(new LoggingConfiguration(loggerName, LogLevel.fromValue(defaultLogLevel)));
     }
 
     private Level getLogLevel(Logger logger) {

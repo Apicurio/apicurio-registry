@@ -246,10 +246,46 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     return consumeRule(aggregate, value, type, offset);
                 case STATE:
                     return consumeState(aggregate, value, artifactId, version, offset);
+                case LOGCONFIG:
+                    return consumeLogConfig(aggregate, value, type, offset);
                 default:
                     throw new IllegalArgumentException("Cannot handle value type: " + vt);
             }
         }
+
+        private Str.Data consumeLogConfig(Str.Data data, Str.StorageValue rv, Str.ActionType type, long offset) {
+            Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
+            Str.LogConfigValue logconfig = rv.getLogConfig();
+            if (type == Str.ActionType.CREATE) {
+                int i;
+                Str.LogConfigValue found = null;
+                for (i = 0; i < builder.getLogConfigsCount(); i++) {
+                    if (builder.getLogConfigs(i).getLogger().equals(logconfig.getLogger())) {
+                        found = builder.getLogConfigs(i);
+                        break;
+                    }
+                }
+                if (found == null) {
+                    builder.addLogConfigs(Str.LogConfigValue.newBuilder().setLogger(logconfig.getLogger()).setLogLevel(logconfig.getLogLevel()));
+                } else {
+                    builder.setLogConfigs(i, Str.LogConfigValue.newBuilder().setLogger(logconfig.getLogger()).setLogLevel(logconfig.getLogLevel()));
+                }
+            } else if (type == Str.ActionType.DELETE) {
+                int index = -1;
+                for (int i = 0; i < builder.getLogConfigsCount(); i++) {
+                    Str.LogConfigValue lcv = builder.getLogConfigs(i);
+                    if (lcv.getLogger().equals(logconfig.getLogger())) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index >= 0) {
+                    builder.removeLogConfigs(index);
+                }
+            }
+            return builder.build();
+        }
+
 
         private Str.Data consumeRule(Str.Data data, Str.StorageValue rv, Str.ActionType type, long offset) {
             Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);

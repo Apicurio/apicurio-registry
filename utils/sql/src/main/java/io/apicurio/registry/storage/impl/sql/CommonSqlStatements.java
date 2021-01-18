@@ -488,4 +488,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentById() {
         return "SELECT c.content FROM content c WHERE c.contentId = ?";
     }
+
+    @Override
+    public String selectLogConfigurationByLogger() {
+        return "SELECT l.logger, l.loglevel FROM logconfiguration l WHERE l.logger = ?";
+    }
+
+    @Override
+    public String deleteLogConfiguration() {
+        return "DELETE FROM logconfiguration WHERE logger = ?";
+    }
+
+    @Override
+    public String selectAllLogConfigurations() {
+        return "SELECT l.logger, l.loglevel FROM logconfiguration l";
+    }
+
 }

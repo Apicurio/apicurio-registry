@@ -53,6 +53,11 @@ message SnapshotValue {
     fixed64 timestamp = 1;
 }
 
+message LogConfigValue {
+    string logger = 1;
+    string logLevel = 2;
+}
+
 enum ValueType {
     __INVALID = 0;
     // crud
@@ -61,6 +66,7 @@ enum ValueType {
     RULE = 3;
     SNAPSHOT = 4;
     STATE = 5;
+    LOGCONFIG = 6;
 }
 
 message StorageValue {
@@ -74,6 +80,7 @@ message StorageValue {
         RuleValue rule = 7;
         SnapshotValue snapshot = 8;
         ArtifactState state = 9;
+        LogConfigValue logConfig = 10;
     }
 }
 
@@ -82,6 +89,7 @@ message Data {
     string artifactId = 2;
     repeated ArtifactValue artifacts = 3;
     repeated RuleValue rules = 4;
+    repeated LogConfigValue logConfigs = 5;
 }
 
 message TupleValue {

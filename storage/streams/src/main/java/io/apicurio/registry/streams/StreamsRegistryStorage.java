@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.LoggingConfigurationDto;
+import io.apicurio.registry.storage.LoggingConfigurationNotFoundException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -47,6 +48,7 @@ import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -115,6 +117,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
+
+    /* Fake logging configuration as an artifact */
+    public static final String LOGGING_CONFIGURATION_ID = "__LOGGING_CONFIGURATION__";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
@@ -784,26 +789,40 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
-        // TODO Auto-generated method stub
-        return null;
+        Str.Data data = storageStore.get(LOGGING_CONFIGURATION_ID);
+        if (data != null) {
+            return data.getLogConfigsList()
+                .stream()
+                .filter(v -> v.getLogger().equals(logger))
+                .findFirst()
+                .map(v -> new LoggingConfigurationDto(v.getLogger(), LogLevel.fromValue(v.getLogLevel())))
+                .orElseThrow(() -> new LoggingConfigurationNotFoundException(logger));
+        } else {
+            throw new LoggingConfigurationNotFoundException(logger);
+        }
     }
 
     @Override
     public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
-        // TODO Auto-generated method stub
-
+        ConcurrentUtil.get(submitter.submitLogConfig(Str.ActionType.CREATE, LOGGING_CONFIGURATION_ID, loggingConfiguration.getLogger(), loggingConfiguration.getLogLevel().value()));
     }
 
     @Override
     public void clearLoggingConfiguration(String logger) throws RegistryStorageException {
-        // TODO Auto-generated method stub
-
+        ConcurrentUtil.get(submitter.submitLogConfig(Str.ActionType.DELETE, LOGGING_CONFIGURATION_ID, logger, null));
     }
 
     @Override
-    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
-        // TODO
-        return Collections.emptyList();
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException {
+        Str.Data data = storageStore.get(LOGGING_CONFIGURATION_ID);
+        if (data != null) {
+            return data.getLogConfigsList()
+                .stream()
+                .map(v -> new LoggingConfigurationDto(v.getLogger(), LogLevel.fromValue(v.getLogLevel())))
+                .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
     }
 
 

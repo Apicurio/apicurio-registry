@@ -48,3 +48,6 @@ CREATE INDEX IDX_props_2 ON properties(pvalue);
 CREATE TABLE labels (globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
 ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
 CREATE INDEX IDX_labels_1 ON labels(label);
+
+CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
+ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);

@@ -45,20 +45,22 @@ public class MessageTypeToKeyClass {
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionKey.class);
                     break;
+                case LoggingConfig:
+                    index.put(type, LoggingConfigurationKey.class);
                 default:
                     break;
-                
+
             }
         }
     }
-    
+
     public static final Class<? extends MessageKey> typeToKey(MessageType type) {
         return index.get(type);
     }
-    
+
     public static final Class<? extends MessageKey> ordToKeyClass(byte typeOrdinal) {
         MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToKey(type);
     }
-    
+
 }

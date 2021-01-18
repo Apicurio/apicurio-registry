@@ -122,4 +122,17 @@ public class Submitter<T> {
         return submit(rvb.build());
     }
 
+    public CompletableFuture<T> submitLogConfig(Str.ActionType actionType, String artifactId, String logger, String logLevel) {
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.LOGCONFIG, actionType, artifactId, -1L);
+        Str.LogConfigValue.Builder builder = Str.LogConfigValue.newBuilder();
+        if (logger != null) {
+            builder.setLogger(logger);
+        }
+        if (logLevel != null) {
+            builder.setLogLevel(logLevel);
+        }
+        rvb.setLogConfig(builder);
+        return submit(rvb.build());
+    }
+
 }

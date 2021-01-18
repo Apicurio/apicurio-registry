@@ -308,4 +308,12 @@ public interface SqlStatements {
      */
     public String selectContentById();
 
+    public String selectLogConfigurationByLogger();
+
+    public String upsertLogConfiguration();
+
+    public String deleteLogConfiguration();
+
+    public String selectAllLogConfigurations();
+
 }

@@ -70,4 +70,9 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?)";
     }
 
+    @Override
+    public String upsertLogConfiguration() {
+        return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
+    }
+
 }

@@ -31,6 +31,8 @@ import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
+import io.apicurio.registry.storage.LoggingConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -241,6 +243,26 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         storage.deleteGlobalRule(rule);
+    }
+
+    @Override
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException {
+        return storage.getLoggingConfiguration(logger);
+    }
+
+    @Override
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
+        storage.setLoggingConfiguration(loggingConfiguration);
+    }
+
+    @Override
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException {
+        storage.clearLoggingConfiguration(logger);
+    }
+
+    @Override
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException {
+        return storage.listLoggingConfigurations();
     }
 
 }

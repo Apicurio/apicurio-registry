@@ -30,12 +30,14 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.LoggingConfigurationKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
@@ -43,6 +45,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.LoggingConfigurationValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -162,5 +165,18 @@ public class KafkaSqlSubmitter {
         ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
         send(key, null);
     }
-    
+
+    /* ******************************************************************************************
+     * Logging Configuration
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitLoggingConfiguration(LoggingConfigurationDto config, ActionType action) {
+        LoggingConfigurationKey key = LoggingConfigurationKey.create(config.getLogger());
+        LoggingConfigurationValue value = LoggingConfigurationValue.create(action, config.getLogLevel() == null ? null : config.getLogLevel().value());
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitLoggingConfiguration(String logger, ActionType action) {
+        return submitLoggingConfiguration(new LoggingConfigurationDto(logger, null), action);
+    }
+
+
 }

@@ -15,6 +15,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
@@ -25,6 +26,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.LoggingConfigurationKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
@@ -32,8 +34,10 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.LoggingConfigurationValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RegistryException;
 
 /**
@@ -53,7 +57,7 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlConfiguration configuration;
-    
+
     @Inject
     KafkaSqlSubmitter submitter;
 
@@ -64,11 +68,11 @@ public class KafkaSqlSink {
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
      * each message much be consumed and applied to the in-memory SQL data store.
-     * 
+     *
      * This method extracts the UUID from the message headers, delegates the message processing
      * to <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally
      * it will report the result to any local threads that may be waiting (via the coordinator).
-     * 
+     *
      * @param record
      */
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
@@ -78,13 +82,13 @@ public class KafkaSqlSink {
             return;
         }
 
-        // If the value is null, then this is a tombstone (or unrecognized) message and should not 
+        // If the value is null, then this is a tombstone (or unrecognized) message and should not
         // be processed.
         if (record.value() == null) {
             log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
             return;
         }
-        
+
         UUID requestId = extractUuid(record);
         log.debug("Processing Kafka message with UUID: {}", requestId.toString());
 
@@ -132,7 +136,7 @@ public class KafkaSqlSink {
             Long globalId = toGlobalId(offset, partition);
             return globalId;
         };
-        
+
         String tenantId = key.getTenantId();
         tenantContext.tenantId(tenantId);
         try {
@@ -148,6 +152,8 @@ public class KafkaSqlSink {
                     return processContent((ContentKey) key, (ContentValue) value);
                 case GlobalRule:
                     return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
+                case LoggingConfig:
+                    return processLoggingConfiguration((LoggingConfigurationKey) key, (LoggingConfigurationValue) value);
                 default:
                     log.warn("Unrecognized message type: %s", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -161,7 +167,7 @@ public class KafkaSqlSink {
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
      * @param key
      * @param value
-     * @param globalIdGenerator 
+     * @param globalIdGenerator
      */
     private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) throws RegistryStorageException {
         try {
@@ -198,7 +204,7 @@ public class KafkaSqlSink {
     private Object processArtifactRuleMessage(ArtifactRuleKey key, ArtifactRuleValue value) {
         switch (value.getAction()) {
             case Create:
-                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what 
+                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
                 return sqlStore.createArtifactRuleAsync(key.getArtifactId(), key.getRuleType(), value.getConfig());
             case Update:
@@ -216,11 +222,11 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "artifact version".  This includes:
-     * 
+     *
      *  - Updating version meta-data and state
      *  - Deleting version meta-data and state
      *  - Deleting an artifact version
-     * 
+     *
      * @param key
      * @param value
      */
@@ -268,7 +274,7 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "global rule".  This includes creating, updating, and deleting
      * global rules.
-     * 
+     *
      * @param key
      * @param value
      */
@@ -288,6 +294,23 @@ public class KafkaSqlSink {
                 log.warn("Unsupported global rule message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
         }
+    }
+
+    private Object processLoggingConfiguration(LoggingConfigurationKey key, LoggingConfigurationValue value) {
+        switch (value.getAction()) {
+            case Create:
+                sqlStore.setLoggingConfiguration(new LoggingConfigurationDto(key.getLogger(), LogLevel.fromValue(value.getLogLevel())));
+                break;
+            case Delete:
+                sqlStore.clearLoggingConfiguration(key.getLogger());
+                break;
+            case Update:
+            case Clear:
+            default :
+                log.warn("Unsupported logging config message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported logging config message action: " + value.getAction());
+        }
+        return null;
     }
 
     public long toGlobalId(long offset, int partition) {

@@ -24,21 +24,21 @@ import java.util.Map;
  */
 public enum MessageType {
 
-    GlobalRule(1), Content(2), Artifact(3), ArtifactRule(4), ArtifactVersion(5);
-    
+    GlobalRule(1), Content(2), Artifact(3), ArtifactRule(4), ArtifactVersion(5), LoggingConfig(6);
+
     private final byte ord;
-    
+
     /**
      * Constructor.
      */
     private MessageType(int ord) {
         this.ord = (byte) ord;
     }
-    
+
     public final byte getOrd() {
         return this.ord;
     }
-    
+
     private static final Map<Byte, MessageType> ordIndex = new HashMap<>();
     static {
         for (MessageType mt : MessageType.values()) {

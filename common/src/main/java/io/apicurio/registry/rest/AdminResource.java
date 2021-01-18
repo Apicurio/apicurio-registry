@@ -23,11 +23,9 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import io.apicurio.registry.rest.beans.LoggingConfiguration;
-import io.apicurio.registry.types.LogLevel;
 
 /**
  * JAX-RS interface for the admin API of Apicurio Registry.
@@ -67,9 +65,9 @@ public interface AdminResource {
      * @return log level
      */
     @PUT
-    @Path("logging/{logger}")
+    @Path("logging/")
     @Produces(MediaType.APPLICATION_JSON)
-    LoggingConfiguration setLogLevel(@PathParam("logger") String loggerName, @QueryParam("level") LogLevel level);
+    LoggingConfiguration setLogLevel(LoggingConfiguration loggingConfiguration);
 
     /**
      * Removes the configured log level (if any) for the given logger

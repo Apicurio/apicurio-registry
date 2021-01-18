@@ -29,6 +29,8 @@ public enum LogLevel {
     //Compatibility with SLFJ
     DEBUG("DEBUG"),
     TRACE("TRACE"),
+    WARN("WARN"),
+    ERROR("ERROR"),
 
     //levels from java.util.logging
     SEVERE("SEVERE"),

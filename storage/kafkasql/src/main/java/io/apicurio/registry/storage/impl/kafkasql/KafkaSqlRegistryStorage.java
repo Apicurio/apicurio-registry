@@ -76,6 +76,8 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.LoggingConfigurationDto;
+import io.apicurio.registry.storage.LoggingConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleConfigurationDto;
@@ -115,7 +117,7 @@ import io.quarkus.runtime.StartupEvent;
 public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlRegistryStorage.class);
-    
+
     @Inject
     KafkaSqlConfiguration configuration;
 
@@ -689,6 +691,31 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
         return metaData;
+    }
+
+    @Override
+    public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException {
+        return sqlStore.getLoggingConfiguration(logger);
+    }
+
+    @Override
+    public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitLoggingConfiguration(loggingConfiguration, ActionType.Create));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public void clearLoggingConfiguration(String logger) throws RegistryStorageException, LoggingConfigurationNotFoundException {
+        //verify config existence
+        sqlStore.getLoggingConfiguration(logger);
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitLoggingConfiguration(logger, ActionType.Delete));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException {
+        return sqlStore.listLoggingConfigurations();
     }
 
 }

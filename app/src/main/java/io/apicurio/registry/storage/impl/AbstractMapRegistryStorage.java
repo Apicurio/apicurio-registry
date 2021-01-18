@@ -825,7 +825,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getLoggingConfiguration(java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getLoggingConfigurations(java.lang.String)
      */
     @Override
     public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
@@ -848,7 +848,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
      * @see io.apicurio.registry.storage.RegistryStorage#listLoggingConfiguration()
      */
     @Override
-    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException {
         return logConfiguration.entrySet()
                 .stream()
                 .map(e -> new LoggingConfigurationDto(e.getKey(), LogLevel.fromValue(e.getValue())))

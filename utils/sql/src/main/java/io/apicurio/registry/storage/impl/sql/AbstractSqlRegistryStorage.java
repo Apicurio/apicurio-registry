@@ -42,6 +42,7 @@ import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.result.ResultIterable;
 import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.StatementContext;
+import org.jdbi.v3.core.statement.Update;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,7 @@ import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.LoggingConfigurationDto;
+import io.apicurio.registry.storage.LoggingConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -76,6 +78,7 @@ import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.LoggingConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
@@ -129,10 +132,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     public AbstractSqlRegistryStorage() {
     }
-    
+
     protected <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
         try {
             return this.jdbi.withHandle(callback);
+        } catch (RegistryStorageException e) {
+            throw e;
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -1673,26 +1678,66 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     @Override
     public LoggingConfigurationDto getLoggingConfiguration(String logger) throws RegistryStorageException {
-        // TODO Auto-generated method stub
-        return null;
+        log.debug("Selecting a single logging configuration: {}", logger);
+        try {
+            return this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.selectLogConfigurationByLogger();
+                return handle.createQuery(sql)
+                        .bind(0, logger)
+                        .map(LoggingConfigurationMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new LoggingConfigurationNotFoundException(logger);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     @Override
+    @Transactional
     public void setLoggingConfiguration(LoggingConfigurationDto loggingConfiguration) throws RegistryStorageException {
-        // TODO Auto-generated method stub
+        log.debug("Upsert logging configuration: {}", loggingConfiguration.getLogger());
+        withHandle(handle -> {
+            String sql = sqlStatements.upsertLogConfiguration();
 
+            Update query = handle.createUpdate(sql)
+                    .bind(0, loggingConfiguration.getLogger())
+                    .bind(1, loggingConfiguration.getLogLevel().value());
+            if ("postgresql".equals(sqlStatements.dbType())) {
+                query.bind(2, loggingConfiguration.getLogLevel().value());
+            }
+            query.execute();
+
+            return null;
+        });
     }
 
     @Override
+    @Transactional
     public void clearLoggingConfiguration(String logger) throws RegistryStorageException {
-        // TODO Auto-generated method stub
-
+        log.debug("Deleting a logging configuration: {}", logger);
+        withHandle( handle -> {
+            String sql = sqlStatements.deleteLogConfiguration();
+            int rowCount = handle.createUpdate(sql)
+                  .bind(0, logger)
+                  .execute();
+            if (rowCount == 0) {
+                throw new LoggingConfigurationNotFoundException(logger);
+            }
+            return null;
+        });
     }
 
     @Override
-    public List<LoggingConfigurationDto> listLoggingConfiguration() throws RegistryStorageException {
-        // TODO Auto-generated method stub
-        return null;
+    public List<LoggingConfigurationDto> listLoggingConfigurations() throws RegistryStorageException {
+        log.debug("Selecting all logging configurations");
+        return withHandle(handle -> {
+            String sql = sqlStatements.selectAllLogConfigurations();
+            return handle.createQuery(sql)
+                    .map(LoggingConfigurationMapper.instance)
+                    .list();
+        });
     }
 
     /**

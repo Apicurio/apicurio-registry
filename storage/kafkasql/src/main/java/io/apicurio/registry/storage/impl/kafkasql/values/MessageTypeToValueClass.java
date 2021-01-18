@@ -47,20 +47,22 @@ public class MessageTypeToValueClass {
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionValue.class);
                     break;
+                case LoggingConfig:
+                    index.put(type, LoggingConfigurationValue.class);
                 default:
                     break;
-                
+
             }
         }
     }
-    
+
     public static final Class<? extends MessageValue> typeToValue(MessageType type) {
         return index.get(type);
     }
-    
+
     public static final Class<? extends MessageValue> ordToValue(byte typeOrdinal) {
         MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToValue(type);
     }
-    
+
 }

@@ -69,5 +69,10 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String upsertContent() {
         return "INSERT INTO content (canonicalHash, contentHash, content) VALUES (?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
     }
-    
+
+    @Override
+    public String upsertLogConfiguration() {
+        return "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?";
+    }
+
 }

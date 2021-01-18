@@ -34,6 +34,7 @@ public class RegistryTenantResourceTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setOrganizationId("aaa");
         req.setDeploymentFlavor("small");
+        req.setClientId("aaaaa");
 
         Response res = given()
             .when()

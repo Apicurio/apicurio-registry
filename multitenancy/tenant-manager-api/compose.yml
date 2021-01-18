@@ -4,15 +4,24 @@ services:
   postgres:
     image: postgres
     environment:
-      POSTGRES_USER: manager-user
-      POSTGRES_PASSWORD: manager-pwd
-  app:
+      POSTGRES_USER: apicurio-registry
+      POSTGRES_PASSWORD: password
+  tenant-manager:
     image: apicurio-registry-tenant-manager-api:latest
+    ports:
+      - 8081:8080
+    environment:
+      DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
+      DATASOURCE_USERNAME: apicurio-registry
+      DATASOURCE_PASSWORD: password
+    depends_on:
+      - postgres
+      - registry-app
+  registry-app:
+    image: quay.io/apicurio/apicurio-registry-sql:latest-snapshot
     ports:
       - 8080:8080
     environment:
-      DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
-      DATASOURCE_USERNAME: manager-user
-      DATASOURCE_PASSWORD: manager-pwd
-    depends_on:
-      - postgres
+      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
+      REGISTRY_DATASOURCE_USERNAME: apicurio-registry
+      REGISTRY_DATASOURCE_PASSWORD: password

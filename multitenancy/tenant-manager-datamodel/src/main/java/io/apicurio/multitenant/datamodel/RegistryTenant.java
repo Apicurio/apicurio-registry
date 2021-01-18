@@ -18,6 +18,9 @@ public class RegistryTenant {
     private String deploymentFlavor;
     private String status;
 
+    private String authServerUrl;
+    private String authClientId;
+
     public RegistryTenant() {
         // empty
     }
@@ -68,6 +71,22 @@ public class RegistryTenant {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAuthClientId() {
+        return authClientId;
+    }
+
+    public void setAuthClientId(String authClientId) {
+        this.authClientId = authClientId;
+    }
+
+    public String getAuthServerUrl() {
+        return authServerUrl;
+    }
+
+    public void setAuthServerUrl(String authServerUrl) {
+        this.authServerUrl = authServerUrl;
     }
 
 }

@@ -66,8 +66,6 @@ public class RegistryTenantResource {
             tenant.setAuthServerUrl(defaultAuthServerUrl.get());
         } else if (tenantRequest.getAuthServerUrl() != null) {
             tenant.setAuthServerUrl(tenantRequest.getAuthServerUrl());
-        } else {
-            throw new BadRequestException("No default authServerUrl, authServerUrl is mandatory");
         }
 
         tenant.setCreatedOn(new Date());

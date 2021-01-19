@@ -16,7 +16,6 @@
 package io.apicurio.tests;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.concurrent.TimeoutException;
 
@@ -25,8 +24,6 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.platform.launcher.TestExecutionListener;
-import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +32,7 @@ import io.apicurio.tests.utils.RegistryUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 
-public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachCallback, BeforeAllCallback, AfterAllCallback, TestExecutionListener {
+public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachCallback, BeforeAllCallback, AfterAllCallback {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
@@ -95,18 +92,6 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
         // do nothing because we want to start registry one time for all test suite
-    }
-
-    @Override
-    public void testPlanExecutionFinished(TestPlan testPlan) {
-        if (!TestUtils.isExternalRegistry() && registry.isRunning()) {
-            LOGGER.info("Tear down registry deployment");
-            try {
-                registry.stopAndCollectLogs(null);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
     }
 
 }

@@ -16,7 +16,9 @@
 package io.apicurio.tests;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +35,11 @@ import io.apicurio.tests.utils.RegistryUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 
-public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachCallback, BeforeAllCallback, AfterAllCallback {
+public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachCallback, BeforeAllCallback, AfterAllCallback, ExtensionContext.Store.CloseableResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
+
+    private static boolean suiteStarted = false;
 
     private static RegistryFacade registry = RegistryFacade.getInstance();
 
@@ -66,6 +71,12 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        if (!suiteStarted) {
+            suiteStarted = true;
+            // The following line registers a callback hook when the root test context is shut down
+            context.getRoot().getStore(Namespace.GLOBAL).put(UUID.randomUUID().toString(), this);
+        }
+
         startRegistryIfNeeded(context);
         RestAssured.baseURI = TestUtils.getRegistryApiUrl();
         LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
@@ -92,6 +103,18 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
         // do nothing because we want to start registry one time for all test suite
+    }
+
+    @Override
+    public void close() throws Throwable {
+        if (!TestUtils.isExternalRegistry() && registry.isRunning()) {
+            LOGGER.info("Tear down registry deployment");
+            try {
+                registry.stopAndCollectLogs(null);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
     }
 
 }

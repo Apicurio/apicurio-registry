@@ -46,7 +46,7 @@ public class TenantRequestFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String tenantId = requestContext.getHeaderString("X-Registry-Tenant-Id");
         if (tenantId != null) {
-            //TODO use the metadata
+            //TODO remove this call
             tenantMetadataService.getTenantMetadata(tenantId);
 
             tenantContext.tenantId(tenantId);

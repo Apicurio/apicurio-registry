@@ -49,6 +49,7 @@ public class MessageTypeToValueClass {
                     break;
                 case LoggingConfig:
                     index.put(type, LoggingConfigurationValue.class);
+                    break;
                 default:
                     break;
 

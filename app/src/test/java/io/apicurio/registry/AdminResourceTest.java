@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,8 +75,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
             .statusCode(400);
     }
-//  mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -pl 'app' -Dtest=AdminResourceTest -DfailIfNoTests=false -DtrimStackTrace=false
-
 
     @Test
     void testCRUD() throws Exception {

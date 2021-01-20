@@ -47,6 +47,7 @@ public class MessageTypeToKeyClass {
                     break;
                 case LoggingConfig:
                     index.put(type, LoggingConfigurationKey.class);
+                    break;
                 default:
                     break;
 

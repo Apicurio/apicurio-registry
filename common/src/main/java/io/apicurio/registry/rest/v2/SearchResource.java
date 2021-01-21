@@ -1,5 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
@@ -8,9 +10,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.

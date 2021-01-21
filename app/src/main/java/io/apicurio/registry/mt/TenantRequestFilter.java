@@ -16,15 +16,13 @@
 
 package io.apicurio.registry.mt;
 
-import java.io.IOException;
+import io.apicurio.registry.rest.Headers;
 
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.ext.Provider;
-
-import io.apicurio.registry.mt.metadata.TenantMetadataService;
-import io.apicurio.registry.types.Current;
+import java.io.IOException;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -35,19 +33,13 @@ public class TenantRequestFilter implements ContainerRequestFilter {
     @Inject
     TenantContext tenantContext;
 
-    @Inject
-    @Current
-    TenantMetadataService tenantMetadataService;
-
     /**
      * @see javax.ws.rs.container.ContainerRequestFilter#filter(javax.ws.rs.container.ContainerRequestContext)
      */
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        String tenantId = requestContext.getHeaderString("X-Registry-Tenant-Id");
+        String tenantId = requestContext.getHeaderString(Headers.TENANT_ID);
         if (tenantId != null) {
-            //TODO remove this call
-            tenantMetadataService.getTenantMetadata(tenantId);
 
             tenantContext.tenantId(tenantId);
         } else {

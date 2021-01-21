@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.services.tenant;
 
-import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
+import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.vertx.ext.web.RoutingContext;
@@ -27,49 +30,27 @@ import javax.inject.Inject;
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
-	private static final String TENANT_ID_KEY = "tenant-id";
-
 	@Inject
-	TenantContext tenantContext;
+	@Current
+	RegistryStorage registryStorage;
 
 	@Override
 	public OidcTenantConfig resolve(RoutingContext context) {
 
-		final String tenantId = context.request().getHeader(TENANT_ID_KEY);
+		final String tenantId = context.request().getHeader(Headers.TENANT_ID);
 
 		if (null == tenantId) {
 			// resolve to default tenant configuration
 			return null;
 		}
 
-		tenantContext.tenantId(tenantId);
+		final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
+		final OidcTenantConfig config = new OidcTenantConfig();
 
-		//TODO fetch oidc config from the database
+		config.setTenantId(registryTenant.getTenantId());
+		config.setAuthServerUrl(registryTenant.getAuthServerUrl());
+		config.setClientId(registryTenant.getClientId());
 
-		if ("tenant-a".equals(tenantId)) {
-			final OidcTenantConfig config = new OidcTenantConfig();
-
-			config.setTenantId(tenantId);
-			config.setAuthServerUrl("http://localhost:8090/auth/realms/registry");
-			config.setClientId("tenant-a-api-client");
-			OidcTenantConfig.Credentials credentials = new OidcTenantConfig.Credentials();
-			config.setCredentials(credentials);
-
-			return config;
-
-		} else if ("tenant-b".equals(tenantId)) {
-
-			final OidcTenantConfig config = new OidcTenantConfig();
-
-			config.setTenantId(tenantId);
-			config.setAuthServerUrl("http://localhost:8090/auth/realms/registry");
-			config.setClientId("tenant-b-api-client");
-			OidcTenantConfig.Credentials credentials = new OidcTenantConfig.Credentials();
-			config.setCredentials(credentials);
-
-			return config;
-		}
-
-		return null;
+		return config;
 	}
 }

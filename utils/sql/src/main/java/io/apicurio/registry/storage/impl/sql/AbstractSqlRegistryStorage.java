@@ -1673,6 +1673,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
     public TenantMetadataDto getTenantMetadata(String tenantId) {
         log.debug("Selecting tenant metadata by tenantId: {}", tenantId);
         try {

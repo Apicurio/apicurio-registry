@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.rest.beans.SearchOver;
@@ -816,5 +817,13 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (prevValue == null) {
             throw new RuleNotFoundException(rule);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 }

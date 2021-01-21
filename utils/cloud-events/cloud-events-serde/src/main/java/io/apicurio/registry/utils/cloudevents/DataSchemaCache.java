@@ -43,18 +43,7 @@ public abstract class DataSchemaCache<T> {
     public DataSchemaEntry<T> getSchema(CloudEvent cloudEvent) {
         Long globalId = lookupGlobalId(cloudEvent);
         return schemas.computeIfAbsent(globalId, key -> {
-            InputStream artifactResponse;
-            try {
-                artifactResponse = client.getArtifactByGlobalId(key);
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                    String.format(
-                        "Error retrieving schema: %s",
-                        key
-                    ),
-                    e
-                );
-            }
+            InputStream artifactResponse = client.getArtifactByGlobalId(key);
             T schema = toSchema(artifactResponse);
             DataSchemaEntry<T> entry = new DataSchemaEntry<>();
             entry.setDataSchema("apicurio-global-id-"+globalId);
@@ -103,11 +92,7 @@ public abstract class DataSchemaCache<T> {
                     version = version.substring(1);
                 }
                 Integer artifactVersion = Integer.parseInt(version);
-                try {
-                    return client.getArtifactVersionMetaData(artifactId, artifactVersion).getGlobalId();
-                } catch (Exception e) {
-                    throw new IllegalStateException("Artifact not found", e);
-                }
+                return client.getArtifactVersionMetaData(artifactId, artifactVersion).getGlobalId();
             }
         } else if (dataschema.startsWith("apicurio-global-id-")) {
             String apicurioGlobalId = dataschema.substring("apicurio-global-id-".length());

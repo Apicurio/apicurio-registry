@@ -22,6 +22,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
@@ -31,7 +33,7 @@ import javax.ws.rs.ext.MessageBodyReader;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
 
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.utils.IoUtil;
 import io.cloudevents.core.message.MessageReader;
 import io.cloudevents.http.restful.ws.impl.RestfulWSMessageFactory;
@@ -43,10 +45,11 @@ import io.cloudevents.http.restful.ws.impl.RestfulWSMessageWriter;
 @Provider
 @Consumes(MediaType.WILDCARD)
 @Produces(MediaType.WILDCARD)
+@ApplicationScoped
 public class CloudEventsWsProvider implements MessageBodyReader<CloudEvent<?>>, MessageBodyWriter<CloudEvent<?>> {
 
-    JsonSchemaCloudEventsSerde serde = new JsonSchemaCloudEventsSerde(RegistryRestClientFactory.create("http://localhost:8080/api"));
-
+    @Inject
+    JsonSchemaCloudEventsSerde serde;
 
     @Override
     public boolean isReadable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
@@ -63,9 +66,13 @@ public class CloudEventsWsProvider implements MessageBodyReader<CloudEvent<?>>, 
         ParameterizedType pt = (ParameterizedType) genericType;
         Class<?> typeClass = (Class<?>) pt.getActualTypeArguments()[0];
 
-        ParsedData<?> outputParsedData = serde.readParsedData(cloudevent, typeClass);
+        try {
+            ParsedData<?> outputParsedData = serde.readParsedData(cloudevent, typeClass);
 
-        return new CloudEventImpl(cloudevent, outputParsedData.getDataschema(), outputParsedData.getData());
+            return new CloudEventImpl(cloudevent, outputParsedData.getDataschema(), outputParsedData.getData());
+        } catch (RestClientException e) {
+            throw new WebApplicationException(e.getError().getMessage(), e.getError().getErrorCode());
+        }
     }
 
     @Override
@@ -80,9 +87,13 @@ public class CloudEventsWsProvider implements MessageBodyReader<CloudEvent<?>>, 
 
         CloudEventAdapter adapter = new CloudEventAdapter(event);
 
-        io.cloudevents.CloudEvent outputevent = serde.writeData(adapter, event.data());
 
-        new RestfulWSMessageWriter(httpHeaders, entityStream).writeBinary(outputevent);
+        try {
+            io.cloudevents.CloudEvent outputevent = serde.writeData(adapter, event.data());
+            new RestfulWSMessageWriter(httpHeaders, entityStream).writeBinary(outputevent);
+        } catch (RestClientException e) {
+            throw new WebApplicationException(e.getError().getMessage(), e.getError().getErrorCode());
+        }
 
     }
 

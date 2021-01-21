@@ -122,7 +122,7 @@ public class TestUtils {
      */
     public static boolean isReady(boolean logResponse) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().concat("/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().concat("/q/health/ready")));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info("Service registry is ready");

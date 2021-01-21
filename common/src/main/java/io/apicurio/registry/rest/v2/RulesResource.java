@@ -15,7 +15,7 @@ import javax.ws.rs.Produces;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/api/v2/rules")
+@Path("/v2/rules")
 public interface RulesResource {
   /**
    * Gets a list of all the currently configured global rules (if any).

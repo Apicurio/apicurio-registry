@@ -35,8 +35,8 @@ import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.client.exception.ForbiddenException;
 import io.apicurio.registry.client.exception.NotAuthorizedException;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -64,20 +64,25 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     String readOnlyClientId = "registry-api-readonly";
 
     String clientSecret = "test1";
+    
+    private RegistryRestClient createClient(Auth auth) {
+        // TODO switch to V2 when possible
+        return RegistryRestClientFactory.create(registryV1ApiUrl, Collections.emptyMap(), auth);
+    }
 
     @Override
     @BeforeAll
     protected void beforeAll() throws Exception {
         System.out.println("Auth is " + authEnabled);
-        registryUrl = "http://localhost:8081/api";
+        super.beforeAll();
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        client = this.createClient(auth);
     }
 
     @AfterEach
     void cleanArtifacts() throws Exception {
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryRestClient client = createClient(auth);
         List<String> artifacts = client.listArtifacts();
         for (String artifactId : artifacts) {
             try {
@@ -96,7 +101,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test55");
 
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryRestClient client = createClient(auth);
 
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifacts();
@@ -109,7 +114,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test1");
 
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryRestClient client = createClient(auth);
 
         client.listArtifacts();
 
@@ -128,7 +133,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
         {
             Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
-            RegistryRestClient devClient = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), devAuth);
+            RegistryRestClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
         }
@@ -142,7 +147,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
 
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryRestClient client = createClient(auth);
 
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -174,7 +179,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
 
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryRestClient client = createClient(auth);
 
         String artifactId = TestUtils.generateArtifactId();
         try {

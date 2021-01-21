@@ -19,7 +19,8 @@ package io.apicurio.registry.content.extract;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.v1.beans.EditableMetaData;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

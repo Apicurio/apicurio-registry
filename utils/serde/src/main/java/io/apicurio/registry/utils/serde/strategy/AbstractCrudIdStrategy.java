@@ -23,8 +23,8 @@ import javax.ws.rs.core.Response;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
 
 /**

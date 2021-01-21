@@ -26,7 +26,7 @@ import javax.interceptor.InvocationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.RegistryApplication;
+import io.apicurio.registry.rest.v1.RegistryApplication;
 
 /**
  * @author eric.wittmann@gmail.com

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.rest.beans.SearchedVersion;
+import io.apicurio.registry.rest.v1.beans.SearchedVersion;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;

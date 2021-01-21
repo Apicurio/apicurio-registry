@@ -33,6 +33,8 @@ import java.util.function.Function;
 
 
 import io.apicurio.registry.client.exception.RestClientException;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -42,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.utils.IoUtil;
 
 /**

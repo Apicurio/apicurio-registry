@@ -51,14 +51,19 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     @Inject
     Instance<ServiceInitializer> initializers;
 
-    protected String registryUrl;
+    protected String registryApiBaseUrl;
+    protected String registryV1ApiUrl;
+    protected String registryV2ApiUrl;
     protected RegistryRestClient client;
 
 
     @BeforeAll
     protected void beforeAll() throws Exception {
-        registryUrl = "http://localhost:8081/api";
-        client = RegistryRestClientFactory.create(registryUrl);
+        registryApiBaseUrl = "http://localhost:8081/api";
+        registryV1ApiUrl = registryApiBaseUrl + "/v1";
+        registryV2ApiUrl = registryApiBaseUrl + "/v2";
+        // TODO Switch this to v2 when possible.
+        client = RegistryRestClientFactory.create(registryV1ApiUrl);
     }
 
     @BeforeEach
@@ -68,7 +73,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void prepareServiceInitializers() {
-        RestAssured.baseURI = registryUrl;
+        RestAssured.baseURI = registryApiBaseUrl;
 
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);

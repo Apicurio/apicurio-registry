@@ -17,8 +17,8 @@
 
 package io.apicurio.registry.util;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.VersionMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.EditableArtifactMetaDataDto;

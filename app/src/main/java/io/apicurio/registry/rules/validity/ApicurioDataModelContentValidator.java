@@ -20,7 +20,7 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.ValidationProblem;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 import picocli.CommandLine;
 
 /**

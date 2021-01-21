@@ -28,7 +28,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.WebElement;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;

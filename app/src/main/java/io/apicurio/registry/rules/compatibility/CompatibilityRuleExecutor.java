@@ -29,7 +29,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;

@@ -193,6 +193,7 @@ public final class TestCmmn {
             return true;
         }
 
+        @SuppressWarnings("unchecked")
         @java.lang.Override
         public int hashCode() {
             if (memoizedHashCode != 0) {

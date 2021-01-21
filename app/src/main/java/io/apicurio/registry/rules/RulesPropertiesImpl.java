@@ -24,6 +24,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class RulesPropertiesImpl implements RulesProperties {
+    @SuppressWarnings("unused")
     private final Properties properties;
     private final Map<RuleType, String> defaultGlobalRules;
 

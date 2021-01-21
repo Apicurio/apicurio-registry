@@ -18,15 +18,15 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SearchedArtifact;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.UpdateState;
-import io.apicurio.registry.rest.beans.VersionMetaData;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v1.beans.EditableMetaData;
+import io.apicurio.registry.rest.v1.beans.SearchOver;
+import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v1.beans.SortOrder;
+import io.apicurio.registry.rest.v1.beans.UpdateState;
+import io.apicurio.registry.rest.v1.beans.VersionMetaData;
+import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;

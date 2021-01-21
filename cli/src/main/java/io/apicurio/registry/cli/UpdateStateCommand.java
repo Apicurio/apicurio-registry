@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.v1.beans.UpdateState;
 import picocli.CommandLine;
 
 /**

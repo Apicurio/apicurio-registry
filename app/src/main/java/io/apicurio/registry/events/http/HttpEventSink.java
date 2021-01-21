@@ -69,7 +69,7 @@ public class HttpEventSink implements EventSink {
 
     }
 
-    @SuppressWarnings("deprecated")
+    @SuppressWarnings({ "deprecation" })
     private void sendEventHttp(String type, HttpSinkConfiguration httpSink, Buffer data) {
         try {
             log.debug("Sending event to sink "+httpSink.getName());

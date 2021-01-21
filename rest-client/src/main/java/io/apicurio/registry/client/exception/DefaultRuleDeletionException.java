@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.client.exception;
 
-import io.apicurio.registry.rest.beans.Error;
+import io.apicurio.registry.rest.v1.beans.Error;
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>
  */

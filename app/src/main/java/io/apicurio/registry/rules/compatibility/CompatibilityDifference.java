@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 
 /**
  * Represents a single compatibility difference.  These are generated when doing compatibility checking 

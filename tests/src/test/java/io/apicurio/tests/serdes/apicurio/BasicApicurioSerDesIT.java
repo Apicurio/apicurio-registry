@@ -18,7 +18,7 @@ package io.apicurio.tests.serdes.apicurio;
 
 import com.google.protobuf.Descriptors;
 import io.apicurio.registry.common.proto.Serde;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;

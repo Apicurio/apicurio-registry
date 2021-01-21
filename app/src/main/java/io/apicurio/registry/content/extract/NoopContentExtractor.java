@@ -17,7 +17,7 @@
 package io.apicurio.registry.content.extract;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 
 /**
  * @author Ales Justin

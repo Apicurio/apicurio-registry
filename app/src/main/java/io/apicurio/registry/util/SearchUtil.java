@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.util;
 
-import io.apicurio.registry.rest.beans.SearchedArtifact;
-import io.apicurio.registry.rest.beans.SearchedVersion;
-import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v1.beans.SearchedVersion;
+import io.apicurio.registry.rest.v1.beans.SortOrder;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 

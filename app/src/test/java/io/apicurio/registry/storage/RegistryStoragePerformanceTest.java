@@ -27,9 +27,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v1.beans.SearchOver;
+import io.apicurio.registry.rest.v1.beans.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.quarkus.test.junit.QuarkusTest;

@@ -1,16 +1,17 @@
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/api/v2/ids")
+@Path("/v2/ids")
 public interface IdsResource {
   /**
    * Gets the content for an artifact version in the registry using its globally unique

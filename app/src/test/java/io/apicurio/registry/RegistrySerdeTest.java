@@ -43,7 +43,7 @@ import com.google.protobuf.DynamicMessage;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;

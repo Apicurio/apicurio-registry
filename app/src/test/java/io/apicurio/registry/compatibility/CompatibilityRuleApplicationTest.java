@@ -19,13 +19,13 @@ package io.apicurio.registry.compatibility;
 import javax.inject.Inject;
 
 import io.apicurio.registry.JsonSchemas;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleViolationException;

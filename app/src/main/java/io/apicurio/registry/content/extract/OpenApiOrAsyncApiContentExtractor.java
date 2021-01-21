@@ -25,7 +25,7 @@ import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.common.Info;
 import io.apicurio.datamodels.core.visitors.TraverserDirection;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 
 /**
  * Performs meta-data extraction for OpenAPI content.

@@ -17,7 +17,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;

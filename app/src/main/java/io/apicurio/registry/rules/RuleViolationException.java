@@ -20,7 +20,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;

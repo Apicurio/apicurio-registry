@@ -16,10 +16,6 @@
 
 package io.apicurio.registry.client.service;
 
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.HeaderMap;
@@ -27,6 +23,11 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 import java.util.Map;
+
+import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v1.beans.SearchOver;
+import io.apicurio.registry.rest.v1.beans.SortOrder;
+import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>

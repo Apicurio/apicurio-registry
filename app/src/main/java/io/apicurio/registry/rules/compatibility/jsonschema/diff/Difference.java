@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

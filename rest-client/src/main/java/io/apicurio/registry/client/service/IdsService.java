@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.client.service;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -24,6 +23,8 @@ import retrofit2.http.HeaderMap;
 import retrofit2.http.Path;
 
 import java.util.Map;
+
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>

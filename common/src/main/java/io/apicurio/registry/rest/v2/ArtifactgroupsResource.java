@@ -31,7 +31,7 @@ import javax.ws.rs.core.Response;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/api/v2/artifactgroups")
+@Path("/v2/artifactgroups")
 public interface ArtifactgroupsResource {
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the

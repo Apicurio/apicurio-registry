@@ -16,7 +16,6 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import static io.apicurio.tests.Constants.ACCEPTANCE;
 import static io.apicurio.tests.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

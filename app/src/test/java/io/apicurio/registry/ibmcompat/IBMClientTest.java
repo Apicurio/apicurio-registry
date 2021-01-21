@@ -35,6 +35,7 @@ public class IBMClientTest extends AbstractResourceTestBase {
         String id = generateArtifactId();
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
 
+        @SuppressWarnings("rawtypes")
         SchemaRegistryRestAPIClient.Tuple tuple = client.create(id, content, true);
         Assertions.assertNotNull(tuple);
         Assertions.assertEquals(200, tuple.status);

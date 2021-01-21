@@ -23,10 +23,10 @@ import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v1.beans.SearchOver;
+import io.apicurio.registry.rest.v1.beans.SortOrder;
+import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;

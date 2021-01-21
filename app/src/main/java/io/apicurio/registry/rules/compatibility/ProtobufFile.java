@@ -77,7 +77,7 @@ public class ProtobufFile {
     }
 
     public ProtobufFile(File file) throws IOException {
-        Location location = Location.get(file.getAbsolutePath());
+//        Location location = Location.get(file.getAbsolutePath());
         List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
         element = toProtoFileElement(String.join("\n", data));
         buildIndexes();

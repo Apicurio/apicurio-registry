@@ -17,7 +17,7 @@
 package io.apicurio.registry.utils.serde.strategy;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
 

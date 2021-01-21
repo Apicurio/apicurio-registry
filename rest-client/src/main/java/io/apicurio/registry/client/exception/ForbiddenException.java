@@ -15,7 +15,7 @@
  */
 package io.apicurio.registry.client.exception;
 
-import io.apicurio.registry.rest.beans.Error;
+import io.apicurio.registry.rest.v1.beans.Error;
 
 public class ForbiddenException extends RestClientException {
 

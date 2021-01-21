@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 
 /**
  * @author eric.wittmann@gmail.com

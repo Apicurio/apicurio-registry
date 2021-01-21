@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.client.service;
 
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import retrofit2.Call;
 import retrofit2.http.*;

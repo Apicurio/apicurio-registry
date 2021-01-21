@@ -111,6 +111,7 @@ public class RegistryFacade {
 
     }
 
+    @SuppressWarnings("rawtypes")
     private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
         PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
         database.start();

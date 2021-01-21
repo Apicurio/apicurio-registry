@@ -26,7 +26,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;

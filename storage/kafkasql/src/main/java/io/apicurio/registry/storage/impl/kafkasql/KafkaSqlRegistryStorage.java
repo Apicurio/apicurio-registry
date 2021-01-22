@@ -47,6 +47,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -636,6 +637,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Delete));
         coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 
 

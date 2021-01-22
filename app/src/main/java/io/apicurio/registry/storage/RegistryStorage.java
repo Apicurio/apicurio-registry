@@ -17,12 +17,8 @@
 
 package io.apicurio.registry.storage;
 
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SortOrder;
@@ -31,6 +27,11 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
+
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
 
 
 /**
@@ -403,4 +404,11 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the information from the tenant with the given id.
+     * @param tenantId
+     * @throws RegistryStorageException
+     */
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException;
 }

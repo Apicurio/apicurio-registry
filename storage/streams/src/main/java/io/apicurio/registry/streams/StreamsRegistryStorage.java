@@ -21,6 +21,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.rest.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.beans.SearchOver;
 import io.apicurio.registry.rest.beans.SearchedArtifact;
@@ -779,6 +780,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         deleteArtifactRule(GLOBAL_RULES_ID, rule);
+    }
+
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 
     @AllArgsConstructor

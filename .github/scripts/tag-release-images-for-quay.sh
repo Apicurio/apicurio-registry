@@ -21,6 +21,8 @@ case $BRANCH_NAME in
        docker image tag apicurio/apicurio-registry-sql:${VERSION} quay.io/apicurio/apicurio-registry-sql:${VERSION}
        docker image tag apicurio/apicurio-registry-streams:latest-release quay.io/apicurio/apicurio-registry-streams:latest-release
        docker image tag apicurio/apicurio-registry-streams:${VERSION} quay.io/apicurio/apicurio-registry-streams:${VERSION}
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:latest-release quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-release
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:${VERSION} quay.io/apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;
 
    *)
@@ -37,6 +39,8 @@ case $BRANCH_NAME in
        docker image tag apicurio/apicurio-registry-sql:${VERSION} quay.io/apicurio/apicurio-registry-sql:${VERSION}
        docker image tag apicurio/apicurio-registry-streams:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-streams:${BRANCH_NAME}-release
        docker image tag apicurio/apicurio-registry-streams:${VERSION} quay.io/apicurio/apicurio-registry-streams:${VERSION}
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-release
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:${VERSION} quay.io/apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;
 
 esac

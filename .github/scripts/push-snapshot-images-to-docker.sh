@@ -18,6 +18,7 @@ case $BRANCH_NAME in
        docker push apicurio/apicurio-registry-kafkasql:latest-snapshot
        docker push apicurio/apicurio-registry-sql:latest-snapshot
        docker push apicurio/apicurio-registry-streams:latest-snapshot
+       docker push apicurio/apicurio-registry-tenant-manager-api:latest-snapshot
        ;;
 
     *)
@@ -28,6 +29,7 @@ case $BRANCH_NAME in
        docker push apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-snapshot
        docker push apicurio/apicurio-registry-sql:${BRANCH_NAME}-snapshot
        docker push apicurio/apicurio-registry-streams:${BRANCH_NAME}-snapshot
+       docker push apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-snapshot
        ;;
 esac
         

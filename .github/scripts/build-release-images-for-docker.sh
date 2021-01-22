@@ -18,6 +18,7 @@ case $BRANCH_NAME in
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-release
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-release
        mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-release
+       make CONTAINER_IMAGE_TAG=latest-release tenant-manager-container
        ;;
 
    *)
@@ -28,5 +29,6 @@ case $BRANCH_NAME in
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release
        mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release
+       make CONTAINER_IMAGE_TAG=${BRANCH_NAME}-release tenant-manager-container
        ;; 
 esac

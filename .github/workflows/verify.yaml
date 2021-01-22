@@ -7,7 +7,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, '[1-9].[0-9].x']
+    branches: [multitenant-sr-demo]
   pull_request:
     paths-ignore:
       - '.github/**'
@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [multitenant-sr-demo]
 
 jobs:
   build-verify:

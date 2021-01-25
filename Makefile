@@ -1,7 +1,7 @@
 CONTAINER_IMAGE_TAG ?= latest
 
 tenant-manager-build:
-	mvn clean install -am -Pprod -pl 'multitenancy/tenant-manager-api'
+	mvn clean install -am -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api'
 
 
 tenant-manager-container:

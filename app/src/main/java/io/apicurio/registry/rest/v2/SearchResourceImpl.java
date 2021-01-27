@@ -25,6 +25,7 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
+import java.io.InputStream;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -65,11 +66,11 @@ public class SearchResourceImpl implements SearchResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String, java.io.InputStream)
      */
     @Override
     public ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order,
-            String orderby) {
+            String orderby, InputStream data) {
         // TODO Auto-generated method stub
         return null;
     }

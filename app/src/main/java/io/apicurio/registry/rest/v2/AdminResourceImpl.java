@@ -41,6 +41,8 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
@@ -60,7 +62,7 @@ import io.apicurio.registry.types.RuleType;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
-public class RulesResourceImpl implements RulesResource {
+public class AdminResourceImpl implements AdminResource {
 
     @Inject
     @Current
@@ -161,6 +163,42 @@ public class RulesResourceImpl implements RulesResource {
                 throw ruleNotFoundException;
             }
         }
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
+     */
+    @Override
+    public NamedLogConfiguration getLogConfiguration(String logger) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
+     */
+    @Override
+    public List<NamedLogConfiguration> listLogConfigurations() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
+     */
+    @Override
+    public NamedLogConfiguration removeLogConfiguration(String logger) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
+     */
+    @Override
+    public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

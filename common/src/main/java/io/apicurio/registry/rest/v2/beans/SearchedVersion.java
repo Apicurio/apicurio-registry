@@ -26,7 +26,8 @@ import io.apicurio.registry.types.ArtifactType;
     "labels",
     "state",
     "globalId",
-    "version"
+    "version",
+    "properties"
 })
 public class SearchedVersion {
 
@@ -101,7 +102,14 @@ public class SearchedVersion {
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Long version;
+    private Integer version;
+    /**
+     * User-defined name-value pairs. Name and value must be strings.
+     * 
+     */
+    @JsonProperty("properties")
+    @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
+    private Properties properties;
 
     /**
      * 
@@ -269,7 +277,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public Long getVersion() {
+    public Integer getVersion() {
         return version;
     }
 
@@ -279,8 +287,26 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public void setVersion(Long version) {
+    public void setVersion(Integer version) {
         this.version = version;
+    }
+
+    /**
+     * User-defined name-value pairs. Name and value must be strings.
+     * 
+     */
+    @JsonProperty("properties")
+    public Properties getProperties() {
+        return properties;
+    }
+
+    /**
+     * User-defined name-value pairs. Name and value must be strings.
+     * 
+     */
+    @JsonProperty("properties")
+    public void setProperties(Properties properties) {
+        this.properties = properties;
     }
 
 }

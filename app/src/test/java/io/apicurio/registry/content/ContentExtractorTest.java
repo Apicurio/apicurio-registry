@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -163,7 +163,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.AVRO);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals(name, emd.getName());
     }
@@ -201,7 +201,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.JSON);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals(name, emd.getName());
         Assertions.assertEquals(description, emd.getDescription());
@@ -240,7 +240,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.OPENAPI);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals(name, emd.getName());
         Assertions.assertEquals(description, emd.getDescription());
@@ -279,7 +279,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.ASYNCAPI);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals(name, emd.getName());
         Assertions.assertEquals(description, emd.getDescription());
@@ -316,7 +316,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.WSDL);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals("StockQuote", emd.getName());
         Assertions.assertNull(emd.getDescription());
@@ -341,7 +341,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.XSD);
         ContentExtractor extractor = provider.getContentExtractor();
 
-        EditableMetaData emd = extractor.extract(ContentHandle.create(content));
+        ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
         Assertions.assertTrue(extractor.isExtracted(emd));
         Assertions.assertEquals("http://tempuri.org/PurchaseOrderSchema.xsd", emd.getName());
         Assertions.assertNull(emd.getDescription());

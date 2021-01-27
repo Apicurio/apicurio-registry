@@ -32,7 +32,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
@@ -62,7 +62,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     public void testGlobalCompatibilityRuleNoArtifact() {
         // this should NOT throw an exception
         storage.createGlobalRule(RuleType.COMPATIBILITY, RuleConfigurationDto.builder().configuration("FULL").build());
-        rules.applyRules("not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
+        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
             RuleApplicationType.CREATE);
     }
     
@@ -72,7 +72,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
         
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            RuleContext context = new RuleContext("TestGroup", "Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
             compatibility.execute(context);
         });
     }
@@ -83,7 +83,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = JsonSchemas.incompatibleJsonSchema;
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
             compatibility.execute(context);
         });
 

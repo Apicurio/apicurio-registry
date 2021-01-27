@@ -88,7 +88,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             try {
                 client.deleteArtifact(artifactId);
             } catch (AssertionError e) {
-                //because of async storage artifact may be already deleted but listed anyway
+                //because of async artifactStore artifact may be already deleted but listed anyway
                 LOGGER.info(e.getMessage());
             } catch (Exception e) {
                 LOGGER.error("", e);

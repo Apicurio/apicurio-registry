@@ -28,13 +28,13 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
     /**
      * Constructor.
      */
-    public VersionNotFoundException(String artifactId, long version) {
-        super(artifactId);
+    public VersionNotFoundException(String groupId, String artifactId, long version) {
+        super(groupId, artifactId);
         this.version = version;
     }
 
-    public VersionNotFoundException(String artifactId, long version, Throwable cause) {
-        super(artifactId, cause);
+    public VersionNotFoundException(String groupId, String artifactId, long version, Throwable cause) {
+        super(groupId, artifactId, cause);
         this.version = version;
     }
 
@@ -50,7 +50,7 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
      */
     @Override
     public String getMessage() {
-        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "'.";
+        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "' in group '" + getGroupId() + "'.";
     }
 
 }

@@ -110,7 +110,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(client.testCompatibility(subject, schema2));
 
-        // global id can be mapped async
+        // globalIdStore id can be mapped async
         retry(() -> {
             ParsedSchema schema3 = client.getSchemaById(id2);
             Assertions.assertNotNull(schema3);
@@ -158,7 +158,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int id = client.register(subject + "-value", schema);
         client.reset();
 
-        // global id can be mapped async
+        // globalIdStore id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
@@ -244,7 +244,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int id = client.register(subject, schema);
         client.reset();
 
-        // global id can be mapped async
+        // globalIdStore id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
@@ -283,7 +283,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int id = client.register(subject, schema);
         client.reset();
 
-        // global id can be mapped async
+        // globalIdStore id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);

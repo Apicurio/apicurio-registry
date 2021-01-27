@@ -59,7 +59,7 @@ public abstract class BaseIT implements TestSeparator, Constants {
     protected final RegistryRestClient registryClient = createRegistryClient();
 
     protected RegistryRestClient createRegistryClient() {
-        return RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+        return RegistryRestClientFactory.create(TestUtils.getRegistryV1ApiUrl());
     }
 
     protected final String resourceToString(String resourceName) {

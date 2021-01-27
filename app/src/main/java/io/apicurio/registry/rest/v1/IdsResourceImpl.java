@@ -43,16 +43,17 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.util.DtoUtil;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -64,6 +65,7 @@ import io.apicurio.registry.util.DtoUtil;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT}, reusable = true)
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS, reusable = true)
 @Logged
+@Deprecated
 public class IdsResourceImpl implements IdsResource, Headers {
 
     @Inject
@@ -73,9 +75,8 @@ public class IdsResourceImpl implements IdsResource, Headers {
     @Context
     HttpServletRequest request;
 
-    @Override
     public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, artifactId, version, builder);
+        HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
     /**
@@ -85,9 +86,9 @@ public class IdsResourceImpl implements IdsResource, Headers {
     public Response getArtifactByGlobalId(long globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new ArtifactNotFoundException(String.valueOf(globalId));
+            throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
-        StoredArtifact artifact = storage.getArtifactVersion(globalId);
+        StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
 
         // protobuf - the content-type will be different for protobuf artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -106,7 +107,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
     @Override
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
-        return DtoUtil.dtoToMetaData(dto.getId(), dto.getType(), dto);
+        return V1ApiUtil.dtoToMetaData(dto.getId(), dto.getType(), dto);
     }
 
 }

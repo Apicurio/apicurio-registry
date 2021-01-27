@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -41,7 +42,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new DownloadRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081/api";
+        this.mojo.registryUrl = TestUtils.getRegistryV1ApiUrl();
     }
 
     @Test

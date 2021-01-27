@@ -30,7 +30,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#free-up-storage-space-in-the-registry-for-new-schemas">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#free-up-artifactStore-space-in-the-registry-for-new-schemas">API specification</a> is owned by Confluent.
  *
  * We <b>DO NOT</b> support this endpoint. Fails with 404.
  *

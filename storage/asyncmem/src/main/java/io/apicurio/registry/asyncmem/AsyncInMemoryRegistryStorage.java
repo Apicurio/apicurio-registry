@@ -22,16 +22,16 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -113,7 +113,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
    // private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType,
@@ -130,7 +130,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
@@ -147,7 +147,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -181,7 +181,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType,
@@ -198,7 +198,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
@@ -227,7 +227,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public void updateArtifactVersionMetaData(String artifactId, long version,
@@ -244,7 +244,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
@@ -261,7 +261,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
     
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -278,7 +278,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifact(java.lang.String)
      */
     @Override
-    public StoredArtifact getArtifact(String artifactId)
+    public StoredArtifactDto getArtifact(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         this.checkArtifactCreation(artifactId);
         return super.getArtifact(artifactId);
@@ -338,7 +338,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(long)
      */
     @Override
-    public StoredArtifact getArtifactVersion(long id)
+    public StoredArtifactDto getArtifactVersion(long id)
             throws ArtifactNotFoundException, RegistryStorageException {
         this.checkGlobalCreation(id);
         return super.getArtifactVersion(id);
@@ -348,7 +348,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(java.lang.String, long)
      */
     @Override
-    public StoredArtifact getArtifactVersion(String artifactId, long version)
+    public StoredArtifactDto getArtifactVersion(String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         this.checkArtifactCreation(artifactId);
         return super.getArtifactVersion(artifactId, version);
@@ -467,7 +467,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        // Check if the global rule exists.
+        // Check if the globalIdStore rule exists.
         this.getGlobalRule(rule);
 
         this.executor.execute(() -> {

@@ -92,8 +92,6 @@
         <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
-        <module>search/client</module>
-        <module>search/connector</module>
         <module>distro</module>
         <module>docs</module>
         <module>tests</module>
@@ -230,11 +228,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-rest-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-search-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

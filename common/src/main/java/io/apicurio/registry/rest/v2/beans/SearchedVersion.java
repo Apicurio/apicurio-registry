@@ -93,7 +93,7 @@ public class SearchedVersion {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * 
      * (Required)
@@ -101,7 +101,7 @@ public class SearchedVersion {
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Integer version;
+    private Long version;
 
     /**
      * 
@@ -249,7 +249,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -259,7 +259,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 
@@ -269,7 +269,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
@@ -279,7 +279,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 

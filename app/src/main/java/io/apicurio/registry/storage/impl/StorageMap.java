@@ -25,27 +25,25 @@ import java.util.Set;
  * @author Ales Justin
  */
 public interface StorageMap {
-    Map<String, Map<Long, Map<String, String>>> asMap();
+//    Map<String, Map<Long, Map<String, String>>> asMap();
+//
+//    void putAll(Map<String, Map<Long, Map<String, String>>> map);
 
-    void putAll(Map<String, Map<Long, Map<String, String>>> map);
+    Set<ArtifactKey> keySet();
 
-    //
+    Map<Long, Map<String, String>> get(ArtifactKey artifactKey);
 
-    Set<String> keySet();
+    Map<Long, Map<String, String>> compute(ArtifactKey artifactKey);
 
-    Map<Long, Map<String, String>> get(String artifactId);
+    void createVersion(ArtifactKey artifactKey, long version, Map<String, String> contents);
 
-    Map<Long, Map<String, String>> compute(String artifactId);
+    void put(ArtifactKey artifactKey, String key, String value);
 
-    void createVersion(String artifactId, long version, Map<String, String> contents);
+    void put(ArtifactKey artifactKey, long version, String key, String value);
 
-    void put(String artifactId, String key, String value);
+    Long remove(ArtifactKey artifactKey, long version);
 
-    void put(String artifactId, long version, String key, String value);
+    void remove(ArtifactKey artifactKey, long version, String key);
 
-    Long remove(String artifactId, long version);
-
-    void remove(String artifactId, long version, String key);
-
-    Map<Long, Map<String, String>> remove(String artifactId);
+    Map<Long, Map<String, String>> remove(ArtifactKey artifactKey);
 }

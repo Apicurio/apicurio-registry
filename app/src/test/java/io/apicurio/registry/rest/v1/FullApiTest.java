@@ -49,23 +49,23 @@ public class FullApiTest extends AbstractResourceTestBase {
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationOpenAPI/API", artifactType, artifactContent);
 
-        // Add a global rule
+        // Add a globalIdStore rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
             .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/rules")
+                .post("/v1/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
 
-        // Get the global rule (make sure it was created)
+        // Get the globalIdStore rule (make sure it was created)
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/rules/VALIDITY")
+                    .get("/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -82,7 +82,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-                .post("/artifacts")
+                .post("/v1/artifacts")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
@@ -98,23 +98,23 @@ public class FullApiTest extends AbstractResourceTestBase {
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationProtobuf/API", artifactType, artifactContent);
 
-        // Add a global rule
+        // Add a globalIdStore rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
         given()
             .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/rules")
+                .post("/v1/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
 
-        // Get the global rule (make sure it was created)
+        // Get the globalIdStore rule (make sure it was created)
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/rules/VALIDITY")
+                    .get("/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -131,7 +131,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-                .post("/artifacts")
+                .post("/v1/artifacts")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))

@@ -266,8 +266,8 @@ public class KafkaSqlSink {
     }
 
     /**
-     * Process a Kafka message of type "global rule".  This includes creating, updating, and deleting
-     * global rules.
+     * Process a Kafka message of type "globalIdStore rule".  This includes creating, updating, and deleting
+     * globalIdStore rules.
      * 
      * @param key
      * @param value
@@ -285,8 +285,8 @@ public class KafkaSqlSink {
                 return null;
             case Clear:
             default:
-                log.warn("Unsupported global rule message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
+                log.warn("Unsupported globalIdStore rule message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported globalIdStore-rule message action: " + value.getAction());
         }
     }
 

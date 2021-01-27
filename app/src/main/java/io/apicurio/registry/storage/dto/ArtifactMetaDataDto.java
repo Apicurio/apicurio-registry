@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -36,6 +36,7 @@ import java.util.Map;
 @ToString
 public class ArtifactMetaDataDto {
 
+    private String groupId;
     private String id;
     private String name;
     private String description;
@@ -43,8 +44,8 @@ public class ArtifactMetaDataDto {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private int version;
-    private long globalId; // TODO which? global ID points to a specific artifact version
+    private long version;
+    private long globalId; // TODO which? globalIdStore ID points to a specific artifact version
     private ArtifactType type;
     private ArtifactState state;
     private List<String> labels;
@@ -129,14 +130,14 @@ public class ArtifactMetaDataDto {
     /**
      * @return the version
      */
-    public int getVersion() {
+    public long getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(int version) {
+    public void setVersion(long version) {
         this.version = version;
     }
 
@@ -236,5 +237,19 @@ public class ArtifactMetaDataDto {
      */
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * @param groupId the groupId to set
+     */
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 }

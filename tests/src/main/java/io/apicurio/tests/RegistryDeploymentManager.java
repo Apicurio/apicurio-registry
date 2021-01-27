@@ -50,7 +50,7 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
                 throw new IllegalStateException(e);
             }
         } else {
-            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryApiUrl());
+            LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryV1ApiUrl());
         }
         try {
             RegistryUtils.waitForRegistry();
@@ -70,7 +70,7 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         startRegistryIfNeeded(context);
-        RestAssured.baseURI = TestUtils.getRegistryApiUrl();
+        RestAssured.baseURI = TestUtils.getRegistryV1ApiUrl();
         LOGGER.info("Registry app is running on {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
         RestAssured.urlEncodingEnabled = false;

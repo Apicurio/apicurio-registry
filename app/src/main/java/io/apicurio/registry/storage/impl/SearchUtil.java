@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,41 +14,41 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.util;
-
-import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
-import io.apicurio.registry.rest.v1.beans.SearchedVersion;
-import io.apicurio.registry.rest.v1.beans.SortOrder;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+package io.apicurio.registry.storage.impl;
 
 import java.util.Comparator;
 import java.util.Date;
 
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
+
 /**
- * @author Ales Justin
+ * @author eric.wittmann@gmail.com
  */
 public class SearchUtil {
 
-    public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
-
-        return (id1, id2) -> compare(sortOrder, id1, id2);
+    public static Comparator<ArtifactMetaDataDto> comparator(OrderBy orderBy, OrderDirection orderDirection) {
+        return (dto1, dto2) -> compare(orderBy, orderDirection, dto1, dto2);
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
-        String name1 = metaDataDto1.getName();
-        if (name1 == null) {
-            name1 = metaDataDto1.getId();
+    public static int compare(OrderBy orderBy, OrderDirection orderDirection, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+        String value1 = orderBy == OrderBy.name ? metaDataDto1.getName() : String.valueOf(metaDataDto1.getCreatedOn());
+        if (value1 == null) {
+            value1 = metaDataDto1.getId();
         }
-        String name2 = metaDataDto2.getName();
-        if (name2 == null) {
-            name2 = metaDataDto2.getId();
+        String value2 = orderBy == OrderBy.name ? metaDataDto2.getName() : String.valueOf(metaDataDto2.getCreatedOn());
+        if (value2 == null) {
+            value2 = metaDataDto2.getId();
         }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+        return orderDirection == OrderDirection.desc ? value2.compareToIgnoreCase(value1) : value1.compareToIgnoreCase(value2);
     }
 
-    public static SearchedArtifact buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {
-        final SearchedArtifact searchedArtifact = new SearchedArtifact();
+    public static SearchedArtifactDto buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {
+        final SearchedArtifactDto searchedArtifact = new SearchedArtifactDto();
         searchedArtifact.setId(artifactMetaData.getId());
         searchedArtifact.setName(artifactMetaData.getName());
         searchedArtifact.setState(artifactMetaData.getState());
@@ -63,9 +63,8 @@ public class SearchUtil {
         return searchedArtifact;
     }
 
-    public static SearchedVersion buildSearchedVersion(ArtifactVersionMetaDataDto artifactVersionMetaData) {
-
-        final SearchedVersion searchedVersion = new SearchedVersion();
+    public static SearchedVersionDto buildSearchedVersion(ArtifactVersionMetaDataDto artifactVersionMetaData) {
+        final SearchedVersionDto searchedVersion = new SearchedVersionDto();
         searchedVersion.setCreatedBy(artifactVersionMetaData.getCreatedBy());
         searchedVersion.setCreatedOn(new Date(artifactVersionMetaData.getCreatedOn()));
         searchedVersion.setDescription(artifactVersionMetaData.getDescription());
@@ -73,9 +72,10 @@ public class SearchUtil {
         searchedVersion.setName(artifactVersionMetaData.getName());
         searchedVersion.setState(artifactVersionMetaData.getState());
         searchedVersion.setType(artifactVersionMetaData.getType());
-        searchedVersion.setVersion(artifactVersionMetaData.getVersion());
+        searchedVersion.setVersion((int) artifactVersionMetaData.getVersion());
         searchedVersion.setLabels(artifactVersionMetaData.getLabels());
 
         return searchedVersion;
     }
+
 }

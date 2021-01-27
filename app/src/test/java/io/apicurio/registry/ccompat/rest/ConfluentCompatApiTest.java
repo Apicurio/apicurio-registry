@@ -87,7 +87,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         // Verify
         given()
             .when()
-                .get("/artifacts/{artifactId}", SUBJECT)
+                .get("/v1/artifacts/{artifactId}", SUBJECT)
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
@@ -204,7 +204,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         //verify
         given()
             .when()
-                .get("/artifacts/{artifactId}", SUBJECT)
+                .get("/v1/artifacts/{artifactId}", SUBJECT)
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
@@ -216,7 +216,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
            .when()
                .contentType(ContentTypes.JSON)
                .body(updateState)
-               .put("/artifacts/{artifactId}/state", SUBJECT)
+               .put("/v1/artifacts/{artifactId}/state", SUBJECT)
            .then()
                .statusCode(204);
 

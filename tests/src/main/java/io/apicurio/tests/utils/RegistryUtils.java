@@ -40,7 +40,7 @@ public class RegistryUtils {
     }
 
     public static void waitForRegistry() throws TimeoutException {
-        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryApiUrl() + " in timeout!",
+        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
                 Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
 
         TestUtils.waitFor("Registry reports is ready",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,42 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.rest;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import io.apicurio.registry.types.RegistryException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@ToString
-public class RuleConfigurationDto {
+public class MissingRequiredParameterException extends RegistryException {
 
-    private String configuration; // TODO why not a map?
+    private static final long serialVersionUID = 3318387244830092754L;
+    
+    private final String parameter;
     
     /**
      * Constructor.
      */
-    public RuleConfigurationDto() {
-    }
-
-    /**
-     * @return the configuration
-     */
-    public String getConfiguration() {
-        return configuration;
-    }
-
-    /**
-     * @param configuration the configuration to set
-     */
-    public void setConfiguration(String configuration) {
-        this.configuration = configuration;
+    public MissingRequiredParameterException(String parameter) {
+        super("Request is missing a required parameter: " + parameter);
+        this.parameter = parameter;
     }
     
+    /**
+     * @return the parameter
+     */
+    public String getParameter() {
+        return parameter;
+    }
+
 }

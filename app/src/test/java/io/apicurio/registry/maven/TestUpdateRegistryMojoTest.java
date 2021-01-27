@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -42,7 +43,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081/api";
+        this.mojo.registryUrl = TestUtils.getRegistryV1ApiUrl();
     }
 
     @Test

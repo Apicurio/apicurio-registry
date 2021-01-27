@@ -28,6 +28,7 @@ import java.util.Objects;
  * @author Ales Justin
  */
 public class RuleContext {
+    private final String groupId;
     private final String artifactId;
     private final ArtifactType artifactType;
     private final String configuration;
@@ -36,14 +37,16 @@ public class RuleContext {
 
     /**
      * Constructor.
+     * @param groupId
      * @param artifactId
      * @param artifactType
      * @param configuration
      * @param currentContent
      * @param updatedContent
      */
-    public RuleContext(String artifactId, ArtifactType artifactType, String configuration,
+    public RuleContext(String groupId, String artifactId, ArtifactType artifactType, String configuration,
                        ContentHandle currentContent, ContentHandle updatedContent) {
+        this.groupId = groupId;
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
@@ -52,12 +55,19 @@ public class RuleContext {
     }
     
     /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+    
+    /**
      * @return the artifactId
      */
     public String getArtifactId() {
         return artifactId;
     }
-
+    
     /**
      * @return the artifactType
      */

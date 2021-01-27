@@ -18,10 +18,10 @@ package io.apicurio.registry.infinispan;
 
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
-import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.MetaDataKeys;
+import io.apicurio.registry.storage.impl.ArtifactStore;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import org.infinispan.Cache;
@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Ales Justin
  */
-class CacheStorageMap implements StorageMap {
+class CacheStorageMap implements ArtifactStore {
     private static final Set<Class<? extends Throwable>> INFINISPAN_EXCEPTIONS;
 
     static {
@@ -60,11 +60,11 @@ class CacheStorageMap implements StorageMap {
         this.cache = cache;
     }
 
-    public static StorageMap create(Cache<String, Map<Long, Map<String, String>>> cache) {
-        StorageMap delegate = new CacheStorageMap(cache);
-        return (StorageMap) Proxy.newProxyInstance(
+    public static ArtifactStore create(Cache<String, Map<Long, Map<String, String>>> cache) {
+        ArtifactStore delegate = new CacheStorageMap(cache);
+        return (ArtifactStore) Proxy.newProxyInstance(
                 CacheStorageMap.class.getClassLoader(),
-                new Class[]{StorageMap.class},
+                new Class[]{ArtifactStore.class},
                 (proxy, method, args) -> {
                     try {
                         return method.invoke(delegate, args);

@@ -23,7 +23,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
 
     /**
      * Maximum number of HTTP 5xx errors returned to the user
-     * as captured by {@link io.apicurio.registry.rest.v1.v1.RegistryExceptionMapper}
+     * as captured by {@link io.apicurio.registry.rest.v1.RegistryExceptionMapper}
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")

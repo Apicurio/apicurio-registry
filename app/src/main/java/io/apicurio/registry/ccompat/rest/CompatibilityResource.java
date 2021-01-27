@@ -50,7 +50,7 @@ public interface CompatibilityResource {
      * Note that the compatibility level applied for the check
      * is the configured compatibility level for the subject (GET /config/(string: subject)).
      * If this subject’s compatibility level was never changed,
-     * then the global compatibility level applies (GET /config).
+     * then the globalIdStore compatibility level applies (GET /config).
      *
      * @param subject Subject of the schema version against which compatibility is to be tested
      * @param version Version of the subject’s schema against which compatibility is to be tested.

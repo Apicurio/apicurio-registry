@@ -32,7 +32,7 @@ public class SqlUtil {
     private static final ObjectMapper mapper = new ObjectMapper();
     
     /**
-     * Serializes the given collection of labels to a string for storage in the DB.
+     * Serializes the given collection of labels to a string for artifactStore in the DB.
      * @param labels
      */
     public static String serializeLabels(List<String> labels) {
@@ -66,7 +66,7 @@ public class SqlUtil {
     }
 
     /**
-     * Serializes the given collection of properties to a string for storage in the DB.
+     * Serializes the given collection of properties to a string for artifactStore in the DB.
      * @param properties
      */
     public static String serializeProperties(Map<String, String> properties) {

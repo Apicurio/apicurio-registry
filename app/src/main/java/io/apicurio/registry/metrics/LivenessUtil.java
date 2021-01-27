@@ -26,7 +26,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.rest.v1.RegistryExceptionMapper;
+import io.apicurio.registry.rest.RegistryExceptionMapper;
 
 /**
  * @author eric.wittmann@gmail.com

@@ -21,6 +21,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.rest.v1.SearchUtil;
 import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v1.beans.SearchOver;
 import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
@@ -28,20 +29,20 @@ import io.apicurio.registry.rest.v1.beans.SearchedVersion;
 import io.apicurio.registry.rest.v1.beans.SortOrder;
 import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
+import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -50,7 +51,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
-import io.apicurio.registry.util.SearchUtil;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import io.apicurio.registry.utils.kafka.Submitter;
@@ -112,7 +112,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
-    /* Fake global rules as an artifact */
+    /* Fake globalIdStore rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
@@ -157,7 +157,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return storageProducer.apply(record);
     }
 
-    private static StoredArtifact addContent(Str.ArtifactValue value) {
+    private static StoredArtifactDto addContent(Str.ArtifactValue value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
         MetaDataKeys.putContent(contents, value.getContent().toByteArray());
         return AbstractMapRegistryStorage.toStoredArtifact(contents);
@@ -400,7 +400,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
-    public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return addContent(getLastArtifact(artifactId));
     }
 
@@ -708,7 +708,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
-    public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue value = globalIdStore.get(id);
         if (value == null) {
             throw new ArtifactNotFoundException("GlobalId: " + id);
@@ -717,7 +717,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
-    public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return handleVersion(artifactId, version, ArtifactStateExt.ACTIVE_STATES, StreamsRegistryStorage::addContent);
     }
 

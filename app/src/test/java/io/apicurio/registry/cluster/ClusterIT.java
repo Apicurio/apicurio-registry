@@ -75,8 +75,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api/v1");
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api/v1");
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();
@@ -174,8 +174,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api");
+        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api/v1");
+        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api/v1");
 
         // warm-up both nodes (its storages)
         client1.listArtifacts();

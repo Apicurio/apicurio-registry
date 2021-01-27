@@ -22,8 +22,8 @@ public class TestResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testTestArtifactNoViolations() throws Exception {
-        String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
-        String artifactContentValid = resourceToString("rules/validity/jsonschema-valid-compatible.json");
+        String artifactContent = resourceToString("jsonschema-valid.json");
+        String artifactContentValid = resourceToString("jsonschema-valid-compatible.json");
         String artifactId = "testCreateArtifact/TestNoViolation";
         createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
@@ -36,7 +36,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
-                .post("/artifacts/{artifactId}/rules")
+                .post("/v1/artifacts/{artifactId}/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -46,7 +46,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                    .get("/v1/artifacts/{artifactId}/rules/COMPATIBILITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -61,15 +61,15 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentValid)
-                .put("/artifacts/{artifactId}/test")
+                .put("/v1/artifacts/{artifactId}/test")
             .then()
                 .statusCode(204);
     }
 
     @Test
     public void testTestArtifactCompatibilityViolation() throws Exception {
-        String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
-        String artifactContentIncompatible = resourceToString("rules/validity/jsonschema-valid-incompatible.json");
+        String artifactContent = resourceToString("jsonschema-valid.json");
+        String artifactContentIncompatible = resourceToString("jsonschema-valid-incompatible.json");
         String artifactId = "testTestArtifactCompatibilityViolation";
         createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
@@ -82,7 +82,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
-                .post("/artifacts/{artifactId}/rules")
+                .post("/v1/artifacts/{artifactId}/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -92,7 +92,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/rules/COMPATIBILITY")
+                    .get("/v1/artifacts/{artifactId}/rules/COMPATIBILITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -107,7 +107,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentIncompatible)
-                .put("/artifacts/{artifactId}/test")
+                .put("/v1/artifacts/{artifactId}/test")
             .then()
             .log().all()
                 .statusCode(409)
@@ -119,8 +119,8 @@ public class TestResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testTestArtifactValidityViolation() throws Exception {
-        String artifactContent = resourceToString("rules/validity/jsonschema-valid.json");
-        String artifactContentInvalidSyntax = resourceToString("rules/validity/jsonschema-invalid.json");
+        String artifactContent = resourceToString("jsonschema-valid.json");
+        String artifactContentInvalidSyntax = resourceToString("jsonschema-invalid.json");
         String artifactId = "testTestArtifactValidityViolation";
         createArtifact(artifactId, ArtifactType.JSON, artifactContent);
 
@@ -133,7 +133,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
-                .post("/artifacts/{artifactId}/rules")
+                .post("/v1/artifacts/{artifactId}/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -143,7 +143,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                    .get("/v1/artifacts/{artifactId}/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -158,7 +158,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentInvalidSyntax)
-                .put("/artifacts/{artifactId}/test")
+                .put("/v1/artifacts/{artifactId}/test")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
@@ -167,8 +167,8 @@ public class TestResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testOpenApiValidityViolation() throws Exception {
-        String artifactContent = resourceToString("rules/validity/openapi-valid-syntax.json");
-        String artifactContentInvalid = resourceToString("rules/validity/openapi-invalid-singleerror.json");
+        String artifactContent = resourceToString("openapi-valid-syntax.json");
+        String artifactContentInvalid = resourceToString("openapi-invalid-singleerror.json");
         String artifactId = "testOpenApiValidityViolation";
         createArtifact(artifactId, ArtifactType.OPENAPI, artifactContent);
 
@@ -181,7 +181,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .body(rule)
                 .pathParam("artifactId", artifactId)
-                .post("/artifacts/{artifactId}/rules")
+                .post("/v1/artifacts/{artifactId}/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -191,7 +191,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/rules/VALIDITY")
+                    .get("/v1/artifacts/{artifactId}/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -206,7 +206,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .pathParam("artifactId", artifactId)
                 .body(artifactContentInvalid)
-                .put("/artifacts/{artifactId}/test")
+                .put("/v1/artifacts/{artifactId}/test")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))

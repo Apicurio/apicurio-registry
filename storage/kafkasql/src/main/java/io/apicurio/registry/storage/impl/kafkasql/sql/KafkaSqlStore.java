@@ -9,10 +9,10 @@ import javax.transaction.Transactional;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.types.ArtifactState;
@@ -20,12 +20,12 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 /**
- * The SQL store used by the KSQL registry storage implementation.  This is ultimately where each
+ * The SQL store used by the KSQL registry artifactStore implementation.  This is ultimately where each
  * application replica stores its data after consuming it from the Kafka topic.  Often this is a 
  * H2 in-memory database, but it could be something else (e.g. a local postgresql sidecar DB).
- * This class extends the core SQL registry storage to leverage as much of the existing SQL 
+ * This class extends the core SQL registry artifactStore to leverage as much of the existing SQL 
  * support as possible.  However, this class extends the SQL support to include some functionality
- * only needed by the KSQL storage.
+ * only needed by the KSQL artifactStore.
  * 
  * @author eric.wittmann@gmail.com
  */

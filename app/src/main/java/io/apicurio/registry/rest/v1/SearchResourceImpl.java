@@ -25,6 +25,9 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
@@ -42,6 +45,12 @@ import io.apicurio.registry.rest.v1.beans.SearchOver;
 import io.apicurio.registry.rest.v1.beans.SortOrder;
 import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.Current;
 
 /**
@@ -56,6 +65,7 @@ import io.apicurio.registry.types.Current;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
+@Deprecated
 public class SearchResourceImpl implements SearchResource {
 
     @Inject
@@ -63,7 +73,7 @@ public class SearchResourceImpl implements SearchResource {
     RegistryStorage registryStorage;
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.SearchResource#searchArtifacts(String, Integer, Integer, SearchOver, SortOrder)
+     * @see io.apicurio.registry.rest.v1.v1.SearchResource#searchArtifacts(String, Integer, Integer, SearchOver, OrderDirection)
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
@@ -73,15 +83,36 @@ public class SearchResourceImpl implements SearchResource {
         if (limit == null) {
             limit = 10;
         }
-        final SortOrder order = sortOrder == null ? SortOrder.asc : sortOrder;
+        final OrderBy orderBy = OrderBy.name;
+        final OrderDirection orderDir = sortOrder == null || sortOrder == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
         final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
         
-        return registryStorage.searchArtifacts(search, offset, limit, over, order);
+        Set<SearchFilter> filters = new HashSet<>();
+        if (search != null && !search.trim().isEmpty()) {
+            SearchFilter filter = new SearchFilter();
+            filter.setValue(search);
+            filters.add(filter);
+            switch (over) {
+                case description:
+                    filter.setType(SearchFilterType.description);
+                    break;
+                case labels:
+                    filter.setType(SearchFilterType.labels);
+                    break;
+                case name:
+                    filter.setType(SearchFilterType.name);
+                case everything:
+                default:
+                    filter.setType(SearchFilterType.everything);
+                    break;
+            }
+        }
+        ArtifactSearchResultsDto results = registryStorage.searchArtifacts(filters, orderBy, orderDir, offset, limit);
+        return V1ApiUtil.dtoToSearchResults(results);
     }
 
 	@Override
 	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
-
         if (offset == null) {
             offset = 0;
         }
@@ -89,6 +120,7 @@ public class SearchResourceImpl implements SearchResource {
             limit = 10;
         }
 
-        return registryStorage.searchVersions(artifactId, offset, limit);
+        VersionSearchResultsDto results = registryStorage.searchVersions(null, artifactId, offset, limit);
+        return V1ApiUtil.dtoToSearchResults(results);
 	}
 }

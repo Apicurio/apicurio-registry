@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.storage;
 
-package io.apicurio.registry.rest.v1;
-
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
-
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@ApplicationPath("/api")
-@RestMetricsResponseFilteredNameBinding
-public class RegistryApplication extends Application {
+public class InvalidGroupIdException extends RegistryException {
+
+    private static final long serialVersionUID = 1L;
+
+    public InvalidGroupIdException(String message) {
+        super(message);
+    }
 
 }

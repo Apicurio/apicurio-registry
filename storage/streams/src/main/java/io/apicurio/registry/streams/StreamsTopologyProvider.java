@@ -25,8 +25,8 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.InvalidPropertiesException;
+import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
-import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -89,7 +89,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
         );
 
-        // Input topic -- storage topic
+        // Input topic -- artifactStore topic
         // This is where we handle "http" requests
         // Key is artifactId -- which is also used for KeyValue store key
         KStream<String, Str.StorageValue> storageRequest = builder.stream(
@@ -368,7 +368,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         try {
                             avb.putMetadata(MetaDataKeys.PROPERTIES, new ObjectMapper().writeValueAsString(metaData.getPropertiesMap()));
                         } catch (JsonProcessingException e) {
-                            throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for storage.", e);
+                            throw new InvalidPropertiesException(MetaDataKeys.PROPERTIES + " could not be processed for artifactStore.", e);
                         }
                     } else if (type == Str.ActionType.DELETE) {
                         avb.removeMetadata(MetaDataKeys.NAME);

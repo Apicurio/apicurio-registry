@@ -4,10 +4,13 @@ package io.apicurio.registry.rest.v2.beans;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -84,7 +87,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Integer version;
+    private Long version;
     /**
      * 
      * (Required)
@@ -100,7 +103,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
-    private Integer globalId;
+    private Long globalId;
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -127,7 +130,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
-    private Properties properties;
+    private Map<String, String> properties;
     /**
      * An id of a single Artifact Group.
      * 
@@ -262,7 +265,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("version")
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
@@ -272,7 +275,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("version")
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 
@@ -302,7 +305,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public Integer getGlobalId() {
+    public Long getGlobalId() {
         return globalId;
     }
 
@@ -312,7 +315,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("globalId")
-    public void setGlobalId(Integer globalId) {
+    public void setGlobalId(Long globalId) {
         this.globalId = globalId;
     }
 
@@ -369,7 +372,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("properties")
-    public Properties getProperties() {
+    public Map<String, String> getProperties() {
         return properties;
     }
 
@@ -378,7 +381,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("properties")
-    public void setProperties(Properties properties) {
+    public void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
 

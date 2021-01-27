@@ -3,6 +3,8 @@ package io.apicurio.registry.rest.v2.beans;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -40,7 +42,7 @@ public class EditableMetaData {
      */
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
-    private Properties properties;
+    private Map<String, String> properties;
 
     @JsonProperty("name")
     public String getName() {
@@ -83,7 +85,7 @@ public class EditableMetaData {
      * 
      */
     @JsonProperty("properties")
-    public Properties getProperties() {
+    public Map<String, String> getProperties() {
         return properties;
     }
 
@@ -92,7 +94,7 @@ public class EditableMetaData {
      * 
      */
     @JsonProperty("properties")
-    public void setProperties(Properties properties) {
+    public void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
 

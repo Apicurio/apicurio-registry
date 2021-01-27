@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.dto;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ import lombok.ToString;
 @ToString
 public class ArtifactVersionMetaDataDto {
 
-    private int version;
+    private long version;
     private long globalId;
     private String name;
     private String description;
@@ -153,14 +153,14 @@ public class ArtifactVersionMetaDataDto {
     /**
      * @return the version
      */
-    public int getVersion() {
+    public long getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(int version) {
+    public void setVersion(long version) {
         this.version = version;
     }
 

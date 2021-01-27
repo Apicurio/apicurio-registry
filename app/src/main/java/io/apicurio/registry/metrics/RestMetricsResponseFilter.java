@@ -46,7 +46,7 @@ import io.smallrye.metrics.app.Clock;
  * Filter class that filters REST API requests and responses to report metrics
  * about them. Binding of the methods being filtered is performed through the
  * {@link io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding}
- * annotation added in the {@link io.apicurio.registry.rest.v1.v1.RegistryApplication}
+ * annotation added in the {@link io.apicurio.registry.rest.v1.RegistryApplication}
  * JAX-RS Application class
  */
 @Provider

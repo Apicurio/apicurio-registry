@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v1;
+package io.apicurio.registry.rest;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
@@ -56,12 +56,15 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 
 /**
+ * TODO use v2 beans instead of v1 beans
+ * 
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
@@ -101,6 +104,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
+        map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

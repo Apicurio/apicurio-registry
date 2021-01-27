@@ -23,17 +23,20 @@ public class ArtifactNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -3614783501078800654L;
     
+    private String groupId;
     private String artifactId;
 
     /**
      * Constructor.
      */
-    public ArtifactNotFoundException(String artifactId) {
+    public ArtifactNotFoundException(String groupId, String artifactId) {
+        this.groupId = groupId;
         this.artifactId = artifactId;
     }
 
-    public ArtifactNotFoundException(String artifactId, Throwable cause) {
-        super("Artifact with ID '" + artifactId + "' not found.", cause);
+    public ArtifactNotFoundException(String groupId, String artifactId, Throwable cause) {
+        super("Artifact with ID '" + artifactId + "' in group '" + groupId + "'  not found.", cause);
+        this.groupId = groupId;
         this.artifactId = artifactId;
     }
 
@@ -46,13 +49,20 @@ public class ArtifactNotFoundException extends NotFoundException {
     public String getArtifactId() {
         return artifactId;
     }
+    
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
 
     /**
      * @see java.lang.Throwable#getMessage()
      */
     @Override
     public String getMessage() {
-        return "No artifact with ID '" + this.artifactId + "' was found.";
+        return "No artifact with ID '" + this.artifactId + "' in group '" + this.groupId + "' was found.";
     }
 
 }

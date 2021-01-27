@@ -48,7 +48,7 @@ public interface ConfigResource {
     // ----- Path: /config -----
 
     /**
-     * Get global compatibility level.
+     * Get globalIdStore compatibility level.
      *
      * Response:
      *     - compatibility (string) – Global compatibility level. Will be one of
@@ -63,10 +63,10 @@ public interface ConfigResource {
 
 
     /**
-     * Update global compatibility level.
+     * Update globalIdStore compatibility level.
      *
      * Request:
-     *     - compatibility (string) – New global compatibility level. Must be one of
+     *     - compatibility (string) – New globalIdStore compatibility level. Must be one of
      *         BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
      *
      * Status Codes:

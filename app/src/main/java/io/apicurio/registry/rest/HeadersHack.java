@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v1;
+package io.apicurio.registry.rest;
+
+import java.util.function.Supplier;
+
+import javax.ws.rs.core.Response;
 
 import io.apicurio.registry.types.ArtifactState;
 
-import java.util.function.Supplier;
-import javax.ws.rs.core.Response;
-
 /**
+ * Remove once Quarkus issue #9887 is fixed!
+ *
  * @author Ales Justin
  */
-public interface Headers {
-    String ARTIFACT_ID = "X-Registry-ArtifactId";
-    String VERSION = "X-Registry-Version";
-
-    String DEPRECATED = "X-Registry-Deprecated";
-
-    default void checkIfDeprecated(
-        Supplier<ArtifactState> stateSupplier,
-        String artifactId,
-        Number version,
-        Response.ResponseBuilder builder
+public class HeadersHack {
+    public static void checkIfDeprecated(
+            Supplier<ArtifactState> stateSupplier,
+            String groupId,
+            String artifactId,
+            Number version,
+            Response.ResponseBuilder builder
     ) {
         if (stateSupplier.get() == ArtifactState.DEPRECATED) {
             builder.header(Headers.DEPRECATED, true);
+            builder.header(Headers.GROUP_ID, groupId);
             builder.header(Headers.ARTIFACT_ID, artifactId);
             builder.header(Headers.VERSION, version);
         }

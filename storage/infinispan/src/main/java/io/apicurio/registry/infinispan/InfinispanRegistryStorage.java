@@ -22,7 +22,7 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.MultiMap;
-import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.ArtifactStore;
 import io.apicurio.registry.storage.impl.TupleId;
 import io.apicurio.registry.utils.ConcurrentUtil;
 
@@ -60,10 +60,10 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
     static String KEY = "_ck";
     static String COUNTER_CACHE = "counter-cache";
-    static String STORAGE_CACHE = "storage-cache";
+    static String STORAGE_CACHE = "artifactStore-cache";
     static String ARTIFACT_RULES_CACHE = "artifact-rules-cache";
-    static String GLOBAL_CACHE = "global-cache";
-    static String GLOBAL_RULES_CACHE = "global-rules-cache";
+    static String GLOBAL_CACHE = "globalIdStore-cache";
+    static String GLOBAL_RULES_CACHE = "globalIdStore-rules-cache";
 
     @Inject
     EmbeddedCacheManager manager;
@@ -88,7 +88,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     }
 
     @Override
-    protected StorageMap createStorageMap() {
+    protected ArtifactStore createArtifactStore() {
         manager.defineConfiguration(
             STORAGE_CACHE,
             new ConfigurationBuilder()
@@ -100,9 +100,8 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         return CacheStorageMap.create(cache);
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    protected Map<Long, TupleId> createGlobalMap() {
+    protected Map<Long, TupleId> createGlobalIdStore() {
         manager.defineConfiguration(
                 GLOBAL_CACHE,
                 new ConfigurationBuilder()
@@ -114,10 +113,10 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRulesMap()
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRuleStore()
      */
     @Override
-    protected Map<String, String> createGlobalRulesMap() {
+    protected Map<String, String> createGlobalRuleStore() {
         manager.defineConfiguration(
             GLOBAL_RULES_CACHE,
             new ConfigurationBuilder()
@@ -129,11 +128,10 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactRulesMap()
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactRuleStore()
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    protected MultiMap<String, String, String> createArtifactRulesMap() {
+    protected MultiMap<String, String, String> createArtifactRuleStore() {
         manager.defineConfiguration(
                 ARTIFACT_RULES_CACHE,
                 new ConfigurationBuilder()

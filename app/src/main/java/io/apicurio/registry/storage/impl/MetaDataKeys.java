@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.impl;
 
 import java.util.Arrays;
 import java.util.Base64;
@@ -24,12 +24,16 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  */
 public class MetaDataKeys {
+    public static String GROUP_ID = "group_id";
     public static String ARTIFACT_ID = "artifact_id";
     public static String CONTENT = "content"; // TODO discuss
     public static String GLOBAL_ID = "global_id";

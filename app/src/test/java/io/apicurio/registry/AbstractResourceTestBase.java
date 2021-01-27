@@ -80,7 +80,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
-        // Delete all global rules
+        // Delete all globalIdStore rules
         client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
             assertEquals(expectedDefaultRulesCount, client.listGlobalRules().size());
@@ -101,7 +101,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/artifacts")
+            .post("/v1/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -119,7 +119,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .pathParam("artifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/artifacts/{artifactId}/versions")
+            .post("/v1/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -139,7 +139,25 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/meta")
+                .get("/v1/artifacts/{artifactId}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact to be created.
+     * @param artifactId
+     * @throws Exception
+     */
+    protected void waitForArtifact(String groupId, String artifactId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                .get("/v2/artifactgroups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -158,7 +176,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -175,7 +193,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/ids/{globalId}/meta")
+                .get("/v1/ids/{globalId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -193,7 +211,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/meta")
+                .get("/v1/artifacts/{artifactId}/meta")
                 .then(), state, false);
         });
     }
@@ -212,13 +230,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
                 .then(), state, true);
         });
     }
 
     /**
-     * Wait for an artifact version's state to change (by global id).
+     * Wait for an artifact version's state to change (by globalIdStore id).
      * @param globalId
      * @param state
      * @throws Exception
@@ -229,7 +247,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/ids/{globalId}/meta")
+                .get("/v1/ids/{globalId}/meta")
                 .then(), state, true);
         });
     }

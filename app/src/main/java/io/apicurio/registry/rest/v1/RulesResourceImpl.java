@@ -45,8 +45,8 @@ import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
@@ -62,6 +62,7 @@ import io.apicurio.registry.types.RuleType;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
+@Deprecated
 public class RulesResourceImpl implements RulesResource {
 
     @Inject
@@ -110,7 +111,7 @@ public class RulesResourceImpl implements RulesResource {
         try {
             dto = storage.getGlobalRule(rule);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // Check if the rule exists in the default global rules
+            // Check if the rule exists in the default globalIdStore rules
             dto = rulesProperties.getDefaultGlobalRuleConfiguration(rule);
             if (dto == null) {
                 throw ruleNotFoundException;
@@ -132,8 +133,8 @@ public class RulesResourceImpl implements RulesResource {
         try {
             storage.updateGlobalRule(rule, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // This global rule doesn't exist in storage - if the rule exists in the default
-            // global rules, override the default by creating a new global rule
+            // This globalIdStore rule doesn't exist in artifactStore - if the rule exists in the default
+            // globalIdStore rules, override the default by creating a new globalIdStore rule
             if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
                 storage.createGlobalRule(rule, configDto);
             } else {
@@ -154,8 +155,8 @@ public class RulesResourceImpl implements RulesResource {
         try {
             storage.deleteGlobalRule(rule);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // This global rule doesn't exist in storage - if the rule exists in
-            // the default global rules, return a DefaultRuleDeletionException.
+            // This globalIdStore rule doesn't exist in artifactStore - if the rule exists in
+            // the default globalIdStore rules, return a DefaultRuleDeletionException.
             // Otherwise, return the RuleNotFoundException
             if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
                 throw new DefaultRuleDeletionException(rule);

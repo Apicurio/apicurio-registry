@@ -24,12 +24,6 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-ui</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-search-client</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>

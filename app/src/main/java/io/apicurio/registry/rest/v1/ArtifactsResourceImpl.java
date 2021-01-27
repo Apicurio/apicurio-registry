@@ -48,34 +48,33 @@ import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v1.beans.EditableMetaData;
 import io.apicurio.registry.rest.v1.beans.IfExistsType;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.rest.v1.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.ArtifactgroupsResourceImpl;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.search.client.SearchClient;
-import io.apicurio.registry.search.common.Search;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleConfigurationDto;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -84,12 +83,12 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
-import io.apicurio.registry.util.DtoUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
-import io.apicurio.registry.utils.ProtoUtil;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
+ * 
+ * Note: this class is deprecated in favor of v2 of the REST API.  See {@link ArtifactgroupsResourceImpl} instead.
  *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
@@ -101,9 +100,8 @@ import io.apicurio.registry.utils.ProtoUtil;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT}, reusable = true)
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS, reusable = true)
 @Logged
+@Deprecated
 public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
-    private static final Logger log = LoggerFactory.getLogger(ArtifactsResourceImpl.class);
-
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
 
     @Inject
@@ -118,10 +116,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
     @Context
     HttpServletRequest request;
-
-    @Inject
-    @Current
-    SearchClient searchClient;
 
     private static final int GET_ARTIFACT_IDS_LIMIT = 10000;
 
@@ -185,33 +179,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return null;
     }
 
-    private CompletionStage<ArtifactMetaData> indexArtifact(String artifactId, ContentHandle content, ArtifactMetaData amdd) throws CompletionException {
-        try {
-            Search.Artifact artifact = Search.Artifact.newBuilder()
-                    .setArtifactId(artifactId)
-                    .setContent(content.content())
-                    .setVersion(amdd.getVersion())
-                    .setGlobalId(amdd.getGlobalId())
-                    .setName(ProtoUtil.nullAsEmpty(amdd.getName()))
-                    .setDescription(ProtoUtil.nullAsEmpty(amdd.getDescription()))
-                    .setCreatedBy(ProtoUtil.nullAsEmpty(amdd.getCreatedBy()))
-                    .build();
-            return searchClient.index(artifact).whenComplete((sr, t) -> {
-                if (t != null) {
-                    log.error("Artifact {}/{} not indexed, error: {}", artifactId, amdd.getVersion(), t.getMessage());
-                } else {
-                    if (sr.ok()) {
-                        log.info("Artifact {}/{} successfully indexed", artifactId, amdd.getVersion());
-                    } else {
-                        log.warn("Artifact {}/{} not indexed, status: {}", artifactId, amdd.getVersion(), sr.status());
-                    }
-                }
-            }).thenApply(sr -> amdd);
-        } catch (Exception e) {
-            throw new CompletionException(e);
-        }
-    }
-
     private CompletionStage<ArtifactMetaData> handleIfExists(
             ArtifactType artifactType,
             String artifactId,
@@ -228,7 +195,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             case RETURN_OR_UPDATE:
                 return handleIfExistsReturnOrUpdate(artifactId, artifactType, content, ct, canonical);
             default:
-                throw new ArtifactAlreadyExistsException(artifactId);
+                throw new ArtifactAlreadyExistsException(null, artifactId);
         }
     }
 
@@ -238,8 +205,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ContentHandle content,
             String ct, boolean canonical) {
         try {
-            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(artifactId, canonical, content);
-            ArtifactMetaData md = DtoUtil.dtoToMetaData(artifactId, artifactType, mdDto);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(null, artifactId, canonical, content);
+            ArtifactMetaData md = V1ApiUtil.dtoToMetaData(artifactId, artifactType, mdDto);
             return CompletableFuture.completedFuture(md);
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
@@ -247,9 +214,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return updateArtifactInternal(artifactId, artifactType, content, ct);
     }
 
-    @Override
     public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, artifactId, version, builder);
+        HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
     /**
@@ -259,7 +225,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void updateArtifactState(String artifactId, UpdateState data) {
         Objects.requireNonNull(artifactId);
         Objects.requireNonNull(data.getState());
-        storage.updateArtifactState(artifactId, data.getState());
+        storage.updateArtifactState(null, artifactId, data.getState());
     }
 
     /**
@@ -278,7 +244,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         Objects.requireNonNull(artifactId);
         Objects.requireNonNull(data.getState());
         Objects.requireNonNull(version);
-        storage.updateArtifactState(artifactId, data.getState(), version);
+        storage.updateArtifactState(null, artifactId, version, data.getState());
     }
 
     /**
@@ -298,7 +264,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
     /**
@@ -328,9 +294,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             }
 
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.CREATE);
+            rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            return storage.createArtifact(artifactId, artifactType, content)
+            return storage.createArtifact(null, artifactId, artifactType, content)
                     .exceptionally(t -> {
                         if (t instanceof CompletionException) {
                             t = t.getCause();
@@ -342,12 +308,10 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                     })
                     .thenCompose(amd -> amd == null ?
                             handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct, fcanonical) :
-                            CompletableFuture.completedFuture(DtoUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
-                    )
-                    .thenCompose(amdd -> indexArtifact(finalArtifactId, finalContent, amdd));
+                            CompletableFuture.completedFuture(V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
+                    );
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical)
-                    .thenCompose(amdd -> indexArtifact(xRegistryArtifactId, finalContent, amdd));
+            return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical);
         }
     }
 
@@ -356,11 +320,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Response getLatestArtifact(String artifactId) {
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(artifactId);
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(null, artifactId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new ArtifactNotFoundException(artifactId);
+            throw new ArtifactNotFoundException(null, artifactId);
         }
-        StoredArtifact artifact = storage.getArtifact(artifactId);
+        StoredArtifactDto artifact = storage.getArtifact(null, artifactId);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -387,9 +351,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(artifactId, artifactType, content)
-            .thenApply(dto -> DtoUtil.dtoToMetaData(artifactId, artifactType, dto));
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        return storage.updateArtifact(null, artifactId, artifactType, content)
+            .thenApply(dto -> V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
     /**
@@ -401,8 +365,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        return updateArtifactInternal(artifactId, xRegistryArtifactType, content, getContentType())
-                .thenCompose(amdd -> indexArtifact(artifactId, content, amdd));
+        return updateArtifactInternal(artifactId, xRegistryArtifactType, content, getContentType());
     }
 
     /**
@@ -410,7 +373,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public void deleteArtifact(String artifactId) {
-        storage.deleteArtifact(artifactId);
+        storage.deleteArtifact(null, artifactId);
     }
 
     /**
@@ -418,7 +381,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        SortedSet<Long> versions = storage.getArtifactVersions(artifactId);
+        SortedSet<Long> versions = storage.getArtifactVersions(null, artifactId);
         return new ArrayList<>(versions);
     }
 
@@ -438,11 +401,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        final ContentHandle finalContent = content;
-        return storage.updateArtifact(artifactId, artifactType, content)
-                .thenCompose(amdd -> indexArtifact(artifactId, finalContent, DtoUtil.dtoToMetaData(artifactId, artifactType, amdd)))
-                .thenApply(amd -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        return storage.updateArtifact(null, artifactId, artifactType, content)
+                .thenApply(amd -> V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
     }
 
     /**
@@ -450,11 +411,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(artifactId, version);
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(null, artifactId, version);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new VersionNotFoundException(artifactId, version);
+            throw new VersionNotFoundException(null, artifactId, version);
         }
-        StoredArtifact artifact = storage.getArtifactVersion(artifactId, version);
+        StoredArtifactDto artifact = storage.getArtifactVersion(null, artifactId, version);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -478,7 +439,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
-        return storage.getArtifactRules(artifactId);
+        return storage.getArtifactRules(null, artifactId);
     }
 
     /**
@@ -488,7 +449,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void createArtifactRule(String artifactId, Rule data) {
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
-        storage.createArtifactRule(artifactId, data.getType(), config);
+        storage.createArtifactRule(null, artifactId, data.getType(), config);
     }
 
     /**
@@ -496,7 +457,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public void deleteArtifactRules(String artifactId) {
-        storage.deleteArtifactRules(artifactId);
+        storage.deleteArtifactRules(null, artifactId);
     }
 
 
@@ -505,7 +466,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Rule getArtifactRuleConfig(RuleType rule, String artifactId) {
-        RuleConfigurationDto dto = storage.getArtifactRule(artifactId, rule);
+        RuleConfigurationDto dto = storage.getArtifactRule(null, artifactId, rule);
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
         rval.setType(rule);
@@ -518,7 +479,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data) {
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
-        storage.updateArtifactRule(artifactId, rule, dto);
+        storage.updateArtifactRule(null, artifactId, rule, dto);
         Rule rval = new Rule();
         rval.setType(rule);
         rval.setConfig(data.getConfig());
@@ -530,7 +491,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
-        storage.deleteArtifactRule(artifactId, rule);
+        storage.deleteArtifactRule(null, artifactId, rule);
     }
 
     /**
@@ -538,8 +499,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(artifactId);
-        return DtoUtil.dtoToMetaData(artifactId, dto.getType(), dto);
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(null, artifactId);
+        return V1ApiUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -559,8 +520,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, canonical, content);
-        return DtoUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, canonical, content);
+        return V1ApiUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -573,7 +534,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
-        storage.updateArtifactMetaData(artifactId, dto);
+        storage.updateArtifactMetaData(null, artifactId, dto);
     }
 
     /**
@@ -581,8 +542,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(artifactId, version);
-        return DtoUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, version);
+        return V1ApiUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
     /**
@@ -595,7 +556,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
-        storage.updateArtifactVersionMetaData(artifactId, version.longValue(), dto);
+        storage.updateArtifactVersionMetaData(null, artifactId, version.longValue(), dto);
     }
 
     /**
@@ -603,6 +564,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        storage.deleteArtifactVersionMetaData(artifactId, version);
+        storage.deleteArtifactVersionMetaData(null, artifactId, version);
     }
 }

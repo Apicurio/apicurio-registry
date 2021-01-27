@@ -37,7 +37,6 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -52,19 +51,28 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 public class IdsResourceImpl implements IdsResource {
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getArtifactByGlobalId(int)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(int)
      */
     @Override
-    public Response getArtifactByGlobalId(int globalId) {
+    public Response getContentById(int contentId) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getArtifactMetaDataByGlobalId(int)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int)
      */
     @Override
-    public ArtifactMetaData getArtifactMetaDataByGlobalId(int globalId) {
+    public Response getContentByGlobalId(int globalId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(int, java.lang.Boolean)
+     */
+    @Override
+    public Response getContentByHash(int contentHash, Boolean canonical) {
         // TODO Auto-generated method stub
         return null;
     }

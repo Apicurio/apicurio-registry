@@ -78,7 +78,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryRestClientFactory.create(TestUtils.getRegistryApiUrl());
+        restClient = RegistryRestClientFactory.create(TestUtils.getRegistryV1ApiUrl());
     }
 
     @Test
@@ -167,7 +167,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
                 ArtifactType.AVRO,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
-        // wait for global id store to populate (in case of Kafka / Streams)
+        // wait for globalIdStore id store to populate (in case of Kafka / Streams)
         ArtifactMetaData amdById = retry(() -> restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         Assertions.assertNotNull(amdById);
 
@@ -175,7 +175,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, "http://localhost:8081/api");
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV1ApiUrl());
         config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
         config.put(SerdeConfig.GLOBAL_ID_STRATEGY, new FindLatestIdStrategy<>());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());

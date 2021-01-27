@@ -17,20 +17,19 @@
 
 package io.apicurio.registry.utils.serde;
 
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.concurrent.Callable;
-
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
-
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy;
 
 /**
  * @author Ales Justin
@@ -91,11 +90,12 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
         try {
             T schema = toSchema(data);
             String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schema);
-            long id = getGlobalIdStrategy().findId(getClient(), artifactId, artifactType(), schema);
-            // Note: we need to retry this fetch to account for the possibility that the GlobalId strategy just added
-            // the schema to the registry but the registry is not yet ready to serve it.  This is due to some registry
-            // storages being asynchronous.  This is a temporary fix - a better approach would be for the GlobalId 
-            // strategy to seed the cache with the schema only in the case where the strategy uploaded the schema to the registry.
+            long id = getGlobalIdStrategy().findId(getClient(), artifactId, artifactType(), schema, getCache());
+            // Note: we need to retry this fetch to account for the possibility that schema was just concurrently added
+            // to the registry, but the registry is not yet ready to serve it.  This is due to some registry
+            // storages being asynchronous.
+            // GlobalId strategies that create or update the schema or those which find global id by schema content
+            // already populate the cache properly, so no retry should be required.
             schema = retry(() -> getCache().getSchema(id), 5); // use registry's schema!
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             if (headerUtils != null) {
@@ -125,7 +125,7 @@ public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSeria
                 error = new RuntimeException(e);
             }
             // Sleep before the next iteration.
-            try { Thread.sleep(500 * iteration); } catch (InterruptedException e) { }
+            try { Thread.sleep(500L * iteration); } catch (InterruptedException ignored) { }
         }
         throw error;
     }

@@ -16,13 +16,14 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.Map;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.SchemaCache;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Map;
 
 /**
  * A {@link GlobalIdStrategy} is used by the Kafka serializer/deserializer
@@ -41,8 +42,36 @@ public interface GlobalIdStrategy<T> {
      * @param artifactType the artifact type
      * @param schema the schema of the message being serialized/deserialized
      * @return the global id under which the schema is registered.
+     * @deprecated use findId with cache
      */
-    long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema);
+    default long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+        return findId(client, artifactId, artifactType, schema, null);
+    }
+
+    /**
+     * For a given topic and message, returns the artifact id under which the
+     * schema should be registered in the registry.
+     *
+     * @param client the registry rest client
+     * @param artifactId the schema artifact id
+     * @param artifactType the artifact type
+     * @param schema the schema of the message being serialized/deserialized
+     * @return the global id under which the schema is registered.
+     */
+    long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache);
+
+    /**
+     * Populate cache, if cache exists.
+     *
+     * @param schema the schema to cache
+     * @param globalId the global id
+     * @param cache the cache to populate
+     */
+    default void populateCache(T schema, long globalId, SchemaCache<T> cache) {
+        if (cache != null) {
+            cache.putSchema(globalId, schema);
+        }
+    }
 
     /**
      * Configure, if supported.

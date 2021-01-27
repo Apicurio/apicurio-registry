@@ -4,7 +4,6 @@ package io.apicurio.registry.rest.v2.beans;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;

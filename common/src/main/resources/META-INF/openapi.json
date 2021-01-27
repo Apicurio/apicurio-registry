@@ -15,83 +15,6 @@
         }
     },
     "paths": {
-        "/rules": {
-            "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
-            "get": {
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RuleType"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "The list of names of the globally configured rules."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "listGlobalRules",
-                "summary": "List global rules",
-                "description": "Gets a list of all the currently configured global rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Rule"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "The global rule was added."
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/Conflict"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "createGlobalRule",
-                "summary": "Create global rule",
-                "description": "Adds a rule to the list of globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* The rule already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "delete": {
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "All global rules have been removed successfully."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteAllGlobalRules",
-                "summary": "Delete all global rules",
-                "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
-        },
         "/artifactgroups/{groupId}/artifacts/{artifactId}": {
             "summary": "Manage a single artifact.",
             "get": {
@@ -1040,101 +963,6 @@
                 }
             ]
         },
-        "/rules/{rule}": {
-            "summary": "Manage the configuration of a single global artifact rule.",
-            "get": {
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Rule"
-                                }
-                            }
-                        },
-                        "description": "The global rule's configuration."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getGlobalRuleConfig",
-                "summary": "Get global rule configuration",
-                "description": "Returns information about the named globally configured rule.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "put": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Rule"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Rule"
-                                }
-                            }
-                        },
-                        "description": "The global rule's configuration was successfully updated."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "updateGlobalRuleConfig",
-                "summary": "Update global rule configuration",
-                "description": "Updates the configuration for a globally configured rule.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "delete": {
-                "tags": [
-                    "Global rules"
-                ],
-                "responses": {
-                    "204": {
-                        "description": "The global rule was successfully deleted."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteGlobalRule",
-                "summary": "Delete global rule",
-                "description": "Deletes a single global rule.  If this is the only rule configured, this is the same\nas deleting **all** rules.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* Rule cannot be deleted (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "rule",
-                    "description": "The unique name/type of a rule.",
-                    "schema": {
-                        "$ref": "#/components/schemas/RuleType"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/search/artifacts": {
             "summary": "Search for artifacts in the registry.",
             "get": {
@@ -1254,6 +1082,15 @@
                 "description": "Returns a paginated list of all artifacts that match the provided filter criteria.\n"
             },
             "post": {
+                "requestBody": {
+                    "description": "The content to search for.",
+                    "content": {
+                        "*/*": {
+
+                        }
+                    },
+                    "required": true
+                },
                 "tags": [
                     "Search",
                     "Artifacts"
@@ -1910,6 +1747,307 @@
                 }
             ]
         },
+        "/admin/rules": {
+            "summary": "Manage the global rules that apply to all artifacts if not otherwise configured.",
+            "get": {
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RuleType"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of names of the globally configured rules."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listGlobalRules",
+                "summary": "List global rules",
+                "description": "Gets a list of all the currently configured global rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Rule"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The global rule was added."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createGlobalRule",
+                "summary": "Create global rule",
+                "description": "Adds a rule to the list of globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* The rule already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "All global rules have been removed successfully."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteAllGlobalRules",
+                "summary": "Delete all global rules",
+                "description": "Deletes all globally configured rules.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/rules/{rule}": {
+            "summary": "Manage the configuration of a single global artifact rule.",
+            "get": {
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Rule"
+                                }
+                            }
+                        },
+                        "description": "The global rule's configuration."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getGlobalRuleConfig",
+                "summary": "Get global rule configuration",
+                "description": "Returns information about the named globally configured rule.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Rule"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Rule"
+                                }
+                            }
+                        },
+                        "description": "The global rule's configuration was successfully updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateGlobalRuleConfig",
+                "summary": "Update global rule configuration",
+                "description": "Updates the configuration for a globally configured rule.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Global rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The global rule was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteGlobalRule",
+                "summary": "Delete global rule",
+                "description": "Deletes a single global rule.  If this is the only rule configured, this is the same\nas deleting **all** rules.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* Rule cannot be deleted (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "rule",
+                    "description": "The unique name/type of a rule.",
+                    "schema": {
+                        "$ref": "#/components/schemas/RuleType"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/admin/loggers": {
+            "summary": "Manage logger settings/configurations.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/NamedLogConfiguration"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of logging configurations."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listLogConfigurations",
+                "summary": "List logging configurations",
+                "description": "List all of the configured logging levels.  These override the default\nlogging configuration."
+            }
+        },
+        "/admin/loggers/{logger}": {
+            "summary": "Manage logger settings/configurations.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The logger configuration for the named logger."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getLogConfiguration",
+                "summary": "Get a single logger configuration",
+                "description": "Returns the configured logger configuration for the provided logger name, if no logger configuration is persisted it will return the current default log configuration in the system."
+            },
+            "put": {
+                "requestBody": {
+                    "description": "The new logger configuration.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LogConfiguration"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The new configuration for the given logger."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "setLogConfiguration",
+                "summary": "Set a logger's configuration",
+                "description": "Configures the logger referenced by the provided logger name with the given configuration."
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NamedLogConfiguration"
+                                }
+                            }
+                        },
+                        "description": "The default logger configuration (now that the configuration for this logger has been removed, the \ndefault configuration is applied)."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "removeLogConfiguration",
+                "summary": "Removes logger configuration",
+                "description": "Removes the configured logger configuration (if any) for the given logger."
+            },
+            "parameters": [
+                {
+                    "name": "logger",
+                    "description": "The name of a single logger.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/v2"
     },
     "components": {
@@ -2238,6 +2376,10 @@
                         "format": "int32",
                         "description": "",
                         "type": "integer"
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
                     }
                 },
                 "example": {
@@ -2253,13 +2395,6 @@
                     "state": "ENABLED",
                     "createdBy": "user1",
                     "createdOn": "2019-03-22T12:51:19Z"
-                }
-            },
-            "Properties": {
-                "description": "User-defined name-value pairs. Name and value must be strings.",
-                "type": "object",
-                "additionalProperties": {
-                    "type": "string"
                 }
             },
             "RuleViolationError": {
@@ -2506,6 +2641,65 @@
                         "custom-2": "bar"
                     }
                 }
+            },
+            "Properties": {
+                "description": "User-defined name-value pairs. Name and value must be strings.",
+                "type": "object",
+                "additionalProperties": {
+                    "type": "string"
+                },
+                "x-codegen-inline": true
+            },
+            "LogConfiguration": {
+                "description": "",
+                "required": [
+                    "level"
+                ],
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "$ref": "#/components/schemas/LogLevel",
+                        "description": ""
+                    }
+                }
+            },
+            "LogLevel": {
+                "description": "",
+                "enum": [
+                    "DEBUG",
+                    "TRACE",
+                    "WARN",
+                    "ERROR",
+                    "SEVERE",
+                    "WARNING",
+                    "INFO",
+                    "CONFIG",
+                    "FINE",
+                    "FINER",
+                    "FINEST"
+                ],
+                "type": "string"
+            },
+            "NamedLogConfiguration": {
+                "description": "",
+                "type": "object",
+                "allOf": [
+                    {
+                        "required": [
+                            "name"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "description": "",
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/LogConfiguration"
+                    }
+                ]
             }
         },
         "responses": {
@@ -2627,6 +2821,10 @@
         {
             "name": "Search",
             "description": "The search API is used to browse or find artifacts in the registry. This section describes the operations for searching for artifacts and versions. "
+        },
+        {
+            "name": "Admin",
+            "description": "Application functionality that is only accessible to admin users.  Includes things like Logging and Global Rules."
         }
     ]
 }

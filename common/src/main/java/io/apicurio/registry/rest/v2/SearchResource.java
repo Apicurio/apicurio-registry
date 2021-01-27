@@ -2,9 +2,11 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
+import java.io.InputStream;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -38,7 +40,8 @@ public interface SearchResource {
   @Path("/artifacts")
   @POST
   @Produces("application/json")
+  @Consumes("*/*")
   ArtifactSearchResults searchArtifactsByContent(@QueryParam("offset") Integer offset,
       @QueryParam("limit") Integer limit, @QueryParam("order") SortOrder order,
-      @QueryParam("orderby") String orderby);
+      @QueryParam("orderby") String orderby, InputStream data);
 }

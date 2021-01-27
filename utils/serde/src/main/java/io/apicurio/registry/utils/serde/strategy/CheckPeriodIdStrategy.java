@@ -16,13 +16,14 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
+import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.SchemaCache;
+import io.apicurio.registry.utils.serde.SerdeConfig;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.SerdeConfig;
 
 /**
  * @author Ales Justin
@@ -63,17 +64,17 @@ public abstract class CheckPeriodIdStrategy<T> implements GlobalIdStrategy<T> {
         }
     }
 
-    abstract long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema);
+    abstract long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache);
 
-    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+    public long findId(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache) {
         CheckValue cv = checkMap.compute(artifactId, (aID, v) -> {
             long now = System.currentTimeMillis();
             if (v == null) {
-                long id = findIdInternal(client, artifactId, artifactType, schema);
+                long id = findIdInternal(client, artifactId, artifactType, schema, cache);
                 return new CheckValue(now, id);
             } else {
                 if (v.ts + checkPeriod < now) {
-                    long id = findIdInternal(client, artifactId, artifactType, schema);
+                    long id = findIdInternal(client, artifactId, artifactType, schema, cache);
                     v.ts = now;
                     v.id = id;
                 }

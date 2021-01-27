@@ -16,14 +16,15 @@
 
 package io.apicurio.registry.utils.serde.strategy;
 
-import java.io.InputStream;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.serde.SchemaCache;
+
+import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * We first check client-side cache for matching schema,
@@ -35,23 +36,28 @@ import io.apicurio.registry.utils.IoUtil;
 public class CachedSchemaIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     /* We use string for the key ... */
-    private Map<String, Long> cache = new ConcurrentHashMap<>();
+    private Map<String, Long> mapping = new ConcurrentHashMap<>();
 
     @Override
-    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache) {
         InputStream stream = toStream(schema);
         String content = IoUtil.toString(stream);
         // TODO add an option to search by strict content
-        return cache.computeIfAbsent(
+        return mapping.computeIfAbsent(
             content,
-            k -> client.getArtifactMetaDataByContent(artifactId, true, toStream(schema)).getGlobalId()
+            k -> {
+                Long id = client.getArtifactMetaDataByContent(artifactId, true, toStream(schema)).getGlobalId();
+                populateCache(schema, id, cache);
+                return id;
+            }
         );
     }
 
     @Override
-    protected void afterCreateArtifact(T schema, ArtifactMetaData amd) {
+    protected void afterCreateArtifact(T schema, ArtifactMetaData amd, SchemaCache<T> cache) {
         InputStream stream = toStream(schema);
         String content = IoUtil.toString(stream);
-        cache.put(content, amd.getGlobalId());
+        mapping.put(content, amd.getGlobalId());
+        super.afterCreateArtifact(schema, amd, cache);
     }
 }

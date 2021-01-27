@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.utils.serde;
 
+import io.apicurio.registry.client.RegistryRestClient;
+
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-
-import io.apicurio.registry.client.RegistryRestClient;
 
 /**
  * @author Ales Justin
@@ -35,6 +35,10 @@ public abstract class SchemaCache<T> {
     }
 
     protected abstract T toSchema(InputStream schemaData);
+
+    public void putSchema(long id, T schema) {
+        schemas.putIfAbsent(id, schema);
+    }
 
     public T getSchema(long id) {
         return schemas.computeIfAbsent(id, key -> {

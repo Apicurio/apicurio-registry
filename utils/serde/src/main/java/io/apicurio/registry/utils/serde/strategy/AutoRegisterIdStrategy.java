@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.serde.strategy;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.SchemaCache;
 
 
 /**
@@ -27,9 +28,11 @@ import io.apicurio.registry.types.ArtifactType;
 public class AutoRegisterIdStrategy<T> extends AbstractCrudIdStrategy<T> {
 
     @Override
-    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+    protected long initialLookup(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache) {
         ArtifactMetaData amd = client.updateArtifact(artifactId, artifactType, toStream(schema));
-        return amd.getGlobalId();
+        Long id = amd.getGlobalId();
+        populateCache(schema, id, cache);
+        return id;
     }
 
 }

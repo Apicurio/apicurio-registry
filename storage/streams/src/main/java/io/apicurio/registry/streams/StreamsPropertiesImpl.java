@@ -40,10 +40,6 @@ public class StreamsPropertiesImpl implements StreamsProperties {
         return properties.getProperty("artifactStore.topic", "artifactStore-topic");
     }
 
-    public String getGlobalIdTopic() {
-        return properties.getProperty("globalIdStore.id.topic", "globalIdStore-id-topic");
-    }
-
     public String getApplicationServer() {
         return properties.getProperty(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost:9000");
     }

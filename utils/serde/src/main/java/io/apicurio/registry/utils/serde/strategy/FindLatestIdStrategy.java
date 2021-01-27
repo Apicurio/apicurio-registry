@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.serde.strategy;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.serde.SchemaCache;
 
 
 /**
@@ -27,10 +28,10 @@ import io.apicurio.registry.types.ArtifactType;
 public class FindLatestIdStrategy<T> extends CheckPeriodIdStrategy<T> {
 
     /**
-     * @see io.apicurio.registry.utils.serde.strategy.CheckPeriodIdStrategy#findIdInternal(io.apicurio.registry.client.RegistryRestClient, java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.Object)
+     * @see io.apicurio.registry.utils.serde.strategy.CheckPeriodIdStrategy#findIdInternal(io.apicurio.registry.client.RegistryRestClient, java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.Object, SchemaCache)
      */
     @Override
-    long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema) {
+    long findIdInternal(RegistryRestClient client, String artifactId, ArtifactType artifactType, T schema, SchemaCache<T> cache) {
         ArtifactMetaData amd = client.getArtifactMetaData(artifactId);
         return amd.getGlobalId();
     }

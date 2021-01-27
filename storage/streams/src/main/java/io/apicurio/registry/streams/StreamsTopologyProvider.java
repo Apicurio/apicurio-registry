@@ -24,8 +24,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
+import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
@@ -36,14 +36,11 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.processor.AbstractProcessor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -111,70 +108,39 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         builder.addStateStore(storageStoreBuilder);
 
-        // We transform <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
-        KStream<Long, Str.TupleValue> globalRequest =
-            storageRequest.transform(
-                () -> new StorageTransformer(properties, dataDispatcher, factory),
-                storageStoreName
-            ).through(
-                properties.getGlobalIdTopic(),
-                Produced.with(Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()))
-            );
-
         String globalIdStoreName = properties.getGlobalIdStoreName();
         StoreBuilder<KeyValueStore<Long /* globalId */, Str.TupleValue>> globalIdStoreBuilder =
-            Stores
-                .keyValueStoreBuilder(
-                    Stores.inMemoryKeyValueStore(globalIdStoreName),
-                    Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser())
-                )
-                .withCachingEnabled()
-                .withLoggingEnabled(configuration);
+                Stores
+                        .keyValueStoreBuilder(
+                                Stores.inMemoryKeyValueStore(globalIdStoreName),
+                                Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser())
+                        )
+                        .withCachingEnabled()
+                        .withLoggingEnabled(configuration);
 
         builder.addStateStore(globalIdStoreBuilder);
 
-        // Just handle globalId mapping -- put or delete
-        globalRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
+        // We process <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
+        storageRequest.process(
+                () -> new StorageProcessor(properties, dataDispatcher, factory),
+                storageStoreName, globalIdStoreName
+            );
 
         return builder.build(properties.getProperties());
     }
 
-    private static class GlobalIdProcessor extends AbstractProcessor<Long, Str.TupleValue> {
-        private final String storeName;
-        private KeyValueStore<Long, Str.TupleValue> store;
-
-        public GlobalIdProcessor(String storeName) {
-            this.storeName = storeName;
-        }
-
-        @Override
-        public void init(ProcessorContext context) {
-            super.init(context);
-            //noinspection unchecked
-            store = (KeyValueStore<Long, Str.TupleValue>) context.getStateStore(storeName);
-        }
-
-        @Override
-        public void process(Long key, Str.TupleValue value) {
-            if (value == null) {
-                store.delete(key);
-            } else {
-                store.put(key, value);
-            }
-        }
-    }
-
-    private static class StorageTransformer implements Transformer<String, Str.StorageValue, KeyValue<Long, Str.TupleValue>> {
-        private static final Logger log = LoggerFactory.getLogger(StorageTransformer.class);
+    private static class StorageProcessor extends AbstractProcessor<String, Str.StorageValue> {
+        private static final Logger log = LoggerFactory.getLogger(StorageProcessor.class);
 
         private final StreamsProperties properties;
         private final ForeachAction<? super String, ? super Str.Data> dispatcher;
         private final ArtifactTypeUtilProviderFactory factory;
 
         private ProcessorContext context;
-        private KeyValueStore<String, Str.Data> store;
+        private KeyValueStore<String, Str.Data> dataStore;
+        private KeyValueStore<Long, Str.TupleValue> idStore;
 
-        public StorageTransformer(
+        public StorageProcessor(
             StreamsProperties properties,
             ForeachAction<? super String, ? super Str.Data> dispatcher,
             ArtifactTypeUtilProviderFactory factory
@@ -188,12 +154,14 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         public void init(ProcessorContext context) {
             this.context = context;
             //noinspection unchecked
-            store = (KeyValueStore<String, Str.Data>) context.getStateStore(properties.getStorageStoreName());
+            dataStore = (KeyValueStore<String, Str.Data>) context.getStateStore(properties.getStorageStoreName());
+            //noinspection unchecked
+            idStore = (KeyValueStore<Long, Str.TupleValue>) context.getStateStore(properties.getGlobalIdStoreName());
         }
 
         @Override
-        public KeyValue<Long, Str.TupleValue> transform(String artifactId, Str.StorageValue value) {
-            Str.Data data = store.get(artifactId);
+        public void process(String artifactId, Str.StorageValue value) {
+            Str.Data data = dataStore.get(artifactId);
             if (data == null) {
                 // initial value can be "empty" default
                 data = Str.Data.getDefaultInstance();
@@ -203,28 +171,32 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             // should be unique enough
             long globalId = properties.toGlobalId(offset, context.partition());
 
+            // apply / update data
             data = apply(artifactId, value, data, globalId, offset);
-            if (data != null) {
-                store.put(artifactId, data);
-                // dispatch
-                dispatcher.apply(artifactId, data);
-            } else {
-                store.delete(artifactId);
-            }
 
+            // store mapping <globalId, <artifactId, version>>
             Str.ActionType action = value.getType();
             switch (action) {
                 case CREATE:
                 case UPDATE:
-                    return new KeyValue<>(globalId, Str.TupleValue.newBuilder()
-                                                                  .setArtifactId(artifactId)
-                                                                  .setVersion(data.getArtifactsCount())
-                                                                  .build());
+                    Str.TupleValue tupleValue = Str.TupleValue.newBuilder()
+                            .setArtifactId(artifactId)
+                            .setVersion(data.getArtifactsCount()) // data should not be null
+                            .build();
+                    idStore.put(globalId, tupleValue);
+                    break;
                 case DELETE:
-                    return new KeyValue<>(globalId, null); // null value means delete entry
-                default:
-                    return null; // just skip?
+                    idStore.delete(globalId);
             }
+
+            if (data != null) {
+                dataStore.put(artifactId, data);
+                // dispatch
+                dispatcher.apply(artifactId, data);
+            } else {
+                dataStore.delete(artifactId);
+            }
+
         }
 
         @Override

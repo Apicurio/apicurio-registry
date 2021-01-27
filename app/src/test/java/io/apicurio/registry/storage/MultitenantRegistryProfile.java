@@ -13,29 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.storage;
 
-package io.apicurio.registry.mt;
+import java.util.Collections;
+import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-
-import io.apicurio.registry.types.Current;
+import io.quarkus.test.junit.QuarkusTestProfile;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@ApplicationScoped
-public class TenantContextProvider {
-    
-    @Inject
-    TenantContextImpl impl;
+public class MultitenantRegistryProfile implements QuarkusTestProfile {
 
-    @Produces
-    @ApplicationScoped
-    @Current
-    public TenantContext tenant() {
-        return impl;
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        return Collections.singletonMap("registry.enable.multitenancy", "true");
     }
 
 }

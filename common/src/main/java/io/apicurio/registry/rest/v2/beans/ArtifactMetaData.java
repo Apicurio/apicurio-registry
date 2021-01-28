@@ -39,16 +39,16 @@ import io.apicurio.registry.types.ArtifactType;
 public class ArtifactMetaData {
 
     @JsonProperty("name")
-    private String name;
+    private java.lang.String name;
     @JsonProperty("description")
-    private String description;
+    private java.lang.String description;
     /**
      * 
      * (Required)
      * 
      */
     @JsonProperty("createdBy")
-    private String createdBy;
+    private java.lang.String createdBy;
     /**
      * 
      * (Required)
@@ -62,7 +62,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedBy")
-    private String modifiedBy;
+    private java.lang.String modifiedBy;
     /**
      * 
      * (Required)
@@ -77,7 +77,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("id")
     @JsonPropertyDescription("The ID of a single Artifact.")
-    private String id;
+    private java.lang.String id;
     /**
      * 
      * (Required)
@@ -121,7 +121,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
-    private List<String> labels = new ArrayList<String>();
+    private List<java.lang.String> labels = new ArrayList<java.lang.String>();
     /**
      * User-defined name-value pairs. Name and value must be strings.
      * 
@@ -135,25 +135,25 @@ public class ArtifactMetaData {
      */
     @JsonProperty("groupId")
     @JsonPropertyDescription("An id of a single Artifact Group.")
-    private String groupId;
+    private java.lang.String groupId;
 
     @JsonProperty("name")
-    public String getName() {
+    public java.lang.String getName() {
         return name;
     }
 
     @JsonProperty("name")
-    public void setName(String name) {
+    public void setName(java.lang.String name) {
         this.name = name;
     }
 
     @JsonProperty("description")
-    public String getDescription() {
+    public java.lang.String getDescription() {
         return description;
     }
 
     @JsonProperty("description")
-    public void setDescription(String description) {
+    public void setDescription(java.lang.String description) {
         this.description = description;
     }
 
@@ -163,7 +163,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdBy")
-    public String getCreatedBy() {
+    public java.lang.String getCreatedBy() {
         return createdBy;
     }
 
@@ -173,7 +173,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("createdBy")
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(java.lang.String createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -203,7 +203,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedBy")
-    public String getModifiedBy() {
+    public java.lang.String getModifiedBy() {
         return modifiedBy;
     }
 
@@ -213,7 +213,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("modifiedBy")
-    public void setModifiedBy(String modifiedBy) {
+    public void setModifiedBy(java.lang.String modifiedBy) {
         this.modifiedBy = modifiedBy;
     }
 
@@ -243,7 +243,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("id")
-    public String getId() {
+    public java.lang.String getId() {
         return id;
     }
 
@@ -253,7 +253,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("id")
-    public void setId(String id) {
+    public void setId(java.lang.String id) {
         this.id = id;
     }
 
@@ -353,7 +353,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("labels")
-    public List<String> getLabels() {
+    public List<java.lang.String> getLabels() {
         return labels;
     }
 
@@ -361,7 +361,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("labels")
-    public void setLabels(List<String> labels) {
+    public void setLabels(List<java.lang.String> labels) {
         this.labels = labels;
     }
 
@@ -388,7 +388,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("groupId")
-    public String getGroupId() {
+    public java.lang.String getGroupId() {
         return groupId;
     }
 
@@ -397,7 +397,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("groupId")
-    public void setGroupId(String groupId) {
+    public void setGroupId(java.lang.String groupId) {
         this.groupId = groupId;
     }
 

@@ -26,15 +26,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class EditableMetaData {
 
     @JsonProperty("name")
-    private String name;
+    private java.lang.String name;
     @JsonProperty("description")
-    private String description;
+    private java.lang.String description;
     /**
      * 
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
-    private List<String> labels = new ArrayList<String>();
+    private List<java.lang.String> labels = new ArrayList<java.lang.String>();
     /**
      * User-defined name-value pairs. Name and value must be strings.
      * 
@@ -44,22 +44,22 @@ public class EditableMetaData {
     private Map<String, String> properties;
 
     @JsonProperty("name")
-    public String getName() {
+    public java.lang.String getName() {
         return name;
     }
 
     @JsonProperty("name")
-    public void setName(String name) {
+    public void setName(java.lang.String name) {
         this.name = name;
     }
 
     @JsonProperty("description")
-    public String getDescription() {
+    public java.lang.String getDescription() {
         return description;
     }
 
     @JsonProperty("description")
-    public void setDescription(String description) {
+    public void setDescription(java.lang.String description) {
         this.description = description;
     }
 
@@ -67,7 +67,7 @@ public class EditableMetaData {
      * 
      */
     @JsonProperty("labels")
-    public List<String> getLabels() {
+    public List<java.lang.String> getLabels() {
         return labels;
     }
 
@@ -75,7 +75,7 @@ public class EditableMetaData {
      * 
      */
     @JsonProperty("labels")
-    public void setLabels(List<String> labels) {
+    public void setLabels(List<java.lang.String> labels) {
         this.labels = labels;
     }
 

@@ -62,12 +62,13 @@ public class RegistryTenantResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response createTenant(NewRegistryTenantRequest tenantRequest) {
 
+        required(tenantRequest.getTenantId(), "TenantId is mandatory");
         required(tenantRequest.getOrganizationId(), "OrganizationId is mandatory");
         required(tenantRequest.getClientId(), "ClientId is mandatory");
 
         RegistryTenantDto tenant = new RegistryTenantDto();
 
-        tenant.setTenantId(UUID.randomUUID().toString());
+        tenant.setTenantId(tenantRequest.getTenantId());
 
         tenant.setOrganizationId(tenantRequest.getOrganizationId());
         tenant.setAuthClientId(tenantRequest.getClientId());

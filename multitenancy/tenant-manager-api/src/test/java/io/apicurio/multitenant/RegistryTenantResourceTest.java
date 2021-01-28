@@ -24,6 +24,8 @@ import io.restassured.response.Response;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -50,6 +52,7 @@ public class RegistryTenantResourceTest {
     @Test
     public void testCRUD() {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
+        req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
         req.setDeploymentFlavor("small");
         req.setClientId("aaaaa");

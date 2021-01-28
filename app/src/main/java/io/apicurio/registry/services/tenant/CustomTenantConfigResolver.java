@@ -27,8 +27,13 @@ import io.vertx.ext.web.RoutingContext;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	@Inject
 	@Current
@@ -40,9 +45,12 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
 		final String tenantId = context.request().getHeader(Headers.TENANT_ID);
 
 		if (null == tenantId) {
+		    log.debug("Tenant config is not loaded, fallback to default tenant");
 			// resolve to default tenant configuration
 			return null;
 		}
+
+		log.debug("Resolving tenant {}", tenantId);
 
 		final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
 		final OidcTenantConfig config = new OidcTenantConfig();

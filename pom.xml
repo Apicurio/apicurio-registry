@@ -937,6 +937,17 @@
                 </plugins>
             </build>
         </profile>
+        <!-- For deploying to github packages -->
+        <profile>
+            <id>github</id>                       
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/Apicurio/apicurio-registry</url>
+                </repository>
+            </distributionManagement>
+        </profile>
         <!-- 
             conditional repo to be excluded in productization 
             build in prod with:

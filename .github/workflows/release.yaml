@@ -134,7 +134,12 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@v1
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }} 
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          
+      - name: Fetch Latest Commit SHA For Apicurio Registry
+        run: |
+          cd studio
+          echo "latest_commit_sha=$(git log -n 1 --pretty=format:"%H")" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: actions/create-release@latest
@@ -143,6 +148,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version}}       
           release_name: ${{ github.event.inputs.release-version}}
+          commitish: ${{ env.latest_commit_sha }} # explicitly passing the commit hash so that the latest commit is tagged and released
 
       - name: Generate Release Notes
         run: |

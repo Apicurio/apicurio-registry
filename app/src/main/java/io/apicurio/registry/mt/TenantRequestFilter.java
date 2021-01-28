@@ -70,6 +70,9 @@ public class TenantRequestFilter {
                 tenantContext.tenantId(tenantId);
 
                 String actualUri = uri.substring(tenantPrefixLength(tenantId));
+                if (actualUri.length() == 0) {
+                    actualUri = "/";
+                }
 
                 log.debug("Rerouting request {} to {} tenantId {}", uri, actualUri, tenantContext.tenantId());
 

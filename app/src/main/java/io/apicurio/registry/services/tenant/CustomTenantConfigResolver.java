@@ -31,9 +31,13 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     @Inject
     @Current
@@ -50,9 +54,12 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
     public OidcTenantConfig resolve(RoutingContext context) {
 
         if (!tenantContext.isLoaded()) {
+            log.debug("Tenant config is not loaded, fallback to default tenant");
             // resolve to default tenant configuration
             return null;
         }
+
+        log.debug("Resolving tenant {}", tenantContext.tenantId());
 
         final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantContext.tenantId());
         final OidcTenantConfig config = new OidcTenantConfig();

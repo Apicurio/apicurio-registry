@@ -17,87 +17,34 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.registry.rest.Headers;
-import io.quarkus.runtime.StartupEvent;
-import io.quarkus.vertx.web.RouteFilter;
-import io.vertx.ext.web.RoutingContext;
 
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class TenantRequestFilter {
-
-    protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    @ConfigProperty(name = "registry.multitenancy.base.path")
-    String nameMultitenancyBasePath;
-
-    String multitenancyBasePath;
-
-    @ConfigProperty(name = "registry.enable.multitenancy")
-    boolean multitenancyEnabled;
+@Provider
+public class TenantRequestFilter implements ContainerRequestFilter {
 
     @Inject
     TenantContext tenantContext;
 
-    void init(@Observes StartupEvent ev) {
-        if (multitenancyEnabled) {
-            log.info("Registry running with multitenancy enabled");
+    /**
+     * @see javax.ws.rs.container.ContainerRequestFilter#filter(javax.ws.rs.container.ContainerRequestContext)
+     */
+    @Override
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        String tenantId = requestContext.getHeaderString(Headers.TENANT_ID);
+        if (tenantId != null) {
+
+            tenantContext.tenantId(tenantId);
+        } else {
+            tenantContext.clearTenantId();
         }
-        multitenancyBasePath = "/" + nameMultitenancyBasePath + "/";
-    }
-
-    @RouteFilter(value = RouteFilter.DEFAULT_PRIORITY + 1000)
-    public void tenantRedirectFilter(RoutingContext ctx) throws IOException {
-
-        if (multitenancyEnabled) {
-
-            String uri = ctx.request().uri();
-
-            log.debug("Filtering request {} current tenantId {}", uri, tenantContext.tenantId());
-
-            if (uri.startsWith(multitenancyBasePath)) {
-                String[] tokens = uri.split("/");
-                String tenantId = tokens[2];
-                tenantContext.tenantId(tenantId);
-
-                String actualUri = uri.substring(tenantPrefixLength(tenantId));
-                if (actualUri.length() == 0) {
-                    actualUri = "/";
-                }
-
-                log.debug("Rerouting request {} to {} tenantId {}", uri, actualUri, tenantContext.tenantId());
-
-                ctx.reroute(actualUri);
-                //very important to return
-                return;
-            }
-
-            String tenantId = ctx.request().getHeader(Headers.TENANT_ID);
-            if (tenantId != null) {
-                tenantContext.tenantId(tenantId);
-            }
-
-            if (tenantContext.isLoaded()) {
-                ctx.response().putHeader(Headers.TENANT_ID, tenantContext.tenantId());
-            }
-
-        }
-
-        ctx.next();
-
-    }
-
-    private int tenantPrefixLength(String tenantId) {
-        return (multitenancyBasePath + tenantId).length();
     }
 
 }

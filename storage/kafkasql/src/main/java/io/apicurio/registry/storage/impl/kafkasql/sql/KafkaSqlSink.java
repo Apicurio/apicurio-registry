@@ -4,7 +4,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -54,7 +53,7 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlConfiguration configuration;
-
+    
     @Inject
     KafkaSqlSubmitter submitter;
 
@@ -65,14 +64,13 @@ public class KafkaSqlSink {
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
      * each message much be consumed and applied to the in-memory SQL data store.
-     *
+     * 
      * This method extracts the UUID from the message headers, delegates the message processing
      * to <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally
      * it will report the result to any local threads that may be waiting (via the coordinator).
-     *
+     * 
      * @param record
      */
-    @ActivateRequestContext
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
         // If the key is null, we couldn't deserialize the message
         if (record.key() == null) {
@@ -134,24 +132,28 @@ public class KafkaSqlSink {
             Long globalId = toGlobalId(offset, partition);
             return globalId;
         };
-
+        
         String tenantId = key.getTenantId();
         tenantContext.tenantId(tenantId);
-        MessageType messageType = key.getType();
-        switch (messageType) {
-            case Artifact:
-                return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
-            case ArtifactRule:
-                return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
-            case ArtifactVersion:
-                return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
-            case Content:
-                return processContent((ContentKey) key, (ContentValue) value);
-            case GlobalRule:
-                return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
-            default:
-                log.warn("Unrecognized message type: %s", record.key());
-                throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+        try {
+            MessageType messageType = key.getType();
+            switch (messageType) {
+                case Artifact:
+                    return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
+                case ArtifactRule:
+                    return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
+                case ArtifactVersion:
+                    return processArtifactVersion((ArtifactVersionKey) key, (ArtifactVersionValue) value);
+                case Content:
+                    return processContent((ContentKey) key, (ContentValue) value);
+                case GlobalRule:
+                    return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
+                default:
+                    log.warn("Unrecognized message type: %s", record.key());
+                    throw new RegistryStorageException("Unexpected message type: " + messageType.name());
+            }
+        } finally {
+            tenantContext.clearTenantId();
         }
     }
 

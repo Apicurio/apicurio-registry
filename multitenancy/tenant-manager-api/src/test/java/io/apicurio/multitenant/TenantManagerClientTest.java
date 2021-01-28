@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,6 @@ public class TenantManagerClientTest {
     @Test
     public void testCRUD() {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
-        req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
         req.setDeploymentFlavor("small");
         req.setClientId("aaaaa");

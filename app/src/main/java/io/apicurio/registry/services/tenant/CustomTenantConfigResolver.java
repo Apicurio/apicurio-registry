@@ -16,41 +16,55 @@
 
 package io.apicurio.registry.services.tenant;
 
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
-import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.oidc.OidcTenantConfig;
+import io.quarkus.oidc.OidcTenantConfig.Tls.Verification;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
-	@Inject
-	@Current
-	RegistryStorage registryStorage;
+    @Inject
+    @Current
+    RegistryStorage registryStorage;
 
-	@Override
-	public OidcTenantConfig resolve(RoutingContext context) {
+    @Inject
+    TenantContext tenantContext;
 
-		final String tenantId = context.request().getHeader(Headers.TENANT_ID);
+    @Inject
+    @ConfigProperty(name = "quarkus.oidc.tls.verification")
+    Optional<String> tlsVerification;
 
-		if (null == tenantId) {
-			// resolve to default tenant configuration
-			return null;
-		}
+    @Override
+    public OidcTenantConfig resolve(RoutingContext context) {
 
-		final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
-		final OidcTenantConfig config = new OidcTenantConfig();
+        if (!tenantContext.isLoaded()) {
+            // resolve to default tenant configuration
+            return null;
+        }
 
-		config.setTenantId(registryTenant.getTenantId());
-		config.setAuthServerUrl(registryTenant.getAuthServerUrl());
-		config.setClientId(registryTenant.getClientId());
+        final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantContext.tenantId());
+        final OidcTenantConfig config = new OidcTenantConfig();
 
-		return config;
-	}
+        config.setTenantId(registryTenant.getTenantId());
+        config.setAuthServerUrl(registryTenant.getAuthServerUrl());
+        config.setClientId(registryTenant.getClientId());
+
+        if (tlsVerification.isPresent() && tlsVerification.get().equalsIgnoreCase("none")) {
+            config.tls.verification = Verification.NONE;
+        }
+
+        return config;
+    }
 }

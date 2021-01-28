@@ -37,7 +37,10 @@ public class TenantRequestFilter {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final String MULTITENANT_BASE_PATH = "/t/";
+    @ConfigProperty(name = "registry.multitenancy.base.path")
+    String nameMultitenancyBasePath;
+
+    String multitenancyBasePath;
 
     @ConfigProperty(name = "registry.enable.multitenancy")
     boolean multitenancyEnabled;
@@ -49,6 +52,7 @@ public class TenantRequestFilter {
         if (multitenancyEnabled) {
             log.info("Registry running with multitenancy enabled");
         }
+        multitenancyBasePath = "/" + nameMultitenancyBasePath + "/";
     }
 
     @RouteFilter(value = RouteFilter.DEFAULT_PRIORITY + 1000)
@@ -60,7 +64,7 @@ public class TenantRequestFilter {
 
             log.debug("Filtering request {} current tenantId {}", uri, tenantContext.tenantId());
 
-            if (uri.startsWith(MULTITENANT_BASE_PATH)) {
+            if (uri.startsWith(multitenancyBasePath)) {
                 String[] tokens = uri.split("/");
                 String tenantId = tokens[2];
                 tenantContext.tenantId(tenantId);
@@ -90,7 +94,7 @@ public class TenantRequestFilter {
     }
 
     private int tenantPrefixLength(String tenantId) {
-        return (MULTITENANT_BASE_PATH + tenantId).length();
+        return (multitenancyBasePath + tenantId).length();
     }
 
 }

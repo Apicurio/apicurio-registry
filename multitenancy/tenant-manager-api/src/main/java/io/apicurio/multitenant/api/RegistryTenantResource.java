@@ -17,7 +17,6 @@ package io.apicurio.multitenant.api;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;

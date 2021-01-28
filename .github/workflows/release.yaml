@@ -138,7 +138,7 @@ jobs:
           
       - name: Fetch Latest Commit SHA For Apicurio Registry
         run: |
-          cd studio
+          cd registry
           echo "latest_commit_sha=$(git log -n 1 --pretty=format:"%H")" >> $GITHUB_ENV
 
       - name: Create GitHub Release

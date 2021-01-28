@@ -19,19 +19,22 @@ package io.apicurio.registry.storage.impl.sql;
 import javax.inject.Inject;
 
 import io.apicurio.registry.storage.AbstractRegistryStorageTest;
+import io.apicurio.registry.storage.MultitenantRegistryProfile;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
+@TestProfile(MultitenantRegistryProfile.class)
 public class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
-    
+
     @Inject
     KafkaSqlRegistryStorage storage;
-    
+
     /**
      * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
      */
@@ -39,5 +42,5 @@ public class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
     protected RegistryStorage storage() {
         return storage;
     }
-    
+
 }

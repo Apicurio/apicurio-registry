@@ -16,39 +16,43 @@
 
 package io.apicurio.registry.mt;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
+@RequestScoped
 public class TenantContextImpl implements TenantContext {
 
-    private static final String DEFAULT_TENANT_ID = "_";
-    private static ThreadLocal<String> tid = ThreadLocal.withInitial(() -> DEFAULT_TENANT_ID);
+    protected static final String DEFAULT_TENANT_ID = "_";
+
+    protected String tenantId = DEFAULT_TENANT_ID;
 
     /**
      * @see io.apicurio.registry.mt.TenantContext#tenantId()
      */
     @Override
     public String tenantId() {
-        return tid.get();
+        return this.tenantId;
     }
 
     /**
-     * @see io.apicurio.registry.mt.TenantContext#tenantId(java.lang.String)
+     * Sets the tenantId to this context, this operation can only happen once per context instance.
      */
     @Override
     public void tenantId(String tenantId) {
-        tid.set(tenantId);
+        if (!this.tenantId.equals(DEFAULT_TENANT_ID)) {
+            throw new IllegalAccessError("Tenant context can only be initialized once");
+        }
+        this.tenantId = tenantId;
     }
-    
+
     /**
-     * @see io.apicurio.registry.mt.TenantContext#clearTenantId()
+     * @see io.apicurio.registry.mt.TenantContext#isLoaded()
      */
     @Override
-    public void clearTenantId() {
-        this.tenantId(DEFAULT_TENANT_ID);
+    public boolean isLoaded() {
+        return !this.tenantId.equals(DEFAULT_TENANT_ID);
     }
 
 }

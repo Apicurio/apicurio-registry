@@ -16,41 +16,62 @@
 
 package io.apicurio.registry.services.tenant;
 
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
-import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.oidc.OidcTenantConfig;
+import io.quarkus.oidc.OidcTenantConfig.Tls.Verification;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
-	@Inject
-	@Current
-	RegistryStorage registryStorage;
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
-	@Override
-	public OidcTenantConfig resolve(RoutingContext context) {
+    @Inject
+    @Current
+    RegistryStorage registryStorage;
 
-		final String tenantId = context.request().getHeader(Headers.TENANT_ID);
+    @Inject
+    TenantContext tenantContext;
 
-		if (null == tenantId) {
-			// resolve to default tenant configuration
-			return null;
-		}
+    @Inject
+    @ConfigProperty(name = "quarkus.oidc.tls.verification")
+    Optional<String> tlsVerification;
 
-		final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
-		final OidcTenantConfig config = new OidcTenantConfig();
+    @Override
+    public OidcTenantConfig resolve(RoutingContext context) {
 
-		config.setTenantId(registryTenant.getTenantId());
-		config.setAuthServerUrl(registryTenant.getAuthServerUrl());
-		config.setClientId(registryTenant.getClientId());
+        if (!tenantContext.isLoaded()) {
+            log.debug("Tenant config is not loaded, fallback to default tenant");
+            // resolve to default tenant configuration
+            return null;
+        }
 
-		return config;
-	}
+        log.debug("Resolving tenant {}", tenantContext.tenantId());
+
+        final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantContext.tenantId());
+        final OidcTenantConfig config = new OidcTenantConfig();
+
+        config.setTenantId(registryTenant.getTenantId());
+        config.setAuthServerUrl(registryTenant.getAuthServerUrl());
+        config.setClientId(registryTenant.getClientId());
+
+        if (tlsVerification.isPresent() && tlsVerification.get().equalsIgnoreCase("none")) {
+            config.tls.verification = Verification.NONE;
+        }
+
+        return config;
+    }
 }

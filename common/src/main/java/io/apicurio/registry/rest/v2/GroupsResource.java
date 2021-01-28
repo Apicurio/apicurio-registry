@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v2;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExistsType;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
@@ -106,7 +107,7 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @QueryParam("ifExists") String ifExists, @QueryParam("canonical") Boolean canonical,
+      @QueryParam("ifExists") IfExistsType ifExists, @QueryParam("canonical") Boolean canonical,
       InputStream data);
 
   /**

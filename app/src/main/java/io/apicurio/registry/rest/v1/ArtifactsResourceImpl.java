@@ -62,7 +62,7 @@ import io.apicurio.registry.rest.v1.beans.IfExistsType;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.rest.v1.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.ArtifactgroupsResourceImpl;
+import io.apicurio.registry.rest.v2.GroupsResourceImpl;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -88,7 +88,7 @@ import io.apicurio.registry.utils.ArtifactIdValidator;
 /**
  * Implements the {@link ArtifactsResource} interface.
  * 
- * Note: this class is deprecated in favor of v2 of the REST API.  See {@link ArtifactgroupsResourceImpl} instead.
+ * Note: this class is deprecated in favor of v2 of the REST API.  See {@link GroupsResourceImpl} instead.
  *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin

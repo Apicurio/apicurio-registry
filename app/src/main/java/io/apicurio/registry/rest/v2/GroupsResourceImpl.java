@@ -66,11 +66,11 @@ import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 
 /**
- * Implements the {@link ArtifactgroupsResource} JAX-RS interface.
+ * Implements the {@link GroupsResource} JAX-RS interface.
  * 
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
+public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
 
@@ -88,7 +88,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     HttpServletRequest request;
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getLatestArtifact(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String)
      */
     @Override
     public Response getLatestArtifact(String groupId, String artifactId) {
@@ -119,7 +119,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String groupId, String artifactId,
@@ -135,7 +135,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#deleteArtifact(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifact(String groupId, String artifactId) {
@@ -146,7 +146,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getArtifactMetaData(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
@@ -158,7 +158,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
@@ -174,7 +174,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.String, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
@@ -198,7 +198,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#listArtifactRules(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
@@ -209,7 +209,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
@@ -222,7 +222,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#deleteArtifactRules(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactRules(String groupId, String artifactId) {
@@ -233,7 +233,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
@@ -249,7 +249,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
@@ -266,7 +266,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
@@ -278,7 +278,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
@@ -289,7 +289,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#testUpdateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#testUpdateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
@@ -310,7 +310,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public Response getArtifactVersion(String groupId, String artifactId, String version) {
@@ -344,7 +344,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
@@ -358,7 +358,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
@@ -377,7 +377,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
@@ -391,7 +391,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#updateArtifactVersionState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
@@ -404,13 +404,13 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
 
         storage.updateArtifactState(groupId, artifactId, versionI, data.getState());
     }
-
+    
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#listArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String)
      */
     @Override
-    public ArtifactSearchResults listArtifacts(String groupId, Integer limit, Integer offset, SortOrder order,
-            String orderby) {
+    public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
+            SortOrder order, String orderby) {
         requireParameter("groupId", groupId);
 
         // TODO Implement listing of artifacts within a specific group.
@@ -418,7 +418,17 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactsInGroup(java.lang.String)
+     */
+    @Override
+    public void deleteArtifactsInGroup(String groupId) {
+        requireParameter("groupId", groupId);
+
+        // TODO Implement deleting artifacts in the group!
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(String groupId,
@@ -474,7 +484,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactVersions(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
@@ -487,7 +497,7 @@ public class ArtifactgroupsResourceImpl implements ArtifactgroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.ArtifactgroupsResource#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String groupId, String artifactId,

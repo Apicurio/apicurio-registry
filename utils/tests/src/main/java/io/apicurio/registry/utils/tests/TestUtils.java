@@ -58,7 +58,6 @@ public class TestUtils {
     private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
     private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
-    private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
 
     private TestUtils() {
         // All static methods
@@ -77,23 +76,19 @@ public class TestUtils {
     }
 
     public static String getRegistryUIUrl() {
-        return getRegistryUrl().concat("/ui");
+        return getRegistryBaseUrl().concat("/ui");
     }
 
     public static String getRegistryApiUrl() {
-        return getRegistryUrl().concat("/api");
+        return getRegistryBaseUrl().concat("/api");
     }
 
-    private static String getRegistryUrl() {
+    public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
             return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
         } else {
             return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
         }
-    }
-
-    public static String getTestRegistryClients() {
-        return TEST_REGISTRY_CLIENT;
     }
 
     /**
@@ -116,23 +111,55 @@ public class TestUtils {
     }
 
     /**
+     * Generic check if an endpoint is network reachable
+     * @param host
+     * @param port
+     * @param component
+     * @return true if it's possible to open a network connection to the endpoint
+     */
+    public static boolean isReachable(String host, int port, String component) {
+        try (Socket socket = new Socket()) {
+            log.info("Trying to connect to {}:{}", host, port);
+            socket.connect(new InetSocketAddress(host, port), 5_000);
+            log.info("Client is able to connect to " + component);
+            return  true;
+        } catch (IOException ex) {
+            log.warn("Cannot connect to {}: {}", component, ex.getMessage());
+            return false; // Either timeout or unreachable or failed DNS lookup.
+        }
+    }
+
+
+    /**
      * Checks the readniess endpoint of the registry
      *
      * @return true if registry readiness endpoint replies sucessfully
      */
     public static boolean isReady(boolean logResponse) {
+        return isReady(getRegistryBaseUrl(), logResponse, "Apicurio Registry");
+    }
+
+    /**
+     * Generic check of the /health/ready endpoint
+     *
+     * @param baseUrl
+     * @param logResponse
+     * @param component
+     * @return true if the readiness endpoint replies successfully
+     */
+    public static boolean isReady(String baseUrl, boolean logResponse, String component) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().concat("/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat("/health/ready")));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
-                log.info("Service registry is ready");
+                log.info(component + " is ready");
             }
             if (logResponse) {
                 log.info(IoUtil.toString(res.getEntity().getContent()));
             }
             return ok;
         } catch (IOException e) {
-            log.warn("Service registry is not ready {}", e.getMessage());
+            log.warn(component + " is not ready {}", e.getMessage());
             return false;
         }
     }

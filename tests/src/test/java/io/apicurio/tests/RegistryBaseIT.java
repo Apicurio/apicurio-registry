@@ -13,28 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.auth;
+package io.apicurio.tests;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import io.quarkus.test.junit.QuarkusTestProfile;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.apicurio.registry.utils.tests.SimpleDisplayName;
+import io.apicurio.tests.interfaces.TestSeparator;
 
 /**
+ * Base class for integration tests, this class should not implement any logic that interacts with the registry
  * @author Fabian Martinez
  */
-public class AuthTestProfile implements QuarkusTestProfile {
-
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public List<TestResourceEntry> testResources() {
-        return Arrays.asList(
-                new TestResourceEntry(KeycloakTestResource.class));
-    }
+@DisplayNameGeneration(SimpleDisplayName.class)
+@ExtendWith(RegistryDeploymentManager.class)
+public abstract class RegistryBaseIT implements TestSeparator, Constants {
 
 }

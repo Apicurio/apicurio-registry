@@ -46,5 +46,10 @@ public interface Constants {
      */
     String ACCEPTANCE = "acceptance";
 
+    /**
+     * Tag for multitenancy tests, only storages that support multitenancy
+     */
+    String MULTITENANCY = "multitenancy";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

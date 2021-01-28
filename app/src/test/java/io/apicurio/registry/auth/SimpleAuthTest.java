@@ -44,6 +44,9 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
+/**
+ * @author Fabian Martinez
+ */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 public class SimpleAuthTest extends AbstractResourceTestBase {

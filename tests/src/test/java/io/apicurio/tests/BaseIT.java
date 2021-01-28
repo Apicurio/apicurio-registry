@@ -22,14 +22,10 @@ import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.interfaces.TestSeparator;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +45,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayNameGeneration(SimpleDisplayName.class)
-@ExtendWith(RegistryDeploymentManager.class)
-public abstract class BaseIT implements TestSeparator, Constants {
+public abstract class BaseIT extends RegistryBaseIT {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseIT.class);
     protected static KafkaFacade kafkaCluster = KafkaFacade.getInstance();

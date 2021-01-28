@@ -35,6 +35,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class provides the logic to configure the authentication layer with the tenant configuration
+ * for an incoming http request.
+ *
+ *
+ * @author Carles Arnal
+ * @author Fabian Martinez
+ *
+ */
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 

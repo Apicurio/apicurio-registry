@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
+/**
+ * @author Fabian Martinez
+ */
 public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakTestResource.class);

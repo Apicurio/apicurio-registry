@@ -20,18 +20,11 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,20 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Abstract base class for all tests that test via the jax-rs layer.
  * @author eric.wittmann@gmail.com
  */
-@TestInstance(Lifecycle.PER_CLASS)
-public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
+public abstract class AbstractResourceTestBase extends RegistryTestBase {
 
     protected static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
 
-    @Inject
-    Instance<ServiceInitializer> initializers;
-
     protected String registryUrl;
     protected RegistryRestClient client;
-
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -61,17 +49,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         client = RegistryRestClientFactory.create(registryUrl);
     }
 
+    @Override
     @BeforeEach
     protected void beforeEach() throws Exception {
-        prepareServiceInitializers();
-        deleteGlobalRules(0);
-    }
-
-    protected void prepareServiceInitializers() {
+        super.beforeEach();
         RestAssured.baseURI = registryUrl;
-
-        // run all initializers::beforeEach
-        initializers.stream().forEach(ServiceInitializer::beforeEach);
+        deleteGlobalRules(0);
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {

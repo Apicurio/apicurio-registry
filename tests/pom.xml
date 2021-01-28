@@ -14,6 +14,9 @@
     <name>apicurio-registry-tests</name>
 
     <properties>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+
         <groups></groups>
         <skipTests>true</skipTests>
         
@@ -51,6 +54,19 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-tests</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.slf4j</groupId>
+                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                </exclusion>
+            </exclusions>
+
         </dependency>
 
         <!-- Third Party Libraries -->
@@ -224,6 +240,14 @@
         	<artifactId>commons-io</artifactId>
         	<scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-admin-client</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -248,6 +272,12 @@
                 <configuration>
                     <groups>${groups}</groups>
                     <skipTests>${skipTests}</skipTests>
+                    <systemPropertyVariables>
+                        <project.version>${project.version}</project.version>
+                        <native.image.path>${test.app.name}</native.image.path>
+                        <test.storage>${test.storage}</test.storage>
+                        <groups>${groups}</groups>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
@@ -256,11 +286,6 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <systemProperties>
-                                <project.version>${project.version}</project.version>
-                                <native.image.path>${test.app.name}</native.image.path>
-                                <test.storage>${test.storage}</test.storage>
-                            </systemProperties>
                             <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
                                 <disable>false</disable>
                                 <version>3.0</version>
@@ -319,7 +344,7 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke | cluster | ui</groups>
+                <groups>( smoke | cluster | ui ) &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -327,7 +352,7 @@
             <id>smoke</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke</groups>
+                <groups>smoke &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -335,7 +360,7 @@
             <id>cluster</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>cluster</groups>
+                <groups>cluster &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -343,7 +368,7 @@
             <id>ui</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>ui</groups>
+                <groups>ui &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -351,7 +376,15 @@
             <id>acceptance</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>acceptance</groups>
+                <groups>acceptance &amp; !multitenancy</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>multitenancy</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>multitenancy</groups>
             </properties>
         </profile>
 

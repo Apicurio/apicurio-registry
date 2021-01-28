@@ -27,8 +27,6 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @JsonInclude(Include.NON_NULL)
 public class NewRegistryTenantRequest {
 
-    private String tenantId;
-
     private String deploymentFlavor;
 
     private String organizationId;
@@ -37,14 +35,6 @@ public class NewRegistryTenantRequest {
 
     public NewRegistryTenantRequest() {
         // empty
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     public String getOrganizationId() {

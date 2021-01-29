@@ -34,8 +34,8 @@ import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Tests registry via its jax-rs interface.  This test performs more realistic
- * usage scenarios than the more unit-test focused {@link RulesResourceV2Test}
- * and {@link ArtifactsResourceTest}.
+ * usage scenarios than the more unit-test focused {@link AdminResourceTest}
+ * and {@link GroupsResourceTest}.
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest

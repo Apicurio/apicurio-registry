@@ -87,13 +87,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         });
     }
 
-    /**
-     * Called to create an artifact by invoking the appropriate JAX-RS operation.
-     * @param artifactId
-     * @param artifactType
-     * @param artifactContent
-     * @throws Exception
-     */
     protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
@@ -112,6 +105,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return response.extract().body().path("globalId");
     }
 
+
+    protected Integer createArtifact(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+            .post("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        waitForArtifact(groupId, artifactId);
+
+        return response.extract().body().path("globalId");
+    }
+
     protected Integer createArtifactVersion(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
@@ -120,6 +133,23 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
             .post("/v1/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        return response.extract().body().path("globalId");
+    }
+
+    protected Integer createArtifactVersion(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+            .post("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -147,6 +177,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     /**
      * Wait for an artifact to be created.
+     * @param groupId
      * @param artifactId
      * @throws Exception
      */
@@ -157,7 +188,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
-                .get("/v2/artifactgroups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -177,6 +208,27 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
                 .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact version to be created.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @throws Exception
+     */
+    protected void waitForVersion(String groupId, String artifactId, int version) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -217,6 +269,25 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     /**
+     * Wait for an artifact's state to change.
+     * @param groupId
+     * @param artifactId
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForArtifactState(String groupId, String artifactId, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .then(), state, false);
+        });
+    }
+
+    /**
      * Wait for an artifact version's state to change.
      * @param artifactId
      * @param version
@@ -231,6 +302,27 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
                 .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .then(), state, true);
+        });
+    }
+
+    /**
+     * Wait for an artifact version's state to change.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForVersionState(String groupId, String artifactId, int version, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then(), state, true);
         });
     }

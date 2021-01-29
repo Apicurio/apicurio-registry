@@ -162,7 +162,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(null, artifactId);
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
         return V2ApiUtil.dtoToMetaData(groupId, artifactId, dto.getType(), dto);
     }
 
@@ -644,6 +644,9 @@ public class GroupsResourceImpl implements GroupsResource {
     private CompletionStage<ArtifactMetaData> handleIfExists(String groupId, String artifactId,
             IfExists ifExists, ContentHandle content, String contentType, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
+        if (ifExists == null) {
+            ifExists = IfExists.FAIL;
+        }
 
         switch (ifExists) {
             case UPDATE:

@@ -186,6 +186,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ContentHandle content,
             String ct, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(artifactId);
+        if (ifExists == null) {
+            ifExists = IfExistsType.FAIL;
+        }
 
         switch (ifExists) {
             case UPDATE:

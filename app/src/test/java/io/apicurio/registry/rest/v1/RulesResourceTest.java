@@ -36,7 +36,7 @@ import io.restassured.http.ContentType;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class RulesResourceV1Test extends AbstractResourceTestBase {
+public class RulesResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRulesEndpoint() {

@@ -36,14 +36,14 @@ import io.restassured.http.ContentType;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-public class RulesResourceV2Test extends AbstractResourceTestBase {
+public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRulesEndpoint() {
         given()
             .when()
                 .contentType(CT_JSON)
-                .get("/v2/rules")
+                .get("/v2/admin/rules")
             .then()
                 .statusCode(200)
                 .body(anything());
@@ -58,7 +58,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/v2/rules")
+                .post("/v2/admin/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -67,7 +67,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/VALIDITY")
+                    .get("/v2/admin/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -80,7 +80,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
             given()
                 .when()
                     .contentType(CT_JSON).body(rule)
-                    .post("/v2/rules")
+                    .post("/v2/admin/rules")
                 .then()
                     .statusCode(409)
                     .body("error_code", equalTo(409))
@@ -94,7 +94,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/v2/rules")
+                .post("/v2/admin/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -103,7 +103,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules")
+                    .get("/v2/admin/rules")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -115,7 +115,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         // Get a single rule by name
         given()
             .when()
-                .get("/v2/rules/COMPATIBILITY")
+                .get("/v2/admin/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -129,7 +129,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .put("/v2/rules/COMPATIBILITY")
+                .put("/v2/admin/rules/COMPATIBILITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -140,7 +140,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/COMPATIBILITY")
+                    .get("/v2/admin/rules/COMPATIBILITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -152,7 +152,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
 //        rule.setType("RuleDoesNotExist");
 //        rule.setConfig("rdne-config");
 //        given()
-//            .when().contentType(CT_JSON).body(rule).put("/v2/rules/RuleDoesNotExist")
+//            .when().contentType(CT_JSON).body(rule).put("/v2/admin/rules/RuleDoesNotExist")
 //            .then()
 //            .statusCode(404)
 //            .contentType(ContentType.JSON)
@@ -162,7 +162,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         // Delete a rule
         given()
             .when()
-                .delete("/v2/rules/COMPATIBILITY")
+                .delete("/v2/admin/rules/COMPATIBILITY")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -171,7 +171,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/COMPATIBILITY")
+                    .get("/v2/admin/rules/COMPATIBILITY")
                 .then()
                     .statusCode(404)
                     .contentType(ContentType.JSON)
@@ -183,7 +183,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules")
+                    .get("/v2/admin/rules")
                 .then()
                 .log().all()
                     .statusCode(200)
@@ -195,7 +195,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         // Delete all rules
         given()
             .when()
-                .delete("/v2/rules")
+                .delete("/v2/admin/rules")
             .then()
                 .statusCode(204);
 
@@ -203,7 +203,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules")
+                    .get("/v2/admin/rules")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -213,7 +213,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         // Get the other (deleted) rule by name (should fail with a 404)
         given()
             .when()
-                .get("/v2/rules/VALIDITY")
+                .get("/v2/admin/rules/VALIDITY")
             .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
@@ -232,7 +232,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/v2/rules")
+                .post("/v2/admin/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -241,7 +241,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/VALIDITY")
+                    .get("/v2/admin/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -252,7 +252,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         // Delete all rules
         given()
             .when()
-                .delete("/v2/rules")
+                .delete("/v2/admin/rules")
             .then()
                 .statusCode(204);
 
@@ -260,7 +260,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/VALIDITY")
+                    .get("/v2/admin/rules/VALIDITY")
                 .then()
                     .statusCode(404)
                     .contentType(ContentType.JSON)
@@ -279,7 +279,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/v2/rules")
+                .post("/v2/admin/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -288,7 +288,7 @@ public class RulesResourceV2Test extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v2/rules/COMPATIBILITY")
+                    .get("/v2/admin/rules/COMPATIBILITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)

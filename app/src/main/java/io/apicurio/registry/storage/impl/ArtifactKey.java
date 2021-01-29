@@ -97,5 +97,13 @@ public class ArtifactKey implements Serializable {
         ArtifactKey other = (ArtifactKey) obj;
         return Objects.equals(artifactId, other.artifactId) && Objects.equals(groupId, other.groupId);
     }
+    
+    /**
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return String.format("ArtifactKey(%s, %s)", this.groupId, this.artifactId);
+    }
 
 }

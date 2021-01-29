@@ -206,7 +206,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         try {
             ConcurrentUtil.result(getStorage()
                     .createArtifact(GROUP_ID, testId0, ArtifactType.JSON, ContentHandle.create("{}")));
-            this.waitForArtifact(testId0);
+            this.waitForArtifact(GROUP_ID, testId0);
 
             int size = getStorage().getArtifactIds(null).size();
 
@@ -216,8 +216,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             ConcurrentUtil.result(getStorage()
                     .createArtifact(GROUP_ID, testId2, ArtifactType.JSON, ContentHandle.create("{}")));
 
-            this.waitForArtifact(testId1);
-            this.waitForArtifact(testId2);
+            this.waitForArtifact(GROUP_ID, testId1);
+            this.waitForArtifact(GROUP_ID, testId2);
 
             int newSize = getStorage().getArtifactIds(null).size();
             int limitedSize = getStorage().getArtifactIds(1).size();

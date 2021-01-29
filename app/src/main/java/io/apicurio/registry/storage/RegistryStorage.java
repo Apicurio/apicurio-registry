@@ -130,7 +130,14 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
-    
+
+    /**
+     * Deletes all artifacts in the given group.
+     * @param groupId
+     * @throws RegistryStorageException
+     */
+    public void deleteArtifacts(String groupId) throws RegistryStorageException;
+
     /**
      * Gets the most recent version of the value of the artifact with the given group and ID.
      * @param groupId

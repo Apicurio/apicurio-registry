@@ -17,7 +17,9 @@
 package io.apicurio.registry.rest.v2;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -36,8 +38,9 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.IfExistsType;
+import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -51,10 +54,16 @@ import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -406,15 +415,31 @@ public class GroupsResourceImpl implements GroupsResource {
     }
     
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
      */
     @Override
     public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
-            SortOrder order, String orderby) {
+            SortOrder order, SortBy orderby) {
         requireParameter("groupId", groupId);
 
-        // TODO Implement listing of artifacts within a specific group.
-        return null;
+        if (orderby == null) {
+            orderby = SortBy.name;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 20;
+        }
+        
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(new SearchFilter(SearchFilterType.group, groupId));
+
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
     /**
@@ -423,17 +448,17 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     public void deleteArtifactsInGroup(String groupId) {
         requireParameter("groupId", groupId);
-
-        // TODO Implement deleting artifacts in the group!
+        
+        storage.deleteArtifacts(groupId);
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(String groupId,
             ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
-            IfExistsType ifExists, Boolean canonical, InputStream data) {
+            IfExists ifExists, Boolean canonical, InputStream data) {
         requireParameter("groupId", groupId);
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
             throw new InvalidGroupIdException(ArtifactIdValidator.GROUP_ID_ERROR_MESSAGE);
@@ -492,8 +517,15 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        // TODO Implement listing the artifact versions within an artifact
-        return null;
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 20;
+        }
+        
+        VersionSearchResultsDto resultsDto = storage.searchVersions(groupId, artifactId, offset, limit);
+        return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
     /**
@@ -610,7 +642,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     private CompletionStage<ArtifactMetaData> handleIfExists(String groupId, String artifactId,
-            IfExistsType ifExists, ContentHandle content, String contentType, boolean canonical) {
+            IfExists ifExists, ContentHandle content, String contentType, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
 
         switch (ifExists) {

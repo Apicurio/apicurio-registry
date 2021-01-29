@@ -90,6 +90,11 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(groupId, artifactId);
     }
+    
+    @Override
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        storage.deleteArtifacts(groupId);
+    }
 
     @Override
     public StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {

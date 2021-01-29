@@ -26,9 +26,12 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -40,7 +43,16 @@ import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.StringUtil;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -54,25 +66,62 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 @Logged
 public class SearchResourceImpl implements SearchResource {
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String, java.util.List, java.util.List, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String)
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
-            String orderby, List<String> labels, List<String> properties, String description,
+            SortBy orderby, List<String> labels, List<String> properties, String description,
             String artifactgroup) {
-        // TODO Auto-generated method stub
-        return null;
+        if (orderby == null) {
+            orderby = SortBy.name;
+        }
+        if (offset == null) {
+            offset = 0;
+        }
+        if (limit == null) {
+            limit = 20;
+        }
+        
+        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+
+        Set<SearchFilter> filters = new HashSet<SearchFilter>();
+        if (!StringUtil.isEmpty(name)) {
+            filters.add(new SearchFilter(SearchFilterType.name, name));
+        }
+        if (!StringUtil.isEmpty(description)) {
+            filters.add(new SearchFilter(SearchFilterType.description, description));
+        }
+        if (!StringUtil.isEmpty(artifactgroup)) {
+            filters.add(new SearchFilter(SearchFilterType.group, artifactgroup));
+        }
+        
+        if (labels != null && !labels.isEmpty()) {
+            labels.forEach(label -> {
+                filters.add(new SearchFilter(SearchFilterType.labels, label));
+            });
+        }
+        if (properties != null && !properties.isEmpty()) {
+            // TODO implement filtering by properties!
+        }
+        
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
+        return V2ApiUtil.dtoToSearchResults(results);
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.io.InputStream)
      */
     @Override
     public ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order,
-            String orderby, InputStream data) {
-        // TODO Auto-generated method stub
-        return null;
+            SortBy orderby, InputStream data) {
+        // TODO implement this!
+        throw new UnsupportedOperationException("Search Artifacts by Content not supported yet.");
     }
 
 }

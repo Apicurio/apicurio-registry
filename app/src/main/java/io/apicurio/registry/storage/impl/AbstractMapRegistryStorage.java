@@ -421,6 +421,16 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         this.deleteArtifactRulesInternal(groupId, artifactId);
         return new TreeSet<>(v2c.keySet());
     }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifacts(java.lang.String)
+     */
+    @Override
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        storage.keySet().stream().filter(key -> groupId.equals(key.getGroupId())).forEach(key -> {
+            this.deleteArtifact(key.getGroupId(), key.getArtifactId());
+        });
+    }
 
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String, java.lang.String)

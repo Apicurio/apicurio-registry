@@ -10,7 +10,7 @@ import javax.ws.rs.core.Response;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/ids")
+@Path("/api/ids")
 public interface IdsResource {
   /**
    * Gets the content for an artifact version in the registry using its globally unique

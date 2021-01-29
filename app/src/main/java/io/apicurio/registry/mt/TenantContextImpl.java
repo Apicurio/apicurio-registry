@@ -51,4 +51,9 @@ public class TenantContextImpl implements TenantContext {
         this.tenantId(DEFAULT_TENANT_ID);
     }
 
+    @Override
+    public boolean isLoaded() {
+        return !tenantId().equals(DEFAULT_TENANT_ID);
+    }
+
 }

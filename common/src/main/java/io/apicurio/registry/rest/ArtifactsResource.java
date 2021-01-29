@@ -29,12 +29,12 @@ import io.apicurio.registry.types.RuleType;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/artifacts")
+@Path("/api/artifacts")
 public interface ArtifactsResource {
   /**
    * Returns a list of IDs of all artifacts in the registry as a flat list.  Typically the
    * server is configured to limit the number of artifact IDs returned in the case where
-   * a large number of artifacts exist.  In this case the result of this call may be 
+   * a large number of artifacts exist.  In this case the result of this call may be
    * non deterministic.  The default limit is typically 1000 artifacts.
    */
   @GET

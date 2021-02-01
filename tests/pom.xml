@@ -23,7 +23,7 @@
         </test.app.name>
         <junit.version>5.7.0</junit.version>
         <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
-        <version.okhttp>4.9.0</version.okhttp>
+        <version.okhttp>4.9.1</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
         <scala.version>2.12.10</scala.version>
         <maven.dependency.version>3.1.1</maven.dependency.version>

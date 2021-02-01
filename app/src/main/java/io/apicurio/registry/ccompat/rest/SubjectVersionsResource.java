@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 import java.util.List;
 import javax.validation.constraints.NotNull;
@@ -43,7 +44,8 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
  */
-@Path("/ccompat/subjects/{subject}/versions")
+@Path("/api/ccompat/subjects/{subject}/versions")
+@RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SubjectVersionsResource {

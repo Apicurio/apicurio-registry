@@ -16,8 +16,9 @@
 
 package io.apicurio.registry.services.tenant;
 
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
-import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.oidc.OidcTenantConfig;
@@ -34,6 +35,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class provides the logic to configure the authentication layer with the tenant configuration
+ * for an incoming http request.
+ *
+ *
+ * @author Carles Arnal
+ * @author Fabian Martinez
+ *
+ */
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
@@ -44,21 +54,27 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
     RegistryStorage registryStorage;
 
     @Inject
+    TenantContext tenantContext;
+
+    @Inject
     @ConfigProperty(name = "quarkus.oidc.tls.verification")
     Optional<String> tlsVerification;
+
+    @Inject
+    TenantIdResolver tenantIdResolver;
 
     @Override
     public OidcTenantConfig resolve(RoutingContext context) {
 
-        final String tenantId = context.request().getHeader(Headers.TENANT_ID);
-
-        if (null == tenantId) {
+        if (!tenantIdResolver.resolveTenantId(context)) {
             log.debug("Tenant config is not loaded, fallback to default tenant");
             // resolve to default tenant configuration
             return null;
         }
 
-        log.debug("Resolving tenant {}", tenantId);
+        final String tenantId = tenantContext.tenantId();
+
+        log.debug("Resolving authz config for tenant {}", tenantId);
 
         final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
         final OidcTenantConfig config = new OidcTenantConfig();

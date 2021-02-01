@@ -16,35 +16,36 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.registry.rest.Headers;
-
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.ext.Provider;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@PreMatching
+@Priority(0)
 @Provider
 public class TenantRequestFilter implements ContainerRequestFilter {
 
-    @Inject
-    TenantContext tenantContext;
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    /**
-     * @see javax.ws.rs.container.ContainerRequestFilter#filter(javax.ws.rs.container.ContainerRequestContext)
-     */
+    @Inject
+    TenantIdResolver tenantIdResolver;
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        String tenantId = requestContext.getHeaderString(Headers.TENANT_ID);
-        if (tenantId != null) {
 
-            tenantContext.tenantId(tenantId);
-        } else {
-            tenantContext.clearTenantId();
-        }
+        tenantIdResolver.rewriteTenantRequest(requestContext);
+
     }
 
 }

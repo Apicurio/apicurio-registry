@@ -31,6 +31,10 @@ public class RegistryUtils {
                 .map(RegistryStorageType::valueOf)
                 .orElse(null);
 
+    public static final String TEST_PROFILE =
+            Optional.ofNullable(System.getProperty("groups"))
+                .orElse(null);
+
     private RegistryUtils() {
         //utils class
     }

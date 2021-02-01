@@ -20,11 +20,13 @@ package io.apicurio.registry.mt;
  * @author eric.wittmann@gmail.com
  */
 public interface TenantContext {
-    
+
     public String tenantId();
-    
+
     public void tenantId(String tenantId);
-    
+
     public void clearTenantId();
+
+    public boolean isLoaded();
 
 }

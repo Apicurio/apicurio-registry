@@ -7,7 +7,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, '[1-9].[1-9].x']
+    branches: [multitenant-sr-demo]
   pull_request:
     paths-ignore:
       - '.github/**'
@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [multitenant-sr-demo]
 
 jobs:
   integration-tests:
@@ -40,7 +40,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests -pl !tests
+        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -Pmultitenancy -DskipTests -pl !tests
       - name: Run Integration Tests - streams
         run: mvn verify -Pacceptance -Pstreams -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql
@@ -49,6 +49,8 @@ jobs:
         run: mvn verify -Pacceptance -Pinfinispan -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql
         run: mvn verify -Pacceptance -Pkafkasql -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - multitenancy
+        run: mvn verify -Pmultitenancy -Psql -pl tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh

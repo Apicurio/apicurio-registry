@@ -7,7 +7,7 @@ ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 
 CREATE TABLE globalrules (tenantId VARCHAR(128) NOT NULL, type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
-ALTER TABLE globalrules ADD PRIMARY KEY (type);
+ALTER TABLE globalrules ADD PRIMARY KEY (tenantId, type);
 
 CREATE TABLE artifacts (tenantId VARCHAR(128) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, latest BIGINT);
 ALTER TABLE artifacts ADD PRIMARY KEY (tenantId, artifactId);

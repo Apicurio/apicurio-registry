@@ -20,6 +20,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -37,8 +38,6 @@ import org.eclipse.microprofile.metrics.annotation.Timed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.function.Supplier;
@@ -56,14 +55,12 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT}, reusable = true)
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS, reusable = true)
 @Logged
+@RestMetricsResponseFilteredNameBinding
 public class IdsResourceImpl implements IdsResource, Headers {
 
     @Inject
     @Current
     RegistryStorage storage;
-
-    @Context
-    HttpServletRequest request;
 
     @Override
     public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {

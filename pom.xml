@@ -587,6 +587,11 @@
                 <groupId>com.github.dasniko</groupId>
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.dasniko</groupId>
+                <artifactId>testcontainers-keycloak</artifactId>
+                <version>${keycloak.testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
 

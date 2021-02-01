@@ -157,7 +157,7 @@
         <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.16</lombok.version>
+        <lombok.version>1.18.18</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <jdbi.version>3.18.0</jdbi.version>

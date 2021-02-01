@@ -810,13 +810,6 @@
         </plugins>
     </build>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <profiles>
         <profile>
             <id>infinispan</id>
@@ -865,6 +858,12 @@
         </profile>
         <profile>
             <id>release</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
             <build>
                 <plugins>
                     <plugin>
@@ -917,6 +916,17 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <!-- For deploying to github packages -->
+        <profile>
+            <id>github</id>                       
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/Apicurio/apicurio-registry</url>
+                </repository>
+            </distributionManagement>
         </profile>
         <!-- 
             conditional repo to be excluded in productization 

@@ -1,0 +1,21 @@
+name: Maven Snapshot Release Workflow
+on: workflow_dispatch
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 11
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: '11'
+          architecture: x64
+
+      - name: Set up settings.xml
+        run: echo "<settings><servers><server><id>github</id><username>${{ github.repository_owner }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > /home/runner/.m2/settings.xml
+    
+      - name: Maven Deploy
+        run: mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml

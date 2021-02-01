@@ -19,7 +19,6 @@ package io.apicurio.registry.rest.v2;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -81,11 +80,10 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(amd1.getGlobalId());
         Assertions.assertNotNull(amd1.getContentId());
-        Assertions.assertNotEquals(0, amd1.getContentId());
 
         Assertions.assertNotEquals(amd1.getGlobalId(), amd2.getGlobalId());
         Assertions.assertEquals(amd1.getContentId(), amd2.getContentId());
-        
+
         // Get artifact1 meta data and check the contentId
         given()
             .when()
@@ -124,7 +122,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", equalTo(1))
                 .body("versions[0].contentId", notNullValue())
-                .body("versions[0].contentId", not(equalTo(0)))
+                //in memory storage starts generating ids from 1 , sql storage from 0
+                //.body("versions[0].contentId", not(equalTo(0)))
                 .body("versions[0].contentId", equalTo(amd1.getContentId().intValue()));
 
         // Get artifact version meta-data, make sure contentId is returned

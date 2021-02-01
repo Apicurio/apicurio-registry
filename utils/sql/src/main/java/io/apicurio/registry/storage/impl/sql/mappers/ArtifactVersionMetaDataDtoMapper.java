@@ -48,6 +48,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
     public ArtifactVersionMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         ArtifactVersionMetaDataDto dto = new ArtifactVersionMetaDataDto();
         dto.setGlobalId(rs.getLong("globalId"));
+        dto.setContentId(rs.getLong("contentId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());

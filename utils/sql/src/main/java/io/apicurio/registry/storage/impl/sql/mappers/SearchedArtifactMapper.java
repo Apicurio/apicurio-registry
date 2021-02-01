@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -29,10 +29,10 @@ import java.sql.SQLException;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class SearchedArtifactMapper implements RowMapper<SearchedArtifact> {
-    
+public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
+
     public static final SearchedArtifactMapper instance = new SearchedArtifactMapper();
-    
+
     /**
      * Constructor.
      */
@@ -43,8 +43,8 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifact> {
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public SearchedArtifact map(ResultSet rs, StatementContext ctx) throws SQLException {
-        SearchedArtifact dto = new SearchedArtifact();
+    public SearchedArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
+        SearchedArtifactDto dto = new SearchedArtifactDto();
         dto.setId(rs.getString("artifactId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));
@@ -52,7 +52,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifact> {
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
-        //dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
+//        dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setType(ArtifactType.valueOf(rs.getString("type")));

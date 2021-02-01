@@ -32,7 +32,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     public CommonSqlStatements() {
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseInitialization()
      */
@@ -56,7 +56,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public List<String> databaseUpgrade(int fromVersion, int toVersion) {
         List<String> statements = new ArrayList<>();
         DdlParser parser = new DdlParser();
-        
+
         for (int version = fromVersion + 1; version <= toVersion; version++) {
             try (InputStream input = getClass().getResourceAsStream("upgrades/" + version + "/" + dbType() + ".ddl")) {
                 statements.addAll(parser.parse(input));
@@ -64,7 +64,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 throw new RuntimeException(e);
             }
         }
-        
+
         return statements;
     }
 
@@ -91,7 +91,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectGlobalRules() {
         return "SELECT r.type FROM globalrules r WHERE r.tenantId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalRuleByType()
      */
@@ -107,7 +107,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteGlobalRule() {
         return "DELETE FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGlobalRules()
      */
@@ -123,29 +123,29 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateGlobalRule() {
         return "UPDATE globalrules SET configuration = ? WHERE tenantId = ? AND type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifact()
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (tenantId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO artifacts (tenantId, groupId, artifactId, type, createdBy, createdOn) VALUES (?, ?, ?, ?, ?, ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatest()
      */
     @Override
     public String updateArtifactLatest() {
-        return "UPDATE artifacts SET latest = ? WHERE tenantId = ? AND artifactId = ?";
+        return "UPDATE artifacts SET latest = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactLatestGlobalId()
      */
     @Override
     public String updateArtifactLatestGlobalId() {
-        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?) WHERE tenantId = ? AND artifactId = ?";
+        return "UPDATE artifacts SET latest = (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?) WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
 
     /**
@@ -155,9 +155,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, tenantId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, tenantId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, (SELECT MAX(version) + 1 FROM versions WHERE tenantId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(version) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -167,44 +167,46 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionMetaDataByGlobalId() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId WHERE v.globalId = ?";
+        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId WHERE v.globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersions()
      */
     @Override
     public String selectArtifactVersions() {
-        return "SELECT version FROM versions WHERE tenantId = ? AND artifactId = ?";
+        return "SELECT version FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaData()
      */
     @Override
     public String selectArtifactVersionMetaData() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?";
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactMetaDataByContentHash()
      */
     @Override
-    public String selectArtifactMetaDataByContentHash() {
+    public String selectArtifactVersionMetaDataByContentHash() {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
-                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND v.artifactId = ? AND c.contentHash = ?";
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
     }
-    
+
     @Override
-    public String selectArtifactMetaDataByCanonicalHash() {
+    public String selectArtifactVersionMetaDataByCanonicalHash() {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
-                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContentByGlobalId()
      */
@@ -212,15 +214,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactVersionContentByGlobalId() {
         return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContent()
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?";
+        return "SELECT v.globalId, v.version, c.content FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContent()
      */
@@ -229,20 +233,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT v.globalId, v.version, c.content FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "JOIN content c ON v.contentId = c.contentId "
-                + "WHERE a.tenantId = ? AND a.artifactId = ?";
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactMetaData()
      */
     @Override
     public String selectLatestArtifactMetaData() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
-                + "WHERE a.tenantId = ? AND a.artifactId = ?";
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHash()
      */
@@ -250,45 +254,45 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentIdByHash() {
         return "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRules()
      */
     @Override
     public String selectArtifactRules() {
-        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.artifactId = ?";
+        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.groupId = ? AND r.artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactRule()
      */
     @Override
     public String insertArtifactRule() {
-        return "INSERT INTO rules (tenantId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO rules (tenantId, groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?, ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRuleByType()
      */
     @Override
     public String selectArtifactRuleByType() {
-        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.artifactId = ? AND r.type = ?";
+        return "SELECT r.* FROM rules r WHERE r.tenantId = ? AND r.groupId = ? AND r.artifactId = ? AND r.type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactRule()
      */
     @Override
     public String updateArtifactRule() {
-        return "UPDATE rules SET configuration = ? WHERE tenantId = ? AND artifactId = ? AND type = ?";
+        return "UPDATE rules SET configuration = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactRule()
      */
     @Override
     public String deleteArtifactRule() {
-        return "DELETE FROM rules WHERE tenantId = ? AND artifactId = ? AND type = ?";
+        return "DELETE FROM rules WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND type = ?";
     }
 
     /**
@@ -296,31 +300,28 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteArtifactRules() {
-        return "DELETE FROM rules WHERE tenantId = ? AND artifactId = ?";
+        return "DELETE FROM rules WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactMetaDataLatestVersion()
-     */
     @Override
-    public String updateArtifactMetaDataLatestVersion() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE tenantId = ? AND globalId = (SELECT latest FROM artifacts WHERE tenantId = ? AND artifactId = ?)";
+    public String deleteArtifactRulesByGroupId() {
+        return "DELETE FROM rules WHERE tenantId = ? AND groupId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionMetaData()
      */
     @Override
     public String updateArtifactVersionMetaData() {
-        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE tenantId = ? AND artifactId = ? AND version = ?";
+        return "UPDATE versions SET name = ?, description = ?, labels = ?, properties = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteLabels()
      */
     @Override
     public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND artifactId = ?)";
+        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
 
     /**
@@ -330,15 +331,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteLabelsByGlobalId() {
         return "DELETE FROM labels WHERE globalId = ?";
     }
-    
+
+    @Override
+    public String deleteLabelsByGroupId() {
+        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteProperties()
      */
     @Override
     public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND artifactId = ?)";
+        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deletePropertiesByGlobalId()
      */
@@ -346,23 +352,38 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deletePropertiesByGlobalId() {
         return "DELETE FROM properties WHERE globalId = ?";
     }
-    
+
+    @Override
+    public String deletePropertiesByGroupId() {
+        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersions()
      */
     @Override
     public String deleteVersions() {
-        return "DELETE FROM versions WHERE tenantId = ? AND artifactId = ?";
+        return "DELETE FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
-    
+
+    @Override
+    public String deleteVersionsByGroupId() {
+        return "DELETE FROM versions WHERE tenantId = ? AND groupId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifact()
      */
     @Override
     public String deleteArtifact() {
-        return "DELETE FROM artifacts WHERE tenantId = ? AND artifactId = ?";
+        return "DELETE FROM artifacts WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
-    
+
+    @Override
+    public String deleteArtifactsByGroupId() {
+        return "DELETE FROM artifacts WHERE tenantId = ? AND groupId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactIds()
      */
@@ -376,7 +397,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
                 + "WHERE v.tenantId = ? AND v.globalId = ?";
@@ -389,31 +410,31 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String updateArtifactVersionState() {
         return "UPDATE versions SET state = ? WHERE tenantId = ? AND globalId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersion()
      */
     @Override
     public String deleteVersion() {
-        return "DELETE FROM versions WHERE tenantId = ? AND artifactId = ? AND version = ?";
+        return "DELETE FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND version = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabels()
      */
     @Override
     public String deleteVersionLabels() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionProperties()
      */
     @Override
     public String deleteVersionProperties() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM properties p WHERE p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertLabel()
      */
@@ -421,7 +442,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertLabel() {
         return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertProperty()
      */
@@ -429,34 +450,36 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertProperty() {
         return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
      */
     @Override
     public String selectAllArtifactVersions() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
-                + "WHERE a.tenantId = ? AND a.artifactId = ? "
+                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? "
                 + "ORDER BY v.globalId ASC LIMIT ? OFFSET ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersionsCount()
      */
     @Override
     public String selectAllArtifactVersionsCount() {
-        return "SELECT COUNT(v.globalId) FROM versions v JOIN artifacts a ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId WHERE a.tenantId = ? AND a.artifactId = ?";
+        return "SELECT COUNT(v.globalId) FROM versions v "
+                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? ";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactCountById()
      */
     @Override
     public String selectArtifactCountById() {
-        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.tenantId = ? AND a.artifactId = ?";
+        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRuleCountByType()
      */
@@ -464,7 +487,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactRuleCountByType() {
         return "SELECT COUNT(r.type) FROM rules r WHERE r.tenantId = ? AND r.artifactId = ? AND r.type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalRuleCountByType()
      */
@@ -472,7 +495,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectGlobalRuleCountByType() {
         return "SELECT COUNT(r.type) FROM globalrules r WHERE r.tenantId = ? AND r.type = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentCountByHash()
      */
@@ -480,12 +503,24 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentCountByHash() {
         return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ?";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentById()
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content FROM content c WHERE c.contentId = ?";
+        return "SELECT c.content FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "WHERE v.tenantId = ? AND c.contentId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentByContentHash()
+     */
+    @Override
+    public String selectContentByContentHash() {
+        return "SELECT c.content FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "WHERE v.tenantId = ? AND c.contentHash = ?";
     }
 }

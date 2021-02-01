@@ -184,13 +184,13 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 return valueContainsSearch(search, artifactMetaData.getDescription());
             case everything:
                 return valueContainsSearch(search, artifactMetaData.getDescription()) ||
-                       valueIsSearch(search, artifactMetaData.getDescription()) ||
+                       valueIsSearch(search, artifactMetaData.getGroupId()) ||
                        valueContainsSearch(search, artifactMetaData.getLabels()) ||
                        valueContainsSearch(search, artifactMetaData.getName()) ||
                        valueContainsSearch(search, artifactMetaData.getId());// ||
 //                       valueContainsSearch(search, artifactMetaData.getProperties());
             case group:
-                return valueIsSearch(search, artifactMetaData.getDescription());
+                return valueIsSearch(search, artifactMetaData.getGroupId());
             case labels:
                 return valueContainsSearch(search, artifactMetaData.getLabels());
             case name:
@@ -278,6 +278,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
+        contents.put(MetaDataKeys.GROUP_ID, groupId);
 
         String creationTimeValue = String.valueOf(creationTime);
         contents.put(MetaDataKeys.CREATED_ON, creationTimeValue);

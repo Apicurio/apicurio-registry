@@ -126,26 +126,21 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
 
         @Override
         public Map<Long, Map<String, String>> compute(ArtifactKey artifactKey) {
-            System.out.println("====> Computing new value for key: " + artifactKey);
             Map<Long, Map<String, String>> rval = root.compute(artifactKey, (a, m) -> m != null ? m : new ConcurrentHashMap<>());
-            System.out.println("====> After compute() keys: " + root.keySet());
             return rval;
         }
 
         @Override
         public void createVersion(ArtifactKey artifactKey, long version, Map<String, String> contents) {
-            System.out.println("====> Creating a version for key: " + artifactKey);
             Map<String, String> previous = putIfAbsent(artifactKey, version, contents);
             while (previous != null) {
                 version++;
                 contents.put(MetaDataKeys.VERSION, Long.toString(version));
                 previous = putIfAbsent(artifactKey, version, contents);
             }
-            System.out.println("====> after createVersion, keys: " + root.keySet());
         }
 
         private Map<String, String> putIfAbsent(ArtifactKey artifactKey, long version, Map<String, String> contents) {
-            System.out.println("====> putIfAbsent: " + artifactKey);
             return get(artifactKey).putIfAbsent(version, contents);
         }
 
@@ -202,10 +197,8 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
 
         @Override
         public Map<Long, Map<String, String>> remove(ArtifactKey artifactKey) {
-            System.out.println("====> removing key from WITHIN StorageMap: " + artifactKey);
             Map<Long, Map<String, String>> map = root.remove(artifactKey);
             if (map == null) {
-                System.out.println("====> Key not found.  Keys: " + root.keySet());
                 throw new ArtifactNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId());
             }
             return map;

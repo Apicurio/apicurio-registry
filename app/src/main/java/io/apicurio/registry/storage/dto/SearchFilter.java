@@ -68,4 +68,12 @@ public class SearchFilter {
         this.type = type;
     }
 
+    /**
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "SearchFilter [type=" + type + ", value=" + value + "]";
+    }
+
 }

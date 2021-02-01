@@ -62,6 +62,7 @@ public class MetaDataKeys {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
 
         dto.setId(content.get(ARTIFACT_ID));
+        dto.setGroupId(content.get(GROUP_ID));
 
         String createdOn = content.get(CREATED_ON);
         String modifiedOn = content.get(MODIFIED_ON);

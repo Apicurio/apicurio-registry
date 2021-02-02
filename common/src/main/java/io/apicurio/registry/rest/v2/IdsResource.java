@@ -1,6 +1,5 @@
 package io.apicurio.registry.rest.v2;
 
-import java.lang.Boolean;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;

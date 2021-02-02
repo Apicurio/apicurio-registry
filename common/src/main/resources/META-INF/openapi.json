@@ -98,7 +98,7 @@
                         "in": "query"
                     },
                     {
-                        "name": "artifactgroup",
+                        "name": "group",
                         "description": "Filter by artifact group.",
                         "schema": {
                             "type": "string"
@@ -2091,7 +2091,8 @@
                     "version",
                     "type",
                     "globalId",
-                    "id"
+                    "id",
+                    "contentId"
                 ],
                 "type": "object",
                 "properties": {
@@ -2143,6 +2144,11 @@
                     "groupId": {
                         "$ref": "#/components/schemas/GroupId",
                         "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
                     }
                 },
                 "example": {
@@ -2552,7 +2558,8 @@
                     "type",
                     "globalId",
                     "state",
-                    "group"
+                    "group",
+                    "contentId"
                 ],
                 "type": "object",
                 "properties": {
@@ -2612,6 +2619,11 @@
                     "groupId": {
                         "$ref": "#/components/schemas/GroupId",
                         "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
                     }
                 },
                 "example": {

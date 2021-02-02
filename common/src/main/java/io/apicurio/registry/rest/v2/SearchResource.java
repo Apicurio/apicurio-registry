@@ -4,8 +4,6 @@ import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.String;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -30,8 +28,7 @@ public interface SearchResource {
       @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit,
       @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby,
       @QueryParam("labels") List<String> labels, @QueryParam("properties") List<String> properties,
-      @QueryParam("description") String description,
-      @QueryParam("artifactgroup") String artifactgroup);
+      @QueryParam("description") String description, @QueryParam("group") String group);
 
   /**
    * Returns a paginated list of all artifacts with at least one version that matches the

@@ -32,7 +32,8 @@ enum RuleType {
 
 message ArtifactKey {
     string artifactId = 1;
-    string groupId = 2;}
+    string groupId = 2;
+}
 
 message ArtifactValue {
     int32 artifactType = 1;

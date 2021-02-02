@@ -154,6 +154,8 @@ public class RegistryFacade {
         appEnv.put("DATASOURCE_USERNAME", registryAppEnv.get("REGISTRY_DATASOURCE_USERNAME"));
         appEnv.put("DATASOURCE_PASSWORD", registryAppEnv.get("REGISTRY_DATASOURCE_PASSWORD"));
 
+        appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
+
         Exec executor = new Exec();
         String path = getTenantManagerJarPath();
         LOGGER.info("Starting Tenant Manager app from: {}", path);

@@ -16,8 +16,8 @@
 package io.apicurio.multitenant.client;
 
 import java.util.List;
-import io.apicurio.multitenant.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 
 /**
  * @author Fabian Martinez

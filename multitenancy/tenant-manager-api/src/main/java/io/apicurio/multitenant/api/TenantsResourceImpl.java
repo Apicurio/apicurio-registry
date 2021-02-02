@@ -19,46 +19,37 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import io.apicurio.multitenant.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.datamodel.RegistryTenant;
-import io.apicurio.multitenant.persistence.RegistryTenantRepository;
-import io.apicurio.multitenant.persistence.TenantNotFoundException;
-import io.apicurio.multitenant.persistence.dto.RegistryTenantDto;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.storage.RegistryTenantStorage;
+import io.apicurio.multitenant.storage.TenantNotFoundException;
+import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 
 /**
  * @author Fabian Martinez
  */
-@Path("/v1/tenants")
-public class RegistryTenantResource {
+@ApplicationScoped
+public class TenantsResourceImpl implements TenantsResource {
 
     @Inject
-    RegistryTenantRepository tenantsRepository;
+    RegistryTenantStorage tenantsRepository;
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<RegistryTenant> listTenants() {
+    @Override
+    public List<RegistryTenant> getTenants() {
         return tenantsRepository.listAll()
                 .stream()
                 .map(RegistryTenantDto::toDatamodel)
                 .collect(Collectors.toList());
     }
 
-    @POST
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Override
     public Response createTenant(NewRegistryTenantRequest tenantRequest) {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
@@ -78,25 +69,20 @@ public class RegistryTenantResource {
 
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(null); //TODO extract user from auth details
-        tenant.setDeploymentFlavor(tenantRequest.getDeploymentFlavor());
-        tenant.setStatus("READY"); //TODO
 
         tenantsRepository.save(tenant);
 
         return Response.status(Status.CREATED).entity(tenant.toDatamodel()).build();
     }
 
-    @GET
-    @Path("{tenantId}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Override
     public RegistryTenant getTenant(@PathParam("tenantId") String tenantId) {
         return tenantsRepository.findByTenantId(tenantId)
                 .map(RegistryTenantDto::toDatamodel)
                 .orElseThrow(() -> TenantNotFoundException.create(tenantId));
     }
 
-    @DELETE
-    @Path("{tenantId}")
+    @Override
     public Response deleteTenant(@PathParam("tenantId") String tenantId) {
 
         tenantsRepository.delete(tenantId);

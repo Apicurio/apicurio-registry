@@ -13,28 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.persistence;
+package io.apicurio.multitenant.api.services;
+
+import javax.enterprise.inject.Produces;
+import javax.inject.Singleton;
+
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftClient;
 
 /**
  * @author Fabian Martinez
  */
-public class TenantNotFoundException extends RuntimeException {
+@Singleton
+public class OpenshiftClientProducer {
 
-    /**
-     *
-     */
-    private static final long serialVersionUID = 3830931257679125603L;
-
-    public TenantNotFoundException() {
-        super();
-    }
-
-    public TenantNotFoundException(String message) {
-        super(message);
-    }
-
-    public static TenantNotFoundException create(String tenantId) {
-        return new TenantNotFoundException("No tenant found for tenantId " + tenantId);
+    @Produces
+    public OpenShiftClient kubernetesClient() {
+        return new DefaultOpenShiftClient();
     }
 
 }

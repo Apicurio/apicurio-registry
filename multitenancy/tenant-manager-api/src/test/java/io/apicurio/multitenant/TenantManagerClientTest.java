@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
-import io.apicurio.multitenant.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -50,7 +50,6 @@ public class TenantManagerClientTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
-        req.setDeploymentFlavor("small");
         req.setClientId("aaaaa");
 
         RegistryTenant tenant = client.createTenant(req);

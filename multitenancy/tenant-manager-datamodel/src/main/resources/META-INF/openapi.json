@@ -1,0 +1,329 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Apicurio Registry - Tenant Management API",
+        "version": "1.0.0",
+        "description": "The REST API to the Apicurio Registry Tenant Manager.  The Tenant Manager is responsible for creating and deleting tenants from a multi-tenant deployment of Apicurio Registry.",
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+    },
+    "paths": {
+        "/tenants": {
+            "summary": "Path used to manage the list of tenants.",
+            "description": "The REST endpoint/path used to list and create zero or more `Tenant` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RegistryTenant"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns an array of `Tenant` entities."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getTenants",
+                "summary": "List All Tenants",
+                "description": "Gets a list of all `Tenant` entities."
+            },
+            "post": {
+                "requestBody": {
+                    "description": "A new `Tenant` to be created.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewRegistryTenantRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenant"
+                                }
+                            }
+                        },
+                        "description": "Successful response."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createTenant",
+                "summary": "Create a Tenant",
+                "description": "Creates a new instance of a `Tenant`."
+            }
+        },
+        "/tenants/{tenantId}": {
+            "summary": "Path used to manage a single Tenant.",
+            "description": "The REST endpoint/path used to get, update, and delete single instances of an `Tenant`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenant"
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns a single `Tenant`."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getTenant",
+                "summary": "Get a Tenant",
+                "description": "Gets the details of a single instance of a `Tenant`."
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Successful response."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteTenant",
+                "summary": "Delete a Tenant",
+                "description": "Deletes an existing `Tenant`."
+            },
+            "parameters": [
+                {
+                    "name": "tenantId",
+                    "description": "A unique identifier for a `Tenant`.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/registry": {
+            "summary": "Path used to access the information of the registry deployment being managed",
+            "description": "This path only contains a `GET` operation to obtain the details of the registry deployment that this tenant manager API is managing",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryDeploymentInfo"
+                                }
+                            }
+                        },
+                        "description": "Basic information about the Registry deployment being managed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getRegistryInfo",
+                "summary": "Returns the details of the registry deployment being managed"
+            }
+        },
+        "x-codegen-contextRoot": "/api/v1"
+    },
+    "components": {
+        "schemas": {
+            "Error": {
+                "title": "Root Type for Error",
+                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "description": "The short error message.",
+                        "type": "string"
+                    },
+                    "error_code": {
+                        "format": "int32",
+                        "description": "The server-side error code.",
+                        "type": "integer"
+                    },
+                    "detail": {
+                        "description": "Full details about the error.  This might contain a server stack trace, for example.",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "The error name - typically the classname of the exception thrown by the server.",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "error_code": 500,
+                    "message": "An error occurred somewhere."
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "NewRegistryTenantRequest": {
+                "title": "Root Type for NewTenant",
+                "description": "The information required when creating a new tenant.",
+                "required": [
+                    "organizationId",
+                    "clientId"
+                ],
+                "type": "object",
+                "properties": {
+                    "tenantId": {
+                        "description": "Unique identifier of a tenant within a registry deployment",
+                        "type": "string"
+                    },
+                    "organizationId": {
+                        "description": "ID of the organization the tenant belongs to",
+                        "type": "string"
+                    },
+                    "authServerUrl": {
+                        "description": "Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry",
+                        "type": "string"
+                    },
+                    "clientId": {
+                        "description": "ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "organizationId": "bank-of-foo",
+                    "deploymentFlavor": "SMALL"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "RegistryDeploymentInfo": {
+                "title": "Root Type for RegistryDeployment",
+                "description": "Basic information of the Registry deployment that the Tenant Manager API is managing",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry-abc",
+                    "url": "https://registry.apps.com"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "RegistryTenant": {
+                "title": "Root Type for Tenant",
+                "description": "Models a single tenant.",
+                "required": [
+                    "tenantId",
+                    "createdOn",
+                    "createdBy",
+                    "authServerUrl",
+                    "authClientId"
+                ],
+                "type": "object",
+                "properties": {
+                    "tenantId": {
+                        "description": "Unique identifier of a tenant within a registry deployment",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "Date when the tenant was created",
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "User that created the tenant",
+                        "type": "string"
+                    },
+                    "organizationId": {
+                        "description": ""
+                    },
+                    "authServerUrl": {
+                        "description": "Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry",
+                        "type": "string"
+                    },
+                    "authClientId": {
+                        "description": "ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "tenantId": "12345",
+                    "createdOn": "2021-03-17T21:35:00Z",
+                    "createdBy": "usernamefoo",
+                    "organizationId": "bank-of-foo"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can return a `400` error."
+            },
+            "NotFound": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "NotFoundExample": {
+                                "value": {
+                                    "error_code": 404,
+                                    "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can return a `404` error."
+            },
+            "ServerError": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "ErrorExample": {
+                                "value": {
+                                    "error_code": 500,
+                                    "message": "Lost connection to the database."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can fail with an unexpected server error."
+            }
+        }
+    }
+}

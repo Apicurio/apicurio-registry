@@ -13,16 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.persistence.hibernate;
-
-import javax.enterprise.context.ApplicationScoped;
-import io.apicurio.multitenant.persistence.dto.RegistryTenantDto;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
+package io.apicurio.multitenant.storage;
 
 /**
  * @author Fabian Martinez
  */
-@ApplicationScoped
-public class RegistryTenantPanacheRepository implements PanacheRepository<RegistryTenantDto> {
+public class TenantNotFoundException extends RuntimeException {
+
+    /**
+     *
+     */
+    private static final long serialVersionUID = 3830931257679125603L;
+
+    public TenantNotFoundException() {
+        super();
+    }
+
+    public TenantNotFoundException(String message) {
+        super(message);
+    }
+
+    public static TenantNotFoundException create(String tenantId) {
+        return new TenantNotFoundException("No tenant found for tenantId " + tenantId);
+    }
 
 }

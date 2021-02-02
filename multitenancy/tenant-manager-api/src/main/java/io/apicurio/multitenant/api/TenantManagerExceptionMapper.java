@@ -29,9 +29,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import io.apicurio.multitenant.persistence.TenantNotFoundException;
+import io.apicurio.multitenant.storage.TenantNotFoundException;
+import io.apicurio.multitenant.api.datamodel.Error;
 
 /**
+ * Custom Exception Mapper to map internal exceptions to http responses
  * @author Fabian Martinez
  */
 @ApplicationScoped
@@ -60,11 +62,10 @@ public class TenantManagerExceptionMapper implements ExceptionMapper<Throwable> 
             builder = Response.status(code);
         }
 
-
-        //TODO return nice json generic error
-        Map<String, Object> error = new HashMap<>();
-        error.put("message", exception.getMessage());
-        error.put("error_code", code);
+        Error error = new Error();
+        error.setMessage(exception.getMessage());
+        error.setErrorCode(code);
+        error.setName(exception.getClass().getName());
         return builder.type(MediaType.APPLICATION_JSON)
                       .entity(error)
                       .build();

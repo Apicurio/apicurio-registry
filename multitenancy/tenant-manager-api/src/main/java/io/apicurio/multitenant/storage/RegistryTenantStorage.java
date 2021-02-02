@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.persistence;
+package io.apicurio.multitenant.storage;
 
 import java.util.List;
 import java.util.Optional;
 
-import io.apicurio.multitenant.persistence.dto.RegistryTenantDto;
+import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 
 /**
  * @author Fabian Martinez
  */
-public interface RegistryTenantRepository {
+public interface RegistryTenantStorage {
 
     void save(RegistryTenantDto dto);
 

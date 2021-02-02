@@ -36,7 +36,7 @@ import org.keycloak.representations.idm.UserRepresentation;
 
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
-import io.apicurio.multitenant.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.client.RegistryRestClient;
@@ -133,7 +133,6 @@ public class MultitenantAuthIT extends RegistryBaseIT {
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
         tenantReq.setAuthServerUrl(tenantInfo.getRealmAuthServerUrl());
         tenantReq.setClientId(tenantInfo.getClientId());
-        tenantReq.setDeploymentFlavor("small");
         tenantReq.setOrganizationId("foo");
         tenantReq.setTenantId(tenantId);
 

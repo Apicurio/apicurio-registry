@@ -42,6 +42,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
+import io.apicurio.registry.storage.impl.ArtifactKey;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
@@ -127,7 +128,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     ProducerActions<String, Str.StorageValue> storageProducer;
 
     @Inject
-    ExtReadOnlyKeyValueStore<String, Str.Data> storageStore;
+    ExtReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageStore;
 
     @Inject
     ReadOnlyKeyValueStore<Long, Str.TupleValue> globalIdStore;
@@ -171,12 +172,12 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return GLOBAL_RULES_ID.equals(artifactId);
     }
 
-    private Str.ArtifactValue getLastArtifact(String artifactId) {
-        Str.Data data = storageStore.get(artifactId);
-        return getLastArtifact(artifactId, data);
+    private Str.ArtifactValue getLastArtifact(Str.ArtifactKey key) {
+        Str.Data data = storageStore.get(key);
+        return getLastArtifact(key, data);
     }
 
-    private Str.ArtifactValue getLastArtifact(String artifactId, Str.Data data) {
+    private Str.ArtifactValue getLastArtifact(Str.ArtifactKey key, Str.Data data) {
         if (data != null) {
             int count = data.getArtifactsCount();
             if (count > 0) {
@@ -187,7 +188,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     if (isValid(value)) {
                         ArtifactState state = ArtifactStateExt.getState(value.getMetadataMap());
                         if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
-                            ArtifactStateExt.logIfDeprecated(artifactId, state, index + 1);
+                            ArtifactStateExt.logIfDeprecated(key.getGroupId(), key.getArtifactId(), index + 1, state);
                             return value;
                         }
                     }
@@ -195,10 +196,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 }
             }
         }
-        throw new ArtifactNotFoundException(artifactId);
+        throw new ArtifactNotFoundException(key.getGroupId(), key.getArtifactId());
     }
 
-    static FilterPredicate<String, Str.Data> createFilterPredicate() {
+    static FilterPredicate<Str.ArtifactKey, Str.Data> createFilterPredicate() {
         return (filter, over, artifactId, data) -> (findMetadata(filter, over, data) != null);
     }
 

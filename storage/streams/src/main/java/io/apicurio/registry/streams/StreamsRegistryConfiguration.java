@@ -2,6 +2,7 @@ package io.apicurio.registry.streams;
 
 import com.google.common.collect.ImmutableMap;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
@@ -97,7 +98,7 @@ public class StreamsRegistryConfiguration {
     ) {
         return new AsyncProducer<>(
                 properties,
-                Serdes.serdeFrom(Str.ArtifactKey.class).serializer(),
+                new ArtifactKeySerde().serializer(),
                 ProtoSerde.parsedWith(Str.StorageValue.parser())
         );
     }
@@ -171,7 +172,7 @@ public class StreamsRegistryConfiguration {
             streams,
             storageLocalHost,
             properties.getStorageStoreName(),
-            Serdes.serdeFrom(Str.ArtifactKey.class), ProtoSerde.parsedWith(Str.Data.parser()),
+                new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.Data.parser()),
             new DefaultGrpcChannelProvider(),
             true,
             filterPredicate
@@ -371,7 +372,7 @@ public class StreamsRegistryConfiguration {
                 .newRegistry()
                 .register(
                     props.getStorageStoreName(),
-                    Serdes.serdeFrom(Str.ArtifactKey.class), ProtoSerde.parsedWith(Str.Data.parser())
+                    new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.Data.parser())
                 )
                 .register(
                     props.getGlobalIdStoreName(),

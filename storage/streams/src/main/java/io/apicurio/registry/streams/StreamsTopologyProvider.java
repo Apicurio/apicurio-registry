@@ -28,6 +28,7 @@ import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -91,7 +92,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         // Key is artifactId -- which is also used for KeyValue store key
         KStream<Str.ArtifactKey, Str.StorageValue> storageRequest = builder.stream(
             properties.getStorageTopic(),
-            Consumed.with(Serdes.serdeFrom(Str.ArtifactKey.class), ProtoSerde.parsedWith(Str.StorageValue.parser()))
+            Consumed.with(new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.StorageValue.parser()))
         );
 
         // Data structure holds all artifact information
@@ -101,7 +102,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             Stores
                 .keyValueStoreBuilder(
                     Stores.inMemoryKeyValueStore(storageStoreName),
-                    Serdes.serdeFrom(Str.ArtifactKey.class), ProtoSerde.parsedWith(Str.Data.parser())
+                    new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.Data.parser())
                 )
                 .withCachingEnabled()
                 .withLoggingEnabled(configuration);

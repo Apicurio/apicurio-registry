@@ -12,6 +12,7 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -84,8 +85,8 @@ public class DistributedReadOnlyKeyValueStore<K, V>
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, String over) {
-        return allServicesForStoreStream().flatMap(store -> store.filter(filter, over));
+    public Stream<KeyValue<K, V>> filter(Map<String, String> filtersMap) {
+        return allServicesForStoreStream().flatMap(store -> store.filter(filtersMap));
     }
 
     // ReadOnlyKeyValueStore<K, V> implementation

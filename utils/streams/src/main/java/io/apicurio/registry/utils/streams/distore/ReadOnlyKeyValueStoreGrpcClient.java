@@ -1,7 +1,6 @@
 package io.apicurio.registry.utils.streams.distore;
 
 import com.google.protobuf.ByteString;
-import io.apicurio.registry.utils.ProtoUtil;
 import io.apicurio.registry.utils.streams.distore.proto.FilterReq;
 import io.apicurio.registry.utils.streams.distore.proto.KeyFromKeyToReq;
 import io.apicurio.registry.utils.streams.distore.proto.KeyReq;
@@ -16,6 +15,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
+import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -56,13 +56,12 @@ public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValu
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, String over) {
+    public Stream<KeyValue<K, V>> filter(Map<String, String> filtersMap) {
         StreamObserverSpliterator<io.apicurio.registry.utils.streams.distore.proto.KeyValue> observer = new StreamObserverSpliterator<>();
         stub.filter(
                 FilterReq
                         .newBuilder()
-                        .setFilter(ProtoUtil.nullAsEmpty(filter))
-                .setOver(over)
+                        .putAllFilters(filtersMap)
                 .setStoreName(storeName)
                 .build(),
             observer

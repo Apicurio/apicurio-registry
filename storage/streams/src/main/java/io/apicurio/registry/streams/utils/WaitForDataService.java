@@ -81,7 +81,7 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
 
     @Override
     public Serde<Str.ArtifactKey> keySerde() {
-        return Serdes.serdeFrom(Str.ArtifactKey.class);
+        return new ArtifactKeySerde();
     }
 
     @Override

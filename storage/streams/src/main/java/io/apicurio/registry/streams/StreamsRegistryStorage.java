@@ -89,6 +89,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
+    /* Fake groupId for legacy artifacts*/
+    public static final String LEGACY_GROUP_ID = "";
+
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
     @Inject
@@ -496,7 +499,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         //FIXME implement!!!!
 
-         return null;
+         return new ArtifactSearchResultsDto();
     }
 
     @Override
@@ -576,7 +579,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue tuple = globalIdStore.get(id);
         if (tuple == null) {
-            throw new ArtifactNotFoundException(tuple.getKey().getGroupId(), tuple.getKey().getArtifactId());
+            //FIXME throw proper exception
+            throw new IllegalStateException();
         }
         return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
     }
@@ -755,7 +759,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public StoredArtifactDto getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue value = globalIdStore.get(id);
         if (value == null) {
-            throw new ArtifactNotFoundException(value.getKey().getGroupId(), value.getKey().getArtifactId());
+           //FIXME throw proper exception
+            throw new IllegalStateException();
         }
         return getArtifactVersion(value.getKey().getGroupId(), value.getKey().getArtifactId(), value.getVersion());
     }
@@ -842,6 +847,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private static Str.ArtifactKey buildKey(String groupId, String artifactId) {
+
+        if (null == groupId) {
+            groupId = LEGACY_GROUP_ID;
+        }
 
         return Str.ArtifactKey.newBuilder()
                 .setGroupId(groupId)

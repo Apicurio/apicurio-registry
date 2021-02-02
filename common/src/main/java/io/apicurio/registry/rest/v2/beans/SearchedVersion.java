@@ -28,7 +28,8 @@ import io.apicurio.registry.types.ArtifactType;
     "state",
     "globalId",
     "version",
-    "properties"
+    "properties",
+    "contentId"
 })
 public class SearchedVersion {
 
@@ -96,11 +97,6 @@ public class SearchedVersion {
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
     private Long globalId;
-
-    @JsonProperty("contentId")
-    @JsonPropertyDescription("")
-    private Long contentId;
-    
     /**
      * 
      * (Required)
@@ -116,6 +112,14 @@ public class SearchedVersion {
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
     private Map<String, String> properties;
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("contentId")
+    @JsonPropertyDescription("")
+    private Long contentId;
 
     /**
      * 
@@ -266,10 +270,6 @@ public class SearchedVersion {
     public Long getGlobalId() {
         return globalId;
     }
-    @JsonProperty("contentId")
-    public Long getContentId() {
-        return contentId;
-    }
 
     /**
      * 
@@ -279,10 +279,6 @@ public class SearchedVersion {
     @JsonProperty("globalId")
     public void setGlobalId(Long globalId) {
         this.globalId = globalId;
-    }
-    @JsonProperty("contentId")
-    public void setContentId(Long contentId) {
-        this.contentId = contentId;
     }
 
     /**
@@ -321,6 +317,26 @@ public class SearchedVersion {
     @JsonProperty("properties")
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("contentId")
+    public Long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("contentId")
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
     }
 
 }

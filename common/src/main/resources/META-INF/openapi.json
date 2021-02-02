@@ -327,16 +327,6 @@
                 "tags": [
                     "Artifacts"
                 ],
-                "parameters": [
-                    {
-                        "name": "canonical",
-                        "description": "Parameter that can be set to `true` to indicate that the server should look up the content using the\nSHA-256 hash of the **canonicalized** version of the content.  In this case the provided hash should\nalso be of the canonicalized content.  Canonicalization is unique to each artifact type, but typically \ninvolves removing any extra whitespace and formatting the content in a consistent manner.",
-                        "schema": {
-                            "type": "boolean"
-                        },
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -374,15 +364,14 @@
                 },
                 "operationId": "getContentByHash",
                 "summary": "Get artifact content by SHA-256 hash",
-                "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
                     "name": "contentHash",
                     "description": "SHA-256 content hash for a single artifact content.",
                     "schema": {
-                        "format": "int64",
-                        "type": "integer"
+                        "type": "string"
                     },
                     "in": "path",
                     "required": true
@@ -2152,6 +2141,7 @@
                     }
                 },
                 "example": {
+                    "groupId": "My-Group",
                     "id": "my-artifact-id",
                     "version": 1221432,
                     "type": "PROTOBUF",
@@ -2160,6 +2150,7 @@
                     "createdBy": "user1",
                     "createdOn": "2019-05-17T12:00:00Z",
                     "globalId": 183282932983,
+                    "contentId": 12347,
                     "labels": [
                         "label-1",
                         "label-2"
@@ -2331,7 +2322,8 @@
                     "type",
                     "state",
                     "globalId",
-                    "version"
+                    "version",
+                    "contentId"
                 ],
                 "type": "object",
                 "properties": {
@@ -2380,11 +2372,14 @@
                     "properties": {
                         "$ref": "#/components/schemas/Properties",
                         "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
                     }
                 },
                 "example": {
-                    "globalId": 3849759283547,
-                    "version": 17,
                     "name": "Artifact Version Name",
                     "description": "Description of the artifact version",
                     "labels": [
@@ -2393,8 +2388,14 @@
                     ],
                     "type": "AVRO",
                     "state": "ENABLED",
-                    "createdBy": "user1",
-                    "createdOn": "2019-03-22T12:51:19Z"
+                    "createdOn": "2018-02-10T09:30Z",
+                    "createdBy": "some text",
+                    "globalId": 37,
+                    "version": 85,
+                    "properties": {
+
+                    },
+                    "contentId": 62
                 }
             },
             "RuleViolationError": {
@@ -2531,7 +2532,7 @@
                     }
                 },
                 "example": {
-                    "group": "My-Group",
+                    "groupId": "My-Group",
                     "id": "Procurement-Invoice",
                     "name": "Artifact Name",
                     "description": "Description of the artifact",
@@ -2627,7 +2628,7 @@
                     }
                 },
                 "example": {
-                    "group": "My-Group",
+                    "groupId": "My-Group",
                     "id": "Procurement-Invoice",
                     "name": "Artifact Name",
                     "description": "Description of the artifact",
@@ -2638,6 +2639,7 @@
                     "modifiedBy": "user2",
                     "modifiedOn": "2019-07-19T15:09:00Z",
                     "globalId": 12984719247,
+                    "contentId": 82736,
                     "labels": [
                         "label-1",
                         "label-2"

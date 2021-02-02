@@ -56,8 +56,7 @@ service KeyValueStore {
 // KeyValueStore requests
 
 message FilterReq {
-    string filter = 1;
-    string over = 2;
+    map<string, string> filters = 1;
     string storeName = 3;
 }
 

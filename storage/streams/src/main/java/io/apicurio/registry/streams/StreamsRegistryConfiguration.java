@@ -197,7 +197,7 @@ public class StreamsRegistryConfiguration {
             Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()),
             new DefaultGrpcChannelProvider(),
             true,
-            (filter, over, id, tuple) -> true
+            (filter, id, tuple) -> true
         );
     }
 

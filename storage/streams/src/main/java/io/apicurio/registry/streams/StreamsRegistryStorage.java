@@ -21,7 +21,6 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.rest.v1.beans.SearchOver;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -179,10 +178,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     static FilterPredicate<Str.ArtifactKey, Str.Data> createFilterPredicate() {
-        return (filter, over, artifactId, data) -> (findMetadata(filter, over, data) != null);
+        return (filtersMap, key, data) -> (findMetadata(filtersMap, data) != null);
     }
 
-    private static Map<String, String> findMetadata(String filter, String over, Str.Data data) {
+    private static Map<String, String> findMetadata(Map<String, String> filtersMap, Str.Data data) {
         int count = data.getArtifactsCount();
         if (count > 0) {
             List<Str.ArtifactValue> list = data.getArtifactsList();
@@ -193,28 +192,12 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     Map<String, String> metadata = value.getMetadataMap();
                     ArtifactState state = ArtifactStateExt.getState(metadata);
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
-                        String artifactId = metadata.get(MetaDataKeys.ARTIFACT_ID);
-                        String name = metadata.get(MetaDataKeys.NAME);
-                        String desc = metadata.get(MetaDataKeys.DESCRIPTION);
-                        String labels = metadata.get(MetaDataKeys.LABELS);
-                        SearchOver so = SearchOver.fromValue(over);
-                        switch (so) {
-                            case name:
-                                if (stringMetadataContainsFilter(filter, name) || stringMetadataContainsFilter(filter, artifactId)) {
-                                    return metadata;
-                                }
-                            case description:
-                                if (stringMetadataContainsFilter(filter, desc)) {
-                                    return metadata;
-                                }
-                            case labels:
-                                if (stringMetadataContainsFilter(filter, labels)) {
-                                    return metadata;
-                                }
-                            default:
-                                if (metaDataContainsFilter(filter, metadata.values())) {
-                                    return metadata;
-                                }
+
+                        //FIXME fix metadata keys match
+                        for (String key: filtersMap.keySet()) {
+                            if (stringMetadataContainsFilter(filtersMap.get(key), metadata.get(key))) {
+                                return metadata;
+                            }
                         }
                     }
                 }
@@ -477,29 +460,29 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection,
                                                     int offset, int limit) {
 
-        /*
-        LongAdder itemsCount = new LongAdder();
-        List<SearchedArtifact> matchedArtifacts = storageStore.filter(filters, orderBy, orderDirection)
+        final Map<String, String> filtersMap = new HashMap<>();
+
+        filters.forEach(
+                searchFilter -> filtersMap.put(searchFilter.getType().name(), searchFilter.getValue())
+        );
+
+        final LongAdder itemsCount = new LongAdder();
+
+        final List<SearchedArtifactDto> matchedArtifacts = storageStore.filter(filtersMap)
             .peek((kv) -> itemsCount.increment())
-            .map(kv -> getArtifactMetaDataOrNull(kv.key))
+            .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
             .filter(Objects::nonNull)
-            .sorted((art1, art2) -> SearchUtil.compare(orderDirection, art1, art2))
+            .sorted((art1, art2) -> SearchUtil.compare(orderBy, orderDirection, art1, art2))
             .skip(offset)
             .limit(limit)
             .map(SearchUtil::buildSearchedArtifact)
-            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-        final ArtifactSearchResults artifactSearchResults = new ArtifactSearchResults();
+        final ArtifactSearchResultsDto artifactSearchResults = new ArtifactSearchResultsDto();
         artifactSearchResults.setArtifacts(matchedArtifacts);
         artifactSearchResults.setCount(itemsCount.intValue());
 
         return artifactSearchResults;
-        */
-
-        //FIXME implement!!!!
-
-         return new ArtifactSearchResultsDto();
     }
 
     @Override

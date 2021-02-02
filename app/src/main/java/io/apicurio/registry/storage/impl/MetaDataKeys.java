@@ -18,7 +18,6 @@
 package io.apicurio.registry.storage.impl;
 
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -35,7 +34,7 @@ import io.apicurio.registry.types.ArtifactType;
 public class MetaDataKeys {
     public static String GROUP_ID = "group_id";
     public static String ARTIFACT_ID = "artifact_id";
-    public static String CONTENT = "content"; // TODO discuss
+    public static String CONTENT_HASH = "content_hash";
     public static String GLOBAL_ID = "global_id";
     public static String VERSION = "version";
     public static String NAME = "name";
@@ -60,7 +59,7 @@ public class MetaDataKeys {
     @SuppressWarnings("unchecked")
     public static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
-
+        
         dto.setId(content.get(ARTIFACT_ID));
         dto.setGroupId(content.get(GROUP_ID));
 
@@ -118,18 +117,8 @@ public class MetaDataKeys {
                 // If the user-defined properties cannot be parsed from a Json string to a Map<String, String>, ignore them
             }
         }
+        
         return dto;
     }
 
-    public static byte[] getContent(Map<String, String> cMap) {
-        String encoded = cMap.get(CONTENT);
-        if (encoded == null) {
-            return null;
-        }
-        return Base64.getDecoder().decode(encoded);
-    }
-
-    public static void putContent(Map<String, String> cMap, byte[] content) {
-        cMap.put(CONTENT, Base64.getEncoder().encodeToString(content));
-    }
 }

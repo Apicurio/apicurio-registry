@@ -91,7 +91,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new FindBySchemaIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null));
     }
 
     @Test
@@ -104,14 +104,14 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
         Assertions.assertNotNull(restClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
         GlobalIdStrategy<Schema> idStrategy = new GetOrCreateIdStrategy<>();
-        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(amd.getGlobalId(), idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null));
 
         artifactId = generateArtifactId(); // new
-        long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
+        long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null);
 
         this.waitForGlobalId(id);
 
-        Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null));
     }
 
     @Test
@@ -120,11 +120,11 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         GlobalIdStrategy<Schema> idStrategy = new CachedSchemaIdStrategy<>();
-        long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
+        long id = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null);
 
         retry(() -> restClient.getArtifactMetaDataByGlobalId(id));
 
-        Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertEquals(id, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null));
     }
 
     @Test
@@ -142,8 +142,8 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         GlobalIdStrategy<Schema> idStrategy = new FindLatestIdStrategy<>();
         idStrategy.configure(config, false);
 
-        long id1 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
-        long id2 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema);
+        long id1 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null);
+        long id2 = idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null);
         Assertions.assertEquals(id1, id2); // should be less than 5seconds ...
         retry(() -> restClient.getArtifactMetaDataByGlobalId(id2));
 
@@ -152,7 +152,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
         Thread.sleep(pc + 1);
         retry(() -> Assertions.assertNotEquals(id2, restClient.getArtifactMetaData(artifactId).getGlobalId()));
 
-        Assertions.assertNotEquals(id2, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema));
+        Assertions.assertNotEquals(id2, idStrategy.findId(restClient, artifactId, ArtifactType.AVRO, schema, null));
     }
 
     @SuppressWarnings("unchecked")

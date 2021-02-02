@@ -81,14 +81,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Search each group to ensure the correct # of artifacts.
         given()
             .when()
-                .queryParam("artifactgroup", group1)
+                .queryParam("group", group1)
                 .get("/v2/search/artifacts")
             .then()
                 .statusCode(200)
                 .body("count", equalTo(5));
         given()
             .when()
-                .queryParam("artifactgroup", group2)
+                .queryParam("group", group2)
                 .get("/v2/search/artifacts")
             .then()
                 .statusCode(200)
@@ -133,6 +133,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200)
+                .body("groupId", equalTo(GROUP))
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/2"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
         
@@ -324,58 +325,131 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testDeleteArtifactsInGroup() throws Exception {
+        String group = "testDeleteArtifactsInGroup";
+        String artifactContent = resourceToString("openapi-empty.json");
+        
+        // Create several artifacts in the group.
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent);
+
+        // Make sure we can search for all three artifacts in the group.
+        given()
+            .when()
+                .queryParam("group", group)
+                .get("/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(3));
+        
+        // Delete the artifacts in the group
+        given()
+            .when()
+                .pathParam("groupId", group)
+                .delete("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(204);
+
+        // Verify that all 3 artifacts were deleted
+        TestUtils.retry(() -> {
+            given()
+            .when()
+                .queryParam("group", group)
+                .get("/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+        });
+    }
+
+    @Test
+    public void testListArtifactsInGroup() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testListArtifactsInGroup";
+
+        // Create several artifacts in a group.
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent);
+        
+        // List the artifacts in the group
+        given()
+            .when()
+                .pathParam("groupId", group)
+                .get("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(3));
+
+        // Add two more artifacts to the group.
+        createArtifact(group, "EmptyAPI-4", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(group, "EmptyAPI-5", ArtifactType.OPENAPI, artifactContent);
+
+        // List the artifacts in the group again
+        given()
+            .when()
+                .pathParam("groupId", group)
+                .get("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(5));
+
+        // Try to list artifacts for a group that doesn't exist
+        
+        // List the artifacts in the group
+        given()
+            .when()
+                .pathParam("groupId", group + "-doesnotexist")
+                .get("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+
+    }
+    
+    @Test
     public void testListArtifactVersions() throws Exception {
-        // TODO this will be easier to test with the v2 REST client
-//        String artifactContent = resourceToString("openapi-empty.json");
-//        
-//        // Create an artifact
-//        createArtifact(GROUP, "testListArtifactVersions/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
-//
-//        // Update the artifact 5 times
-//        for (int idx = 0; idx < 5; idx++) {
-//            given()
-//                .when()
-//                    .contentType(CT_JSON)
-//                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
-//                    .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
-//                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
-//                    .put("/v2/groups/{groupId}/artifacts/{artifactId}")
-//                .then()
-//                    .statusCode(200)
-//                    .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
-//                    .body("type", equalTo(ArtifactType.OPENAPI.name()));
-//        }
-//        
-//        // List the artifact versions
-//        given()
-//            .when()
-//                .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
-//                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
-//            .then()
-////                .log().all()
-//                .statusCode(200)
-//                // The following custom matcher makes sure that 6 versions are returned
-//                .body(new CustomMatcher("Unexpected list of artifact versions.") {
-//                    @Override
-//                    public boolean matches(Object item) {
-//                        String val = item.toString();
-//                        if (val == null) {
-//                            return false;
-//                        }
-//                        if (!val.startsWith("[") || !val.endsWith("]")) {
-//                            return false;
-//                        }
-//                        return val.split(",").length == 6;
-//                    }
-//                });
-//        
-//        // Try to list artifact versions for an artifact that doesn't exist.
-//        given()
-//            .when()
-//                .pathParam("artifactId", "testListArtifactVersions/MissingAPI")
-//                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
-//            .then()
-//                .statusCode(404);
+        String artifactContent = resourceToString("openapi-empty.json");
+        
+        // Create an artifact
+        createArtifact(GROUP, "testListArtifactVersions/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Update the artifact 5 times
+        for (int idx = 0; idx < 5; idx++) {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
+                    .body(artifactContent.replace("Empty API", "Empty API (Update " + idx + ")"))
+                    .put("/v2/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                    .statusCode(200)
+                    .body("id", equalTo("testListArtifactVersions/EmptyAPI"))
+                    .body("type", equalTo(ArtifactType.OPENAPI.name()));
+        }
+        
+        // List the artifact versions
+        given()
+            .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testListArtifactVersions/EmptyAPI")
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+//                .log().all()
+                .statusCode(200)
+                .body("count", equalTo(6));
+        
+        // Try to list artifact versions for an artifact that doesn't exist.
+        given()
+            .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testListArtifactVersions/MissingAPI")
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(404);
 
     }
     
@@ -626,6 +700,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                     .body("id", equalTo("testGetArtifactMetaDataByContent/EmptyAPI"))
+                    .body("groupId", equalTo(GROUP))
                     .body("type", equalTo(ArtifactType.OPENAPI.name()))
                 .extract().body().path("version");
             versions.add(version);

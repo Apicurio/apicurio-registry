@@ -37,6 +37,7 @@ public class ArtifactVersionMetaDataDto {
 
     private long version;
     private long globalId;
+    private long contentId;
     private String name;
     private String description;
     private String createdBy;
@@ -148,6 +149,20 @@ public class ArtifactVersionMetaDataDto {
      */
     public void setGlobalId(long globalId) {
         this.globalId = globalId;
+    }
+
+    /**
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
     }
 
     /**

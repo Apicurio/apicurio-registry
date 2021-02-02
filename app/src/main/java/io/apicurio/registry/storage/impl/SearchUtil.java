@@ -59,7 +59,6 @@ public class SearchUtil {
         searchedArtifact.setModifiedOn(new Date(artifactMetaData.getModifiedOn()));
         searchedArtifact.setType(artifactMetaData.getType());
         searchedArtifact.setLabels(artifactMetaData.getLabels());
-
         return searchedArtifact;
     }
 
@@ -69,12 +68,12 @@ public class SearchUtil {
         searchedVersion.setCreatedOn(new Date(artifactVersionMetaData.getCreatedOn()));
         searchedVersion.setDescription(artifactVersionMetaData.getDescription());
         searchedVersion.setGlobalId(artifactVersionMetaData.getGlobalId());
+        searchedVersion.setContentId(artifactVersionMetaData.getContentId());
         searchedVersion.setName(artifactVersionMetaData.getName());
         searchedVersion.setState(artifactVersionMetaData.getState());
         searchedVersion.setType(artifactVersionMetaData.getType());
         searchedVersion.setVersion((int) artifactVersionMetaData.getVersion());
         searchedVersion.setLabels(artifactVersionMetaData.getLabels());
-
         return searchedVersion;
     }
 

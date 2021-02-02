@@ -18,6 +18,19 @@ import io.apicurio.registry.types.ArtifactState;
 public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorage {
 
     @Override
+    protected Map<String, StoredContent> createContentMap() {
+        return new ConcurrentHashMap<>();
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createContentHashMap()
+     */
+    @Override
+    protected Map<Long, String> createContentHashMap() {
+        return new ConcurrentHashMap<>();
+    }
+    
+    @Override
     protected StorageMap createStorageMap() {
         return new SimpleStorageMap();
     }

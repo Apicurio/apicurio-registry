@@ -41,10 +41,16 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class InMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
-    private AtomicLong counter = new AtomicLong(1);
+    private AtomicLong globalIdCounter = new AtomicLong(1);
+    private AtomicLong contentIdCounter = new AtomicLong(1);
     
     @Override
     protected long nextGlobalId() {
-        return counter.getAndIncrement();
+        return globalIdCounter.getAndIncrement();
+    }
+    
+    @Override
+    protected long nextContentId() {
+        return contentIdCounter.getAndIncrement();
     }
 }

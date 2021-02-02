@@ -19,7 +19,6 @@ package io.apicurio.registry.storage.impl;
 
 import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -41,7 +40,10 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -87,6 +89,8 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage {
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractMapRegistryStorage.class);
+
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
     @Inject
@@ -97,6 +101,10 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
     protected StorageMap storage;
     protected Map<Long, TupleId> global;
+    // Map of contentHash -> StoredContent (SHA256 hash of content)
+    protected Map<String, StoredContent> content;
+    // Map of storage generated content id -> contentHash (to provide fast lookup of content by contentId)
+    protected Map<Long, String> contentHash;
     protected MultiMap<ArtifactKey, String, String> artifactRules;
     protected Map<String, String> globalRules;
 
@@ -106,6 +114,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     @PostConstruct
     public void init() {
         beforeInit();
+        content = createContentMap();
+        contentHash = createContentHashMap();
         storage = createStorageMap();
         global = createGlobalMap();
         globalRules = createGlobalRulesMap();
@@ -117,6 +127,12 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     protected abstract long nextGlobalId();
+
+    protected abstract long nextContentId();
+
+    protected abstract Map<String, StoredContent> createContentMap();
+
+    protected abstract Map<Long, String> createContentHashMap();
 
     protected abstract StorageMap createStorageMap();
 
@@ -233,9 +249,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    public static StoredArtifactDto toStoredArtifact(Map<String, String> content) {
+    public StoredArtifactDto toStoredArtifact(Map<String, String> content) {
+        String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
+        StoredContent storedContent = this.content.get(contentHash);
         return StoredArtifactDto.builder()
-                             .content(ContentHandle.create(MetaDataKeys.getContent(content)))
+                             .content(ContentHandle.create(storedContent.getContent()))
                              .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
                              .globalId(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
                              .build();
@@ -243,6 +261,40 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
     protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
         return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
+    }
+
+    private String sha256Hash(ContentHandle chandle) {
+        return DigestUtils.sha256Hex(chandle.bytes());
+    }
+
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        try {
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            return canonicalContent;
+        } catch (Exception e) {
+            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            return content;
+        }
+    }
+
+    protected StoredContent ensureStoredContent(ArtifactType artifactType, ContentHandle chandle) {
+        String contentHash = sha256Hash(chandle);
+        // Store the content inside the content store if not already there.
+        StoredContent storedContent = this.content.computeIfAbsent(contentHash, (key) -> {
+            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, chandle));
+            long contentId = nextContentId();
+            StoredContent content = new StoredContent();
+            content.setContentId(contentId);
+            content.setContentHash(contentHash);
+            content.setContent(chandle.bytes());
+            content.setCanonicalHash(canonicalHash);
+            return content;
+        });
+        // Create a mapping from contentId to contentHash if not already present.
+        this.contentHash.computeIfAbsent(storedContent.getContentId(), (key) -> contentHash);
+        return storedContent;
     }
 
     protected ArtifactMetaDataDto createOrUpdateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle contentHandle, boolean create, long globalId) {
@@ -272,13 +324,17 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         long prevVersion = version - 1;
+        
+        StoredContent storedContent = ensureStoredContent(artifactType, content);
 
         Map<String, String> contents = new ConcurrentHashMap<>();
-        MetaDataKeys.putContent(contents, content.bytes());
+        contents.put(MetaDataKeys.CONTENT_HASH, storedContent.getContentHash());
         contents.put(MetaDataKeys.VERSION, Long.toString(version));
         contents.put(MetaDataKeys.GLOBAL_ID, String.valueOf(globalId));
         contents.put(MetaDataKeys.ARTIFACT_ID, artifactId);
-        contents.put(MetaDataKeys.GROUP_ID, groupId);
+        if (groupId != null) {
+            contents.put(MetaDataKeys.GROUP_ID, groupId);
+        }
 
         String creationTimeValue = String.valueOf(creationTime);
         contents.put(MetaDataKeys.CREATED_ON, creationTimeValue);
@@ -321,6 +377,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         global.put(globalId, new TupleId(groupId, artifactId, version));
 
         final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(contents);
+        artifactMetaDataDto.setContentId(storedContent.getContentId());
 
         //Set the createdOn based on the first version metadata.
         if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
@@ -540,6 +597,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(groupId, artifactId, versions.last());
             artifactMetaDataDto.setModifiedOn(artifactVersionMetaDataDto.getCreatedOn());
         }
+        
+        String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
+        long contentId = this.content.get(contentHash).getContentId();
+        artifactMetaDataDto.setContentId(contentId);
+
 
         return artifactMetaDataDto;
     }
@@ -551,30 +613,25 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactMetaDataDto metaData = getArtifactMetaData(groupId, artifactId);
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
-        ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
 
-        byte[] contentToCompare;
+        String contentHash = sha256Hash(content);
         if (canonical) {
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
-            contentToCompare = canonicalContent.bytes();
-        } else {
-            contentToCompare = content.bytes();
+            contentHash = sha256Hash(canonicalizeContent(metaData.getType(), content));
         }
 
         Map<Long, Map<String, String>> map = getVersion2ContentMap(groupId, artifactId);
         for (Map<String, String> cMap : map.values()) {
-            ContentHandle candidateContent = ContentHandle.create(MetaDataKeys.getContent(cMap));
-            byte[] candidateBytes;
+            String candidateHash = cMap.get(MetaDataKeys.CONTENT_HASH);
             if (canonical) {
-                ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
-                candidateBytes = canonicalCandidateContent.bytes();
-            } else {
-                candidateBytes = candidateContent.bytes();
+                candidateHash = this.content.get(candidateHash).getCanonicalHash();
             }
-            if (Arrays.equals(contentToCompare, candidateBytes)) {
+
+            if (StringUtils.equals(contentHash, candidateHash)) {
                 ArtifactStateExt.logIfDeprecated(groupId, artifactId, cMap.get(MetaDataKeys.VERSION), ArtifactStateExt.getState(cMap));
-                return MetaDataKeys.toArtifactVersionMetaData(cMap);
+                ArtifactVersionMetaDataDto vmdDto = MetaDataKeys.toArtifactVersionMetaData(cMap);
+                long contentId = this.content.get(cMap.get(MetaDataKeys.CONTENT_HASH)).getContentId();
+                vmdDto.setContentId(contentId);
+                return vmdDto;
             }
         }
         throw new ArtifactNotFoundException(groupId, artifactId);
@@ -586,7 +643,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(id);
-        return MetaDataKeys.toArtifactMetaData(content);
+        ArtifactMetaDataDto amdDto = MetaDataKeys.toArtifactMetaData(content);
+        String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
+        long contentId = this.content.get(contentHash).getContentId();
+        amdDto.setContentId(contentId);
+        return amdDto;
     }
 
     /**
@@ -734,7 +795,14 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 .sorted(Long::compareTo)
                 .skip(offset)
                 .limit(limit)
-                .map(version -> MetaDataKeys.toArtifactVersionMetaData(v2c.get(version)))
+                .map(version -> {
+                    Map<String, String> versionContentMap = v2c.get(version);
+                    ArtifactVersionMetaDataDto vmdDto = MetaDataKeys.toArtifactVersionMetaData(versionContentMap);
+                    String contentHash = versionContentMap.get(MetaDataKeys.CONTENT_HASH);
+                    long contentId = this.content.get(contentHash).getContentId();
+                    vmdDto.setContentId(contentId);
+                    return vmdDto;
+                })
                 .map(SearchUtil::buildSearchedVersion)
                 .collect(Collectors.toList());
 
@@ -776,7 +844,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(groupId, artifactId, version, null);
-        return MetaDataKeys.toArtifactVersionMetaData(content);
+        ArtifactVersionMetaDataDto vmdDto = MetaDataKeys.toArtifactVersionMetaData(content);
+        String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
+        long contentId = this.content.get(contentHash).getContentId();
+        vmdDto.setContentId(contentId);
+        return vmdDto;
     }
 
     @Override

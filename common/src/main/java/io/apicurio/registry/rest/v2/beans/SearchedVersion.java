@@ -96,6 +96,11 @@ public class SearchedVersion {
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
     private Long globalId;
+
+    @JsonProperty("contentId")
+    @JsonPropertyDescription("")
+    private Long contentId;
+    
     /**
      * 
      * (Required)
@@ -261,6 +266,10 @@ public class SearchedVersion {
     public Long getGlobalId() {
         return globalId;
     }
+    @JsonProperty("contentId")
+    public Long getContentId() {
+        return contentId;
+    }
 
     /**
      * 
@@ -270,6 +279,10 @@ public class SearchedVersion {
     @JsonProperty("globalId")
     public void setGlobalId(Long globalId) {
         this.globalId = globalId;
+    }
+    @JsonProperty("contentId")
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
     }
 
     /**

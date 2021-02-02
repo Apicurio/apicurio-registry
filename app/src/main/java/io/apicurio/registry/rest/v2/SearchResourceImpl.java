@@ -76,7 +76,7 @@ public class SearchResourceImpl implements SearchResource {
     @Override
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
             SortBy orderby, List<String> labels, List<String> properties, String description,
-            String artifactgroup) {
+            String group) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
@@ -97,8 +97,8 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(description)) {
             filters.add(new SearchFilter(SearchFilterType.description, description));
         }
-        if (!StringUtil.isEmpty(artifactgroup)) {
-            filters.add(new SearchFilter(SearchFilterType.group, artifactgroup));
+        if (!StringUtil.isEmpty(group)) {
+            filters.add(new SearchFilter(SearchFilterType.group, group));
         }
         
         if (labels != null && !labels.isEmpty()) {

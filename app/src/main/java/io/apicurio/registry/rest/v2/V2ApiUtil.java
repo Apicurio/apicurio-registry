@@ -74,6 +74,7 @@ public final class V2ApiUtil {
         }
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
@@ -104,6 +105,7 @@ public final class V2ApiUtil {
         }
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
@@ -130,6 +132,7 @@ public final class V2ApiUtil {
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
@@ -180,6 +183,7 @@ public final class V2ApiUtil {
         metaData.setType(artifactType);
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
+        metaData.setContentId(dto.getContentId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
@@ -257,11 +261,12 @@ public final class V2ApiUtil {
             sv.setCreatedOn(version.getCreatedOn());
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
+            sv.setContentId(version.getContentId());
             sv.setLabels(version.getLabels());
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setType(version.getType());
-            // TODO set the properties
+            sv.setProperties(version.getProperties());
             results.getVersions().add(sv);
         });
         return results;

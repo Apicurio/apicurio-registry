@@ -39,6 +39,7 @@ public class SearchedVersionDto {
     private Map<String, String> properties = new HashMap<>();
     private ArtifactState state;
     private long globalId;
+    private long contentId;
     private long version;
     
     /**
@@ -157,6 +158,20 @@ public class SearchedVersionDto {
      */
     public void setGlobalId(long globalId) {
         this.globalId = globalId;
+    }
+
+    /**
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
     }
 
     /**

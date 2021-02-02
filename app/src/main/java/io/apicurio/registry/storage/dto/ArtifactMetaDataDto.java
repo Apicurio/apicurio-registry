@@ -45,7 +45,8 @@ public class ArtifactMetaDataDto {
     private String modifiedBy;
     private long modifiedOn;
     private long version;
-    private long globalId; // TODO which? globalIdStore ID points to a specific artifact version
+    private long globalId;
+    private long contentId;
     private ArtifactType type;
     private ArtifactState state;
     private List<String> labels;
@@ -211,6 +212,20 @@ public class ArtifactMetaDataDto {
         this.globalId = globalId;
     }
 
+    /**
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
+    }
+    
     /**
      * @return the labels
      */

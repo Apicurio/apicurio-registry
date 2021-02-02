@@ -30,6 +30,10 @@ enum RuleType {
     COMPATIBILITY = 2;
 }
 
+message ArtifactKey {
+    string artifactId = 1;
+    string groupId = 2;}
+
 message ArtifactValue {
     int32 artifactType = 1;
     fixed64 id = 2;
@@ -65,7 +69,7 @@ enum ValueType {
 
 message StorageValue {
     ActionType type = 1;
-    string artifactId = 2;
+    ArtifactKey key = 2;
     fixed64 version = 3;
     ValueType vt = 4;
     oneof value {
@@ -79,12 +83,12 @@ message StorageValue {
 
 message Data {
     fixed64 lastProcessedOffset = 1;
-    string artifactId = 2;
+    ArtifactKey key = 2;
     repeated ArtifactValue artifacts = 3;
     repeated RuleValue rules = 4;
 }
 
 message TupleValue {
-    string artifactId = 1;
+    ArtifactKey key = 1;
     fixed64 version = 2;
 }

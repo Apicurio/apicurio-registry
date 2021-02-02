@@ -13,33 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.datamodel;
+package io.apicurio.multitenant.storage.dto;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 
 /**
  * @author Fabian Martinez
  */
-@RegisterForReflection
-@JsonInclude(Include.NON_NULL)
-public class RegistryTenant {
+@Entity
+@Table(name = "tenants")
+public class RegistryTenantDto {
 
+    @Id
+    @Column(name = "tenantId")
     private String tenantId;
+
     private Date createdOn;
     private String createdBy;
-    private String organizationId;
-    private String deploymentFlavor;
-    private String status;
 
+    @Column(name = "organizationId")
+    private String organizationId;
+
+    @Column(name = "authServerUrl")
     private String authServerUrl;
+
+    @Column(name = "authClientId")
     private String authClientId;
 
-    public RegistryTenant() {
+
+    public RegistryTenantDto() {
         // empty
     }
 
@@ -75,20 +84,12 @@ public class RegistryTenant {
         this.organizationId = organizationId;
     }
 
-    public String getDeploymentFlavor() {
-        return deploymentFlavor;
+    public String getAuthServerUrl() {
+        return authServerUrl;
     }
 
-    public void setDeploymentFlavor(String deploymentFlavor) {
-        this.deploymentFlavor = deploymentFlavor;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
+    public void setAuthServerUrl(String authServerUrl) {
+        this.authServerUrl = authServerUrl;
     }
 
     public String getAuthClientId() {
@@ -99,12 +100,15 @@ public class RegistryTenant {
         this.authClientId = authClientId;
     }
 
-    public String getAuthServerUrl() {
-        return authServerUrl;
-    }
-
-    public void setAuthServerUrl(String authServerUrl) {
-        this.authServerUrl = authServerUrl;
+    public RegistryTenant toDatamodel() {
+        final RegistryTenant t = new RegistryTenant();
+        t.setTenantId(this.tenantId);
+        t.setCreatedOn(this.createdOn);
+        t.setCreatedBy(this.createdBy);
+        t.setOrganizationId(this.organizationId);
+        t.setAuthClientId(this.authClientId);
+        t.setAuthServerUrl(this.authServerUrl);
+        return t;
     }
 
 }

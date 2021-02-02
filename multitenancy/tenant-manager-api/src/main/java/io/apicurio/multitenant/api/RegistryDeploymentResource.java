@@ -15,21 +15,24 @@
  */
 package io.apicurio.multitenant.api;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.jackson.ObjectMapperCustomizer;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
-import javax.inject.Singleton;
+import io.apicurio.multitenant.api.datamodel.RegistryDeploymentInfo;
+import io.apicurio.multitenant.api.services.RegistryDeploymentInfoService;
 
 /**
  * @author Fabian Martinez
  */
-@Singleton
-public class TenantManagerCustomObjectMapper implements ObjectMapperCustomizer {
+@ApplicationScoped
+public class RegistryDeploymentResource implements RegistryResource {
+
+    @Inject
+    RegistryDeploymentInfoService deploymentInfoService;
 
     @Override
-    public void customize(ObjectMapper objectMapper) {
-        // To suppress serializing properties with null values
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    public RegistryDeploymentInfo getRegistryInfo() {
+        return deploymentInfoService.getRegistryDeploymentInfo();
     }
+
 }

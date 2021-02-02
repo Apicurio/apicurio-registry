@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.api;
+package io.apicurio.multitenant.storage.hibernate;
 
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
+import javax.enterprise.context.ApplicationScoped;
+
+import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
+import io.quarkus.hibernate.orm.panache.PanacheRepository;
 
 /**
  * @author Fabian Martinez
  */
-@ApplicationPath("/api")
-public class RegistryTenantManager extends Application {
+@ApplicationScoped
+public class RegistryTenantPanacheRepository implements PanacheRepository<RegistryTenantDto> {
 
 }

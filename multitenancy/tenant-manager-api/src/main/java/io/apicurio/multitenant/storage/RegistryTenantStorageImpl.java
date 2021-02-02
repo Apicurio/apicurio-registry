@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.persistence;
+package io.apicurio.multitenant.storage;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,14 +21,15 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
-import io.apicurio.multitenant.persistence.dto.RegistryTenantDto;
-import io.apicurio.multitenant.persistence.hibernate.RegistryTenantPanacheRepository;
+
+import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
+import io.apicurio.multitenant.storage.hibernate.RegistryTenantPanacheRepository;
 
 /**
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class RegistryTenantRepositoryImpl implements RegistryTenantRepository {
+public class RegistryTenantStorageImpl implements RegistryTenantStorage {
 
     @Inject
     RegistryTenantPanacheRepository repo;

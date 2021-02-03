@@ -28,12 +28,20 @@ public class ArtifactNotFoundException extends NotFoundException {
 
     /**
      * Constructor.
+     * @param groupId
+     * @param artifactId
      */
     public ArtifactNotFoundException(String groupId, String artifactId) {
         this.groupId = groupId;
         this.artifactId = artifactId;
     }
 
+    /**
+     * Constructor.
+     * @param groupId
+     * @param artifactId
+     * @param cause
+     */
     public ArtifactNotFoundException(String groupId, String artifactId, Throwable cause) {
         super("Artifact with ID '" + artifactId + "' in group '" + groupId + "'  not found.", cause);
         this.groupId = groupId;

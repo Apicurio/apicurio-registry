@@ -55,6 +55,7 @@ import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -497,6 +498,30 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     public StoredArtifactDto getArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         return toStoredArtifact(getLatestContentMap(groupId, artifactId, ArtifactStateExt.ACTIVE_STATES));
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
+     */
+    @Override
+    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+        String contentHash = this.contentHash.get(contentId);
+        if (contentHash == null) {
+            throw new ContentNotFoundException(String.valueOf(contentId));
+        }
+        return getArtifactByContentHash(contentHash);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
+     */
+    @Override
+    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+        StoredContent storedContent = this.content.get(contentHash);
+        if (storedContent == null) {
+            throw new ContentNotFoundException(contentHash);
+        }
+        return ContentHandle.create(storedContent.getContent());
     }
 
     /**

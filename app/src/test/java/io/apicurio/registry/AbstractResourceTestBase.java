@@ -18,11 +18,13 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
+import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,6 +76,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void prepareServiceInitializers() {
         RestAssured.baseURI = registryApiBaseUrl;
+        RestAssured.registerParser(ArtifactMediaTypes.BINARY.toString(), Parser.JSON);
 
         // run all initializers::beforeEach
         initializers.stream().forEach(ServiceInitializer::beforeEach);

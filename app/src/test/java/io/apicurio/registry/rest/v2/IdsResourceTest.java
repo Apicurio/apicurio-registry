@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +47,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // content will need to be greater than 0.
         this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL, resourceToString("sample.wsdl"));
 
-        String artifactId1 = "Empty-1";
-        String artifactId2 = "Empty-2";
+        String artifactId1 = "testIdsAfterCreate/Empty-1";
+        String artifactId2 = "testIdsAfterCreate/Empty-2";
         
         // Create artifact 1
         ArtifactMetaData amd1 = given()
@@ -140,6 +141,132 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
         
         
+    }
+
+    @Test
+    public void testGetByGlobalId() throws Exception {
+        String title = "Test By Global ID API";
+        String artifactContent = resourceToString("openapi-empty.json").replaceAll("Empty API", title);
+
+        String artifactId = "testGetByGlobalId/Empty";
+
+        // Create the artifact.
+        ArtifactMetaData amd = given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", GROUP)
+                    .header("X-Registry-ArtifactId", artifactId)
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .body(artifactContent)
+                .post("/v2/groups/{groupId}/artifacts")
+                .then()
+                    .statusCode(200)
+                .extract()
+                    .as(ArtifactMetaData.class);
+        waitForArtifact(GROUP, artifactId);
+        
+        long globalId = amd.getGlobalId();
+        
+        // Get by globalId
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("globalId", globalId)
+                .get("/v2/ids/globalIds/{globalId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo(title));
+        
+    }
+
+    @Test
+    public void testGetByContentId() throws Exception {
+        String title = "Test By Content ID API";
+        String artifactContent = resourceToString("openapi-empty.json").replaceAll("Empty API", title);
+
+        String artifactId = "testGetByContentId/Empty";
+
+        // Create the artifact.
+        ArtifactMetaData amd = given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", GROUP)
+                    .header("X-Registry-ArtifactId", artifactId)
+                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                    .body(artifactContent)
+                .post("/v2/groups/{groupId}/artifacts")
+                .then()
+                    .statusCode(200)
+                .extract()
+                    .as(ArtifactMetaData.class);
+        waitForArtifact(GROUP, artifactId);
+        
+        long contentId = amd.getContentId();
+        
+        // Get by contentId
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("contentId", contentId)
+                .get("/v2/ids/contentIds/{contentId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo(title));
+
+        // Get by contentId (not found)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("contentId", Integer.MAX_VALUE)
+                .get("/v2/ids/contentIds/{contentId}")
+            .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testGetByContentHash() throws Exception {
+        String title = "Test By Content Hash API";
+        String artifactContent = resourceToString("openapi-empty.json").replaceAll("Empty API", title);
+        
+        String contentHash = DigestUtils.sha256Hex(artifactContent);
+
+        String artifactId = "testGetByContentHash/Empty";
+
+        // Create the artifact.
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .body(artifactContent)
+            .post("/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200);
+        waitForArtifact(GROUP, artifactId);
+        
+        // Get by contentHash
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("contentHash", contentHash)
+                .get("/v2/ids/contentHashes/{contentHash}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo(title));
+
+        
+        // Get by contentHash (not found)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("contentHash", "CONTENT-HASH-NOT-VALID")
+                .get("/v2/ids/contentHashes/{contentHash}")
+            .then()
+                .statusCode(404);
     }
 
 }

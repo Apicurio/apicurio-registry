@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -99,6 +100,16 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifact(groupId, artifactId);
+    }
+    
+    @Override
+    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+        return storage.getArtifactByContentHash(contentHash);
+    }
+    
+    @Override
+    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+        return storage.getArtifactByContentId(contentId);
     }
 
     @Override

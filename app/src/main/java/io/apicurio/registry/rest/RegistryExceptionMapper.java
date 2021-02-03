@@ -53,6 +53,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
@@ -92,6 +93,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);

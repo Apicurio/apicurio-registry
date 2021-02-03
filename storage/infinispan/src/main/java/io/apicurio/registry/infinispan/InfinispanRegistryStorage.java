@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.ArtifactKey;
 import io.apicurio.registry.storage.impl.MultiMap;
 import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.StoredContent;
 import io.apicurio.registry.storage.impl.TupleId;
 import io.apicurio.registry.utils.ConcurrentUtil;
 
@@ -68,6 +69,8 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
     static String KEY = "_ck";
     static String COUNTER_CACHE = "counter-cache";
+    static String CONTENT_CACHE = "content-cache";
+    static String CONTENT_HASH_CACHE = "content-hash-cache";
     static String STORAGE_CACHE = "storage-cache";
     static String ARTIFACT_RULES_CACHE = "artifact-rules-cache";
     static String GLOBAL_CACHE = "global-cache";
@@ -93,6 +96,35 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     @Override
     protected long nextGlobalId() {
         return counter.compute(KEY, (SerializableBiFunction<? super String, ? super Long, ? extends Long>) (k, v) -> (v == null ? 1 : v + 1));
+    }
+    
+    @Override
+    protected long nextContentId() {
+        return nextGlobalId();
+    }
+    
+    @Override
+    protected Map<Long, String> createContentHashMap() {
+        manager.defineConfiguration(
+            CONTENT_HASH_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(CONTENT_HASH_CACHE, true);
+    }
+    
+    @Override
+    protected Map<String, StoredContent> createContentMap() {
+        manager.defineConfiguration(
+            CONTENT_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(CONTENT_CACHE, true);
     }
 
     @Override

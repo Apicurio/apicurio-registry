@@ -81,7 +81,8 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "500")
     long deleteDelay;
     
-    private AtomicLong counter = new AtomicLong(1);
+    private AtomicLong globalCounter = new AtomicLong(1);
+    private AtomicLong contentCounter = new AtomicLong(1);
     private Map<String, Long> artifactCreation = new HashMap<>();
     private Map<Long, Long> globalCreation = new HashMap<>();
     
@@ -89,7 +90,12 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     
     @Override
     protected long nextGlobalId() {
-        return counter.getAndIncrement();
+        return globalCounter.getAndIncrement();
+    }
+    
+    @Override
+    protected long nextContentId() {
+        return contentCounter.getAndIncrement();
     }
 
     /**
@@ -109,7 +115,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             throw new RegistryStorageException("Invalid state", e);
         }
     }
-
+    
    // private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
 
     /**
@@ -209,6 +215,21 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
                 super.updateArtifactMetaData(groupId, artifactId, metaData);
+            });
+        });
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
+     */
+    @Override
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) {
+        // Check if the artifact exists.
+        this.getArtifactMetaData(groupId, artifactId);
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactState(groupId, artifactId, state);
             });
         });
     }
@@ -410,6 +431,19 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
         return rval;
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifacts(java.lang.String)
+     */
+    @Override
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifacts(groupId);
+            });
+        });
     }
     
     /**

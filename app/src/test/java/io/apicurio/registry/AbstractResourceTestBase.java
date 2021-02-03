@@ -65,7 +65,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryV1ApiUrl = registryApiBaseUrl + "/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/v2";
         // TODO Switch this to v2 when possible.
-        client = RegistryRestClientFactory.create(registryV1ApiUrl);
+        client = createRestClient();
+    }
+
+    protected RegistryRestClient createRestClient() {
+        return RegistryRestClientFactory.create(registryV1ApiUrl);
     }
 
     @BeforeEach

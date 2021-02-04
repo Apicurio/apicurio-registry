@@ -164,7 +164,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3);
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getContext());
+        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
+        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
     }
 }

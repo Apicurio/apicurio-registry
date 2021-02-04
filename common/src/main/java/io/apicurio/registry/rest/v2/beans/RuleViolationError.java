@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>
  * All error responses, whether `4xx` or `5xx` will include one of these as the response
  * body.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -24,40 +24,40 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "detail",
     "name"
 })
-public class RuleViolationError {
+public class RuleViolationError extends Error {
 
     /**
      * List of rule violation causes.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("causes")
     @JsonPropertyDescription("List of rule violation causes.")
     private List<RuleViolationCause> causes = new ArrayList<RuleViolationCause>();
     /**
      * The short error message.
-     * 
+     *
      */
     @JsonProperty("message")
     @JsonPropertyDescription("The short error message.")
     private String message;
     /**
      * The server-side error code.
-     * 
+     *
      */
     @JsonProperty("error_code")
     @JsonPropertyDescription("The server-side error code.")
     private Integer errorCode;
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
     @JsonProperty("detail")
     @JsonPropertyDescription("Full details about the error.  This might contain a server stack trace, for example.")
     private String detail;
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("The error name - typically the classname of the exception thrown by the server.")
@@ -66,7 +66,7 @@ public class RuleViolationError {
     /**
      * List of rule violation causes.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("causes")
     public List<RuleViolationCause> getCauses() {
@@ -76,7 +76,7 @@ public class RuleViolationError {
     /**
      * List of rule violation causes.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("causes")
     public void setCauses(List<RuleViolationCause> causes) {
@@ -85,8 +85,9 @@ public class RuleViolationError {
 
     /**
      * The short error message.
-     * 
+     *
      */
+    @Override
     @JsonProperty("message")
     public String getMessage() {
         return message;
@@ -94,8 +95,9 @@ public class RuleViolationError {
 
     /**
      * The short error message.
-     * 
+     *
      */
+    @Override
     @JsonProperty("message")
     public void setMessage(String message) {
         this.message = message;
@@ -103,8 +105,9 @@ public class RuleViolationError {
 
     /**
      * The server-side error code.
-     * 
+     *
      */
+    @Override
     @JsonProperty("error_code")
     public Integer getErrorCode() {
         return errorCode;
@@ -112,8 +115,9 @@ public class RuleViolationError {
 
     /**
      * The server-side error code.
-     * 
+     *
      */
+    @Override
     @JsonProperty("error_code")
     public void setErrorCode(Integer errorCode) {
         this.errorCode = errorCode;
@@ -121,8 +125,9 @@ public class RuleViolationError {
 
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
+    @Override
     @JsonProperty("detail")
     public String getDetail() {
         return detail;
@@ -130,8 +135,9 @@ public class RuleViolationError {
 
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
+    @Override
     @JsonProperty("detail")
     public void setDetail(String detail) {
         this.detail = detail;
@@ -139,8 +145,9 @@ public class RuleViolationError {
 
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
+    @Override
     @JsonProperty("name")
     public String getName() {
         return name;
@@ -148,8 +155,9 @@ public class RuleViolationError {
 
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
+    @Override
     @JsonProperty("name")
     public void setName(String name) {
         this.name = name;

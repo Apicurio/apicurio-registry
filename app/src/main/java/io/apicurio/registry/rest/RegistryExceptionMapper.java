@@ -25,8 +25,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -46,9 +48,11 @@ import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.rest.v1.beans.Error;
-import io.apicurio.registry.rest.v1.beans.RuleViolationError;
+import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -64,8 +68,8 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 
 /**
- * TODO use v2 beans instead of v1 beans
- * 
+ * TODO use v1 beans when appropriate (when handling REST API v1 calls)
+ *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  * @author Jakub Senko <jsenko@redhat.com>
@@ -133,7 +137,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
-            // If the error is not something we should ignore, then we report it to the liveness object 
+            // If the error is not something we should ignore, then we report it to the liveness object
             // and log it.  Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
@@ -157,7 +161,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     /**
      * Returns true if the endpoint that caused the error is a "ccompat" endpoint.  If so
-     * we need to simplify the error we return.  The apicurio error structure has at least 
+     * we need to simplify the error we return.  The apicurio error structure has at least
      * one additional property.
      */
     private boolean isCompatEndpoint() {
@@ -173,7 +177,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
             error = new RuleViolationError();
-            ((RuleViolationError) error).setCauses(rve.getCauses());
+            ((RuleViolationError) error).setCauses(toRestCauses(rve.getCauses()));
         } else {
             error = new Error();
         }
@@ -184,7 +188,23 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         error.setName(t.getClass().getSimpleName());
         return error;
     }
-    
+
+    /**
+     * Converts rule violations to appropriate error beans.
+     * @param violations
+     */
+    private static List<RuleViolationCause> toRestCauses(Set<RuleViolation> violations) {
+        if (violations == null) {
+            return null;
+        }
+        return violations.stream().map(violation -> {
+            RuleViolationCause cause = new RuleViolationCause();
+            cause.setContext(violation.getContext());
+            cause.setDescription(violation.getDescription());
+            return cause;
+        }).collect(Collectors.toList());
+    }
+
     /**
      * Gets the full stack trace for the given exception and returns it as a
      * string.

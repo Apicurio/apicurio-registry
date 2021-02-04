@@ -16,29 +16,29 @@
 
 package io.apicurio.registry.compatibility;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
-import io.apicurio.registry.JsonSchemas;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v1.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
-
-import java.util.Set;
 
 /**
  * @author Jakub Senko <jsenko@redhat.com>
@@ -65,12 +65,12 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
             RuleApplicationType.CREATE);
     }
-    
+
     @Test
     public void testAvroCompatibility() {
         String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
         String v2Schema = "{\"type\": \"string\"}";
-        
+
         Assertions.assertThrows(RuleViolationException.class, () -> {
             RuleContext context = new RuleContext("TestGroup", "Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
             compatibility.execute(context);
@@ -87,9 +87,9 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             compatibility.execute(context);
         });
 
-        Set<RuleViolationCause> ruleViolationCauses = ruleViolationException.getCauses();
-        RuleViolationCause ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age");
-        RuleViolationCause zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
+        Set<RuleViolation> ruleViolationCauses = ruleViolationException.getCauses();
+        RuleViolation ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age");
+        RuleViolation zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
 
         Assertions.assertEquals("/properties/age", ageViolationCause.getContext());
         Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageViolationCause.getDescription());
@@ -98,10 +98,10 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     }
 
-    private RuleViolationCause findCauseByContext(Set<RuleViolationCause> ruleViolationCauses, String context) {
-        for(RuleViolationCause cause : ruleViolationCauses) {
-            if(cause.getContext().equals(context)) {
-                return cause;
+    private RuleViolation findCauseByContext(Set<RuleViolation> ruleViolations, String context) {
+        for(RuleViolation violation : ruleViolations) {
+            if(violation.getContext().equals(context)) {
+                return violation;
             }
         }
         return null;

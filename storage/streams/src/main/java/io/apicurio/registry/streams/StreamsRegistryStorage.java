@@ -201,6 +201,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     ArtifactState state = ArtifactStateExt.getState(metadata);
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
 
+                        //FIXME extract this
                         if (filtersMap.isEmpty()) {
                             return metadata;
                         }
@@ -216,8 +217,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                                 return metadata;
                             }
                         }
-
-
                     }
                 }
                 index--;

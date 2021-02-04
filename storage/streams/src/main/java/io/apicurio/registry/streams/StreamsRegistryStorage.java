@@ -24,12 +24,12 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.impl.SearchUtil;
@@ -89,7 +89,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
     /* Fake groupId for legacy artifacts*/
-    public static final String LEGACY_GROUP_ID = "";
+    public static final String LEGACY_GROUP_ID = "null";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
@@ -136,7 +136,15 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     private static StoredArtifactDto addContent(Str.ArtifactValue value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
         MetaDataKeys.putContent(contents, value.getContent().toByteArray());
-        return AbstractMapRegistryStorage.toStoredArtifact(contents);
+        return toStoredArtifact(contents);
+    }
+
+    public static StoredArtifactDto toStoredArtifact(Map<String, String> content) {
+        return StoredArtifactDto.builder()
+                .content(ContentHandle.create(MetaDataKeys.getContent(content)))
+                .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
+                .globalId(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
+                .build();
     }
 
     private static boolean isValid(Str.ArtifactValue value) {
@@ -193,12 +201,23 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     ArtifactState state = ArtifactStateExt.getState(metadata);
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
 
-                        //FIXME fix metadata keys match
-                        for (String key: filtersMap.keySet()) {
-                            if (stringMetadataContainsFilter(filtersMap.get(key), metadata.get(key))) {
+                        if (filtersMap.isEmpty()) {
+                            return metadata;
+                        }
+
+                        if (null != filtersMap.get("everything")) {
+                                if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
+                                    return metadata;
+                                }
+                        }
+
+                        for (String key : filtersMap.keySet()) {
+                            if (stringMetadataContainsFilter(filtersMap.get(key), metadata.get(MetaDataKeys.SEARCH_KEY_MAPPING.get(key)))) {
                                 return metadata;
                             }
                         }
+
+
                     }
                 }
                 index--;
@@ -393,6 +412,16 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
+    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+        return null;
+    }
+
+    @Override
+    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+        return null;
+    }
+
+    @Override
     public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
 
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
@@ -562,8 +591,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue tuple = globalIdStore.get(id);
         if (tuple == null) {
-            //FIXME throw proper exception
-            throw new IllegalStateException();
+            throw new ArtifactNotFoundException("GlobalId: " + id);
         }
         return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
     }
@@ -742,8 +770,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public StoredArtifactDto getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue value = globalIdStore.get(id);
         if (value == null) {
-           //FIXME throw proper exception
-            throw new IllegalStateException();
+            throw new ArtifactNotFoundException("GlobalId: " + id);
         }
         return getArtifactVersion(value.getKey().getGroupId(), value.getKey().getArtifactId(), value.getVersion());
     }

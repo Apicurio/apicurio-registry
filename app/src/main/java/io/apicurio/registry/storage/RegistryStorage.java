@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -77,7 +78,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) 
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
             throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
@@ -464,5 +465,33 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+
+
+    /**
+     * Returns the log configuration persisted in the storage for the given logger
+     * @param logger
+     * @throws RegistryStorageException
+     */
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException;
+
+    /**
+     * Persists the given log configuration
+     * @param logConfiguration
+     * @throws RegistryStorageException
+     */
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException;
+
+    /**
+     * Removes the persisted log configuration for the given logger
+     * @param logger
+     * @throws RegistryStorageException
+     */
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException;
+
+    /**
+     * Returns the list of log configuration persisted in the storage
+     * @throws RegistryStorageException
+     */
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException;
 
 }

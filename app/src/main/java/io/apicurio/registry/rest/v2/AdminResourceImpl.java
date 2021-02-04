@@ -41,11 +41,13 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
+import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -70,6 +72,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     RulesProperties rulesProperties;
+
+    @Inject
+    LogConfigurationService logConfigService;
 
     /**
      * @see io.apicurio.registry.rest.v2.RulesResource#listGlobalRules()
@@ -164,41 +169,40 @@ public class AdminResourceImpl implements AdminResource {
             }
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
      */
     @Override
     public NamedLogConfiguration getLogConfiguration(String logger) {
-        // TODO Auto-generated method stub
-        return null;
+        return logConfigService.getLogConfiguration(logger);
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
      */
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
-        // TODO Auto-generated method stub
-        return null;
+        return logConfigService.listLogConfigurations();
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
      */
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
-        // TODO Auto-generated method stub
-        return null;
+        return logConfigService.removeLogLevelConfiguration(logger);
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
      */
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        // TODO Auto-generated method stub
-        return null;
+        if (data.getLevel() == null) {
+            throw new MissingRequiredParameterException("logLevel");
+        }
+        return logConfigService.setLogLevel(logger, data.getLevel());
     }
 
 }

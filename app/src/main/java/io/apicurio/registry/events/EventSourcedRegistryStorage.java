@@ -25,6 +25,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -34,6 +35,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -270,6 +272,26 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         storage.deleteGlobalRule(rule);
+    }
+
+    @Override
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        return storage.getLogConfiguration(logger);
+    }
+
+    @Override
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
+        storage.setLogConfiguration(logConfiguration);
+    }
+
+    @Override
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        storage.removeLogConfiguration(logger);
+    }
+
+    @Override
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
+        return storage.listLogConfigurations();
     }
 
 }

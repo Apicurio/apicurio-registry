@@ -19,24 +19,45 @@ package io.apicurio.registry.rest.v2;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import io.vertx.core.json.JsonObject;
 
 /**
  * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
 @QuarkusTest
 public class AdminResourceTest extends AbstractResourceTestBase {
+
+    private static final String TEST_LOGGER_NAME = "org.acme.test";
+
+    @BeforeEach
+    public void setUp() {
+        Logger logger = Logger.getLogger(TEST_LOGGER_NAME);
+        logger.setLevel(Level.INFO);
+    }
 
     @Test
     public void testGlobalRulesEndpoint() {
@@ -295,6 +316,116 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("type", equalTo("COMPATIBILITY"))
                     .body("config", equalTo("NONE"));
         });
+    }
+
+    @Test
+    void testLoggerSetsLevel() {
+        for (LogLevel level : LogLevel.values()) {
+            LogConfiguration lc = new LogConfiguration();
+            lc.setLevel(level);
+            given()
+                .when()
+                    .body(lc)
+                    .contentType(ContentType.JSON)
+                    .pathParam("logger", TEST_LOGGER_NAME)
+                    .put("/v2/admin/loggers/{logger}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("level", is(level.value()));
+            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+        }
+    }
+
+    @Test
+    void testInvalidLevel() {
+        JsonObject lc = new JsonObject().put("level", "FOO");
+        given()
+            .when()
+                .body(lc)
+                .contentType(ContentType.JSON)
+                .pathParam("logger", TEST_LOGGER_NAME)
+                .put("/v2/admin/loggers/{logger}")
+            .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void testCRUD() throws Exception {
+        Consumer<LogLevel> setLog = (level) -> {
+            LogConfiguration lc = new LogConfiguration();
+            lc.setLevel(level);
+            given()
+                .when()
+                    .body(lc)
+                    .contentType(ContentType.JSON)
+                    .pathParam("logger", TEST_LOGGER_NAME)
+                    .put("/v2/admin/loggers/{logger}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("level", is(level.value()));
+            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+        };
+
+        Consumer<LogLevel> verifyLevel = (level) -> {
+            given()
+                .when()
+                    .pathParam("logger", TEST_LOGGER_NAME)
+                    .get("/v2/admin/loggers/{logger}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("level", is(level.value()));
+
+            Response res = given()
+                .when()
+                    .get("/v2/admin/loggers")
+                .thenReturn();
+            NamedLogConfiguration[] configs = res.as(NamedLogConfiguration[].class);
+            assertTrue(configs.length == 1);
+            assertTrue(configs[0].getName().equals(TEST_LOGGER_NAME));
+            assertTrue(configs[0].getLevel().equals(level));
+
+            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+        };
+
+        final LogLevel firstLevel = LogLevel.DEBUG;
+        setLog.accept(firstLevel);
+        TestUtils.retry(() -> verifyLevel.accept(firstLevel));
+
+        final LogLevel secondLevel = LogLevel.FINEST;
+        setLog.accept(secondLevel);
+        TestUtils.retry(() -> verifyLevel.accept(secondLevel));
+
+        given()
+            .when()
+                .pathParam("logger", TEST_LOGGER_NAME)
+                .delete("/v2/admin/loggers/{logger}")
+            .then()
+                .statusCode(200);
+
+        TestUtils.retry(() -> {
+            Response res = given()
+                    .when()
+                        .get("/v2/admin/loggers")
+                    .thenReturn();
+                assertEquals(200, res.statusCode());
+                NamedLogConfiguration[] configs = res.as(NamedLogConfiguration[].class);
+                assertTrue(configs.length == 0);
+        }, "Clear log config", 50);
+
+        Response res = given()
+            .when()
+                .pathParam("logger", TEST_LOGGER_NAME)
+                .get("/v2/admin/loggers/{logger}")
+            .thenReturn();
+
+        assertEquals(200, res.statusCode());
+        NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
+
+        assertEquals(cfg.getLevel().value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+
     }
 
 }

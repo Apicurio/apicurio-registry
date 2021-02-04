@@ -22,7 +22,7 @@ package io.apicurio.registry.storage;
 public class ArtifactNotFoundException extends NotFoundException {
 
     private static final long serialVersionUID = -3614783501078800654L;
-    
+
     private String groupId;
     private String artifactId;
 
@@ -45,6 +45,10 @@ public class ArtifactNotFoundException extends NotFoundException {
     public ArtifactNotFoundException(String groupId, String artifactId, Throwable cause) {
         super("Artifact with ID '" + artifactId + "' in group '" + groupId + "'  not found.", cause);
         this.groupId = groupId;
+        this.artifactId = artifactId;
+    }
+
+    public ArtifactNotFoundException(String artifactId) {
         this.artifactId = artifactId;
     }
 

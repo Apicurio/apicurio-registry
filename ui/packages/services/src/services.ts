@@ -22,14 +22,6 @@ import {Service} from "./baseService";
 import {DownloaderService} from "./downloader";
 import {AuthService} from "./auth";
 
-interface AllServices {
-    artifacts: ArtifactsService;
-    config: ConfigService;
-    globals: GlobalsService;
-    logger: LoggerService;
-    auth: AuthService;
-}
-
 /**
  * Class that provides access to all of the services in the application.
  */

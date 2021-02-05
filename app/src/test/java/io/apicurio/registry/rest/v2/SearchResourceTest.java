@@ -63,7 +63,9 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .get("/v2/search/artifacts")
             .then()
                 .statusCode(200)
-                .body("count", equalTo(5));
+                .body("count", equalTo(5))
+                .body("artifacts[0].groupId", equalTo(group))
+                ;
     }
 
     @Test

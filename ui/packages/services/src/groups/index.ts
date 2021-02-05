@@ -15,22 +15,4 @@
  * limitations under the License.
  */
 
-
-export class ArtifactMetaData {
-
-    public groupId: string|null;
-    public id: string;
-    public name: string|null;
-    public description: string|null;
-    public labels: string[]|null;
-    public type: string;
-    public version: number;
-    public createdBy: string;
-    public createdOn: Date;
-    public modifiedBy: string;
-    public modifiedOn: Date;
-    public globalId: number;
-    public contentId: number|null;
-    public state: string;
-
-}
+export * from "./groups.service";

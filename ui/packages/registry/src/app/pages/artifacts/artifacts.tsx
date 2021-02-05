@@ -85,7 +85,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                             <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
                             <React.Fragment>
-                                <ArtifactList artifacts={this.artifacts()}/>
+                                <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
                             </React.Fragment>
                     }
                 </PageSection>
@@ -153,7 +153,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private doUploadArtifact = (): void => {
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
-            Services.getArtifactsService().createArtifact(this.state.uploadFormData).then(metaData => {
+            Services.getGroupsService().createArtifact(this.state.uploadFormData).then(metaData => {
                 const artifactLocation: string = `/artifacts/${ encodeURIComponent(metaData.id) }`;
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
@@ -199,7 +199,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     // @ts-ignore
     private search(): Promise {
-        return Services.getArtifactsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
+        return Services.getGroupsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
                 this.onArtifactsLoaded(results);
             }).catch(error => {
                 this.handleServerError(error, "Error searching for artifacts.");
@@ -251,5 +251,9 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             isInvalidContentModalOpen: true
         });
     }
+
+    private onGroupClick = (groupId: string): void => {
+        alert("TBD: filter by Group: " + groupId);
+    };
 
 }

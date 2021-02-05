@@ -49,6 +49,7 @@ public class SearchUtil {
 
     public static SearchedArtifactDto buildSearchedArtifact(ArtifactMetaDataDto artifactMetaData) {
         final SearchedArtifactDto searchedArtifact = new SearchedArtifactDto();
+        searchedArtifact.setGroupId(artifactMetaData.getGroupId());
         searchedArtifact.setId(artifactMetaData.getId());
         searchedArtifact.setName(artifactMetaData.getName());
         searchedArtifact.setState(artifactMetaData.getState());

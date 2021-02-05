@@ -18,31 +18,31 @@
 import {Rule} from "@apicurio/registry-models";
 import {BaseService} from "../baseService";
 
-
 /**
- * The globals service.  Used to get global/settings information from the back-end.
+ * The Admin service.  Used to get global/settings information from the back-end, like global
+ * rules and logging settings.
  */
-export class GlobalsService extends BaseService {
+export class AdminService extends BaseService {
 
     public getRules(): Promise<Rule[]> {
-        this.logger.info("[GlobalsService] Getting the global list of rules.");
-        const endpoint: string = this.endpoint("/rules");
+        this.logger.info("[AdminService] Getting the global list of rules.");
+        const endpoint: string = this.endpoint("/v2/admin/rules");
         return this.httpGet<string[]>(endpoint).then( ruleTypes => {
             return Promise.all(ruleTypes.map(rt => this.getRule(rt)));
         });
     }
 
     public getRule(type: string): Promise<Rule> {
-        const endpoint: string = this.endpoint("/rules/:rule", {
+        const endpoint: string = this.endpoint("/v2/admin/rules/:rule", {
             rule: type
         });
         return this.httpGet<Rule>(endpoint);
     }
 
     public createRule(type: string, config: string): Promise<Rule> {
-        this.logger.info("[GlobalsService] Creating global rule:", type);
+        this.logger.info("[AdminService] Creating global rule:", type);
 
-        const endpoint: string = this.endpoint("/rules");
+        const endpoint: string = this.endpoint("/v2/admin/rules");
         const body: Rule = {
             config,
             type
@@ -51,9 +51,9 @@ export class GlobalsService extends BaseService {
     }
 
     public updateRule(type: string, config: string): Promise<Rule|null> {
-        this.logger.info("[GlobalsService] Updating global rule:", type);
+        this.logger.info("[AdminService] Updating global rule:", type);
 
-        const endpoint: string = this.endpoint("/rules/:rule", {
+        const endpoint: string = this.endpoint("/v2/admin/rules/:rule", {
             "rule": type
         });
         const body: Rule = { config, type };
@@ -61,9 +61,9 @@ export class GlobalsService extends BaseService {
     }
 
     public deleteRule(type: string): Promise<null> {
-        this.logger.info("[GlobalsService] Deleting global rule:", type);
+        this.logger.info("[AdminService] Deleting global rule:", type);
 
-        const endpoint: string = this.endpoint("/rules/:rule", {
+        const endpoint: string = this.endpoint("/v2/admin/rules/:rule", {
             "rule": type
         });
         return this.httpDelete(endpoint);

@@ -25,55 +25,51 @@ import {
     DataListItemRow
 } from '@patternfly/react-core';
 import {SearchedArtifact} from "@apicurio/registry-models";
-import {Link, NavLink} from "react-router-dom";
+import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Services} from "@apicurio/registry-services";
 
 /**
  * Properties
  */
-export interface ArtifactNameProps extends PureComponentProps {
-    id: string;
-    name: string;
+export interface ArtifactGroupProps extends PureComponentProps {
+    groupId: string|null;
+    onClick: (groupId: string) => void;
 }
 
 /**
  * State
  */
 // tslint:disable-next-line:no-empty-interface
-export interface ArtifactNameState extends PureComponentState {
+export interface ArtifactGroupState extends PureComponentState {
 }
 
 
 /**
  * Models the list of artifacts.
  */
-export class ArtifactName extends PureComponent<ArtifactNameProps, ArtifactNameState> {
+export class ArtifactGroup extends PureComponent<ArtifactGroupProps, ArtifactGroupState> {
 
-    constructor(props: Readonly<ArtifactNameProps>) {
+    constructor(props: Readonly<ArtifactGroupProps>) {
         super(props);
     }
 
     public render(): React.ReactElement {
-        return this.props.name ? (
-            <React.Fragment>
-                <Link className="name" data-testid={this.testId("artifacts-lnk-view-")} to={this.artifactLink()}>{this.props.name}</Link>
-                <Link className="id" data-testid={this.testId("artifacts-lnk-view-id-")} to={this.artifactLink()}>{this.props.id}</Link>
-            </React.Fragment>
-        ) : (
-            <React.Fragment>
-                <Link className="name" data-testid={this.testId("artifacts-lnk-view-")} to={this.artifactLink()}>{this.props.id}</Link>
-            </React.Fragment>
+        return (
+            <a className={this.style()} onClick={this.fireOnClick}>{this.props.groupId}</a>
         );
     }
 
-    protected initializeState(): ArtifactNameState {
+    protected initializeState(): ArtifactGroupState {
         return {};
     }
 
-    private artifactLink(): string {
-        const link: string = `/artifacts/${ encodeURIComponent(this.props.id) }`;
-        return link;
+    private style(): string {
+        return !this.props.groupId ? "nogroup" : "group";
     }
+
+    private fireOnClick = (): void => {
+        this.props.onClick(this.props.groupId as string);
+    };
 
 }

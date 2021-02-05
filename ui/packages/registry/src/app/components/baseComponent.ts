@@ -33,6 +33,7 @@ export interface PureComponentState {
 export abstract class PureComponent<P extends PureComponentProps, S extends PureComponentState, SS = {}> extends React.PureComponent<P, S, SS> {
 
     private static HISTORY: any = null;
+    private testIdCounter: number = 1;
 
     protected constructor(properties: Readonly<P>) {
         super(properties);
@@ -41,6 +42,10 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
     }
 
     protected abstract initializeState(): S;
+
+    protected testId(prefix: string): string {
+        return prefix + this.testIdCounter++;
+    }
 
     protected postConstruct(): void {
         // Can optionally be overridden by subclasses.

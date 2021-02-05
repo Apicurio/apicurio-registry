@@ -132,7 +132,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
         try {
             return this.jdbi.withHandle(callback);
-        } catch (Exception e) {
+        } catch ( Exception e) {
             throw new RegistryStorageException(e);
         }
     }
@@ -180,11 +180,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private boolean isDatabaseInitialized() {
         log.info("Checking to see if the DB is initialized.");
-        return true;
-//        return withHandle(handle -> {
-//            ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
-//            return result.one().intValue() > 0;
-//        });
+        return withHandle(handle -> {
+            handle.getConnection().setReadOnly(true); // TODO : determine if this actually works and resolves the concurrency issue - Z Evans 2/5/2021
+            ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
+            return result.one().intValue() > 0;
+        });
     }
 
     /**
@@ -206,6 +206,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         withHandle( handle -> {
             statements.forEach( statement -> {
                 log.debug(statement);
+
                 handle.createUpdate(statement).execute();
             });
             return null;

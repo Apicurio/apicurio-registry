@@ -21,7 +21,7 @@
         <test.app.name>
             ../app/target/apicurio-registry-app-${project.version}-runner
         </test.app.name>
-        <junit.version>5.7.0</junit.version>
+        <junit.version>5.7.1</junit.version>
         <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
         <version.okhttp>4.9.1</version.okhttp>
         <kafka.version>2.3.0</kafka.version>

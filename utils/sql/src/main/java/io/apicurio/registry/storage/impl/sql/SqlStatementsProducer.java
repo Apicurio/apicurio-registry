@@ -45,6 +45,9 @@ public class SqlStatementsProducer {
         if ("postgresql".equals(databaseType)) {
             return new PostgreSQLSqlStatements();
         }
+        if("cloudspanner").equals(databaseType)) {
+            return new CloudSpannerSqlStatements();
+        }
         throw new RuntimeException("Unsupported database type: " + databaseType);
     }
 

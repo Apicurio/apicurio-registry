@@ -876,6 +876,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting artifact (latest version) meta-data: {}", artifactId);
+
         return this.getLatestArtifactMetaDataInternal(artifactId);
     }
 

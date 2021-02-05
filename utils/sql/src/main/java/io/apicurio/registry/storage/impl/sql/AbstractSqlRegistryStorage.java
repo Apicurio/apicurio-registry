@@ -142,6 +142,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected void initialize() {
         log.debug("SqlRegistryStorage constructed successfully.");
 
+        log.debug(dataSource.getConfiguration().dataSourceImplementation().className());
+        log.debug(dataSource.getConfiguration().dataSourceImplementation().toString());
+        try {
+            dataSource.getConnection().getClientInfo().stringPropertyNames().forEach(log::debug);
+            log.debug(dataSource.getConnection().getMetaData().getDriverName());
+            dataSource.getConnection().getClientInfo().stringPropertyNames().forEach(log::debug);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
         jdbi = Jdbi.create(dataSource);
 
         if (initDB) {
@@ -154,20 +164,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     log.info("Database was already initialized, skipping.");
                 }
 
-                if (!isDatabaseCurrent()) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabase();
-                }
+//                if (!isDatabaseCurrent()) {
+//                    log.info("Old database version detected, upgrading.");
+//                    upgradeDatabase();
+//                }
             }
         } else {
             if (!isDatabaseInitialized()) {
                 log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
-                throw new RuntimeException("Database not initialized.");
+//                throw new RuntimeException("Database not initialized.");
             }
 
             if (!isDatabaseCurrent()) {
                 log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
-                throw new RuntimeException("Database not upgraded.");
+//                throw new RuntimeException("Database not upgraded.");
             }
         }
     }

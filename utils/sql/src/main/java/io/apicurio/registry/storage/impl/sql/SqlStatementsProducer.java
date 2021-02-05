@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 public class SqlStatementsProducer {
     private static Logger logger = LoggerFactory.getLogger(SqlStatementsProducer.class);
 
-    @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
+    @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgres")
     String databaseType;
     
     /**
@@ -41,14 +41,12 @@ public class SqlStatementsProducer {
         logger.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();
-        }
-        if ("postgresql".equals(databaseType)) {
+        } else if ("postgresql".equals(databaseType)) {
             return new PostgreSQLSqlStatements();
-        }
-        if("cloudspanner".equals(databaseType)) {
+        } else {
             return new CloudSpannerSqlStatements();
         }
-        throw new RuntimeException("Unsupported database type: " + databaseType);
+//        throw new RuntimeException("Unsupported database type: " + databaseType);
     }
 
 }

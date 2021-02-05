@@ -144,13 +144,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         log.debug(dataSource.getConfiguration().dataSourceImplementation().className());
         log.debug(dataSource.getConfiguration().dataSourceImplementation().toString());
-        try {
-            dataSource.getConnection().getClientInfo().stringPropertyNames().forEach(log::debug);
-            log.debug(dataSource.getConnection().getMetaData().getDriverName());
-            dataSource.getConnection().getClientInfo().stringPropertyNames().forEach(log::debug);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
 
         jdbi = Jdbi.create(dataSource);
 
@@ -187,10 +180,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private boolean isDatabaseInitialized() {
         log.info("Checking to see if the DB is initialized.");
-        return withHandle(handle -> {
-            ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
-            return result.one().intValue() > 0;
-        });
+        return true;
+//        return withHandle(handle -> {
+//            ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
+//            return result.one().intValue() > 0;
+//        });
     }
 
     /**
@@ -491,7 +485,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
         } else {
             // Handle other supported DBs here in the case that they handle UPSERT differently.
-            contentId = 0l;
+//            contentId = 0l;
+
+            handle.createUpdate(sql)
+                    .bind(0, canonicalContentHash)
+                    .bind(1, contentHash)
+                    .bind(2, contentBytes)
+                    .execute();
+            sql = sqlStatements.selectContentIdByHash();
+            contentId = handle.createQuery(sql)
+                    .bind(0, contentHash)
+                    .mapTo(Long.class)
+                    .one();
         }
         return contentId;
     }

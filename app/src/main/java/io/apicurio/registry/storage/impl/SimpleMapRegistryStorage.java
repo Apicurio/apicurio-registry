@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.types.ArtifactState;
 
 /**
@@ -21,7 +22,7 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
     protected Map<String, StoredContent> createContentMap() {
         return new ConcurrentHashMap<>();
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createContentHashMap()
      */
@@ -29,7 +30,7 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
     protected Map<Long, String> createContentHashMap() {
         return new ConcurrentHashMap<>();
     }
-    
+
     @Override
     protected StorageMap createStorageMap() {
         return new SimpleStorageMap();
@@ -52,6 +53,13 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
 
     @Override
     protected Map<String, String> createLogConfigurationMap() {
+        return new ConcurrentHashMap<>();
+    }
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGroupsMap()
+     */
+    @Override
+    protected Map<String, GroupMetaDataDto> createGroupsMap() {
         return new ConcurrentHashMap<>();
     }
 

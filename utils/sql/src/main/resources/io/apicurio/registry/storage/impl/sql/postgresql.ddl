@@ -51,3 +51,6 @@ CREATE INDEX IDX_labels_1 ON labels(label);
 
 CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
 ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);
+
+CREATE TABLE groups (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, description VARCHAR(1024), artifactsType VARCHAR(32), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, properties TEXT);
+ALTER TABLE groups ADD PRIMARY KEY (tenantId, groupId);

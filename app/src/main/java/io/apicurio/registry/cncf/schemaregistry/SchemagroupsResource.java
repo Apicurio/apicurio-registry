@@ -4,6 +4,8 @@ import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -17,7 +19,7 @@ import javax.ws.rs.core.Response;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/cncf/v0.1/schemagroups")
+@Path("/cncf/v0/schemagroups")
 public interface SchemagroupsResource {
   /**
    * Get all schema groups in namespace.
@@ -74,14 +76,14 @@ public interface SchemagroupsResource {
       @PathParam("schema-id") String schemaId);
 
   /**
-   * Register schema. If schema of specified name does not exist in specified group, schema is created at version 1. If schema of specified name exists already in specified group, schema is created at latest version + 1. If schema with identical content already exists, existing schema's ID is returned. 
+   * Register schema. If schema of specified name does not exist in specified group, schema is created at version 1. If schema of specified name exists already in specified group, schema is created at latest version + 1. If schema with identical content already exists, existing schema's ID is returned.
    *
    */
   @Path("/{group-id}/schemas/{schema-id}")
   @POST
   @Produces({"application/json;format=avro", "application/json;format=protobuf"})
   @Consumes("application/json;format=avro")
-  SchemaId createSchema(@PathParam("group-id") String groupId,
+  CompletionStage<SchemaId> createSchema(@PathParam("group-id") String groupId,
       @PathParam("schema-id") String schemaId, InputStream data);
 
   @Path("/{group-id}/schemas/{schema-id}")

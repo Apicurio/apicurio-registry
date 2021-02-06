@@ -56,6 +56,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -67,6 +69,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -112,6 +115,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected MultiMap<ArtifactKey, String, String> artifactRules;
     protected Map<String, String> globalRules;
     protected Map<String, String> logConfigurations;
+    protected Map<String, GroupMetaDataDto> groups;
 
     protected void beforeInit() {
     }
@@ -126,6 +130,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         globalRules = createGlobalRulesMap();
         artifactRules = createArtifactRulesMap();
         logConfigurations = createLogConfigurationMap();
+        groups = createGroupsMap();
         afterInit();
     }
 
@@ -145,6 +150,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected abstract Map<Long, TupleId> createGlobalMap();
 
     protected abstract Map<String, String> createGlobalRulesMap();
+
+    protected abstract Map<String, GroupMetaDataDto> createGroupsMap();
 
     protected abstract MultiMap<ArtifactKey, String, String> createArtifactRulesMap();
 
@@ -1012,6 +1019,69 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 .stream()
                 .map(e -> new LogConfigurationDto(e.getKey(), LogLevel.fromValue(e.getValue())))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group)
+            throws GroupAlreadyExistsException, RegistryStorageException {
+        GroupMetaDataDto prev = groups.putIfAbsent(group.getGroupId(), group);
+        if (prev != null) {
+            throw new GroupAlreadyExistsException(group.getGroupId());
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetadata(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        if (!groups.containsKey(group.getGroupId())) {
+            throw new GroupNotFoundException(group.getGroupId());
+        }
+        groups.put(group.getGroupId(), group);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        GroupMetaDataDto prev = groups.remove(groupId);
+        if (prev == null) {
+            throw new GroupNotFoundException(groupId);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        if (limit != null) {
+            return groups.keySet()
+                    .stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        } else {
+            return groups.keySet()
+                    .stream()
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetadata(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        GroupMetaDataDto group = groups.get(groupId);
+        if (group == null) {
+            throw new GroupNotFoundException(groupId);
+        }
+        return group;
     }
 
 }

@@ -45,6 +45,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
     @Override
     public SearchedArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         SearchedArtifactDto dto = new SearchedArtifactDto();
+        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));

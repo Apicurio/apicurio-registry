@@ -46,7 +46,7 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
     @Override
     public ArtifactMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
-        dto.setGroupId(rs.getString("groupId"));
+        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));
         dto.setGlobalId(rs.getLong("globalId"));
         dto.setContentId(rs.getLong("contentId"));

@@ -947,14 +947,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case group:
-                        where.append("(v.groupId LIKE ?)");
+                        where.append("(v.groupId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, normalizeGroupId(filter.getValue()));
                         });
                         break;
                     case properties:
                         // TODO implement filtering by properties!
-                        break;
+                        throw new RuntimeException("Searching over properties is not yet implemented.");
                     default :
                         break;
                 }

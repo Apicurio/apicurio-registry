@@ -207,7 +207,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                        valueContainsSearch(search, artifactMetaData.getId());// ||
 //                       valueContainsSearch(search, artifactMetaData.getProperties());
             case group:
-                return valueIsSearch(search, artifactMetaData.getGroupId());
+                return valueIsSearchExact(search, artifactMetaData.getGroupId());
             case labels:
                 return valueContainsSearch(search, artifactMetaData.getLabels());
             case name:
@@ -240,6 +240,10 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
     private boolean valueIsSearch(String search, String value) {
         return value != null && StringUtils.equalsIgnoreCase(value, search.toLowerCase());
+    }
+
+    private boolean valueIsSearchExact(String search, String value) {
+        return value != null && StringUtils.equalsIgnoreCase(value, search);
     }
 
     private Optional<ArtifactMetaDataDto> getOptionalArtifactMetadata(ArtifactKey artifactKey) {

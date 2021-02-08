@@ -42,14 +42,14 @@ public class IdsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testIdsAfterCreate() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        
+
         // Create a throwaway artifact so that contentId for future artifacts with different
         // content will need to be greater than 0.
         this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL, resourceToString("sample.wsdl"));
 
         String artifactId1 = "testIdsAfterCreate/Empty-1";
         String artifactId2 = "testIdsAfterCreate/Empty-2";
-        
+
         // Create artifact 1
         ArtifactMetaData amd1 = given()
                 .when()
@@ -85,7 +85,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertNotEquals(amd1.getGlobalId(), amd2.getGlobalId());
         Assertions.assertEquals(amd1.getContentId(), amd2.getContentId());
-        
+
         // Get artifact1 meta data and check the contentId
         given()
             .when()
@@ -99,7 +99,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
 
-        
+
         // Get artifact2 meta data and check the contentId
         given()
             .when()
@@ -112,7 +112,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo("OPENAPI"))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(amd2.getContentId().intValue()));
-        
+
         // List versions in artifact, make sure contentId is returned.
         given()
             .when()
@@ -139,8 +139,8 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("globalId", equalTo(amd1.getGlobalId().intValue()))
                 .body("contentId", equalTo(amd1.getContentId().intValue()));
-        
-        
+
+
     }
 
     @Test
@@ -164,9 +164,9 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .extract()
                     .as(ArtifactMetaData.class);
         waitForArtifact(GROUP, artifactId);
-        
+
         long globalId = amd.getGlobalId();
-        
+
         // Get by globalId
         given()
             .when()
@@ -177,7 +177,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo(title));
-        
+
     }
 
     @Test
@@ -201,9 +201,9 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .extract()
                     .as(ArtifactMetaData.class);
         waitForArtifact(GROUP, artifactId);
-        
+
         long contentId = amd.getContentId();
-        
+
         // Get by contentId
         given()
             .when()
@@ -229,7 +229,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
     public void testGetByContentHash() throws Exception {
         String title = "Test By Content Hash API";
         String artifactContent = resourceToString("openapi-empty.json").replaceAll("Empty API", title);
-        
+
         String contentHash = DigestUtils.sha256Hex(artifactContent);
 
         String artifactId = "testGetByContentHash/Empty";
@@ -246,7 +246,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200);
         waitForArtifact(GROUP, artifactId);
-        
+
         // Get by contentHash
         given()
             .when()
@@ -258,7 +258,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo(title));
 
-        
+
         // Get by contentHash (not found)
         given()
             .when()

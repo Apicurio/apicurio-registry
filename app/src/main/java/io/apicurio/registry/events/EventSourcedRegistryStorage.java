@@ -64,6 +64,16 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public boolean isReady() {
+        return storage.isReady();
+    }
+
+    @Override
+    public boolean isAlive() {
+        return storage.isAlive();
+    }
+
+    @Override
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state) {
         storage.updateArtifactState(groupId, artifactId, state);
     }
@@ -91,7 +101,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(groupId, artifactId);
     }
-    
+
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
         storage.deleteArtifacts(groupId);
@@ -130,7 +140,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public Set<String> getArtifactIds(Integer limit) {
         return storage.getArtifactIds(limit);
     }
-    
+
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) {
@@ -193,7 +203,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public SortedSet<Long> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersions(groupId, artifactId);
     }
-    
+
     @Override
     public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit)
             throws ArtifactNotFoundException, RegistryStorageException {

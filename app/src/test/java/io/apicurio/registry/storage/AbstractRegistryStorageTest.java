@@ -864,13 +864,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals("testSearchArtifacts-33-name", results.getArtifacts().get(0).getName());
 
-        
+
         filters = Collections.emptySet();
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertNotNull(results.getArtifacts());
-        Assertions.assertEquals(11, results.getArtifacts().size());
-        
+        Assertions.assertEquals(10, results.getArtifacts().size());
+
 
         filters = Collections.singleton(new SearchFilter(SearchFilterType.everything, "testSearchArtifacts"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 1000);

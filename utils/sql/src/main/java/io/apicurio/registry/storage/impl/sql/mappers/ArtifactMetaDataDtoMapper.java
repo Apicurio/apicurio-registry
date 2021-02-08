@@ -31,9 +31,9 @@ import io.apicurio.registry.types.ArtifactType;
  * @author eric.wittmann@gmail.com
  */
 public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto> {
-    
+
     public static final ArtifactMetaDataDtoMapper instance = new ArtifactMetaDataDtoMapper();
-    
+
     /**
      * Constructor.
      */
@@ -46,8 +46,10 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
     @Override
     public ArtifactMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
+        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));
         dto.setGlobalId(rs.getLong("globalId"));
+        dto.setContentId(rs.getLong("contentId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());

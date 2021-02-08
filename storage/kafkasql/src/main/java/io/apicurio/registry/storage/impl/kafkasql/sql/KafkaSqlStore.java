@@ -34,17 +34,6 @@ import io.apicurio.registry.types.RuleType;
 @Logged
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
-    public boolean isArtifactExists(String artifactId) throws RegistryStorageException {
-        return withHandle( handle -> {
-            String sql = sqlStatements().selectArtifactCountById();
-            return handle.createQuery(sql)
-                    .bind(0, tenantContext().tenantId())
-                    .bind(1, artifactId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
-    }
-
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
         return withHandle( handle -> {
             String sql = sqlStatements().selectContentCountByHash();

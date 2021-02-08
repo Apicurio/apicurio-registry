@@ -174,7 +174,7 @@
         <cdi-api.version>2.0</cdi-api.version>
         
         <!-- Gatling -->
-        <version.gatling>3.5.0</version.gatling>
+        <version.gatling>3.5.1</version.gatling>
         <version.gatling.plugin>3.1.1</version.gatling.plugin>
 
         <!-- Scala -->

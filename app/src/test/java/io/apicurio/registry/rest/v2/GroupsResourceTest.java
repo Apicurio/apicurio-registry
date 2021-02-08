@@ -1448,4 +1448,86 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(anything());
     }
 
+    @Test
+    public void testCorrectGroup() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        String jsonArtifactContent = resourceToString("jsonschema-valid.json");
+
+        String groupId = "test-correct-group";
+
+        String artifactId = "test-artifact-a";
+
+        // Create 1 artifact through the new api
+        createArtifact(groupId, artifactId, ArtifactType.OPENAPI, oaiArtifactContent);
+
+        // Create 1 artifact through the old api
+        createArtifact(artifactId, ArtifactType.OPENAPI, jsonArtifactContent);
+
+        // Search each group to ensure the correct # of artifacts.
+        given()
+            .when()
+                .get("/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(2));
+        given()
+            .when()
+                .queryParam("group", groupId)
+                .get("/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Get the artifact content
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/v1/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", not(equalTo("3.0.2")))
+                .body("info.title", not(equalTo("Empty API")));
+
+        // Verify the metadata
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(groupId))
+                .body("id", equalTo(artifactId))
+                .body("version", anything())
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("createdOn", anything())
+                .body("name", equalTo("Empty API"))
+                .body("description", equalTo("An example API design using OpenAPI."));
+
+        given()
+            .when()
+                .pathParam("artifactId", artifactId)
+                .get("/v1/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("groupId", nullValue())
+                .body("id", equalTo(artifactId))
+                .body("version", anything())
+                .body("type", equalTo(ArtifactType.OPENAPI.name()))
+                .body("createdOn", anything())
+                .body("name", not(equalTo("Empty API")))
+                .body("description", not(equalTo("An example API design using OpenAPI.")));
+
+    }
+
 }

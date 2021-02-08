@@ -71,7 +71,7 @@ public final class V1ApiUtil {
         metaData.setProperties(dto.getProperties());
         return metaData;
     }
-    
+
     public static final ArtifactMetaData dtoToMetaData(String artifactId, ArtifactType artifactType,
             ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
@@ -226,6 +226,7 @@ public final class V1ApiUtil {
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setType(version.getType());
+            sv.setVersion(version.getVersion());
             results.getVersions().add(sv);
         });
         return results;

@@ -33,6 +33,7 @@ import {Services} from "@apicurio/registry-services";
  * Properties
  */
 export interface ArtifactNameProps extends PureComponentProps {
+    groupId: string;
     id: string;
     name: string;
 }
@@ -72,7 +73,8 @@ export class ArtifactName extends PureComponent<ArtifactNameProps, ArtifactNameS
     }
 
     private artifactLink(): string {
-        const link: string = `/artifacts/${ encodeURIComponent(this.props.id) }`;
+        const groupId: string = this.props.groupId == null ? "_" : this.props.groupId;
+        const link: string = `/artifacts/${ encodeURIComponent(groupId)}/${ encodeURIComponent(this.props.id) }`;
         return link;
     }
 

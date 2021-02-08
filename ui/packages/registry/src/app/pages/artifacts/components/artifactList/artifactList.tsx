@@ -69,7 +69,7 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                         <DataListCell key="main content" className="content-cell">
                                             <div className="artifact-title">
                                                 <ArtifactGroup groupId={artifact.groupId} onClick={this.props.onGroupClick} />
-                                                <ArtifactName id={artifact.id} name={artifact.name} />
+                                                <ArtifactName groupId={artifact.groupId} id={artifact.id} name={artifact.name} />
                                                 {
                                                     this.statuses(artifact).map( status =>
                                                         <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>

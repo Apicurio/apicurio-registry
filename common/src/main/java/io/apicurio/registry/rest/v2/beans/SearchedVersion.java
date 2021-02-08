@@ -15,7 +15,7 @@ import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Models a single artifact from the result set returned when searching for artifacts.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -34,43 +34,43 @@ import io.apicurio.registry.types.ArtifactType;
 public class SearchedVersion {
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("")
     private String name;
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     @JsonPropertyDescription("")
     private String description;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
     private Date createdOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     @JsonPropertyDescription("")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
@@ -78,51 +78,51 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
     private Long globalId;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Integer version;
+    private Long version;
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
     private Map<String, String> properties;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     @JsonPropertyDescription("")
     private Long contentId;
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -130,7 +130,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     public void setName(String name) {
@@ -138,7 +138,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     public String getDescription() {
@@ -146,7 +146,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     public void setDescription(String description) {
@@ -154,9 +154,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public Date getCreatedOn() {
@@ -164,9 +164,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(Date createdOn) {
@@ -174,9 +174,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -184,9 +184,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public void setCreatedBy(String createdBy) {
@@ -194,9 +194,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public ArtifactType getType() {
@@ -204,9 +204,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public void setType(ArtifactType type) {
@@ -214,7 +214,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public List<String> getLabels() {
@@ -222,7 +222,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public void setLabels(List<String> labels) {
@@ -232,13 +232,13 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public ArtifactState getState() {
@@ -248,13 +248,13 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {
@@ -262,9 +262,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public Long getGlobalId() {
@@ -272,9 +272,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public void setGlobalId(Long globalId) {
@@ -282,28 +282,28 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public Map<String, String> getProperties() {
@@ -312,7 +312,7 @@ public class SearchedVersion {
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public void setProperties(Map<String, String> properties) {
@@ -320,9 +320,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     public Long getContentId() {
@@ -330,9 +330,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     public void setContentId(Long contentId) {

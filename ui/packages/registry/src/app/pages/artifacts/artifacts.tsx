@@ -154,7 +154,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
             Services.getGroupsService().createArtifact(this.state.uploadFormData).then(metaData => {
-                const artifactLocation: string = `/artifacts/${ encodeURIComponent(metaData.id) }`;
+                const artifactLocation: string = `/artifacts/${ encodeURIComponent(metaData.groupId) }/${ encodeURIComponent(metaData.id) }`;
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
@@ -253,7 +253,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     }
 
     private onGroupClick = (groupId: string): void => {
-        alert("TBD: filter by Group: " + groupId);
+        // TODO filter by the group
     };
 
 }

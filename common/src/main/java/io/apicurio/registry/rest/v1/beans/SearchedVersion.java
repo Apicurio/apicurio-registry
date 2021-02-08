@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * Models a single artifact from the result set returned when searching for artifacts.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -33,43 +33,43 @@ import java.util.List;
 public class SearchedVersion {
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("")
     private String name;
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     @JsonPropertyDescription("")
     private String description;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
     private Date createdOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     @JsonPropertyDescription("")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
@@ -77,36 +77,36 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
     private Long globalId;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Integer version;
+    private Long version;
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -114,7 +114,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     public void setName(String name) {
@@ -122,7 +122,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     public String getDescription() {
@@ -130,7 +130,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     public void setDescription(String description) {
@@ -138,9 +138,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
@@ -149,9 +149,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(Date createdOn) {
@@ -159,9 +159,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -169,9 +169,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public void setCreatedBy(String createdBy) {
@@ -179,9 +179,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public ArtifactType getType() {
@@ -189,9 +189,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public void setType(ArtifactType type) {
@@ -199,7 +199,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public List<String> getLabels() {
@@ -207,7 +207,7 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public void setLabels(List<String> labels) {
@@ -217,13 +217,13 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public ArtifactState getState() {
@@ -233,13 +233,13 @@ public class SearchedVersion {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {
@@ -247,9 +247,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public Long getGlobalId() {
@@ -257,9 +257,9 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public void setGlobalId(Long globalId) {
@@ -267,22 +267,22 @@ public class SearchedVersion {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 

@@ -80,7 +80,7 @@ public final class V2ApiUtil {
         metaData.setProperties(dto.getProperties());
         return metaData;
     }
-    
+
     /**
      * @param groupId
      * @param artifactId
@@ -267,6 +267,7 @@ public final class V2ApiUtil {
             sv.setState(version.getState());
             sv.setType(version.getType());
             sv.setProperties(version.getProperties());
+            sv.setVersion(version.getVersion());
             results.getVersions().add(sv);
         });
         return results;

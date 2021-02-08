@@ -70,7 +70,7 @@ export interface EditableMetaData {
  */
 export class GroupsService extends BaseService {
 
-    protected legacyArtifacts: ArtifactsService = null;
+    protected artifacts: ArtifactsService = null;
 
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId });
@@ -85,9 +85,9 @@ export class GroupsService extends BaseService {
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 
-    public createArtifactVersion(groupId: string, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
+    public createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
         if (groupId == null) {
-            return this.legacyArtifacts.createArtifactVersion(artifactId, data);
+            return this.artifacts.createArtifactVersion(artifactId, data);
         }
 
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
@@ -130,9 +130,9 @@ export class GroupsService extends BaseService {
         });
     }
 
-    public getArtifactMetaData(groupId: string, artifactId: string, version: string): Promise<ArtifactMetaData> {
+    public getArtifactMetaData(groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData> {
         if (groupId == null) {
-            return this.legacyArtifacts.getArtifactMetaData(artifactId, version);
+            return this.artifacts.getArtifactMetaData(artifactId, version);
         }
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
@@ -142,9 +142,9 @@ export class GroupsService extends BaseService {
         return this.httpGet<ArtifactMetaData>(endpoint);
     }
 
-    public updateArtifactMetaData(groupId: string, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
+    public updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
         if (groupId == null) {
-            return this.legacyArtifacts.updateArtifactMetaData(artifactId, version,  metaData);
+            return this.artifacts.updateArtifactMetaData(artifactId, version,  metaData);
         }
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
@@ -154,9 +154,9 @@ export class GroupsService extends BaseService {
         return this.httpPut<EditableMetaData>(endpoint, metaData);
     }
 
-    public getArtifactContent(groupId: string, artifactId: string, version: string): Promise<string> {
+    public getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
         if (groupId == null) {
-            return this.legacyArtifacts.getArtifactContent(artifactId, version);
+            return this.artifacts.getArtifactContent(artifactId, version);
         }
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version", { groupId, artifactId, version });
@@ -173,9 +173,9 @@ export class GroupsService extends BaseService {
         return this.httpGet<string>(endpoint, options);
     }
 
-    public getArtifactVersions(groupId: string, artifactId: string): Promise<SearchedVersion[]> {
+    public getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]> {
         if (groupId == null) {
-            return this.legacyArtifacts.getArtifactVersions(artifactId);
+            return this.artifacts.getArtifactVersions(artifactId);
         }
 
         this.logger.info("[GroupsService] Getting the list of versions for artifact: ", groupId, artifactId);
@@ -188,9 +188,9 @@ export class GroupsService extends BaseService {
         });
     }
 
-    public getArtifactRules(groupId: string, artifactId: string): Promise<Rule[]> {
+    public getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]> {
         if (groupId == null) {
-            return this.legacyArtifacts.getArtifactRules(artifactId);
+            return this.artifacts.getArtifactRules(artifactId);
         }
 
         this.logger.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
@@ -200,9 +200,9 @@ export class GroupsService extends BaseService {
         });
     }
 
-    public getArtifactRule(groupId: string, artifactId: string, type: string): Promise<Rule> {
+    public getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
         if (groupId == null) {
-            return this.legacyArtifacts.getArtifactRule(artifactId, type);
+            return this.artifacts.getArtifactRule(artifactId, type);
         }
 
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
@@ -213,9 +213,9 @@ export class GroupsService extends BaseService {
         return this.httpGet<Rule>(endpoint);
     }
 
-    public createArtifactRule(groupId: string, artifactId: string, type: string, config: string): Promise<Rule> {
+    public createArtifactRule(groupId: string|null, artifactId: string, type: string, config: string): Promise<Rule> {
         if (groupId == null) {
-            return this.legacyArtifacts.createArtifactRule(artifactId, type, config);
+            return this.artifacts.createArtifactRule(artifactId, type, config);
         }
 
         this.logger.info("[GroupsService] Creating rule:", type);
@@ -228,9 +228,9 @@ export class GroupsService extends BaseService {
         return this.httpPostWithReturn(endpoint, body);
     }
 
-    public updateArtifactRule(groupId: string, artifactId: string, type: string, config: string): Promise<Rule> {
+    public updateArtifactRule(groupId: string|null, artifactId: string, type: string, config: string): Promise<Rule> {
         if (groupId == null) {
-            return this.legacyArtifacts.updateArtifactRule(artifactId, type, config);
+            return this.artifacts.updateArtifactRule(artifactId, type, config);
         }
 
         this.logger.info("[GroupsService] Updating rule:", type);
@@ -243,9 +243,9 @@ export class GroupsService extends BaseService {
         return this.httpPutWithReturn<Rule, Rule>(endpoint, body);
     }
 
-    public deleteArtifactRule(groupId: string, artifactId: string, type: string): Promise<void> {
+    public deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void> {
         if (groupId == null) {
-            return this.legacyArtifacts.deleteArtifactRule(artifactId, type);
+            return this.artifacts.deleteArtifactRule(artifactId, type);
         }
 
         this.logger.info("[GroupsService] Deleting rule:", type);
@@ -257,9 +257,9 @@ export class GroupsService extends BaseService {
         return this.httpDelete(endpoint);
     }
 
-    public deleteArtifact(groupId: string, artifactId: string): Promise<void> {
+    public deleteArtifact(groupId: string|null, artifactId: string): Promise<void> {
         if (groupId == null) {
-            return this.legacyArtifacts.deleteArtifact(artifactId);
+            return this.artifacts.deleteArtifact(artifactId);
         }
 
         this.logger.info("[GroupsService] Deleting artifact:", groupId, artifactId);

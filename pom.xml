@@ -124,7 +124,7 @@
 
         <!-- Schema types -->
         <avro.version>1.10.1</avro.version>
-        <json-schema-validator.version>1.0.47</json-schema-validator.version>
+        <json-schema-validator.version>1.0.48</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.14.0</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>

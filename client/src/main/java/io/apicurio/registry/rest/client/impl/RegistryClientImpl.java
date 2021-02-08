@@ -266,18 +266,22 @@ public class RegistryClientImpl implements RegistryClient {
 	}
 
 	@Override
-	public InputStream getContentById(int contentId) {
-		return null;
+	public InputStream getContentById(long contentId) {
+        return requestHandler.sendGetRequest(Routes.IDS_CONTENT_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(contentId));
 	}
 
 	@Override
-	public InputStream getContentByGlobalId(int globalId) {
-		return null;
+	public InputStream getContentByGlobalId(long globalId) {
+        return requestHandler.sendGetRequest(Routes.IDS_GLOBAL_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(globalId));
 	}
 
 	@Override
-	public InputStream getContentByHash(int contentHash, Boolean canonical) {
-		return null;
+	public InputStream getContentByHash(String contentHash, Boolean canonical) {
+	    Map<String, String> queryParams = EMPTY_QUERY_PARAMS;
+	    if (canonical != null && canonical) {
+	        queryParams = Map.of(Parameters.CANONICAL, String.valueOf(canonical));
+	    }
+        return requestHandler.sendGetRequest(Routes.IDS_CONTENT_HASH, queryParams, BodyHandlers.ofInputStream(), contentHash);
 	}
 
 	@Override

@@ -78,11 +78,14 @@ public interface RegistryClient {
 
 	void deleteArtifactsInGroup(String groupId);
 
-	InputStream getContentById(int contentId);
+	InputStream getContentById(long contentId);
 
-	InputStream getContentByGlobalId(int globalId);
+	InputStream getContentByGlobalId(long globalId);
 
-	InputStream getContentByHash(int contentHash, Boolean canonical);
+    default InputStream getContentByHash(String contentHash) {
+        return getContentByHash(contentHash, null);
+    };
+	InputStream getContentByHash(String contentHash, Boolean canonical);
 
 	ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description, String artifactgroup);
 

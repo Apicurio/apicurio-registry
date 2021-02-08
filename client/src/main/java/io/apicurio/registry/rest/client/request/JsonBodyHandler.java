@@ -24,6 +24,9 @@ import java.io.UncheckedIOException;
 import java.net.http.HttpResponse;
 import java.util.function.Supplier;
 
+/**
+ * @author Carles Arnal <carnalca@redhat.com>
+ */
 public class JsonBodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
 
 	private final Class<W> wClass;

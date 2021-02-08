@@ -16,29 +16,26 @@
 
 package io.apicurio.registry.rest.client.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.request.JsonBodyHandler;
+import io.apicurio.registry.rest.client.request.RequestHandler;
 import io.apicurio.registry.rest.v1.beans.Error;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.message.BasicNameValuePair;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import static io.apicurio.registry.rest.client.impl.Routes.*;
 import static java.net.http.HttpResponse.BodyHandlers;
 
 /**
@@ -46,230 +43,199 @@ import static java.net.http.HttpResponse.BodyHandlers;
  */
 public class RegistryClientImpl implements RegistryClient {
 
-	private final HttpClient client;
+	private final RequestHandler requestHandler;
 	private final ObjectMapper mapper;
-	private final String endpoint;
-
 
 	public RegistryClientImpl(String endpoint) {
-
-		if (!endpoint.endsWith("/")) {
-			endpoint += "/";
-		}
-
-		final HttpClient.Builder httpClientBuilder = HttpClient.newBuilder();
-
-		this.endpoint = endpoint;
-		this.client = httpClientBuilder.build();
-		this.mapper = new ObjectMapper();
+		requestHandler = new RequestHandler(endpoint);
+		mapper = new ObjectMapper();
 	}
-
 
 	@Override
 	public InputStream getLatestArtifact(String groupId, String artifactId) {
 
-		try {
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
-					.GET()
-					.build();
-
-			return client.send(req, BodyHandlers.ofInputStream())
-					.body();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
+		return requestHandler.sendGetRequest(ARTIFACT_BASE_PATH, Collections.emptyMap(), BodyHandlers.ofInputStream(), groupId, artifactId);
 	}
 
 	@Override
 	public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
 
-		try {
-
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, Collections.emptyMap(), groupId))
-					.PUT(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
-					.build();
-
-			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
-					.body()
-					.get();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
+		return requestHandler.sendPutRequest(ARTIFACT_BASE_PATH, Collections.emptyMap(), new JsonBodyHandler<>(ArtifactMetaData.class), data, groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public void deleteArtifact(String groupId, String artifactId) {
 
-		try {
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
-					.DELETE()
-					.build();
-
-			client.send(req, BodyHandlers.ofString());
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
+		requestHandler.sendDeleteRequest(ARTIFACT_BASE_PATH, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), groupId, artifactId);
 	}
 
 	@Override
 	public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
 
-		try {
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
-					.GET()
-					.build();
-
-			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
-					.body()
-					.get();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
+		return requestHandler.sendGetRequest(ARTIFACT_METADATA, Collections.emptyMap(), new JsonBodyHandler<>(ArtifactMetaData.class), groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
 
+		try {
+
+			requestHandler.sendPutRequest(ARTIFACT_METADATA, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId);
+
+		} catch (IOException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
-		return null;
+
+		return requestHandler.sendPostRequest(VERSION_METADATA, Collections.emptyMap(), Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-		return null;
+
+		//FIXME proper handling of list results
+		return requestHandler.sendGetRequest(ARTIFACT_RULES, Collections.emptyMap(), new JsonBodyHandler<>(List.class), groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public void createArtifactRule(String groupId, String artifactId, Rule data) {
 
+		try {
+			requestHandler.sendPostRequest(ARTIFACT_RULES, Collections.emptyMap(), Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId);
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public void deleteArtifactRules(String groupId, String artifactId) {
 
+		requestHandler.sendDeleteRequest(ARTIFACT_RULES, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), groupId, artifactId);
 	}
 
 	@Override
 	public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
-		return null;
+
+		return requestHandler.sendGetRequest(ARTIFACT_RULE, Collections.emptyMap(), new JsonBodyHandler<>(Rule.class), groupId, rule.value())
+				.get();
 	}
 
 	@Override
 	public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
-		return null;
+
+		try {
+			return requestHandler.sendPutRequest(ARTIFACT_RULE, Collections.emptyMap(), new JsonBodyHandler<>(Rule.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId, rule.value())
+					.get();
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
 
+		requestHandler.sendDeleteRequest(ARTIFACT_RULE, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), groupId, artifactId, rule.value());
 	}
 
 	@Override
 	public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
 
+		try {
+			requestHandler.sendPutRequest(ARTIFACT_STATE, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId);
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
 
+		try {
+			requestHandler.sendPutRequest(ARTIFACT_TEST, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId);
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public InputStream getArtifactVersion(String groupId, String artifactId, String version) {
-		return null;
+
+		return requestHandler.sendGetRequest(ARTIFACT_VERSION, Collections.emptyMap(), BodyHandlers.ofInputStream(), groupId, version);
 	}
 
 	@Override
 	public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-		return null;
+
+		return requestHandler.sendGetRequest(VERSION_METADATA, Collections.emptyMap(), new JsonBodyHandler<>(VersionMetaData.class), groupId, version)
+				.get();
 	}
 
 	@Override
 	public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
 
+		try {
+			requestHandler.sendPutRequest(VERSION_METADATA, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId);
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
 
+		requestHandler.sendDeleteRequest(VERSION_METADATA, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), groupId, artifactId, version);
 	}
 
 	@Override
 	public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
 
+		try {
+			requestHandler.sendPutRequest(VERSION_STATE, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), new ByteArrayInputStream(mapper.writeValueAsBytes(data)), groupId, artifactId, version);
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
 	public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
-		return null;
+
+		return requestHandler.sendGetRequest(ARTIFACT_VERSIONS, Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset)), new JsonBodyHandler<>(VersionSearchResults.class), groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
-		return null;
+
+		return requestHandler.sendPostRequest(ARTIFACT_VERSION, Map.of(Headers.VERSION, xRegistryVersion), Collections.emptyMap(), new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
+				.get();
 	}
 
 	@Override
 	public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby) {
 
-		try {
-			final Map<String, String> params = Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset), Parameters.SORT_ORDER, order.value(), Parameters.ORDER_BY, orderby.value());
+		return requestHandler.sendGetRequest(GROUP_BASE_PATH, Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset), Parameters.SORT_ORDER, order.value(), Parameters.ORDER_BY, orderby.value()), new JsonBodyHandler<>(ArtifactSearchResults.class), groupId)
+				.get();
 
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, params, groupId))
-					.GET()
-					.build();
-
-			return client.send(req, new JsonBodyHandler<>(ArtifactSearchResults.class))
-					.body()
-					.get();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
-	}
-
-	private RestClientException parseError(Exception ex) {
-
-		//TODO build error
-		return new RestClientException(new Error());
 	}
 
 	@Override
 	public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, InputStream data) {
 
-		try {
-
-			final HttpRequest req = HttpRequest.newBuilder()
-					.header(Headers.ARTIFACT_ID, xRegistryArtifactId)
-					.header(Headers.ARTIFACT_TYPE, xRegistryArtifactType.value())
-					.header(Headers.VERSION, xRegistryVersion)
-					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, Collections.emptyMap(), groupId))
-					.POST(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
-					.build();
-
-			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
-					.body()
-					.get();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
+		return requestHandler.sendPostRequest(GROUP_BASE_PATH, Map.of(Headers.ARTIFACT_ID, xRegistryArtifactId, Headers.ARTIFACT_TYPE, xRegistryArtifactType.value(), Headers.VERSION, xRegistryVersion), Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(ArtifactMetaData.class), data, groupId)
+				.get();
 	}
 
 	@Override
 	public void deleteArtifactsInGroup(String groupId) {
+
+		requestHandler.sendDeleteRequest(GROUP_BASE_PATH, Collections.emptyMap(), new JsonBodyHandler<>(Void.class), groupId);
 
 	}
 
@@ -298,16 +264,10 @@ public class RegistryClientImpl implements RegistryClient {
 		return null;
 	}
 
-	private static URI buildURI(String basePath, Map<String, String> queryParams, Object... pathParams) throws URISyntaxException {
+	private RestClientException parseError(Exception ex) {
 
-		final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, pathParams));
-
-		uriBuilder.setParameters(queryParams.entrySet()
-				.stream()
-				.map(entry -> new BasicNameValuePair(entry.getKey(), entry.getValue()))
-				.collect(Collectors.toList())
-		);
-
-		return uriBuilder.build();
+		//FIXME proper error handling
+		return new RestClientException(new Error());
 	}
+
 }

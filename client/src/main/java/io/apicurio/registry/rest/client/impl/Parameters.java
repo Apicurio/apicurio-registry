@@ -18,9 +18,9 @@ package io.apicurio.registry.rest.client.impl;
 
 public class Parameters {
 
-	protected static String GROUP_ID = "groupId";
 	protected static String LIMIT = "limit";
 	protected static String OFFSET = "offset";
 	protected static String SORT_ORDER = "sort_order";
 	protected static String ORDER_BY = "order_by";
+	protected static String CANONICAL = "canonical";
 }

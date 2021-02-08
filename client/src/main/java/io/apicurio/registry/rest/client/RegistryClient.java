@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rest.client;
 
+import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -74,7 +76,13 @@ public interface RegistryClient {
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby);
 
-	ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, InputStream data);
+	ArtifactMetaData createArtifact(InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, IfExists ifExists, Boolean canonical, InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactID, String version, IfExists ifExists, Boolean canonical, InputStream data);
 
 	void deleteArtifactsInGroup(String groupId);
 

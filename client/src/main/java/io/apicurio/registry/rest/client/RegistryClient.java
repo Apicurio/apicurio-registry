@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  * <p>
- * Rest client compatible with the version V2 of the registry
+ * Rest client compatible with the Registry API V2
  */
 public interface RegistryClient {
 

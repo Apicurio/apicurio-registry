@@ -20,7 +20,7 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
@@ -67,7 +67,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryApiBaseUrl = "http://localhost:8081/api";
         registryV1ApiUrl = registryApiBaseUrl + "/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/v2";
-        clientV2 = new RegistryClientImpl(registryV2ApiUrl);
+        clientV2 = RegistryClientFactory.create(registryV2ApiUrl);
         client = createRestClient();
     }
 

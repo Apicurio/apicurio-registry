@@ -45,9 +45,9 @@ import static java.net.http.HttpResponse.BodyHandlers;
  */
 public class RegistryClientImpl implements RegistryClient {
 
-	private HttpClient client;
-	private ObjectMapper mapper;
-	private String endpoint;
+	private final HttpClient client;
+	private final ObjectMapper mapper;
+	private final String endpoint;
 
 
 	public RegistryClientImpl(String endpoint) {

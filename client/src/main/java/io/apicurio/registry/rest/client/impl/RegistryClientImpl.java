@@ -302,9 +302,9 @@ public class RegistryClientImpl implements RegistryClient {
 
 		final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, pathParams));
 
-		uriBuilder.setParameters(queryParams.keySet()
+		uriBuilder.setParameters(queryParams.entrySet()
 				.stream()
-				.map(key -> new BasicNameValuePair(key, queryParams.get(key)))
+				.map(entry -> new BasicNameValuePair(entry.getKey(), entry.getValue()))
 				.collect(Collectors.toList())
 		);
 

@@ -96,6 +96,7 @@
         <module>docs</module>
         <module>tests</module>
         <module>rest-client</module>
+        <module>client</module>
     </modules>
 
     <properties>
@@ -228,6 +229,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-rest-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

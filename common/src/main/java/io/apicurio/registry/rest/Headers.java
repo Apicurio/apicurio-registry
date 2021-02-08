@@ -18,8 +18,8 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.types.ArtifactState;
 
-import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
+import java.util.function.Supplier;
 
 /**
  * @author Ales Justin
@@ -28,7 +28,7 @@ public interface Headers {
     String GROUP_ID = "X-Registry-GroupId";
     String ARTIFACT_ID = "X-Registry-ArtifactId";
     String VERSION = "X-Registry-Version";
-
+    String ARTIFACT_TYPE = "X-Registry-ArtifactType";
     String DEPRECATED = "X-Registry-Deprecated";
 
     default void checkIfDeprecated(

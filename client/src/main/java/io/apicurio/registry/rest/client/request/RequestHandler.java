@@ -52,11 +52,11 @@ public class RequestHandler {
 		this.mapper = new ObjectMapper();
 	}
 
-	public <T> T sendGetRequest(String requestPath, Map<String, String> parameters, HttpResponse.BodyHandler<T> bodyHandler, Object... args) {
+	public <T> T sendGetRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
 
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + requestPath, parameters, args))
+					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
 					.GET()
 					.build();
 
@@ -67,14 +67,14 @@ public class RequestHandler {
 		}
 	}
 
-	public <T> T sendPostRequest(String requestPath, Map<String, String> headers, Map<String, String> parameters, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... args) {
+	public <T> T sendPostRequest(String requestPath, Map<String, String> headers, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... pathParams) {
 
 		try {
 			final HttpRequest.Builder builder = HttpRequest.newBuilder();
 
 			headers.forEach(builder::header);
 
-			builder.uri(buildURI(endpoint + requestPath, parameters, args))
+			builder.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
 					.POST(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()));
 
 			return client.send(builder.build(), bodyHandler)
@@ -85,11 +85,11 @@ public class RequestHandler {
 		}
 	}
 
-	public <T> T sendPutRequest(String requestPath, Map<String, String> parameters, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... args) {
+	public <T> T sendPutRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... pathParams) {
 
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + requestPath, parameters, args))
+					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
 					.PUT(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
 					.build();
 
@@ -101,11 +101,11 @@ public class RequestHandler {
 		}
 	}
 
-	public <T> T sendDeleteRequest(String requestPath, Map<String, String> parameters, HttpResponse.BodyHandler<T> bodyHandler, Object... args) {
+	public <T> T sendDeleteRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
 
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + requestPath, parameters, args))
+					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
 					.DELETE()
 					.build();
 

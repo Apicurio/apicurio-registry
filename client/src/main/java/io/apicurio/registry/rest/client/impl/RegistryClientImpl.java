@@ -20,11 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
+import io.apicurio.registry.rest.client.request.JsonBodyHandler;
 import io.apicurio.registry.rest.v1.beans.Error;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -37,6 +37,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.net.http.HttpResponse.BodyHandlers;
 
@@ -68,26 +70,36 @@ public class RegistryClientImpl implements RegistryClient {
 	public InputStream getLatestArtifact(String groupId, String artifactId) {
 
 		try {
-
 			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyList(), groupId, artifactId))
+					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
 					.GET()
 					.build();
 
-			final HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+			return client.send(req, BodyHandlers.ofInputStream())
+					.body();
 
-			if (200 == res.statusCode()) {
-				return res.body();
-			}
 		} catch (URISyntaxException | IOException | InterruptedException e) {
 			throw parseError(e);
 		}
-		return null;
 	}
 
 	@Override
 	public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-		return null;
+
+		try {
+
+			final HttpRequest req = HttpRequest.newBuilder()
+					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, Collections.emptyMap(), groupId))
+					.PUT(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
+					.build();
+
+			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
+					.body()
+					.get();
+
+		} catch (URISyntaxException | IOException | InterruptedException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
@@ -95,11 +107,11 @@ public class RegistryClientImpl implements RegistryClient {
 
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyList(), groupId, artifactId))
+					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
 					.DELETE()
 					.build();
 
-			client.send(req, BodyHandlers.ofInputStream());
+			client.send(req, BodyHandlers.ofString());
 
 		} catch (URISyntaxException | IOException | InterruptedException e) {
 			throw parseError(e);
@@ -200,10 +212,7 @@ public class RegistryClientImpl implements RegistryClient {
 	public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby) {
 
 		try {
-			final List<NameValuePair> params = List.of(new BasicNameValuePair(Parameters.LIMIT, String.valueOf(limit)),
-					new BasicNameValuePair(Parameters.OFFSET, String.valueOf(offset)),
-					new BasicNameValuePair(Parameters.SORT_ORDER, order.value()),
-					new BasicNameValuePair(Parameters.ORDER_BY, orderby.value()));
+			final Map<String, String> params = Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset), Parameters.SORT_ORDER, order.value(), Parameters.ORDER_BY, orderby.value());
 
 			final HttpRequest req = HttpRequest.newBuilder()
 					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, params, groupId))
@@ -236,19 +245,17 @@ public class RegistryClientImpl implements RegistryClient {
 					.header(Headers.ARTIFACT_ID, xRegistryArtifactId)
 					.header(Headers.ARTIFACT_TYPE, xRegistryArtifactType.value())
 					.header(Headers.VERSION, xRegistryVersion)
-					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, Collections.emptyList(), groupId))
+					.uri(buildURI(endpoint + Routes.GROUP_BASE_PATH, Collections.emptyMap(), groupId))
 					.POST(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
 					.build();
 
-			final HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
+					.body()
+					.get();
 
-			if (200 == res.statusCode()) {
-				return mapper.readValue(res.body(), ArtifactMetaData.class);
-			}
 		} catch (URISyntaxException | IOException | InterruptedException e) {
 			throw parseError(e);
 		}
-		return null;
 	}
 
 	@Override
@@ -281,11 +288,15 @@ public class RegistryClientImpl implements RegistryClient {
 		return null;
 	}
 
-	private static URI buildURI(String basePath, List<NameValuePair> query, Object... pathParams) throws URISyntaxException {
+	private static URI buildURI(String basePath, Map<String, String> queryParams, Object... pathParams) throws URISyntaxException {
 
 		final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, pathParams));
 
-		uriBuilder.setParameters(query);
+		uriBuilder.setParameters(queryParams.keySet()
+				.stream()
+				.map(key -> new BasicNameValuePair(key, queryParams.get(key)))
+				.collect(Collectors.toList())
+		);
 
 		return uriBuilder.build();
 	}

@@ -149,7 +149,7 @@
         <apicurio-data-models.version>1.1.7</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>16.1</graphql.version>
+        <graphql.version>16.2</graphql.version>
 
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>

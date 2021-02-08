@@ -34,7 +34,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +119,20 @@ public class RegistryClientImpl implements RegistryClient {
 
 	@Override
 	public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-		return null;
+
+		try {
+			final HttpRequest req = HttpRequest.newBuilder()
+					.uri(buildURI(endpoint + Routes.ARTIFACTS_BASE_PATH, Collections.emptyMap(), groupId, artifactId))
+					.GET()
+					.build();
+
+			return client.send(req, new JsonBodyHandler<>(ArtifactMetaData.class))
+					.body()
+					.get();
+
+		} catch (URISyntaxException | IOException | InterruptedException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
@@ -219,15 +231,13 @@ public class RegistryClientImpl implements RegistryClient {
 					.GET()
 					.build();
 
-			final HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+			return client.send(req, new JsonBodyHandler<>(ArtifactSearchResults.class))
+					.body()
+					.get();
 
-			if (200 == res.statusCode()) {
-				return mapper.readValue(res.body(), ArtifactSearchResults.class);
-			}
 		} catch (URISyntaxException | IOException | InterruptedException e) {
 			throw parseError(e);
 		}
-		return null;
 	}
 
 	private RestClientException parseError(Exception ex) {

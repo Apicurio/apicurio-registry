@@ -78,11 +78,13 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 	private String createArtifact(String artifactId) {
 		ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
 
-		ArtifactMetaData amd = clientV2.createArtifact(TEST_GROUP_ID, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
+		ArtifactMetaData created = clientV2.createArtifact(TEST_GROUP_ID, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
 
-		assertNotNull(amd);
-		assertEquals(TEST_GROUP_ID, amd.getGroupId());
-		assertEquals(artifactId, amd.getId());
+		assertNotNull(created);
+		assertEquals(TEST_GROUP_ID, created.getGroupId());
+		assertEquals(artifactId, created.getId());
+
+		ArtifactMetaData amd = clientV2.getArtifactMetaData(TEST_GROUP_ID, artifactId);
 
 		return amd.getId();
 	}

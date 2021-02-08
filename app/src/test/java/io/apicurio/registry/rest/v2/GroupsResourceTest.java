@@ -1463,13 +1463,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create 1 artifact through the old api
         createArtifact(artifactId, ArtifactType.OPENAPI, jsonArtifactContent);
 
-        // Search each group to ensure the correct # of artifacts.
-        given()
-            .when()
-                .get("/v2/search/artifacts")
-            .then()
-                .statusCode(200)
-                .body("count", equalTo(2));
         given()
             .when()
                 .queryParam("group", groupId)

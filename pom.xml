@@ -92,6 +92,10 @@
         <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
+        <module>serdes/serde-common</module>
+        <module>serdes/avro-serde</module>
+        <module>serdes/protobuf-serde</module>
+        <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
         <module>tests</module>
@@ -304,6 +308,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

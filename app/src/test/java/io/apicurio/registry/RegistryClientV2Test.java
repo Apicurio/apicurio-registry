@@ -489,6 +489,45 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         assertEquals(ARTIFACT_CONTENT, artifactContent);
     }
 
+    @Test
+    public void getArtifactVersionMetaDataByContent() {
+
+    }
+
+    @Test
+    public void listArtifactRules() {
+
+    }
+
+    @Test
+    public void deleteArtifactRules() {
+
+    }
+
+    @Test
+    public void getArtifactRuleConfig() {
+
+    }
+    @Test
+    public void updateArtifactRuleConfig() {
+
+    }
+
+    @Test
+    public void testUpdateArtifact() {
+
+    }
+
+    @Test
+    public void deleteArtifactsInGroup() {
+
+    }
+
+    @Test
+    public void searchArtifactsByContent() {
+
+    }
+
     private ArtifactMetaData createArtifact(String groupId, String artifactId) {
         ByteArrayInputStream stream = new ByteArrayInputStream(
                 ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));

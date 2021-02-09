@@ -15,7 +15,7 @@
  */
 package io.apicurio.registry.rest.client.exception;
 
-import io.apicurio.registry.rest.v1.beans.Error;
+import io.apicurio.registry.rest.v2.beans.Error;
 
 public class NotAuthorizedException extends RestClientException {
 

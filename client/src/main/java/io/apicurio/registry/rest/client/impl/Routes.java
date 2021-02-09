@@ -25,6 +25,8 @@ public class Routes {
 	protected static final String ARTIFACT_BASE_PATH = GROUP_BASE_PATH + "/%s";
     protected static final String IDS_BASE_PATH = "ids";
     protected static final String ADMIN_BASE_PATH = "admin";
+	protected static final String SEARCH_BASE_PATH = "search";
+	protected static final String SEARCH_ARTIFACTS = SEARCH_BASE_PATH + "/artifacts";
 
 	protected static final String ARTIFACT_RULES = ARTIFACT_BASE_PATH + "/rules";
 	protected static final String ARTIFACT_VERSIONS = ARTIFACT_BASE_PATH + "/versions";

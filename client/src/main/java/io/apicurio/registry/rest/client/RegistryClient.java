@@ -16,7 +16,18 @@
 
 package io.apicurio.registry.rest.client;
 
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
+import io.apicurio.registry.rest.client.exception.RestClientException;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -40,7 +51,8 @@ public interface RegistryClient {
 
 	void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
 
-	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
+	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical,
+	                                                    InputStream data);
 
 	List<RuleType> listArtifactRules(String groupId, String artifactId);
 
@@ -62,19 +74,36 @@ public interface RegistryClient {
 
 	VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version);
 
-	void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data);
+	void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+	                                   EditableMetaData data);
 
 	void deleteArtifactVersionMetaData(String groupId, String artifactId, String version);
 
 	void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data);
 
-	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit);
+	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
+	                                          Integer limit);
 
-	VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, InputStream data);
+	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version,
+	                                      InputStream data);
 
-	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby);
+	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order,
+	                                           SortBy orderby);
 
-	ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, InputStream data);
+	ArtifactSearchResults listArtifactsInGroup(String groupId);
+
+	ArtifactMetaData createArtifact(InputStream data)
+			throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId,
+	                                InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId,
+	                                IfExists ifExists, Boolean canonical, InputStream data)
+			throws ArtifactAlreadyExistsException, RestClientException;
+
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactID,
+	                                String version, IfExists ifExists, Boolean canonical, InputStream data);
 
 	void deleteArtifactsInGroup(String groupId);
 
@@ -82,12 +111,16 @@ public interface RegistryClient {
 
 	InputStream getContentByGlobalId(long globalId);
 
-    default InputStream getContentByHash(String contentHash) {
-        return getContentByHash(contentHash, null);
-    };
+	default InputStream getContentByHash(String contentHash) {
+		return getContentByHash(contentHash, null);
+	}
+
 	InputStream getContentByHash(String contentHash, Boolean canonical);
 
-	ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description, String artifactgroup);
+	ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
+	                                      SortBy orderby, List<String> labels, List<String> properties, String description,
+	                                      String artifactgroup);
 
-	ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order, SortBy orderby, InputStream data);
+	ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order,
+	                                               SortBy orderby, InputStream data);
 }

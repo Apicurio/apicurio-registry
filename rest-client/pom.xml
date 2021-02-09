@@ -12,7 +12,7 @@
 
     <artifactId>apicurio-registry-rest-client</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-client</name>
+    <name>apicurio-registry-rest-client</name>
 
     <dependencies>
         <dependency>

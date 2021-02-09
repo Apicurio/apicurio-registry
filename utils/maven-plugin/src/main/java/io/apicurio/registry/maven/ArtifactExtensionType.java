@@ -1,7 +1,9 @@
-package io.apicurio.registry.types;
+package io.apicurio.registry.maven;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import io.apicurio.registry.types.ArtifactType;
 
 public enum ArtifactExtensionType {
     AVRO(ArtifactType.AVRO, "avsc"),

@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -48,7 +48,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
     }
-    
+
     @Test
     public void testGlobalRules() throws Exception {
         // Add a globalIdStore rule
@@ -74,7 +74,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("type", equalTo("VALIDITY"))
                     .body("config", equalTo("FULL"));
         });
-        
+
         // Try to add the rule again - should get a 409
         TestUtils.retry(() -> {
             given()
@@ -86,7 +86,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("error_code", equalTo(409))
                     .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         });
-        
+
         // Add another globalIdStore rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
@@ -111,7 +111,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("[1]", anyOf(equalTo("VALIDITY"), equalTo("COMPATIBILITY")))
                     .body("[2]", nullValue());
         });
-        
+
         // Get a single rule by name
         given()
             .when()
@@ -236,7 +236,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-        
+
         // Get a single rule by name
         TestUtils.retry(() -> {
             given()
@@ -268,7 +268,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("message", equalTo("No rule named 'VALIDITY' was found."));
         });
     }
-    
+
     @Test
     public void testCompatilibityLevelNone() throws Exception {
         // Add a globalIdStore rule

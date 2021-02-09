@@ -52,7 +52,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		createArtifact(groupId, artifactId1);
 		createArtifact(groupId, artifactId2);
 
-		final ArtifactSearchResults searchResults = clientV2.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
+		final ArtifactSearchResults searchResults = clientV2.listArtifactsInGroup(groupId, SortBy.name, SortOrder.asc, 0, 2);
 
 		assertNotNull(clientV2.toString());
 		assertEquals(clientV2.hashCode(), clientV2.hashCode());
@@ -61,7 +61,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		clientV2.deleteArtifact(groupId, artifactId1);
 		clientV2.deleteArtifact(groupId, artifactId2);
 
-		final ArtifactSearchResults deletedResults = clientV2.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
+		final ArtifactSearchResults deletedResults = clientV2.listArtifactsInGroup(groupId, SortBy.name, SortOrder.asc, 0, 2);
 		assertEquals(0, deletedResults.getCount());
 	}
 
@@ -129,7 +129,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 	private ArtifactMetaData createArtifact(String groupId, String artifactId) {
         ByteArrayInputStream stream = new ByteArrayInputStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
 
-		ArtifactMetaData created = clientV2.createArtifact(groupId, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
+		ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, "1", ArtifactType.JSON, IfExists.RETURN, false, stream);
 
 		assertNotNull(created);
 		assertEquals(groupId, created.getGroupId());

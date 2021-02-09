@@ -17,14 +17,13 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.types.ArtifactType;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.List;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
-
-import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import javax.ws.rs.WebApplicationException;
+import org.apache.maven.plugins.annotations.Parameter;
 
 /**
  * Test artifact against current artifact rules,
@@ -33,54 +32,70 @@ import javax.ws.rs.WebApplicationException;
  * @author Ales Justin
  */
 @Mojo(name = "test-update")
-public class TestUpdateRegistryMojo extends ContentRegistryMojo {
+public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
 
     /**
-     * Map of test results
+     * The list of artifacts to test.
      */
-    Map<String, Boolean> results;
+    @Parameter(required = true)
+    List<TestArtifact> artifacts;
+
+    /**
+     * Validate the configuration.
+     */
+    protected void validate() throws MojoExecutionException {
+        if (artifacts == null || artifacts.isEmpty()) {
+            getLog().warn("No artifacts are configured for testing/validation.");
+        } else {
+            int idx = 0;
+            int errorCount = 0;
+            for (TestArtifact artifact : artifacts) {
+                if (artifact.getGroupId() == null) {
+                    getLog().error(String.format("GroupId is required when testing an artifact.  Missing from artifacts[%d].", idx));
+                    errorCount++;
+                }
+                if (artifact.getArtifactId() == null) {
+                    getLog().error(String.format("ArtifactId is required when testing an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                }
+                if (artifact.getFile() == null) {
+                    getLog().error(String.format("File is required when testing an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                } else if (!artifact.getFile().isFile()) {
+                    getLog().error(String.format("Artifact file to test is configured but file does not exist or is not a file: %s", artifact.getFile().getPath()));
+                    errorCount++;
+                }
+
+                idx++;
+            }
+
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Invalid configuration of the Test Update Artifact(s) mojo. See the output log for details.");
+            }
+        }
+    }
 
     @Override
     protected void executeInternal() throws MojoExecutionException {
         validate();
 
-        results = new LinkedHashMap<>();
-
-        int errors = 0;
-        for (Map.Entry<String, StreamHandle> kvp : prepareArtifacts().entrySet()) {
-            try {
-                ArtifactType at = getArtifactType(kvp.getKey());
-
-                if (getLog().isDebugEnabled()) {
-                    getLog().debug(String.format("Testing artifact [%s]: '%s'", at, kvp.getKey()));
+        int errorCount = 0;
+        if (artifacts != null) {
+            for (TestArtifact artifact : artifacts) {
+                String groupId = artifact.getGroupId();
+                String artifactId = artifact.getArtifactId();
+                try (InputStream data = new FileInputStream(artifact.getFile())) {
+                    getClient().testUpdateArtifact(groupId, artifactId, data);
+                    getLog().info(String.format("[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).", groupId, artifactId));
+                } catch (Exception e) {
+                    errorCount++;
+                    getLog().error(String.format("[%s] / [%s] :: Artifact test FAILED (updating is not allowed for the given content).", groupId, artifactId), e);
                 }
-
-                try (InputStream stream = kvp.getValue().stream()) {
-                    getClient().testUpdateArtifact(kvp.getKey(), at, stream);
-                }
-                getLog().info(String.format("Artifact '%s' can be updated.", kvp.getKey()));
-                results.put(kvp.getKey(), Boolean.TRUE);
-            } catch (WebApplicationException e) {
-                if (isBadRequest(e.getResponse())) {
-                    results.put(kvp.getKey(), Boolean.FALSE);
-                } else {
-                    errors++;
-                    getLog().error(
-                        String.format("Exception while testing artifact [%s]", kvp.getKey()),
-                        e
-                    );
-                }
-            } catch (Exception e) {
-                errors++;
-                getLog().error(
-                    String.format("Exception while testing artifact [%s]", kvp.getKey()),
-                    e
-                );
             }
         }
 
-        if (errors > 0) {
-            throw new MojoExecutionException("Errors while testing artifacts ...");
+        if (errorCount > 0) {
+            throw new MojoExecutionException("Errors while testing artifacts for update...");
         }
     }
 }

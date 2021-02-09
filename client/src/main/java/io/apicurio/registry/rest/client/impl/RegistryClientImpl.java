@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -115,7 +116,8 @@ public class RegistryClientImpl implements RegistryClient {
 	@Override
 	public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
 
-		return requestHandler.sendPostRequest(VERSION_METADATA, EMPTY_REQUEST_HEADERS, Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
+		Map<String, String> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, String.valueOf(canonical)) : EMPTY_QUERY_PARAMS;
+        return requestHandler.sendPostRequest(VERSION_METADATA, EMPTY_REQUEST_HEADERS, queryParams, new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
 				.get();
 	}
 
@@ -190,13 +192,13 @@ public class RegistryClientImpl implements RegistryClient {
 	@Override
 	public InputStream getArtifactVersion(String groupId, String artifactId, String version) {
 
-		return requestHandler.sendGetRequest(ARTIFACT_VERSION, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), groupId, version);
+		return requestHandler.sendGetRequest(ARTIFACT_VERSION, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), groupId, artifactId, version);
 	}
 
 	@Override
 	public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
 
-		return requestHandler.sendGetRequest(VERSION_METADATA, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), groupId, version)
+		return requestHandler.sendGetRequest(VERSION_METADATA, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), groupId, artifactId, version)
 				.get();
 	}
 
@@ -229,33 +231,69 @@ public class RegistryClientImpl implements RegistryClient {
 	@Override
 	public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
 
-		return requestHandler.sendGetRequest(ARTIFACT_VERSIONS, Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset)), new JsonBodyHandler<>(VersionSearchResults.class), groupId, artifactId)
+	    Map<String, String> queryParams = new HashMap<>();
+	    if (offset != null) {
+	        queryParams.put(Parameters.OFFSET, String.valueOf(offset));
+	    }
+        if (limit != null) {
+            queryParams.put(Parameters.LIMIT, String.valueOf(limit));
+        }
+		return requestHandler.sendGetRequest(ARTIFACT_VERSIONS, queryParams, new JsonBodyHandler<>(VersionSearchResults.class), groupId, artifactId)
 				.get();
 	}
 
 	@Override
-	public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
+	public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data) {
 
-		return requestHandler.sendPostRequest(ARTIFACT_VERSION, Map.of(Headers.VERSION, xRegistryVersion), EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
+		Map<String, String> headers = version != null ? Map.of(Headers.VERSION, version) : EMPTY_REQUEST_HEADERS;
+        return requestHandler.sendPostRequest(ARTIFACT_VERSION, headers, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), data, groupId, artifactId)
 				.get();
 	}
 
 	@Override
-	public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+	public ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderby, SortOrder order, Integer limit, Integer offset) {
 
-		return requestHandler.sendGetRequest(GROUP_BASE_PATH, Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset), Parameters.SORT_ORDER, order.value(), Parameters.ORDER_BY, orderby.value()), new JsonBodyHandler<>(ArtifactSearchResults.class), groupId)
+        Map<String, String> queryParams = new HashMap<>();
+        if (orderby != null) {
+            queryParams.put(Parameters.ORDER_BY, String.valueOf(orderby));
+        }
+        if (order != null) {
+            queryParams.put(Parameters.SORT_ORDER, String.valueOf(order));
+        }
+        if (offset != null) {
+            queryParams.put(Parameters.OFFSET, String.valueOf(offset));
+        }
+        if (limit != null) {
+            queryParams.put(Parameters.LIMIT, String.valueOf(limit));
+        }
+
+        return requestHandler.sendGetRequest(GROUP_BASE_PATH, queryParams, new JsonBodyHandler<>(ArtifactSearchResults.class), groupId)
 				.get();
 
 	}
 
 	@Override
-	public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, InputStream data) {
+	public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
+	        ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
 
-		return requestHandler.sendPostRequest(GROUP_BASE_PATH,
-		        Map.of(Headers.ARTIFACT_ID, xRegistryArtifactId, Headers.ARTIFACT_TYPE, xRegistryArtifactType.value(), Headers.VERSION, xRegistryVersion),
-		        Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(ArtifactMetaData.class),
-		        data,
-		        groupId).get();
+	    Map<String, String> headers = new HashMap<>();
+	    if (artifactId != null) {
+	        headers.put(Headers.ARTIFACT_ID, artifactId);
+	    }
+        if (artifactType != null) {
+            headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+        }
+        if (version != null) {
+            headers.put(Headers.VERSION, version);
+        }
+
+        Map<String, String> queryParams = new HashMap<>();
+        if (canonical != null) {
+            headers.put(Parameters.CANONICAL, String.valueOf(canonical));
+        }
+
+		return requestHandler.sendPostRequest(GROUP_BASE_PATH, headers, queryParams, new JsonBodyHandler<>(ArtifactMetaData.class),
+		        data, groupId).get();
 	}
 
 	@Override
@@ -285,12 +323,15 @@ public class RegistryClientImpl implements RegistryClient {
 	}
 
 	@Override
-	public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description, String artifactgroup) {
+	public ArtifactSearchResults searchArtifacts(String group, String name, String description,
+	        List<String> labels, List<String> properties, SortBy orderby, SortOrder order, Integer offset,
+	        Integer limit) {
 		return null;
 	}
 
 	@Override
-	public ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order, SortBy orderby, InputStream data) {
+	public ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order,
+	        Integer offset, Integer limit) {
 		return null;
 	}
 

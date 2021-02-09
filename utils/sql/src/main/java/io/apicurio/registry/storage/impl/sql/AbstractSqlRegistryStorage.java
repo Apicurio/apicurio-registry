@@ -28,11 +28,16 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+//import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+//import com.google.cloud.spanner.DatabaseClient;
+//import com.google.cloud.spanner.TransactionContext;
+//import com.google.cloud.spanner.TransactionRunner;
 import io.quarkus.security.identity.SecurityIdentity;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jdbi.v3.core.Handle;
@@ -95,6 +100,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
+//    private DatabaseClient dbClient;
     
     @Inject
     TenantContext tenantContext;
@@ -143,7 +149,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("SqlRegistryStorage constructed successfully.");
 
         log.debug(dataSource.getConfiguration().dataSourceImplementation().className());
-        log.debug(dataSource.getConfiguration().dataSourceImplementation().toString());
 
         jdbi = Jdbi.create(dataSource);
 
@@ -183,8 +188,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return withHandle(handle -> {
             handle.getConnection().setReadOnly(true); // TODO : determine if this actually works and resolves the concurrency issue - Z Evans 2/5/2021
             ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
+//            handle.getConnection().setReadOnly(false);
             return result.one().intValue() > 0;
         });
+//        return true;
     }
 
     /**
@@ -378,7 +385,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             globalIdGenerator = SqlGlobalIdGenerator.withHandle(handle);
         }
 
-        Long globalId = globalIdGenerator.generate();
+//        Long globalId = globalIdGenerator.generate();
+
+        Long globalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().orElse(0L);
+
+        handle.createUpdate("INSERT into sequences (name, next_value) VALUES (?, ?)").bind(0, "globalId").bind(1, globalId + 1);
 
         // Create a row in the "versions" table
         String sql = sqlStatements.insertVersion(firstVersion);
@@ -460,6 +471,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
+    @SneakyThrows
     protected Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
@@ -472,35 +484,78 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
         String sql = sqlStatements.upsertContent();
-        Long contentId;
-        if ("postgresql".equals(sqlStatements.dbType()) || "h2".equals(sqlStatements.dbType())) {
-            handle.createUpdate(sql)
-                    .bind(0, canonicalContentHash)
-                    .bind(1, contentHash)
-                    .bind(2, contentBytes)
-                    .execute();
-            sql = sqlStatements.selectContentIdByHash();
-            contentId = handle.createQuery(sql)
-                    .bind(0, contentHash)
-                    .mapTo(Long.class)
-                    .one();
-        } else {
+//        Long contentId;
+
+        log.info("DB TYPE, {}", sqlStatements.dbType());
+
+//        if ("postgresql".equals(sqlStatements.dbType()) || "h2".equals(sqlStatements.dbType())) {
+//            handle.createUpdate(sql)
+//                    .bind(0, canonicalContentHash)
+//                    .bind(1, contentHash)
+//                    .bind(2, contentBytes)
+//                    .execute();
+//            sql = sqlStatements.selectContentIdByHash();
+//            contentId = handle.createQuery(sql)
+//                    .bind(0, contentHash)
+//                    .mapTo(Long.class)
+//                    .one();
+//        } else {
             // Handle other supported DBs here in the case that they handle UPSERT differently.
-//            contentId = 0l;
+//            contentId =
+
+//            SimpleSequenceGenerator simpleSequence = new SimpleSequenceGenerator("contentId");
+////
+//            String finalSql = sql;
+
+//            contentId = dbClient
+//                    .readWriteTransaction()
+//                    .run(
+//                            new TransactionRunner.TransactionCallable<Long>() {
+//                                @Nullable
+//                                @Override
+//                                public Long run(TransactionContext txn) {
+//                                    // Get a sequence value
+//                                    long nextValue = simpleSequence.getNext(txn);
+//
+//                                    handle.createUpdate(finalSql)
+//                                            .bind(0, canonicalContentHash)
+//                                            .bind(1, contentHash)
+//                                            .bind(2, contentBytes)
+//                                            .bind(3, nextValue)
+//                                            .execute();
+//
+//                                    return Long.valueOf(nextValue);
+//                                }
+//                            });
+
+//            handle.createQuery()
+//handle.createQuery
+
+            handle.getConnection().setReadOnly(false);
+
+        Long contentId = handle.createQuery("SELECT next_value FROM sequences where name = \"contentId\";").mapTo(Long.class).findFirst().orElse(0L);
+
+        if (contentId.equals(0L)) {
+            handle.createUpdate("INSERT into sequences (name, next_value) VALUES (?, ?)").bind(0, "contentId").bind(1, contentId + 1).execute();
+        } else {
+            handle.createUpdate("UPDATE sequences SET (name, next_value) VALUES (?, ?)").bind(0, "contentId").bind(1, contentId + 1).execute();
+        }
 
             handle.createUpdate(sql)
-                    .bind(0, canonicalContentHash)
-                    .bind(1, contentHash)
-                    .bind(2, contentBytes)
+                    .bind(0, contentId + 1)
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, contentBytes)
                     .execute();
             sql = sqlStatements.selectContentIdByHash();
             contentId = handle.createQuery(sql)
                     .bind(0, contentHash)
                     .mapTo(Long.class)
                     .one();
-        }
+
         return contentId;
     }
+
 
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
@@ -521,6 +576,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         // Put the content in the DB and get the unique content ID back.
         long contentId = withHandle(handle -> {
+            handle.getConnection().setReadOnly(false);
             return createOrUpdateContent(handle, artifactType, content);
         });
 

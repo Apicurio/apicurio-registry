@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.rest.client.request;
 
-import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import org.apache.http.NameValuePair;

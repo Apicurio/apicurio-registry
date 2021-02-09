@@ -46,6 +46,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.equalToObject;
 import static org.hamcrest.Matchers.notNullValue;
@@ -1469,7 +1470,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/v2/search/artifacts")
             .then()
                 .statusCode(200)
-                .body("count", equalTo(2));
+                .body("count", greaterThanOrEqualTo(2));
         given()
             .when()
                 .queryParam("group", groupId)

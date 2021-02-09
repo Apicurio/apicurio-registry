@@ -84,7 +84,7 @@ public interface RegistryClient {
 	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
 	                                          Integer limit);
 
-	VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
+	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version,
 	                                      InputStream data);
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order,

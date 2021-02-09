@@ -279,7 +279,13 @@ public class RegistryClientImpl implements RegistryClient {
 	public VersionMetaData createArtifactVersion(String groupId, String artifactId,
 	                                             String version, InputStream data) {
 
-		return requestHandler.sendRequest(POST, ARTIFACT_VERSION, Map.of(Headers.VERSION, version),
+		final Map<String, String> headers = new HashMap<>();
+
+		if (null != version) {
+			headers.put(Headers.VERSION, version);
+		}
+
+		return requestHandler.sendRequest(POST, ARTIFACT_VERSIONS, headers,
 				EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), Optional.of(data), groupId, artifactId)
 				.get();
 	}

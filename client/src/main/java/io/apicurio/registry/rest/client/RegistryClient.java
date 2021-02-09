@@ -51,7 +51,8 @@ public interface RegistryClient {
 
 	void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
 
-	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
+	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical,
+	                                                    InputStream data);
 
 	List<RuleType> listArtifactRules(String groupId, String artifactId);
 
@@ -73,27 +74,36 @@ public interface RegistryClient {
 
 	VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version);
 
-	void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data);
+	void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+	                                   EditableMetaData data);
 
 	void deleteArtifactVersionMetaData(String groupId, String artifactId, String version);
 
 	void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data);
 
-	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit);
+	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
+	                                          Integer limit);
 
-	VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion, InputStream data);
+	VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
+	                                      InputStream data);
 
-	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby);
+	ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order,
+	                                           SortBy orderby);
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId);
 
-	ArtifactMetaData createArtifact(InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+	ArtifactMetaData createArtifact(InputStream data)
+			throws ArtifactAlreadyExistsException, RestClientException;
 
-	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId,
+	                                InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
 
-	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, IfExists ifExists, Boolean canonical, InputStream data) throws ArtifactAlreadyExistsException, RestClientException;
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId,
+	                                IfExists ifExists, Boolean canonical, InputStream data)
+			throws ArtifactAlreadyExistsException, RestClientException;
 
-	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactID, String version, IfExists ifExists, Boolean canonical, InputStream data);
+	ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactID,
+	                                String version, IfExists ifExists, Boolean canonical, InputStream data);
 
 	void deleteArtifactsInGroup(String groupId);
 
@@ -107,7 +117,10 @@ public interface RegistryClient {
 
 	InputStream getContentByHash(String contentHash, Boolean canonical);
 
-	ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description, String artifactgroup);
+	ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
+	                                      SortBy orderby, List<String> labels, List<String> properties, String description,
+	                                      String artifactgroup);
 
-	ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order, SortBy orderby, InputStream data);
+	ArtifactSearchResults searchArtifactsByContent(Integer offset, Integer limit, SortOrder order,
+	                                               SortBy orderby, InputStream data);
 }

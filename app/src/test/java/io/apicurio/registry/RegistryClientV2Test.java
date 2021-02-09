@@ -56,7 +56,8 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		createArtifact(groupId, artifactId1);
 		createArtifact(groupId, artifactId2);
 
-		final ArtifactSearchResults searchResults = clientV2.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
+		final ArtifactSearchResults searchResults = clientV2
+				.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
 
 		assertNotNull(clientV2.toString());
 		assertEquals(clientV2.hashCode(), clientV2.hashCode());
@@ -65,7 +66,8 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		clientV2.deleteArtifact(groupId, artifactId1);
 		clientV2.deleteArtifact(groupId, artifactId2);
 
-		final ArtifactSearchResults deletedResults = clientV2.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
+		final ArtifactSearchResults deletedResults = clientV2
+				.listArtifactsInGroup(groupId, 2, 0, SortOrder.asc, SortBy.name);
 		assertEquals(0, deletedResults.getCount());
 	}
 
@@ -79,7 +81,8 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		String artifactId = UUID.randomUUID().toString();
 		String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
 		ByteArrayInputStream artifactData = new ByteArrayInputStream(
-				("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+				("{\"type\":\"record\",\"title\":\"" + name
+						+ "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
 						.getBytes(StandardCharsets.UTF_8));
 
 		ArtifactMetaData amd = clientV2.createArtifact(groupId, ArtifactType.JSON, artifactId, artifactData);
@@ -87,7 +90,9 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
 		this.waitForGlobalId(id);
 
-		ArtifactSearchResults results = clientV2.searchArtifacts(name, 0, 10, SortOrder.asc, SortBy.name, Collections.emptyList(), Collections.emptyList(), "", "");
+		ArtifactSearchResults results = clientV2
+				.searchArtifacts(name, 0, 10, SortOrder.asc, SortBy.name, Collections.emptyList(),
+						Collections.emptyList(), "", "");
 		Assertions.assertNotNull(results);
 		Assertions.assertEquals(1, results.getCount());
 		Assertions.assertEquals(1, results.getArtifacts().size());
@@ -98,7 +103,6 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		Assertions.assertNotNull(results);
 		Assertions.assertTrue(results.getCount() > 0);
 	}
-
 
 	@Test
 	public void getLatestArtifact() {
@@ -161,9 +165,11 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 	}
 
 	private ArtifactMetaData createArtifact(String groupId, String artifactId) {
-		ByteArrayInputStream stream = new ByteArrayInputStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+		ByteArrayInputStream stream = new ByteArrayInputStream(
+				ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
 
-		ArtifactMetaData created = clientV2.createArtifact(groupId, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
+		ArtifactMetaData created = clientV2
+				.createArtifact(groupId, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
 
 		assertNotNull(created);
 		assertEquals(groupId, created.getGroupId());

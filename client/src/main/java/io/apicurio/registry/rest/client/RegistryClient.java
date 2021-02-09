@@ -88,7 +88,8 @@ public interface RegistryClient {
 	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data);
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer limit, Integer offset);
-    default ArtifactSearchResults listArtifactsInGroup(String groupId) {
+
+	default ArtifactSearchResults listArtifactsInGroup(String groupId) {
         return listArtifactsInGroup(groupId, null, null, null, null);
     }
 

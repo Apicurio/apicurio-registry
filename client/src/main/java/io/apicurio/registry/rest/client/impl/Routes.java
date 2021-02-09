@@ -21,27 +21,27 @@ package io.apicurio.registry.rest.client.impl;
  */
 public class Routes {
 
-	protected static final String GROUP_BASE_PATH = "groups/%s/artifacts";
-	protected static final String ARTIFACT_BASE_PATH = GROUP_BASE_PATH + "/%s";
+    protected static final String GROUP_BASE_PATH = "groups/%s/artifacts";
+    protected static final String ARTIFACT_BASE_PATH = GROUP_BASE_PATH + "/%s";
     protected static final String IDS_BASE_PATH = "ids";
     protected static final String ADMIN_BASE_PATH = "admin";
-	protected static final String SEARCH_BASE_PATH = "search";
-	protected static final String SEARCH_ARTIFACTS = SEARCH_BASE_PATH + "/artifacts";
+    protected static final String SEARCH_BASE_PATH = "search";
+    protected static final String SEARCH_ARTIFACTS = SEARCH_BASE_PATH + "/artifacts";
 
-	protected static final String ARTIFACT_RULES = ARTIFACT_BASE_PATH + "/rules";
-	protected static final String ARTIFACT_VERSIONS = ARTIFACT_BASE_PATH + "/versions";
-	protected static final String ARTIFACT_VERSION = ARTIFACT_VERSIONS + "/%s";
+    protected static final String ARTIFACT_RULES = ARTIFACT_BASE_PATH + "/rules";
+    protected static final String ARTIFACT_VERSIONS = ARTIFACT_BASE_PATH + "/versions";
+    protected static final String ARTIFACT_VERSION = ARTIFACT_VERSIONS + "/%s";
 
-	protected static final String ARTIFACT_METADATA = ARTIFACT_BASE_PATH + "/meta";
-	protected static final String ARTIFACT_RULE = ARTIFACT_RULES + "/%s";
-	protected static final String ARTIFACT_STATE = ARTIFACT_BASE_PATH + "/state";
-	protected static final String ARTIFACT_TEST = ARTIFACT_BASE_PATH + "/test";
+    protected static final String ARTIFACT_METADATA = ARTIFACT_BASE_PATH + "/meta";
+    protected static final String ARTIFACT_RULE = ARTIFACT_RULES + "/%s";
+    protected static final String ARTIFACT_STATE = ARTIFACT_BASE_PATH + "/state";
+    protected static final String ARTIFACT_TEST = ARTIFACT_BASE_PATH + "/test";
 
-	protected static final String VERSION_METADATA = ARTIFACT_VERSION + "/meta";
-	protected static final String VERSION_STATE = ARTIFACT_VERSION + "/state";
-	protected static final String VERSION_TEST = ARTIFACT_VERSION + "/test";
+    protected static final String VERSION_METADATA = ARTIFACT_VERSION + "/meta";
+    protected static final String VERSION_STATE = ARTIFACT_VERSION + "/state";
+    protected static final String VERSION_TEST = ARTIFACT_VERSION + "/test";
 
-	protected static final String IDS_CONTENT_ID = IDS_BASE_PATH + "/contentIds/%s";
+    protected static final String IDS_CONTENT_ID = IDS_BASE_PATH + "/contentIds/%s";
     protected static final String IDS_CONTENT_HASH = IDS_BASE_PATH + "/contentHashes/%s";
     protected static final String IDS_GLOBAL_ID = IDS_BASE_PATH + "/globalIds/%s";
 

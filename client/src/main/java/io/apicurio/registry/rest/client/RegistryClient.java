@@ -50,7 +50,8 @@ public interface RegistryClient {
 	void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
 
 	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
-    default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
+
+	default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
         return getArtifactVersionMetaDataByContent(groupId, artifactId, null, data);
     }
 
@@ -87,11 +88,13 @@ public interface RegistryClient {
 	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data);
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer limit, Integer offset);
-    default ArtifactSearchResults listArtifactsInGroup(String groupId) {
+
+	default ArtifactSearchResults listArtifactsInGroup(String groupId) {
         return listArtifactsInGroup(groupId, null, null, null, null);
     }
 
 	ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data);
+
     default ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) {
         return createArtifact(groupId, artifactId, null, null, null, null, data);
     }
@@ -112,6 +115,7 @@ public interface RegistryClient {
 	InputStream getContentByGlobalId(long globalId);
 
     InputStream getContentByHash(String contentHash, Boolean canonical);
+
     default InputStream getContentByHash(String contentHash) {
         return getContentByHash(contentHash, null);
     };

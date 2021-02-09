@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client.request;
 
+import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import org.apache.http.client.utils.URIBuilder;
@@ -23,12 +24,15 @@ import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Authenticator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -38,8 +42,9 @@ public class RequestHandler {
 
 	private final HttpClient client;
 	private final String endpoint;
+	private final Auth auth;
 
-	public RequestHandler(String endpoint) {
+	public RequestHandler(String endpoint, Auth auth) {
 		if (!endpoint.endsWith("/")) {
 			endpoint += "/";
 		}
@@ -47,75 +52,44 @@ public class RequestHandler {
 
 		this.endpoint = endpoint;
 		this.client = httpClientBuilder.build();
+		this.auth = auth;
 	}
 
-	public <T> T sendGetRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
+
+	public  <T> T sendRequest(Operation operation, String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
+
+		return sendRequest(operation, requestPath, Collections.emptyMap(), queryParams, bodyHandler, Optional.empty(), pathParams);
+	}
+
+	public <T> T sendRequest(Operation operation, String requestPath, Map<String, String> headers,  Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Optional<InputStream> data, Object... pathParams) {
 
 		try {
-			final HttpRequest req = HttpRequest.newBuilder()
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
 					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
 					.header("Content-Type", "application/json")
-					.header("Accept", "application/json")
-					.GET()
-					.build();
+					.header("Accept", "application/json");
 
-			return client.send(req, bodyHandler)
-					.body();
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
+			headers.forEach(requestBuilder::header);
+
+			switch (operation) {
+			case GET:
+				requestBuilder.GET();
+				break;
+			case PUT:
+				requestBuilder.PUT(HttpRequest.BodyPublishers.ofByteArray(data.get().readAllBytes()));
+				break;
+			case POST:
+				requestBuilder.POST(HttpRequest.BodyPublishers.ofByteArray(data.get().readAllBytes()));
+				break;
+			case DELETE:
+				requestBuilder.DELETE();
+				break;
+			default:
+				throw new IllegalStateException("Operation not allowed");
 		}
-	}
 
-	public <T> T sendPostRequest(String requestPath, Map<String, String> headers, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... pathParams) {
-
-		try {
-			final HttpRequest.Builder builder = HttpRequest.newBuilder();
-
-			headers.forEach(builder::header);
-
-			builder.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
-					.header("Content-Type", "application/json")
-					.header("Accept", "application/json")
-					.POST(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()));
-
-			return client.send(builder.build(), bodyHandler)
-					.body();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
-	}
-
-	public <T> T sendPutRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, InputStream data, Object... pathParams) {
-
-		try {
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
-					.header("Content-Type", "application/json")
-					.header("Accept", "application/json")
-					.PUT(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
-					.build();
-
-			return client.send(req, bodyHandler)
-					.body();
-
-		} catch (URISyntaxException | IOException | InterruptedException e) {
-			throw parseError(e);
-		}
-	}
-
-	public <T> T sendDeleteRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
-
-		try {
-			final HttpRequest req = HttpRequest.newBuilder()
-					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
-					.header("Content-Type", "application/json")
-					.header("Accept", "application/json")
-					.DELETE()
-					.build();
-
-			return client.send(req, bodyHandler)
-					.body();
+		return client.send(requestBuilder.build(), bodyHandler)
+				.body();
 
 		} catch (URISyntaxException | IOException | InterruptedException e) {
 			throw parseError(e);
@@ -139,5 +113,10 @@ public class RequestHandler {
 
 		//TODO build error
 		return new RestClientException(new Error());
+	}
+
+
+	public enum Operation {
+		PUT, POST, GET, DELETE
 	}
 }

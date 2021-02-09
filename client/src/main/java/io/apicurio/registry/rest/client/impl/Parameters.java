@@ -20,7 +20,12 @@ public class Parameters {
 
 	protected static String LIMIT = "limit";
 	protected static String OFFSET = "offset";
-	protected static String SORT_ORDER = "sort_order";
+	protected static String SORT_ORDER = "order";
 	protected static String ORDER_BY = "order_by";
 	protected static String CANONICAL = "canonical";
+	protected static String NAME = "name";
+	protected static String GROUP = "group";
+	protected static String DESCRIPTION = "";
+	protected static String PROPERTIES = "properties";
+	protected static String LABELS = "labels";
 }

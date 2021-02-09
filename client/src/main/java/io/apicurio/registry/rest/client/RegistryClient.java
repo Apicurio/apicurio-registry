@@ -16,7 +16,16 @@
 
 package io.apicurio.registry.rest.client;
 
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
@@ -65,17 +74,22 @@ public interface RegistryClient {
 
 	VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version);
 
-	void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data);
+	void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+	                                   EditableMetaData data);
 
 	void deleteArtifactVersionMetaData(String groupId, String artifactId, String version);
 
 	void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data);
 
-	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit);
+	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
+	                                          Integer limit);
 
 	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data);
 
 	ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer limit, Integer offset);
+    default ArtifactSearchResults listArtifactsInGroup(String groupId) {
+        return listArtifactsInGroup(groupId, null, null, null, null);
+    }
 
 	ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data);
     default ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) {

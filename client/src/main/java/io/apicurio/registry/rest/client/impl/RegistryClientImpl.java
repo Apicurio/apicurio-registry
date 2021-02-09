@@ -71,18 +71,14 @@ import static io.apicurio.registry.rest.client.request.RequestHandler.Operation.
  */
 public class RegistryClientImpl implements RegistryClient {
 
-	private static final Map<String, String> EMPTY_QUERY_PARAMS = Collections.emptyMap();
+	private static final Map<String, List<String>> EMPTY_QUERY_PARAMS = Collections.emptyMap();
 	private static final Map<String, String> EMPTY_REQUEST_HEADERS = Collections.emptyMap();
 
 	private final RequestHandler requestHandler;
 	private final ObjectMapper mapper;
 
 	public RegistryClientImpl(String endpoint) {
-		this(endpoint, null);
-	}
-
-	public RegistryClientImpl(String endpoint, Auth auth) {
-		requestHandler = new RequestHandler(endpoint, auth);
+		requestHandler = new RequestHandler(endpoint);
 		mapper = new ObjectMapper();
 	}
 
@@ -133,7 +129,7 @@ public class RegistryClientImpl implements RegistryClient {
 	                                                           Boolean canonical, InputStream data) {
 
 		return requestHandler.sendRequest(POST, VERSION_METADATA, EMPTY_REQUEST_HEADERS,
-				Map.of(Parameters.CANONICAL, String.valueOf(canonical)),
+				Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))),
 				new JsonBodyHandler<>(VersionMetaData.class), Optional.of(data), groupId, artifactId).get();
 	}
 
@@ -271,7 +267,7 @@ public class RegistryClientImpl implements RegistryClient {
 	                                                 Integer offset, Integer limit) {
 
 		return requestHandler.sendRequest(GET, ARTIFACT_VERSIONS,
-				Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset)),
+				Map.of(Parameters.LIMIT, Collections.singletonList(String.valueOf(limit)), Parameters.OFFSET, Collections.singletonList(String.valueOf(offset))),
 				new JsonBodyHandler<>(VersionSearchResults.class), groupId, artifactId).get();
 	}
 
@@ -294,7 +290,7 @@ public class RegistryClientImpl implements RegistryClient {
 	public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset,
 	                                                  SortOrder order, SortBy orderby) {
 
-		final Map<String, String> queryParams = new HashMap<>();
+		final Map<String, List<String>> queryParams = new HashMap<>();
 
 		checkCommonQueryParams(offset, limit, order, orderby, queryParams);
 
@@ -344,10 +340,10 @@ public class RegistryClientImpl implements RegistryClient {
 			headers.put(Headers.VERSION, version);
 		}
 
-		final Map<String, String> queryParams = new HashMap<>();
+		final Map<String, List<String>> queryParams = new HashMap<>();
 
 		if (canonical != null && canonical) {
-			queryParams.put(Parameters.CANONICAL, String.valueOf(canonical));
+			queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
 		}
 
 		return requestHandler.sendRequest(POST, GROUP_BASE_PATH, headers, queryParams,
@@ -378,9 +374,9 @@ public class RegistryClientImpl implements RegistryClient {
 
 	@Override
 	public InputStream getContentByHash(String contentHash, Boolean canonical) {
-		Map<String, String> queryParams = EMPTY_QUERY_PARAMS;
+		Map<String, List<String>> queryParams = EMPTY_QUERY_PARAMS;
 		if (canonical != null && canonical) {
-			queryParams = Map.of(Parameters.CANONICAL, String.valueOf(canonical));
+			queryParams = Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
 		}
 		return requestHandler
 				.sendRequest(GET, Routes.IDS_CONTENT_HASH, queryParams, BodyHandlers.ofInputStream(),
@@ -389,39 +385,34 @@ public class RegistryClientImpl implements RegistryClient {
 
 	@Override
 	public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit,
-	                                             SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description,
-	                                             String artifactgroup) {
-		try {
-			final Map<String, String> queryParams = new HashMap<>();
+												 SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description,
+												 String artifactgroup) {
+		final Map<String, List<String>> queryParams = new HashMap<>();
 
-			if (name != null) {
-				queryParams.put(Parameters.NAME, name);
-			}
-
-			if (description != null) {
-				queryParams.put(Parameters.DESCRIPTION, description);
-			}
-
-			if (artifactgroup != null) {
-				queryParams.put(Parameters.GROUP, artifactgroup);
-			}
-
-			checkCommonQueryParams(offset, limit, order, orderby, queryParams);
-
-			if (labels != null && !labels.isEmpty()) {
-				queryParams.put(Parameters.LABELS, mapper.writeValueAsString(labels));
-			}
-
-			if (properties != null && !properties.isEmpty()) {
-				queryParams.put(Parameters.PROPERTIES, mapper.writeValueAsString(properties));
-			}
-
-			return requestHandler.sendRequest(GET, SEARCH_ARTIFACTS, queryParams,
-					new JsonBodyHandler<>(ArtifactSearchResults.class)).get();
-
-		} catch (JsonProcessingException e) {
-			throw parseError(e);
+		if (name != null) {
+			queryParams.put(Parameters.NAME, Collections.singletonList(name));
 		}
+
+		if (description != null) {
+			queryParams.put(Parameters.DESCRIPTION, Collections.singletonList(description));
+		}
+
+		if (artifactgroup != null) {
+			queryParams.put(Parameters.GROUP, Collections.singletonList(artifactgroup));
+		}
+
+		checkCommonQueryParams(offset, limit, order, orderby, queryParams);
+
+		if (labels != null && !labels.isEmpty()) {
+			queryParams.put(Parameters.LABELS, labels);
+		}
+
+		if (properties != null && !properties.isEmpty()) {
+			queryParams.put(Parameters.PROPERTIES, properties);
+		}
+
+		return requestHandler.sendRequest(GET, SEARCH_ARTIFACTS, queryParams,
+				new JsonBodyHandler<>(ArtifactSearchResults.class)).get();
 	}
 
 	@Override
@@ -431,21 +422,21 @@ public class RegistryClientImpl implements RegistryClient {
 	}
 
 	private void checkCommonQueryParams(Integer offset, Integer limit, SortOrder order, SortBy orderby,
-	                                    Map<String, String> queryParams) {
+	                                    Map<String, List<String>> queryParams) {
 		if (offset != null) {
-			queryParams.put(Parameters.OFFSET, String.valueOf(offset));
+			queryParams.put(Parameters.OFFSET, Collections.singletonList(String.valueOf(offset)));
 		}
 
 		if (limit != null) {
-			queryParams.put(Parameters.LIMIT, String.valueOf(limit));
+			queryParams.put(Parameters.LIMIT, Collections.singletonList(String.valueOf(limit)));
 		}
 
 		if (order != null) {
-			queryParams.put(Parameters.SORT_ORDER, order.value());
+			queryParams.put(Parameters.SORT_ORDER, Collections.singletonList(order.value()));
 		}
 
 		if (orderby != null) {
-			queryParams.put(Parameters.ORDER_BY, orderby.value());
+			queryParams.put(Parameters.ORDER_BY, Collections.singletonList(orderby.value()));
 		}
 	}
 

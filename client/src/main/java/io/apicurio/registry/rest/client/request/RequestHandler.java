@@ -19,21 +19,22 @@ package io.apicurio.registry.rest.client.request;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Authenticator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -42,9 +43,8 @@ public class RequestHandler {
 
 	private final HttpClient client;
 	private final String endpoint;
-	private final Auth auth;
 
-	public RequestHandler(String endpoint, Auth auth) {
+	public RequestHandler(String endpoint ) {
 		if (!endpoint.endsWith("/")) {
 			endpoint += "/";
 		}
@@ -52,16 +52,14 @@ public class RequestHandler {
 
 		this.endpoint = endpoint;
 		this.client = httpClientBuilder.build();
-		this.auth = auth;
 	}
 
-
-	public  <T> T sendRequest(Operation operation, String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
+	public  <T> T sendRequest(Operation operation, String requestPath, Map<String, List<String>> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
 
 		return sendRequest(operation, requestPath, Collections.emptyMap(), queryParams, bodyHandler, Optional.empty(), pathParams);
 	}
 
-	public <T> T sendRequest(Operation operation, String requestPath, Map<String, String> headers,  Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Optional<InputStream> data, Object... pathParams) {
+	public <T> T sendRequest(Operation operation, String requestPath, Map<String, String> headers,  Map<String, List<String>> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Optional<InputStream> data, Object... pathParams) {
 
 		try {
 			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -96,15 +94,17 @@ public class RequestHandler {
 		}
 	}
 
-	private static URI buildURI(String basePath, Map<String, String> queryParams, Object... pathParams) throws URISyntaxException {
+	private static URI buildURI(String basePath, Map<String, List<String>> queryParams, Object... pathParams) throws URISyntaxException {
 
 		final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, pathParams));
 
-		uriBuilder.setParameters(queryParams.entrySet()
-				.stream()
-				.map(entry -> new BasicNameValuePair(entry.getKey(), entry.getValue()))
-				.collect(Collectors.toList())
-		);
+		final List<NameValuePair> queryParamsExpanded = new ArrayList<>();
+
+		//Iterate over query params list so we can add multiple query params with the same key
+		queryParams.forEach((key, paramList) -> paramList
+				.forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
+
+		uriBuilder.setParameters(queryParamsExpanded);
 
 		return uriBuilder.build();
 	}

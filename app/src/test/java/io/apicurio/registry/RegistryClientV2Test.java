@@ -23,17 +23,21 @@ import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.test.junit.QuarkusTest;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -41,11 +45,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 public class RegistryClientV2Test extends AbstractResourceTestBase {
 
-    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
+	private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
 	@Test
 	public void testSmoke() throws Exception {
-	    final String groupId = "testSmoke";
+		final String groupId = "testSmoke";
 		final String artifactId1 = generateArtifactId();
 		final String artifactId2 = generateArtifactId();
 
@@ -65,10 +69,40 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 		assertEquals(0, deletedResults.getCount());
 	}
 
+	@Test
+	void testSearchArtifact() throws Exception {
+
+		final String groupId = "testSearchArtifact";
+		// warm-up
+		clientV2.listArtifactsInGroup(groupId);
+
+		String artifactId = UUID.randomUUID().toString();
+		String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
+		ByteArrayInputStream artifactData = new ByteArrayInputStream(
+				("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+						.getBytes(StandardCharsets.UTF_8));
+
+		ArtifactMetaData amd = clientV2.createArtifact(groupId, ArtifactType.JSON, artifactId, artifactData);
+		long id = amd.getGlobalId();
+
+		this.waitForGlobalId(id);
+
+		ArtifactSearchResults results = clientV2.searchArtifacts(name, 0, 10, SortOrder.asc, SortBy.name, Collections.emptyList(), Collections.emptyList(), "", "");
+		Assertions.assertNotNull(results);
+		Assertions.assertEquals(1, results.getCount());
+		Assertions.assertEquals(1, results.getArtifacts().size());
+		Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+
+		// Try searching for *everything*.  This test was added due to Issue #661
+		results = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);
+		Assertions.assertNotNull(results);
+		Assertions.assertTrue(results.getCount() > 0);
+	}
+
 
 	@Test
 	public void getLatestArtifact() {
-        final String groupId = "getLatestArtifact";
+		final String groupId = "getLatestArtifact";
 		final String artifactId = generateArtifactId();
 
 		createArtifact(groupId, artifactId);
@@ -79,55 +113,55 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 	}
 
 
-    @Test
-    public void getContentById() throws IOException {
-        final String groupId = "getContentById";
-        final String artifactId = generateArtifactId();
+	@Test
+	public void getContentById() throws IOException {
+		final String groupId = "getContentById";
+		final String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = createArtifact(groupId, artifactId);
+		ArtifactMetaData amd = createArtifact(groupId, artifactId);
 
-        assertNotNull(amd.getContentId());
+		assertNotNull(amd.getContentId());
 
-        InputStream content = clientV2.getContentById(amd.getContentId());
-        assertNotNull(content);
+		InputStream content = clientV2.getContentById(amd.getContentId());
+		assertNotNull(content);
 
-        String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
-        assertEquals(ARTIFACT_CONTENT, artifactContent);
-    }
-
-
-    @Test
-    public void getContentByHash() throws IOException {
-        final String groupId = "getContentByHash";
-        final String artifactId = generateArtifactId();
-        String contentHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
-
-        createArtifact(groupId, artifactId);
-
-        InputStream content = clientV2.getContentByHash(contentHash);
-        assertNotNull(content);
-
-        String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
-        assertEquals(ARTIFACT_CONTENT, artifactContent);
-    }
+		String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
+		assertEquals(ARTIFACT_CONTENT, artifactContent);
+	}
 
 
-    @Test
-    public void getContentByGlobalId() throws IOException {
-        final String groupId = "getContentByGlobalId";
-        final String artifactId = generateArtifactId();
+	@Test
+	public void getContentByHash() throws IOException {
+		final String groupId = "getContentByHash";
+		final String artifactId = generateArtifactId();
+		String contentHash = DigestUtils.sha256Hex(ARTIFACT_CONTENT);
 
-        ArtifactMetaData amd = createArtifact(groupId, artifactId);
+		createArtifact(groupId, artifactId);
 
-        InputStream content = clientV2.getContentByGlobalId(amd.getGlobalId());
-        assertNotNull(content);
+		InputStream content = clientV2.getContentByHash(contentHash);
+		assertNotNull(content);
 
-        String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
-        assertEquals(ARTIFACT_CONTENT, artifactContent);
-    }
+		String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
+		assertEquals(ARTIFACT_CONTENT, artifactContent);
+	}
+
+
+	@Test
+	public void getContentByGlobalId() throws IOException {
+		final String groupId = "getContentByGlobalId";
+		final String artifactId = generateArtifactId();
+
+		ArtifactMetaData amd = createArtifact(groupId, artifactId);
+
+		InputStream content = clientV2.getContentByGlobalId(amd.getGlobalId());
+		assertNotNull(content);
+
+		String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
+		assertEquals(ARTIFACT_CONTENT, artifactContent);
+	}
 
 	private ArtifactMetaData createArtifact(String groupId, String artifactId) {
-        ByteArrayInputStream stream = new ByteArrayInputStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+		ByteArrayInputStream stream = new ByteArrayInputStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
 
 		ArtifactMetaData created = clientV2.createArtifact(groupId, ArtifactType.JSON, artifactId, "1", IfExists.RETURN, false, stream);
 

@@ -16,38 +16,18 @@
 
 package io.apicurio.registry.rest.client.impl;
 
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_BASE_PATH;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_METADATA;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_RULE;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_RULES;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_STATE;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_TEST;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSION;
-import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSIONS;
-import static io.apicurio.registry.rest.client.impl.Routes.GROUP_BASE_PATH;
-import static io.apicurio.registry.rest.client.impl.Routes.VERSION_METADATA;
-import static io.apicurio.registry.rest.client.impl.Routes.VERSION_STATE;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.request.JsonBodyHandler;
 import io.apicurio.registry.rest.client.request.RequestHandler;
-import io.apicurio.registry.rest.v1.beans.Error;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -58,13 +38,35 @@ import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_METADATA;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_RULE;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_RULES;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_STATE;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_TEST;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSION;
+import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSIONS;
+import static io.apicurio.registry.rest.client.impl.Routes.GROUP_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.SEARCH_ARTIFACTS;
+import static io.apicurio.registry.rest.client.impl.Routes.VERSION_METADATA;
+import static io.apicurio.registry.rest.client.impl.Routes.VERSION_STATE;
+
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
 public class RegistryClientImpl implements RegistryClient {
 
-    private static final Map<String, String> EMPTY_QUERY_PARAMS = Collections.emptyMap();
-    private static final Map<String, String> EMPTY_REQUEST_HEADERS = Collections.emptyMap();
+	private static final Map<String, String> EMPTY_QUERY_PARAMS = Collections.emptyMap();
+	private static final Map<String, String> EMPTY_REQUEST_HEADERS = Collections.emptyMap();
 
 	private final RequestHandler requestHandler;
 	private final ObjectMapper mapper;
@@ -243,19 +245,49 @@ public class RegistryClientImpl implements RegistryClient {
 	@Override
 	public ArtifactSearchResults listArtifactsInGroup(String groupId, Integer limit, Integer offset, SortOrder order, SortBy orderby) {
 
-		return requestHandler.sendGetRequest(GROUP_BASE_PATH, Map.of(Parameters.LIMIT, String.valueOf(limit), Parameters.OFFSET, String.valueOf(offset), Parameters.SORT_ORDER, order.value(), Parameters.ORDER_BY, orderby.value()), new JsonBodyHandler<>(ArtifactSearchResults.class), groupId)
-				.get();
+		final Map<String, String> queryParams = new HashMap<>();
 
+		checkCommonQueryParams(offset, limit, order, orderby, queryParams);
+
+		return requestHandler.sendGetRequest(GROUP_BASE_PATH, queryParams, new JsonBodyHandler<>(ArtifactSearchResults.class), groupId)
+				.get();
 	}
 
 	@Override
-	public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, InputStream data) {
+	public ArtifactSearchResults listArtifactsInGroup(String groupId) {
+
+		return this.listArtifactsInGroup(groupId, null, null, null, null);
+	}
+
+	@Override
+	public ArtifactMetaData createArtifact(InputStream data) throws ArtifactAlreadyExistsException, RestClientException {
+		return this.createArtifact(null, null, null, data);
+	}
+
+	@Override
+	public ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, InputStream data) throws ArtifactAlreadyExistsException, RestClientException {
+		return this.createArtifact(groupId, artifactType, artifactId, null, null, data);
+	}
+
+	@Override
+	public ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, IfExists ifExists, Boolean canonical, InputStream data) {
+		return this.createArtifact(groupId, artifactType, artifactId, null, ifExists, canonical, data);
+	}
+
+	@Override
+	public ArtifactMetaData createArtifact(String groupId, ArtifactType artifactType, String artifactId, String version, IfExists ifExists, Boolean canonical, InputStream data) {
+
+		final Map<String, String> queryParams = new HashMap<>(Map.of(Headers.ARTIFACT_ID, artifactId, Headers.ARTIFACT_TYPE, artifactType.value()));
+
+		if (version != null) {
+			queryParams.put(Headers.VERSION, version);
+		}
 
 		return requestHandler.sendPostRequest(GROUP_BASE_PATH,
-		        Map.of(Headers.ARTIFACT_ID, xRegistryArtifactId, Headers.ARTIFACT_TYPE, xRegistryArtifactType.value(), Headers.VERSION, xRegistryVersion),
-		        Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(ArtifactMetaData.class),
-		        data,
-		        groupId).get();
+				queryParams,
+				Map.of(Parameters.CANONICAL, String.valueOf(canonical)), new JsonBodyHandler<>(ArtifactMetaData.class),
+				data,
+				groupId).get();
 	}
 
 	@Override
@@ -267,26 +299,60 @@ public class RegistryClientImpl implements RegistryClient {
 
 	@Override
 	public InputStream getContentById(long contentId) {
-        return requestHandler.sendGetRequest(Routes.IDS_CONTENT_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(contentId));
+		return requestHandler.sendGetRequest(Routes.IDS_CONTENT_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(contentId));
 	}
 
 	@Override
 	public InputStream getContentByGlobalId(long globalId) {
-        return requestHandler.sendGetRequest(Routes.IDS_GLOBAL_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(globalId));
+		return requestHandler.sendGetRequest(Routes.IDS_GLOBAL_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), String.valueOf(globalId));
 	}
 
 	@Override
 	public InputStream getContentByHash(String contentHash, Boolean canonical) {
-	    Map<String, String> queryParams = EMPTY_QUERY_PARAMS;
-	    if (canonical != null && canonical) {
-	        queryParams = Map.of(Parameters.CANONICAL, String.valueOf(canonical));
-	    }
-        return requestHandler.sendGetRequest(Routes.IDS_CONTENT_HASH, queryParams, BodyHandlers.ofInputStream(), contentHash);
+		Map<String, String> queryParams = EMPTY_QUERY_PARAMS;
+		if (canonical != null && canonical) {
+			queryParams = Map.of(Parameters.CANONICAL, String.valueOf(canonical));
+		}
+		return requestHandler.sendGetRequest(Routes.IDS_CONTENT_HASH, queryParams, BodyHandlers.ofInputStream(), contentHash);
 	}
 
 	@Override
 	public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description, String artifactgroup) {
-		return null;
+
+		try {
+
+			final Map<String, String> queryParams = new HashMap<>();
+
+			if (name != null) {
+				queryParams.put(Parameters.NAME, name);
+			}
+
+			if (description != null) {
+				queryParams.put(Parameters.DESCRIPTION, description);
+			}
+
+			if (artifactgroup != null) {
+				queryParams.put(Parameters.GROUP, artifactgroup);
+			}
+
+			checkCommonQueryParams(offset, limit, order, orderby, queryParams);
+
+			if (labels != null && !labels.isEmpty()) {
+				queryParams.put(Parameters.LABELS, mapper.writeValueAsString(labels));
+			}
+
+			if (properties != null && !properties.isEmpty()) {
+				queryParams.put(Parameters.PROPERTIES, mapper.writeValueAsString(properties));
+			}
+
+			return requestHandler.sendGetRequest(SEARCH_ARTIFACTS,
+					queryParams,
+					new JsonBodyHandler<>(ArtifactSearchResults.class))
+					.get();
+
+		} catch (JsonProcessingException e) {
+			throw parseError(e);
+		}
 	}
 
 	@Override
@@ -294,10 +360,28 @@ public class RegistryClientImpl implements RegistryClient {
 		return null;
 	}
 
+	private void checkCommonQueryParams(Integer offset, Integer limit, SortOrder order, SortBy orderby, Map<String, String> queryParams) {
+
+		if (offset != null) {
+			queryParams.put(Parameters.OFFSET, String.valueOf(offset));
+		}
+
+		if (limit != null) {
+			queryParams.put(Parameters.LIMIT, String.valueOf(limit));
+		}
+
+		if (order != null) {
+			queryParams.put(Parameters.SORT_ORDER, order.value());
+		}
+
+		if (orderby != null) {
+			queryParams.put(Parameters.ORDER_BY, orderby.value());
+		}
+	}
+
 	private RestClientException parseError(Exception ex) {
 
 		//FIXME proper error handling
 		return new RestClientException(new Error());
 	}
-
 }

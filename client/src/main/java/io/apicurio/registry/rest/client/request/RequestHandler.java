@@ -16,9 +16,8 @@
 
 package io.apicurio.registry.rest.client.request;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.v1.beans.Error;
+import io.apicurio.registry.rest.v2.beans.Error;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -39,7 +38,6 @@ public class RequestHandler {
 
 	private final HttpClient client;
 	private final String endpoint;
-	private final ObjectMapper mapper;
 
 	public RequestHandler(String endpoint) {
 		if (!endpoint.endsWith("/")) {
@@ -49,7 +47,6 @@ public class RequestHandler {
 
 		this.endpoint = endpoint;
 		this.client = httpClientBuilder.build();
-		this.mapper = new ObjectMapper();
 	}
 
 	public <T> T sendGetRequest(String requestPath, Map<String, String> queryParams, HttpResponse.BodyHandler<T> bodyHandler, Object... pathParams) {
@@ -57,6 +54,8 @@ public class RequestHandler {
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
 					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
+					.header("Content-Type", "application/json")
+					.header("Accept", "application/json")
 					.GET()
 					.build();
 
@@ -75,6 +74,8 @@ public class RequestHandler {
 			headers.forEach(builder::header);
 
 			builder.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
+					.header("Content-Type", "application/json")
+					.header("Accept", "application/json")
 					.POST(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()));
 
 			return client.send(builder.build(), bodyHandler)
@@ -90,6 +91,8 @@ public class RequestHandler {
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
 					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
+					.header("Content-Type", "application/json")
+					.header("Accept", "application/json")
 					.PUT(HttpRequest.BodyPublishers.ofByteArray(data.readAllBytes()))
 					.build();
 
@@ -106,6 +109,8 @@ public class RequestHandler {
 		try {
 			final HttpRequest req = HttpRequest.newBuilder()
 					.uri(buildURI(endpoint + requestPath, queryParams, pathParams))
+					.header("Content-Type", "application/json")
+					.header("Accept", "application/json")
 					.DELETE()
 					.build();
 

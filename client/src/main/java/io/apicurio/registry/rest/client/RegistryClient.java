@@ -16,10 +16,13 @@
 
 package io.apicurio.registry.rest.client;
 
+
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
@@ -124,4 +127,24 @@ public interface RegistryClient {
 	        List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
 	ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
+
+	List<RuleType> listGlobalRules();
+
+	void createGlobalRule(Rule data);
+
+	void deleteAllGlobalRules();
+
+	Rule getGlobalRuleConfig(RuleType rule);
+
+	Rule updateGlobalRuleConfig(RuleType rule, Rule data);
+
+	void deleteGlobalRule(RuleType rule);
+
+	List<NamedLogConfiguration> listLogConfigurations();
+
+	NamedLogConfiguration getLogConfiguration(String logger);
+
+	NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
+
+	NamedLogConfiguration removeLogConfiguration(String logger);
 }

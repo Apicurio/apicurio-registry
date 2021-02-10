@@ -39,10 +39,14 @@ public class Routes {
 
     protected static final String VERSION_METADATA = ARTIFACT_VERSION + "/meta";
     protected static final String VERSION_STATE = ARTIFACT_VERSION + "/state";
-    protected static final String VERSION_TEST = ARTIFACT_VERSION + "/test";
 
     protected static final String IDS_CONTENT_ID = IDS_BASE_PATH + "/contentIds/%s";
     protected static final String IDS_CONTENT_HASH = IDS_BASE_PATH + "/contentHashes/%s";
     protected static final String IDS_GLOBAL_ID = IDS_BASE_PATH + "/globalIds/%s";
 
+    protected static final String RULES_BASE_PATH = ADMIN_BASE_PATH + "/rules";
+    protected static final String RULE_PATH = RULES_BASE_PATH + "/%s";
+
+    protected static final String LOGS_BASE_PATH = ADMIN_BASE_PATH + "/loggers";
+    protected static final String LOG_PATH = ADMIN_BASE_PATH + "/%s";
 }

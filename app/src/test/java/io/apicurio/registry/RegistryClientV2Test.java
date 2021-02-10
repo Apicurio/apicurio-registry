@@ -20,6 +20,9 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.LogLevel;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -689,9 +692,77 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             assertEquals(2, searchResults.getCount());
         }
     */
+
+
+    @Test
+    public void smokeGlobalRules() {
+
+        createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
+        createGlobalRule(RuleType.VALIDITY, "FORWARD");
+        final List<RuleType> globalRules = clientV2.listGlobalRules();
+        assertEquals(2, globalRules.size());
+
+        clientV2.deleteAllGlobalRules();
+
+        final List<RuleType> updatedRules = clientV2.listGlobalRules();
+        assertEquals(0, updatedRules.size());
+    }
+
+    @Test
+    public void getGlobalRuleConfig() {
+
+        createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
+        final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
+    }
+
+    @Test
+    public void updateGlobalRuleConfig() {
+
+        createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
+        final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
+
+        final Rule toUpdate = new Rule();
+        toUpdate.setType(RuleType.COMPATIBILITY);
+        toUpdate.setConfig("FORWARD");
+
+        final Rule updated = clientV2.updateGlobalRuleConfig(RuleType.COMPATIBILITY, toUpdate);
+        assertEquals(updated.getConfig(), "FORWARD");
+    }
+
+    @Test
+    public void deleteGlobalRule() {
+
+        createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
+        final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
+        assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
+
+        clientV2.deleteGlobalRule(RuleType.COMPATIBILITY);
+
+        final List<RuleType> ruleTypes = clientV2.listGlobalRules();
+        assertEquals(0, ruleTypes.size());
+    }
+
+    //TODO Commented out since log configuration has not been implemented yet.
+    /*
+    @Test
+    public void smokeLogLevels() {
+
+        final String logger = "smokeLogLevels";
+        final List<NamedLogConfiguration> namedLogConfigurations = clientV2.listLogConfigurations();
+        assertEquals(0, namedLogConfigurations.size());
+
+        setLogLevel(logger, LogLevel.DEBUG);
+        final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
+        assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
+        assertEquals(logger, logConfiguration.getName());
+    }
+    */
+
+
     private ArtifactMetaData createArtifact(String groupId, String artifactId) {
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
-
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.JSON, IfExists.FAIL, false, stream);
 
         assertNotNull(created);
@@ -702,16 +773,30 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
     }
 
     private void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
-
         final Rule rule = new Rule();
         rule.setConfig(ruleConfig);
         rule.setType(ruleType);
         clientV2.createArtifactRule(groupId, artifactId, rule);
     }
 
+    private Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
+        final Rule rule = new Rule();
+        rule.setConfig(ruleConfig);
+        rule.setType(ruleType);
+        clientV2.createGlobalRule( rule);
+
+        return rule;
+    }
+
     private void prepareRuleTest(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
 
         createArtifact(groupId, artifactId);
         createArtifactRule(groupId, artifactId, ruleType, ruleConfig);
+    }
+
+    private void setLogLevel(String log, LogLevel logLevel) {
+        final LogConfiguration logConfiguration = new LogConfiguration();
+        logConfiguration.setLevel(logLevel);
+        clientV2.setLogConfiguration(log, logConfiguration);
     }
 }

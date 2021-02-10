@@ -58,6 +58,10 @@ import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_TEST;
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSION;
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSIONS;
 import static io.apicurio.registry.rest.client.impl.Routes.GROUP_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.LOGS_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.LOG_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.RULES_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.RULE_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.SEARCH_ARTIFACTS;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_METADATA;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_STATE;
@@ -381,52 +385,80 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public List<RuleType> listGlobalRules() {
-        return null;
+        return requestHandler.sendRequest(GET, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(List.class), Optional.empty()).get();
     }
 
     @Override
     public void createGlobalRule(Rule data) {
-
+        try {
+            requestHandler.sendRequest(POST, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                    new JsonBodyHandler<>(Void.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))));
+        } catch (JsonProcessingException e) {
+            throw parseError(e);
+        }
     }
 
     @Override
     public void deleteAllGlobalRules() {
-
+        requestHandler.sendRequest(DELETE, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(Void.class), Optional.empty());
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
-        return null;
+        return requestHandler.sendRequest(GET, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(Rule.class), Optional.empty(), rule.value())
+                .get();
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
-        return null;
+        try {
+            return requestHandler.sendRequest(PUT, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                    new JsonBodyHandler<>(Rule.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), rule.value())
+                    .get();
+        } catch (JsonProcessingException e) {
+            throw parseError(e);
+        }
     }
 
     @Override
     public void deleteGlobalRule(RuleType rule) {
-
+        requestHandler.sendRequest(DELETE, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(Void.class), Optional.empty(), rule.value());
     }
 
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
-        return null;
+        return requestHandler.sendRequest(GET, LOGS_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(List.class), Optional.empty())
+                .get();
     }
 
     @Override
     public NamedLogConfiguration getLogConfiguration(String logger) {
-        return null;
+        return requestHandler.sendRequest(GET, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.empty(), logger)
+                .get();
     }
 
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        return null;
+        try {
+            return requestHandler.sendRequest(PUT, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                    new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), logger)
+                    .get();
+        } catch (JsonProcessingException e) {
+            throw parseError(e);
+        }
     }
 
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return null;
+        return requestHandler.sendRequest(DELETE, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
+                new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.empty(), logger)
+                .get();
     }
 
     private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,

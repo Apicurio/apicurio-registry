@@ -16,9 +16,7 @@
 
 package io.apicurio.registry.rest.client;
 
-import io.apicurio.registry.rest.v2.AdminResource;
-import io.apicurio.registry.rest.v2.IdsResource;
-import io.apicurio.registry.rest.v2.SearchResource;
+
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;

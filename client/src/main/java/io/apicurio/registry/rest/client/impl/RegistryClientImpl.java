@@ -28,6 +28,8 @@ import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
@@ -375,6 +377,56 @@ public class RegistryClientImpl implements RegistryClient {
 
         return requestHandler.sendRequest(POST, SEARCH_ARTIFACTS, EMPTY_REQUEST_HEADERS, queryParams,
                 new JsonBodyHandler<>(ArtifactSearchResults.class), Optional.of(data)).get();
+    }
+
+    @Override
+    public List<RuleType> listGlobalRules() {
+        return null;
+    }
+
+    @Override
+    public void createGlobalRule(Rule data) {
+
+    }
+
+    @Override
+    public void deleteAllGlobalRules() {
+
+    }
+
+    @Override
+    public Rule getGlobalRuleConfig(RuleType rule) {
+        return null;
+    }
+
+    @Override
+    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+        return null;
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType rule) {
+
+    }
+
+    @Override
+    public List<NamedLogConfiguration> listLogConfigurations() {
+        return null;
+    }
+
+    @Override
+    public NamedLogConfiguration getLogConfiguration(String logger) {
+        return null;
+    }
+
+    @Override
+    public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
+        return null;
+    }
+
+    @Override
+    public NamedLogConfiguration removeLogConfiguration(String logger) {
+        return null;
     }
 
     private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,

@@ -28,13 +28,13 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -64,7 +64,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         final String groupId = "testAsyncCRUD";
         String artifactId = generateArtifactId();
         try {
-            ByteArrayInputStream stream = new ByteArrayInputStream(
+            InputStream stream = IoUtil.toStream(
                     "{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
             ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
             Assertions.assertNotNull(amd);
@@ -82,7 +82,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
                 Assertions.assertEquals("myname", artifactMetaData.getName());
             });
 
-            stream = new ByteArrayInputStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
+            stream = IoUtil.toStream("{\"name\":\"ibm\"}".getBytes(StandardCharsets.UTF_8));
             clientV2.updateArtifact(groupId, artifactId, stream);
         } finally {
             clientV2.deleteArtifact(groupId, artifactId);
@@ -120,7 +120,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+        InputStream artifactData = IoUtil.toStream(
                 ("{\"type\":\"record\",\"title\":\"" + name
                         + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
@@ -151,7 +151,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+        InputStream artifactData = IoUtil.toStream(
                 ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
@@ -187,7 +187,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         for (int i = 0; i < 5; i++) {
             String artifactId = root + UUID.randomUUID().toString();
             String name = root + i;
-            ByteArrayInputStream artifactData = new ByteArrayInputStream(
+            InputStream artifactData = IoUtil.toStream(
                     ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
 
@@ -236,7 +236,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
         String artifactId = UUID.randomUUID().toString();
         String name = "testSearchDisabledVersions" + ThreadLocalRandom.current().nextInt(1000000);
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(
+        InputStream artifactData = IoUtil.toStream(
                 ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                         .getBytes(StandardCharsets.UTF_8));
 
@@ -288,7 +288,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         final String groupId = "testLabels";
         String artifactId = generateArtifactId();
         try {
-            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            InputStream stream = IoUtil.toStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
             clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
 
             this.waitForArtifact(groupId, artifactId);
@@ -326,7 +326,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
         try {
-            ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
+            InputStream stream = IoUtil.toStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
             clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
 
             this.waitForArtifact(groupId, artifactId);
@@ -369,7 +369,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
             // Create artifact 1
             String firstName = "aaaTestorder" + ThreadLocalRandom.current().nextInt(1000000);
-            ByteArrayInputStream artifactData = new ByteArrayInputStream(
+            InputStream artifactData = IoUtil.toStream(
                     ("{\"type\":\"record\",\"title\":\"" + firstName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
 
@@ -381,7 +381,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             // Create artifact 2
 
             String secondName = "bbbTestorder" + ThreadLocalRandom.current().nextInt(1000000);
-            ByteArrayInputStream secondData = new ByteArrayInputStream(
+            InputStream secondData = IoUtil.toStream(
                     ("{\"type\":\"record\",\"title\":\"" + secondName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
 
@@ -391,7 +391,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             this.waitForGlobalId(secondId);
 
             // Create artifact 3
-            ByteArrayInputStream thirdData = new ByteArrayInputStream(
+            InputStream thirdData = IoUtil.toStream(
                     ("{\"openapi\":\"3.0.2\",\"info\":{\"description\":\"testorder\"}}")
                             .getBytes(StandardCharsets.UTF_8));
             ArtifactMetaData thirdCs = clientV2.createArtifact(groupId, thirdArtifactId, ArtifactType.OPENAPI, thirdData);
@@ -529,8 +529,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
     }
 
     private ArtifactMetaData createArtifact(String groupId, String artifactId) {
-        ByteArrayInputStream stream = new ByteArrayInputStream(
-                ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
 
 		ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.JSON, IfExists.FAIL, false, stream);
 

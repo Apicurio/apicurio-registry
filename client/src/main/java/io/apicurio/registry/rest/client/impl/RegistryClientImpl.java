@@ -28,7 +28,6 @@ import static io.apicurio.registry.rest.client.impl.Routes.GROUP_BASE_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_METADATA;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_STATE;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpResponse.BodyHandlers;
@@ -57,6 +56,7 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 
 import java.util.Optional;
 
@@ -117,7 +117,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler
                     .sendRequest(PUT, ARTIFACT_METADATA, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
 
         } catch (IOException e) {
             throw parseError(e);
@@ -147,7 +147,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler.sendRequest(POST, ARTIFACT_RULES, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
                     new JsonBodyHandler<>(Void.class),
-                    Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+                    Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -175,7 +175,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             return requestHandler
                     .sendRequest(PUT, ARTIFACT_RULE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Rule.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
                             rule.value()).get();
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -194,7 +194,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler
                     .sendRequest(PUT, ARTIFACT_STATE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -206,7 +206,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler
                     .sendRequest(PUT, ARTIFACT_TEST, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -231,7 +231,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler
                     .sendRequest(PUT, VERSION_METADATA, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -251,7 +251,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             requestHandler
                     .sendRequest(PUT, VERSION_STATE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(new ByteArrayInputStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
+                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
                             version);
         } catch (JsonProcessingException e) {
             throw parseError(e);

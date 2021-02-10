@@ -701,24 +701,24 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         createGlobalRule(RuleType.VALIDITY, "FORWARD");
         final List<RuleType> globalRules = clientV2.listGlobalRules();
         assertEquals(2, globalRules.size());
-
         clientV2.deleteAllGlobalRules();
-
         final List<RuleType> updatedRules = clientV2.listGlobalRules();
         assertEquals(0, updatedRules.size());
     }
 
     @Test
     public void getGlobalRuleConfig() {
-
+        //Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
+        //Execution
         final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
+        //Assertions
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
     }
 
     @Test
     public void updateGlobalRuleConfig() {
-
+        //Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
         final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
@@ -727,20 +727,26 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         toUpdate.setType(RuleType.COMPATIBILITY);
         toUpdate.setConfig("FORWARD");
 
+        //Execution
         final Rule updated = clientV2.updateGlobalRuleConfig(RuleType.COMPATIBILITY, toUpdate);
+
+        //Assertions
         assertEquals(updated.getConfig(), "FORWARD");
     }
 
     @Test
     public void deleteGlobalRule() {
-
+        //Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
         final Rule globalRuleConfig = clientV2.getGlobalRuleConfig(RuleType.COMPATIBILITY);
         assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
 
+        //Execution
         clientV2.deleteGlobalRule(RuleType.COMPATIBILITY);
 
         final List<RuleType> ruleTypes = clientV2.listGlobalRules();
+
+        //Assertions
         assertEquals(0, ruleTypes.size());
     }
 

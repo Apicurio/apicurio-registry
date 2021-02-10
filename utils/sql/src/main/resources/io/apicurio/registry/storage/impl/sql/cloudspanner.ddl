@@ -24,7 +24,7 @@ CREATE INDEX IDX_artifacts_1 ON artifacts(createdBy);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
 CREATE TABLE content (
-                         contentId INT64 NOT NULL,
+                         contentId STRING(36) NOT NULL,
                          canonicalHash STRING(64) NOT NULL,
                          contentHash STRING(64) NOT NULL,
                          content BYTES(MAX) NOT NULL,
@@ -43,14 +43,14 @@ CREATE TABLE globalrules (
 ) PRIMARY KEY(type);
 
 CREATE TABLE labels (
-                        globalId INT64 NOT NULL,
+                        globalId STRING(36) NOT NULL,
                         label STRING(256) NOT NULL,
 ) PRIMARY KEY(globalId, label);
 
 CREATE INDEX IDX_labels_1 ON labels(label);
 
 CREATE TABLE properties (
-                            globalId INT64 NOT NULL,
+                            globalId STRING(36) NOT NULL,
                             pkey STRING(256) NOT NULL,
                             pvalue STRING(1024),
 ) PRIMARY KEY(globalId, pkey, pvalue);
@@ -67,8 +67,13 @@ CREATE TABLE rules (
                        CONSTRAINT FK_rules_1 FOREIGN KEY(tenantId, artifactId) REFERENCES artifacts(tenantId, artifactId),
 ) PRIMARY KEY(tenantId, artifactId, type);
 
+CREATE TABLE sequences (
+                           name STRING(64) NOT NULL,
+                           next_value INT64 NOT NULL,
+) PRIMARY KEY(name);
+
 CREATE TABLE versions (
-                          globalId INT64 NOT NULL,
+                          globalId STRING(36) NOT NULL,
                           tenantId STRING(128) NOT NULL,
                           artifactId STRING(512) NOT NULL,
                           version INT64 NOT NULL,
@@ -79,7 +84,7 @@ CREATE TABLE versions (
                           createdOn TIMESTAMP NOT NULL,
                           labels STRING(MAX),
                           properties STRING(MAX),
-                          contentId INT64 NOT NULL,
+                          contentId STRING(36) NOT NULL,
                           CONSTRAINT FK_versions_1 FOREIGN KEY(tenantId, artifactId) REFERENCES artifacts(tenantId, artifactId),
                           CONSTRAINT FK_versions_2 FOREIGN KEY(contentId) REFERENCES content(contentId),
 ) PRIMARY KEY(globalId);
@@ -101,6 +106,7 @@ CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions(contentId);
 
 CREATE UNIQUE INDEX UQ_versions_1 ON versions(tenantId, artifactId, version)
+
 
 
 

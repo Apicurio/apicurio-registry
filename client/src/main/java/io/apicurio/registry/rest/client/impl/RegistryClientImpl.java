@@ -18,10 +18,11 @@ package io.apicurio.registry.rest.client.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.client.request.JsonBodyHandler;
+import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.request.RequestHandler;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -42,12 +43,10 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_BASE_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_METADATA;
@@ -58,6 +57,9 @@ import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_TEST;
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSION;
 import static io.apicurio.registry.rest.client.impl.Routes.ARTIFACT_VERSIONS;
 import static io.apicurio.registry.rest.client.impl.Routes.GROUP_BASE_PATH;
+import static io.apicurio.registry.rest.client.impl.Routes.IDS_CONTENT_HASH;
+import static io.apicurio.registry.rest.client.impl.Routes.IDS_CONTENT_ID;
+import static io.apicurio.registry.rest.client.impl.Routes.IDS_GLOBAL_ID;
 import static io.apicurio.registry.rest.client.impl.Routes.LOGS_BASE_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.LOG_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.RULES_BASE_PATH;
@@ -65,63 +67,79 @@ import static io.apicurio.registry.rest.client.impl.Routes.RULE_PATH;
 import static io.apicurio.registry.rest.client.impl.Routes.SEARCH_ARTIFACTS;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_METADATA;
 import static io.apicurio.registry.rest.client.impl.Routes.VERSION_STATE;
-import static io.apicurio.registry.rest.client.request.RequestHandler.Operation.DELETE;
-import static io.apicurio.registry.rest.client.request.RequestHandler.Operation.GET;
-import static io.apicurio.registry.rest.client.request.RequestHandler.Operation.POST;
-import static io.apicurio.registry.rest.client.request.RequestHandler.Operation.PUT;
+import static io.apicurio.registry.rest.client.request.Request.Operation.DELETE;
+import static io.apicurio.registry.rest.client.request.Request.Operation.GET;
+import static io.apicurio.registry.rest.client.request.Request.Operation.POST;
+import static io.apicurio.registry.rest.client.request.Request.Operation.PUT;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
 public class RegistryClientImpl implements RegistryClient {
 
-    private static final Map<String, List<String>> EMPTY_QUERY_PARAMS = Collections.emptyMap();
-    private static final Map<String, String> EMPTY_REQUEST_HEADERS = Collections.emptyMap();
-
     private final RequestHandler requestHandler;
     private final ObjectMapper mapper;
 
     public RegistryClientImpl(String endpoint) {
-        requestHandler = new RequestHandler(endpoint);
+        this(endpoint, null);
+    }
+
+    public RegistryClientImpl(String endpoint, Auth auth) {
+        requestHandler = new RequestHandler(endpoint, auth);
         mapper = new ObjectMapper();
     }
 
     @Override
     public InputStream getLatestArtifact(String groupId, String artifactId) {
-
         return requestHandler
-                .sendRequest(GET, ARTIFACT_BASE_PATH, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), groupId,
-                        artifactId);
+                .sendRequest(new Request.RequestBuilder<InputStream>()
+                        .operation(GET)
+                        .path(ARTIFACT_BASE_PATH)
+                        .pathParams(List.of(groupId, artifactId))
+                        .responseClass(InputStream.class)
+                        .build());
     }
 
     @Override
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-
-        return requestHandler.sendRequest(PUT, ARTIFACT_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(ArtifactMetaData.class), Optional.of(data), groupId, artifactId).get();
+        return requestHandler
+                .sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+                        .operation(PUT)
+                        .path(ARTIFACT_BASE_PATH)
+                        .pathParams(List.of(groupId, artifactId))
+                        .responseClass(ArtifactMetaData.class)
+                        .data(data)
+                        .build());
     }
 
     @Override
     public void deleteArtifact(String groupId, String artifactId) {
-
-        requestHandler.sendRequest(DELETE, ARTIFACT_BASE_PATH, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class), groupId, artifactId);
-
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(ARTIFACT_BASE_PATH)
+                .pathParams(List.of(groupId, artifactId))
+                .build());
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-
-        return requestHandler.sendRequest(GET, ARTIFACT_METADATA, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(ArtifactMetaData.class), groupId, artifactId).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+                .operation(GET)
+                .path(ARTIFACT_METADATA)
+                .pathParams(List.of(groupId, artifactId))
+                .responseClass(ArtifactMetaData.class)
+                .build());
     }
 
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-
         try {
-            requestHandler
-                    .sendRequest(PUT, ARTIFACT_METADATA, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(PUT)
+                    .path(ARTIFACT_METADATA)
+                    .pathParams(List.of(groupId, artifactId))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
 
         } catch (IOException e) {
             throw parseError(e);
@@ -130,28 +148,37 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
-
-        Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : EMPTY_QUERY_PARAMS;
-        return requestHandler.sendRequest(POST, ARTIFACT_METADATA, EMPTY_REQUEST_HEADERS, queryParams,
-                new JsonBodyHandler<>(VersionMetaData.class), Optional.of(data), groupId, artifactId).get();
+        final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
+        return requestHandler.sendRequest(new Request.RequestBuilder<VersionMetaData>()
+                .operation(POST)
+                .path(ARTIFACT_METADATA)
+                .pathParams(List.of(groupId, artifactId))
+                .queryParams(queryParams)
+                .responseClass(VersionMetaData.class)
+                .data(data)
+                .build());
     }
 
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
 
-        //FIXME proper handling of list results
-        return requestHandler
-                .sendRequest(GET, ARTIFACT_RULES, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(List.class),
-                        groupId, artifactId).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<List>()
+                .operation(GET)
+                .path(ARTIFACT_RULES)
+                .pathParams(List.of(groupId, artifactId))
+                .responseClass(List.class)
+                .build());
     }
 
     @Override
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
-
         try {
-            requestHandler.sendRequest(POST, ARTIFACT_RULES, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                    new JsonBodyHandler<>(Void.class),
-                    Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(POST)
+                    .path(ARTIFACT_RULES)
+                    .pathParams(List.of(groupId, artifactId))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -159,28 +186,35 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactRules(String groupId, String artifactId) {
-
-        requestHandler
-                .sendRequest(DELETE, ARTIFACT_RULES, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                        groupId, artifactId);
+        requestHandler.sendRequest(new Request.RequestBuilder<>()
+                .operation(DELETE)
+                .path(ARTIFACT_RULES)
+                .pathParams(List.of(groupId, artifactId))
+                .build());
     }
 
     @Override
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
-
-        return requestHandler
-                .sendRequest(GET, ARTIFACT_RULE, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Rule.class), groupId, artifactId,
-                        rule.value()).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<Rule>()
+                .operation(GET)
+                .path(ARTIFACT_RULE)
+                .responseClass(Rule.class)
+                .pathParams(List.of(groupId, artifactId, rule.value()))
+                .build());
     }
 
     @Override
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule,
                                          Rule data) {
         try {
-            return requestHandler
-                    .sendRequest(PUT, ARTIFACT_RULE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Rule.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
-                            rule.value()).get();
+            return requestHandler.sendRequest(new Request.RequestBuilder<Rule>()
+                    .operation(PUT)
+                    .responseClass(Rule.class)
+                    .path(ARTIFACT_RULE)
+                    .pathParams(List.of(groupId, artifactId, rule.value()))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
+
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -188,17 +222,22 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-
-        requestHandler.sendRequest(DELETE, ARTIFACT_RULE, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class), groupId, artifactId, rule.value());
+        requestHandler.sendRequest(new Request.RequestBuilder<>()
+                .operation(DELETE)
+                .path(ARTIFACT_RULE)
+                .pathParams(List.of(groupId, artifactId, rule.value()))
+                .build());
     }
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
-
         try {
-            requestHandler
-                    .sendRequest(PUT, ARTIFACT_STATE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+            requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+                    .operation(PUT)
+                    .path(ARTIFACT_STATE)
+                    .pathParams(List.of(groupId, artifactId))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -206,11 +245,13 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-
         try {
-            requestHandler
-                    .sendRequest(PUT, ARTIFACT_TEST, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(PUT)
+                    .path(ARTIFACT_TEST)
+                    .pathParams(List.of(groupId, artifactId))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -218,24 +259,34 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public InputStream getArtifactVersion(String groupId, String artifactId, String version) {
-
-        return requestHandler.sendRequest(GET, ARTIFACT_VERSION, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(), groupId,
-                artifactId, version);
+        return requestHandler.sendRequest(new Request.RequestBuilder<InputStream>()
+                .operation(GET)
+                .path(ARTIFACT_VERSION)
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseClass(InputStream.class)
+                .build());
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-
-        return requestHandler.sendRequest(GET, VERSION_METADATA, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class),
-                groupId, artifactId, version).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<VersionMetaData>()
+                .operation(GET)
+                .path(VERSION_METADATA)
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseClass(VersionMetaData.class)
+                .build());
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData
+            data) {
         try {
-            requestHandler
-                    .sendRequest(PUT, VERSION_METADATA, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId);
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(PUT)
+                    .path(VERSION_METADATA)
+                    .pathParams(List.of(groupId, artifactId, version))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -243,61 +294,77 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
-
-        requestHandler
-                .sendRequest(DELETE, VERSION_METADATA, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                        Optional.empty(), groupId, artifactId, version);
+        requestHandler.sendRequest(new Request.RequestBuilder<>()
+                .operation(DELETE)
+                .path(VERSION_METADATA)
+                .pathParams(List.of(groupId, artifactId, version))
+                .build());
     }
 
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
                                            UpdateState data) {
         try {
-            requestHandler
-                    .sendRequest(PUT, VERSION_STATE, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class),
-                            Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), groupId, artifactId,
-                            version);
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(PUT)
+                    .path(VERSION_STATE)
+                    .pathParams(List.of(groupId, artifactId, version))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
     }
 
     @Override
-    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
+    public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer
+            limit) {
 
         Map<String, List<String>> queryParams = new HashMap<>();
-        if (offset != null) {
-            queryParams.put(Parameters.OFFSET, Collections.singletonList(String.valueOf(offset)));
-        }
-        if (limit != null) {
-            queryParams.put(Parameters.LIMIT, Collections.singletonList(String.valueOf(limit)));
-        }
-        return requestHandler.sendRequest(GET, ARTIFACT_VERSIONS, queryParams, new JsonBodyHandler<>(VersionSearchResults.class), groupId, artifactId)
-                .get();
+        checkCommonQueryParams(null, null, limit, offset, queryParams);
 
+        return requestHandler.sendRequest(new Request.RequestBuilder<VersionSearchResults>()
+                .operation(GET)
+                .path(ARTIFACT_VERSIONS)
+                .pathParams(List.of(groupId, artifactId))
+                .queryParams(queryParams)
+                .responseClass(VersionSearchResults.class)
+                .build());
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data) {
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream
+            data) {
 
-        final Map<String, String> headers = version != null ? Map.of(Headers.VERSION, version) : EMPTY_REQUEST_HEADERS;
-        return requestHandler.sendRequest(POST, ARTIFACT_VERSIONS, headers,
-                EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(VersionMetaData.class), Optional.of(data), groupId, artifactId)
-                .get();
+        final Map<String, String> headers = version != null ? Map.of(Headers.VERSION, version) : Collections.emptyMap();
+        return requestHandler.sendRequest(new Request.RequestBuilder<VersionMetaData>()
+                .operation(POST)
+                .path(ARTIFACT_VERSIONS)
+                .headers(headers)
+                .pathParams(List.of(groupId, artifactId))
+                .responseClass(VersionMetaData.class)
+                .data(data)
+                .build());
     }
 
     @Override
-    public ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer limit, Integer offset) {
+    public ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer
+            limit, Integer offset) {
 
         final Map<String, List<String>> queryParams = new HashMap<>();
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
-        return requestHandler.sendRequest(GET, GROUP_BASE_PATH, queryParams, new JsonBodyHandler<>(ArtifactSearchResults.class),
-                groupId).get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<ArtifactSearchResults>()
+                .operation(GET)
+                .path(GROUP_BASE_PATH)
+                .pathParams(List.of(groupId))
+                .queryParams(queryParams)
+                .responseClass(ArtifactSearchResults.class)
+                .build());
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
-                                           ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
 
         Map<String, String> headers = new HashMap<>();
         if (artifactId != null) {
@@ -309,42 +376,70 @@ public class RegistryClientImpl implements RegistryClient {
         if (version != null) {
             headers.put(Headers.VERSION, version);
         }
+        Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
 
-        Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : EMPTY_QUERY_PARAMS;
-
-        return requestHandler.sendRequest(POST, GROUP_BASE_PATH, headers, queryParams, new JsonBodyHandler<>(ArtifactMetaData.class),
-                Optional.of(data), groupId).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+                .operation(POST)
+                .path(GROUP_BASE_PATH)
+                .headers(headers)
+                .pathParams(List.of(groupId))
+                .queryParams(queryParams)
+                .responseClass(ArtifactMetaData.class)
+                .data(data)
+                .build());
     }
 
     @Override
     public void deleteArtifactsInGroup(String groupId) {
-        requestHandler.sendRequest(DELETE, GROUP_BASE_PATH, EMPTY_QUERY_PARAMS, new JsonBodyHandler<>(Void.class), groupId);
+
+        requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+                .operation(DELETE)
+                .path(GROUP_BASE_PATH)
+                .pathParams(List.of(groupId))
+                .build());
     }
 
     @Override
     public InputStream getContentById(long contentId) {
-        return requestHandler.sendRequest(GET, Routes.IDS_CONTENT_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(),
-                String.valueOf(contentId));
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<InputStream>()
+                .operation(GET)
+                .path(IDS_CONTENT_ID)
+                .pathParams(List.of(String.valueOf(contentId)))
+                .responseClass(InputStream.class)
+                .build());
     }
 
     @Override
     public InputStream getContentByGlobalId(long globalId) {
-        return requestHandler.sendRequest(GET, Routes.IDS_GLOBAL_ID, EMPTY_QUERY_PARAMS, BodyHandlers.ofInputStream(),
-                String.valueOf(globalId));
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<InputStream>()
+                .operation(GET)
+                .path(IDS_GLOBAL_ID)
+                .pathParams(List.of(String.valueOf(globalId)))
+                .responseClass(InputStream.class)
+                .build());
     }
 
     @Override
     public InputStream getContentByHash(String contentHash, Boolean canonical) {
-        Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : EMPTY_QUERY_PARAMS;
-        return requestHandler.sendRequest(GET, Routes.IDS_CONTENT_HASH, queryParams, BodyHandlers.ofInputStream(), contentHash);
+
+        Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<InputStream>()
+                .operation(GET)
+                .path(IDS_CONTENT_HASH)
+                .pathParams(List.of(String.valueOf(contentHash)))
+                .queryParams(queryParams)
+                .responseClass(InputStream.class)
+                .build());
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String group, String name, String description, List<String> labels,
-                                                 List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+    public ArtifactSearchResults searchArtifacts(String group, String name, String
+            description, List<String> labels, List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
 
         final Map<String, List<String>> queryParams = new HashMap<>();
-
         if (name != null) {
             queryParams.put(Parameters.NAME, Collections.singletonList(name));
         }
@@ -356,19 +451,19 @@ public class RegistryClientImpl implements RegistryClient {
         if (group != null) {
             queryParams.put(Parameters.GROUP, Collections.singletonList(group));
         }
-
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
-
         if (labels != null && !labels.isEmpty()) {
             queryParams.put(Parameters.LABELS, labels);
         }
-
         if (properties != null && !properties.isEmpty()) {
             queryParams.put(Parameters.PROPERTIES, properties);
         }
-
-        return requestHandler.sendRequest(GET, SEARCH_ARTIFACTS, queryParams,
-                new JsonBodyHandler<>(ArtifactSearchResults.class)).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<ArtifactSearchResults>()
+                .operation(GET)
+                .path(SEARCH_ARTIFACTS)
+                .responseClass(ArtifactSearchResults.class)
+                .queryParams(queryParams)
+                .build());
     }
 
     @Override
@@ -376,24 +471,36 @@ public class RegistryClientImpl implements RegistryClient {
                                                           Integer offset, Integer limit) {
 
         final Map<String, List<String>> queryParams = new HashMap<>();
-
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
 
-        return requestHandler.sendRequest(POST, SEARCH_ARTIFACTS, EMPTY_REQUEST_HEADERS, queryParams,
-                new JsonBodyHandler<>(ArtifactSearchResults.class), Optional.of(data)).get();
+        return requestHandler.sendRequest(new Request.RequestBuilder<ArtifactSearchResults>()
+                .operation(POST)
+                .path(SEARCH_ARTIFACTS)
+                .responseClass(ArtifactSearchResults.class)
+                .queryParams(queryParams)
+                .data(data)
+                .build());
     }
 
     @Override
     public List<RuleType> listGlobalRules() {
-        return requestHandler.sendRequest(GET, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(List.class), Optional.empty()).get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<List>()
+                .operation(GET)
+                .path(RULES_BASE_PATH)
+                .responseClass(List.class)
+                .build());
     }
 
     @Override
     public void createGlobalRule(Rule data) {
+
         try {
-            requestHandler.sendRequest(POST, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                    new JsonBodyHandler<>(Void.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))));
+            requestHandler.sendRequest(new Request.RequestBuilder<>()
+                    .operation(POST)
+                    .path(RULES_BASE_PATH)
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -401,23 +508,35 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteAllGlobalRules() {
-        requestHandler.sendRequest(DELETE, RULES_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(Void.class), Optional.empty());
+
+        requestHandler.sendRequest(new Request.RequestBuilder<>()
+                .operation(DELETE)
+                .path(RULES_BASE_PATH)
+                .build());
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
-        return requestHandler.sendRequest(GET, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(Rule.class), Optional.empty(), rule.value())
-                .get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<Rule>()
+                .operation(GET)
+                .path(RULE_PATH)
+                .pathParams(List.of(rule.value()))
+                .responseClass(Rule.class)
+                .build());
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+
         try {
-            return requestHandler.sendRequest(PUT, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                    new JsonBodyHandler<>(Rule.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), rule.value())
-                    .get();
+            return requestHandler.sendRequest(new Request.RequestBuilder<Rule>()
+                    .operation(PUT)
+                    .path(RULE_PATH)
+                    .pathParams(List.of(rule.value()))
+                    .responseClass(Rule.class)
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -425,30 +544,46 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteGlobalRule(RuleType rule) {
-        requestHandler.sendRequest(DELETE, RULE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(Void.class), Optional.empty(), rule.value());
+
+        requestHandler.sendRequest(new Request.RequestBuilder<ArtifactSearchResults>()
+                .operation(DELETE)
+                .path(RULE_PATH)
+                .pathParams(List.of(rule.value()))
+                .build());
     }
 
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
-        return requestHandler.sendRequest(GET, LOGS_BASE_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(List.class), Optional.empty())
-                .get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<List>()
+                .operation(GET)
+                .path(LOGS_BASE_PATH)
+                .responseClass(List.class)
+                .build());
     }
 
     @Override
     public NamedLogConfiguration getLogConfiguration(String logger) {
-        return requestHandler.sendRequest(GET, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.empty(), logger)
-                .get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<NamedLogConfiguration>()
+                .operation(GET)
+                .path(LOG_PATH)
+                .pathParams(List.of(logger))
+                .responseClass(NamedLogConfiguration.class)
+                .build());
     }
 
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
+
         try {
-            return requestHandler.sendRequest(PUT, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                    new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.of(IoUtil.toStream(mapper.writeValueAsBytes(data))), logger)
-                    .get();
+            return requestHandler.sendRequest(new Request.RequestBuilder<NamedLogConfiguration>()
+                    .operation(PUT)
+                    .path(LOG_PATH)
+                    .pathParams(List.of(logger))
+                    .responseClass(NamedLogConfiguration.class)
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
         }
@@ -456,9 +591,13 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return requestHandler.sendRequest(DELETE, LOG_PATH, EMPTY_REQUEST_HEADERS, EMPTY_QUERY_PARAMS,
-                new JsonBodyHandler<>(NamedLogConfiguration.class), Optional.empty(), logger)
-                .get();
+
+        return requestHandler.sendRequest(new Request.RequestBuilder<NamedLogConfiguration>()
+                .operation(DELETE)
+                .path(LOG_PATH)
+                .pathParams(List.of(logger))
+                .responseClass(NamedLogConfiguration.class)
+                .build());
     }
 
     private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,
@@ -466,22 +605,18 @@ public class RegistryClientImpl implements RegistryClient {
         if (offset != null) {
             queryParams.put(Parameters.OFFSET, Collections.singletonList(String.valueOf(offset)));
         }
-
         if (limit != null) {
             queryParams.put(Parameters.LIMIT, Collections.singletonList(String.valueOf(limit)));
         }
-
         if (order != null) {
             queryParams.put(Parameters.SORT_ORDER, Collections.singletonList(order.value()));
         }
-
         if (orderBy != null) {
             queryParams.put(Parameters.ORDER_BY, Collections.singletonList(orderBy.value()));
         }
     }
 
     private RestClientException parseError(Exception ex) {
-
         //FIXME proper error handling
         return new RestClientException(new Error());
     }

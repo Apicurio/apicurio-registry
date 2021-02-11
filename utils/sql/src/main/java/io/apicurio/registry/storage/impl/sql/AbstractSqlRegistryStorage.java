@@ -22,14 +22,10 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-//import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-//import com.google.cloud.spanner.DatabaseClient;
-//import com.google.cloud.spanner.TransactionContext;
-//import com.google.cloud.spanner.TransactionRunner;
 import io.quarkus.security.identity.SecurityIdentity;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -94,8 +90,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
-//    private DatabaseClient dbClient;
-    
+
     @Inject
     TenantContext tenantContext;
     protected TenantContext tenantContext() {
@@ -151,16 +146,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             synchronized (dbMutex) {
                 if (!isDatabaseInitialized()) {
                     log.info("Database not initialized.");
-                    initializeDatabase();
+                    initializeDatabase(); // todo: consider initiating the sequences table here - ZEvans 2/11/2021
                 } else {
                     log.info("Database was already initialized, skipping.");
                 }
-
-//                if (!isDatabaseCurrent()) {
-//                    log.info("Old database version detected, upgrading.");
-//                    upgradeDatabase();
-//                }
             }
+            // TODO: determine whether we really need these -- ZEvans 2/11/2021
         } else {
             if (!isDatabaseInitialized()) {
                 log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
@@ -182,10 +173,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return withHandle(handle -> {
             handle.getConnection().setReadOnly(true); // TODO : determine if this actually works and resolves the concurrency issue - Z Evans 2/5/2021
             ResultIterable<Integer> result = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class);
-//            handle.getConnection().setReadOnly(false);
             return result.one().intValue() > 0;
         });
-//        return true;
     }
 
     /**
@@ -366,10 +355,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param contentId
      * @param globalIdGenerator
      */
-//    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
-//            boolean firstVersion, String artifactId, String name, String description, List<String> labels,
-//            Map<String, String> properties, String createdBy, Date createdOn, Long contentId,
-//            GlobalIdGenerator globalIdGenerator) {
 
     private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
         boolean firstVersion, String artifactId, String name, String description, List<String> labels,
@@ -384,16 +369,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             globalIdGenerator = SqlGlobalIdGenerator.withHandle(handle);
         }
 
-
         Long globalId = globalIdGenerator.generate();
-
-//        Long maybeGlobalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().orElse(1L);
-//
-//        handle.createUpdate("UPDATE sequences SET next_value = ? WHERE name = ?").bind(0, maybeGlobalId + 1).bind(1, "globalId").execute();
-//
-//        Long globalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().orElse(0L);
-
-//        String uuidString = UUID.randomUUID().toString();
 
         // Create a row in the "versions" table
         String sql = sqlStatements.insertVersion(firstVersion);
@@ -488,70 +464,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
         String sql = sqlStatements.upsertContent();
-//        Long contentId;
 
         log.info("DB TYPE, {}", sqlStatements.dbType());
 
-//        if ("postgresql".equals(sqlStatements.dbType()) || "h2".equals(sqlStatements.dbType())) {
-//            handle.createUpdate(sql)
-//                    .bind(0, canonicalContentHash)
-//                    .bind(1, contentHash)
-//                    .bind(2, contentBytes)
-//                    .execute();
-//            sql = sqlStatements.selectContentIdByHash();
-//            contentId = handle.createQuery(sql)
-//                    .bind(0, contentHash)
-//                    .mapTo(Long.class)
-//                    .one();
-//        } else {
-            // Handle other supported DBs here in the case that they handle UPSERT differently.
-//            contentId =
+        // TODO: consider encapsulating some of this logic in private methods - ZEvans 2/11/2021
 
-//            SimpleSequenceGenerator simpleSequence = new SimpleSequenceGenerator("contentId");
-////
-//            String finalSql = sql;
-
-//            contentId = dbClient
-//                    .readWriteTransaction()
-//                    .run(
-//                            new TransactionRunner.TransactionCallable<Long>() {
-//                                @Nullable
-//                                @Override
-//                                public Long run(TransactionContext txn) {
-//                                    // Get a sequence value
-//                                    long nextValue = simpleSequence.getNext(txn);
-//
-//                                    handle.createUpdate(finalSql)
-//                                            .bind(0, canonicalContentHash)
-//                                            .bind(1, contentHash)
-//                                            .bind(2, contentBytes)
-//                                            .bind(3, nextValue)
-//                                            .execute();
-//
-//                                    return Long.valueOf(nextValue);
-//                                }
-//                            });
-
-//            handle.createQuery()
-//handle.createQuery
-
-            handle.getConnection().setReadOnly(false);
-
-            //TODO: implement
-            // check if contentHash exists
-            // if true,
-            //      retrieve content id and populate
-            //      increment contentId counter table
-            // if false,
-            //      retrieve contentId counter
-            //      populate + 1 into new content record
-            //      increment contentId counter
+        handle.getConnection().setReadOnly(false);
 
         String uuidString;
 
         Long matchingContentHashCount = handle.createQuery("SELECT count(*) FROM content WHERE contenthash = ?").bind(0, contentHash).mapTo(Long.class).one();
-
-//        Long contentId = handle.createQuery("SELECT next_value FROM sequences where name = \"contentId\";").mapTo(Long.class).findFirst().orElse(0L);
 
         if (matchingContentHashCount.equals(0L)) {
             uuidString = UUID.randomUUID().toString();
@@ -563,7 +485,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(3, contentBytes)
                     .execute();
 
-//            handle.createUpdate("INSERT into sequences (name, next_value) VALUES (?, ?)").bind(0, "contentId").bind(1, contentId + 1).execute();
         } else {
             Map<String, Object> contentMap = handle.createQuery("SELECT * FROM content WHERE contenthash = ?").bind(0, contentHash).mapToMap().findFirst().get();
             uuidString = contentMap.get("contentid").toString();
@@ -571,23 +492,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             //ie do nothing
             log.info("Identical content hash exists with this id: {}", uuidString);
 
-//            handle.createUpdate("UPDATE sequences SET (name, next_value) VALUES (?, ?)").bind(0, "contentId").bind(1, contentId + 1).execute();
         }
 
-//            handle.createUpdate(sql)
-//                    .bind(0, uuidString)
-//                    .bind(1, canonicalContentHash)
-//                    .bind(2, contentHash)
-//                    .bind(3, contentBytes)
-//                    .execute();
-            sql = sqlStatements.selectContentIdByHash();
+        sql = sqlStatements.selectContentIdByHash();
 
-            return handle.createQuery(sql)
+        return handle.createQuery(sql)
                     .bind(0, contentHash)
                     .mapTo(String.class)
                     .one();
-
-
     }
 
 
@@ -609,10 +521,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-//        long contentId = withHandle(handle -> {
-//            handle.getConnection().setReadOnly(false);
-//            return createOrUpdateContent(handle, artifactType, content);
-//        });
         String contentId = withHandle(handle -> {
             handle.getConnection().setReadOnly(false);
             return createOrUpdateContent(handle, artifactType, content);
@@ -627,10 +535,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return createArtifactWithMetadata(artifactId, artifactType, contentId, createdBy, createdOn, md,
                 globalIdGenerator);
     }
-
-//    protected CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId,
-//            ArtifactType artifactType, long contentId, String createdBy,
-//            Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator) {
 
     protected CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType,
                                                                               String contentId, String createdBy,
@@ -821,12 +725,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                                                                               EditableArtifactMetaDataDto metaData,
                                                                               GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
-
-
-//    protected CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId,
-//            ArtifactType artifactType, long contentId, String createdBy, Date createdOn,
-//            EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
-//            throws ArtifactNotFoundException, RegistryStorageException {
 
         log.debug("Updating artifact {} with a new version (content).", artifactId);
 

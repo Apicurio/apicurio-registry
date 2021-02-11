@@ -118,6 +118,7 @@ public class RegistryClientImpl implements RegistryClient {
                 .operation(DELETE)
                 .path(ARTIFACT_BASE_PATH)
                 .pathParams(List.of(groupId, artifactId))
+                .responseClass(Void.class)
                 .build());
     }
 
@@ -134,11 +135,12 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(PUT)
                     .path(ARTIFACT_METADATA)
                     .pathParams(List.of(groupId, artifactId))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
 
         } catch (IOException e) {
@@ -173,11 +175,12 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(POST)
                     .path(ARTIFACT_RULES)
                     .pathParams(List.of(groupId, artifactId))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -186,10 +189,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactRules(String groupId, String artifactId) {
-        requestHandler.sendRequest(new Request.RequestBuilder<>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(ARTIFACT_RULES)
                 .pathParams(List.of(groupId, artifactId))
+                .responseClass(Void.class)
                 .build());
     }
 
@@ -222,21 +226,23 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-        requestHandler.sendRequest(new Request.RequestBuilder<>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(ARTIFACT_RULE)
                 .pathParams(List.of(groupId, artifactId, rule.value()))
+                .responseClass(Void.class)
                 .build());
     }
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(PUT)
                     .path(ARTIFACT_STATE)
                     .pathParams(List.of(groupId, artifactId))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -246,11 +252,12 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(PUT)
                     .path(ARTIFACT_TEST)
                     .pathParams(List.of(groupId, artifactId))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -281,11 +288,12 @@ public class RegistryClientImpl implements RegistryClient {
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData
             data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(PUT)
                     .path(VERSION_METADATA)
                     .pathParams(List.of(groupId, artifactId, version))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -294,10 +302,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        requestHandler.sendRequest(new Request.RequestBuilder<>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(VERSION_METADATA)
                 .pathParams(List.of(groupId, artifactId, version))
+                .responseClass(Void.class)
                 .build());
     }
 
@@ -305,11 +314,12 @@ public class RegistryClientImpl implements RegistryClient {
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
                                            UpdateState data) {
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(PUT)
                     .path(VERSION_STATE)
                     .pathParams(List.of(groupId, artifactId, version))
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -392,10 +402,11 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void deleteArtifactsInGroup(String groupId) {
 
-        requestHandler.sendRequest(new Request.RequestBuilder<ArtifactMetaData>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(GROUP_BASE_PATH)
                 .pathParams(List.of(groupId))
+                .responseClass(Void.class)
                 .build());
     }
 
@@ -496,10 +507,11 @@ public class RegistryClientImpl implements RegistryClient {
     public void createGlobalRule(Rule data) {
 
         try {
-            requestHandler.sendRequest(new Request.RequestBuilder<>()
+            requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                     .operation(POST)
                     .path(RULES_BASE_PATH)
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                    .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
             throw parseError(e);
@@ -509,9 +521,10 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void deleteAllGlobalRules() {
 
-        requestHandler.sendRequest(new Request.RequestBuilder<>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(RULES_BASE_PATH)
+                .responseClass(Void.class)
                 .build());
     }
 
@@ -545,10 +558,11 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void deleteGlobalRule(RuleType rule) {
 
-        requestHandler.sendRequest(new Request.RequestBuilder<ArtifactSearchResults>()
+        requestHandler.sendRequest(new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(RULE_PATH)
                 .pathParams(List.of(rule.value()))
+                .responseClass(Void.class)
                 .build());
     }
 

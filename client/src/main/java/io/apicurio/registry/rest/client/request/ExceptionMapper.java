@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.response;
+package io.apicurio.registry.rest.client.request;
 
 
 import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;

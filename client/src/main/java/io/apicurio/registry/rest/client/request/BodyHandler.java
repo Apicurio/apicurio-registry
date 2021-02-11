@@ -18,20 +18,12 @@ package io.apicurio.registry.rest.client.request;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
-import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.client.response.ExceptionMapper;
-import io.apicurio.registry.rest.v2.beans.Error;
-import org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.http.HttpResponse;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -40,7 +32,6 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
 
     private final Class<W> wClass;
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Logger logger = Logger.getLogger(BodyHandler.class.getName());
 
     public BodyHandler(Class<W> wClass) {
         this.wClass = wClass;
@@ -63,12 +54,17 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
         return () -> {
             try {
                 if (isFailure(responseInfo)) {
-                    throw handleErrorResponse(body, responseInfo);
+                    throw ResponseErrorHandler.handleErrorResponse(body, responseInfo);
                 } else {
-                    if (targetType.getSimpleName().equals(InputStream.class.getSimpleName())) {
-                        return (W) body;
-                    } else {
-                        return mapper.readValue(body, targetType);
+                    //TODO think of a better solution to this
+                    switch (targetType.getSimpleName()) {
+                        case "InputStream":
+                            return (W) body;
+                        case "Void":
+                            //Intended null return
+                            return null;
+                        default:
+                            return mapper.readValue(body, targetType);
                     }
                 }
             } catch (IOException e) {
@@ -79,55 +75,5 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
 
     private static boolean isFailure(HttpResponse.ResponseInfo responseInfo) {
         return responseInfo.statusCode() / 100 != 2;
-    }
-
-    private static RestClientException handleErrorResponse(InputStream body, HttpResponse.ResponseInfo responseInfo) {
-        try {
-            if (responseInfo.statusCode() == HttpStatus.SC_UNAUTHORIZED) {
-                //authorization error
-                Error error = new Error();
-                error.setErrorCode(responseInfo.statusCode());
-                throw new NotAuthorizedException(error);
-            } else {
-                if (responseInfo.statusCode() == HttpStatus.SC_FORBIDDEN) {
-                    //forbidden error
-                    Error error = new Error();
-                    error.setErrorCode(responseInfo.statusCode());
-                    throw new ForbiddenException(error);
-                }
-            }
-            Error error = mapper.readValue(body, Error.class);
-            return ExceptionMapper.map(new RestClientException(error));
-        } catch (Exception e) {
-            Throwable cause = extractRootCause(e);
-            if (cause instanceof RestClientException) {
-                throw (RestClientException) cause;
-            } else {
-                // completely unknown exception
-                Error error = new Error();
-                error.setMessage(cause.getMessage());
-                error.setErrorCode(0);
-                logger.log(Level.SEVERE, "Unkown client exception", cause);
-                return new RestClientException(error);
-            }
-        }
-    }
-
-    private static Throwable extractRootCause(Throwable e) {
-        Throwable cause = null;
-        while (true) {
-            if (cause == null) {
-                cause = e;
-            } else {
-                if (cause.getCause() == null || cause.getCause().equals(cause)) {
-                    break;
-                }
-                cause = cause.getCause();
-            }
-        }
-        if (cause.getSuppressed().length != 0) {
-            cause = cause.getSuppressed()[0];
-        }
-        return cause;
     }
 }

@@ -17,10 +17,6 @@
 package io.apicurio.registry.rest.client.request;
 
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
-import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.v2.beans.Error;
-import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
@@ -31,7 +27,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -90,18 +85,12 @@ public class RequestHandler {
                     throw new IllegalStateException("Operation not allowed");
             }
 
-            if (null == request.getResponseClass()) {
-                client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
-                //Intended null return
-                return null;
-            }
-
             return client.send(requestBuilder.build(), new BodyHandler<>(request.getResponseClass()))
                     .body()
                     .get();
 
         } catch (URISyntaxException | IOException | InterruptedException | HttpResponseException e) {
-            throw parseError(e);
+            throw ResponseErrorHandler.parseError(e);
         }
     }
 
@@ -113,25 +102,5 @@ public class RequestHandler {
                 .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
         uriBuilder.setParameters(queryParamsExpanded);
         return uriBuilder.build();
-    }
-
-    private RestClientException parseError(Exception ex) {
-
-        if (ex instanceof HttpResponseException) {
-            //authorization error
-            HttpResponseException hre = (HttpResponseException) ex;
-            Error error = new Error();
-            error.setErrorCode(hre.getStatusCode());
-            error.setMessage(hre.getMessage());
-            error.setDetail(hre.getReasonPhrase());
-            if (hre.getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
-                return new NotAuthorizedException(error);
-            } else {
-                return new RestClientException(error);
-            }
-        }
-        final Error error = new Error();
-        error.setName(ex.getClass().getSimpleName());
-        return new RestClientException(error);
     }
 }

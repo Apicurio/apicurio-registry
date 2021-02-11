@@ -67,12 +67,16 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryApiBaseUrl = "http://localhost:8081/api";
         registryV1ApiUrl = registryApiBaseUrl + "/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/v2";
-        clientV2 = RegistryClientFactory.create(registryV2ApiUrl);
+        clientV2 = createRestClientV2();
         client = createRestClient();
     }
 
     protected RegistryRestClient createRestClient() {
         return RegistryRestClientFactory.create(registryV1ApiUrl);
+    }
+
+    protected RegistryClient createRestClientV2() {
+        return RegistryClientFactory.create(registryV2ApiUrl);
     }
 
     @BeforeEach
@@ -91,9 +95,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all globalIdStore rules
-        client.deleteAllGlobalRules();
+        clientV2.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            assertEquals(expectedDefaultRulesCount, client.listGlobalRules().size());
+            assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
         });
     }
 

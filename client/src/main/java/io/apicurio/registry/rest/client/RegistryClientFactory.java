@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client;
 
+import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 
 /**
@@ -23,7 +24,11 @@ import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
  */
 public class RegistryClientFactory {
 
-	public static RegistryClient create(String basePath) {
-		return new RegistryClientImpl(basePath);
-	}
+    public static RegistryClient create(String basePath) {
+        return new RegistryClientImpl(basePath);
+    }
+
+    public static RegistryClient create(String basePath, Auth auth) {
+        return new RegistryClientImpl(basePath, auth);
+    }
 }

@@ -11,9 +11,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>apicurio-registry-serdes-common</artifactId>
+    <artifactId>apicurio-registry-serde-common</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-serdes-common</name>
+    <name>apicurio-registry-serde-common</name>
 
     <dependencies>
 

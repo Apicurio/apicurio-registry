@@ -42,8 +42,12 @@ public class SerdeConfigKeys {
 //    public static final String GLOBAL_ID_STRATEGY = "apicurio.registry.global-id";
     public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver";
 
-    public static final String CREATE_ARTIFACT_BEHAVIOR = "apicurio.registry.create.artifact.ifexists";
+    public static final String AUTO_REGISTER_ARTIFACT = "apicurio.registry.auto-register";
+    public static final String AUTO_REGISTER_ARTIFACT_BEHAVIOR = "apicurio.registry.auto-register.if-exists";
     public static final String GET_LATEST_ARTIFACT = "apicurio.registry.get.latest";
+
+
+    public static final String ARTIFACT_GROUP_ID = "apicurio.registry.artifact.group-id";
 
     /**
      * The URL of the Apicurio Registry.  Required when using any Apicurio Registry serde class (serializer or deserializer).

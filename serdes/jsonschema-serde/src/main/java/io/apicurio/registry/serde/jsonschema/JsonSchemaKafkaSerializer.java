@@ -98,6 +98,13 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
     }
 
     /**
+     * @param validationEnabled the validationEnabled to set
+     */
+    public void setValidationEnabled(Boolean validationEnabled) {
+        this.validationEnabled = validationEnabled;
+    }
+
+    /**
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
      */
     @Override

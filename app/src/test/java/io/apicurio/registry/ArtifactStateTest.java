@@ -17,6 +17,7 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.client.exception.RestClientException;
 import io.apicurio.registry.client.exception.VersionNotFoundException;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v1.beans.EditableMetaData;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
@@ -90,8 +92,9 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         emd.setDescription(description);
 
         // cannot get a disabled artifact
-        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(artifactId));
-        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(artifactId, 3));
+        Function<Exception, Integer> errorCodeExtractor = (e) -> {return ((RestClientException) e).getError().getErrorCode();};
+        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> client.getLatestArtifact(artifactId), errorCodeExtractor);
+        assertClientError(VersionNotFoundException.class.getSimpleName(), 404, () -> client.getArtifactVersion(artifactId, 3), errorCodeExtractor);
 
         // can update and get metadata for a disabled artifact
         client.updateArtifactVersionMetaData(artifactId, 3, emd);

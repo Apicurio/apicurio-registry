@@ -338,7 +338,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void testInvalidLevel() {
+    void testLoggerInvalidLevel() {
         JsonObject lc = new JsonObject().put("level", "FOO");
         given()
             .when()
@@ -351,7 +351,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void testCRUD() throws Exception {
+    void testLoggersCRUD() throws Exception {
         Consumer<LogLevel> setLog = (level) -> {
             LogConfiguration lc = new LogConfiguration();
             lc.setLevel(level);

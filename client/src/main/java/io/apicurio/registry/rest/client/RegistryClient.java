@@ -34,6 +34,7 @@ import io.apicurio.registry.types.RuleType;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>
@@ -147,4 +148,8 @@ public interface RegistryClient {
 	NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
 
 	NamedLogConfiguration removeLogConfiguration(String logger);
+
+	void setNextRequestHeaders(Map<String, String> requestHeaders);
+
+	Map<String, String> getHeaders();
 }

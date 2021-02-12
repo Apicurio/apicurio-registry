@@ -614,6 +614,16 @@ public class RegistryClientImpl implements RegistryClient {
                 .build());
     }
 
+    @Override
+    public void setNextRequestHeaders(Map<String, String> requestHeaders) {
+        requestHandler.setNextRequestHeaders(requestHeaders);
+    }
+
+    @Override
+    public Map<String, String> getHeaders() {
+        return requestHandler.getHeaders();
+    }
+
     private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,
                                         Map<String, List<String>> queryParams) {
         if (offset != null) {

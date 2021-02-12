@@ -72,7 +72,7 @@ public class ResponseErrorHandler {
     protected static RestClientException parseError(Exception ex) {
 
         if (ex instanceof HttpResponseException) {
-            //authorization error
+            //authorization error since something went wrong in the auth provider
             HttpResponseException hre = (HttpResponseException) ex;
             Error error = new Error();
             error.setErrorCode(hre.getStatusCode());

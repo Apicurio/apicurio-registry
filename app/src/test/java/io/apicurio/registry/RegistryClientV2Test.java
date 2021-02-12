@@ -16,6 +16,7 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -45,10 +46,12 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -804,5 +807,57 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         final LogConfiguration logConfiguration = new LogConfiguration();
         logConfiguration.setLevel(logLevel);
         clientV2.setLogConfiguration(log, logConfiguration);
+    }
+
+    @Test
+    void headersCustomizationTest() throws Exception {
+
+        final String groupId = "headersCustomizationTest";
+        final Map<String, String> firstRequestHeaders = Collections.singletonMap("FirstHeaderKey", "firstheadervalue");
+        final Map<String, String> secondRequestHeaders = Collections.singletonMap("SecondHeaderKey", "secondheaderkey");
+
+        testConcurrentClientCalls(groupId, clientV2, firstRequestHeaders, secondRequestHeaders);
+        testNonConcurrentClientCalls(groupId, clientV2, firstRequestHeaders, secondRequestHeaders);
+    }
+
+    private void testNonConcurrentClientCalls(String groupId, RegistryClient client, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
+
+        client.setNextRequestHeaders(firstRequestHeaders);
+        Assertions.assertTrue(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+        client.listArtifactsInGroup(groupId);
+        Assertions.assertFalse(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        Assertions.assertFalse(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+
+        client.setNextRequestHeaders(secondRequestHeaders);
+        Assertions.assertTrue(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        client.listArtifactsInGroup(groupId);
+        Assertions.assertFalse(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+        Assertions.assertFalse(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+
+    }
+
+    private void testConcurrentClientCalls(String groupId, RegistryClient client, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
+
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        new Thread(() -> {
+            client.setNextRequestHeaders(firstRequestHeaders);
+            Assertions.assertTrue(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            client.listArtifactsInGroup(groupId);
+            Assertions.assertFalse(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            Assertions.assertFalse(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            latch.countDown();
+        }).start();
+
+        new Thread(() -> {
+            client.setNextRequestHeaders(secondRequestHeaders);
+            Assertions.assertTrue(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            client.listArtifactsInGroup(groupId);
+            Assertions.assertFalse(client.getHeaders().keySet().containsAll(secondRequestHeaders.keySet()));
+            Assertions.assertFalse(client.getHeaders().keySet().containsAll(firstRequestHeaders.keySet()));
+            latch.countDown();
+        }).start();
+
+        latch.await();
     }
 }

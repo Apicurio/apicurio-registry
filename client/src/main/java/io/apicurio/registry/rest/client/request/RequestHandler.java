@@ -28,6 +28,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class RequestHandler {
     private final String endpoint;
     private final Auth auth;
     private static final Map<String, String> DEFAULT_HEADERS = Map.of("Content-Type", "application/json", "Accept", "application/json");
+    private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
     public RequestHandler(String endpoint, Auth auth) {
         if (!endpoint.endsWith("/")) {
@@ -59,6 +61,10 @@ public class RequestHandler {
                     .uri(buildURI(endpoint + request.getRequestPath(), request.getQueryParams(), request.getPathParams()));
 
             DEFAULT_HEADERS.forEach(requestBuilder::header);
+
+            //Add current request headers
+            requestHeaders.get().forEach(requestBuilder::header);
+            requestHeaders.remove();
 
             Map<String, String> headers = request.getHeaders();
             if (auth != null) {
@@ -102,5 +108,13 @@ public class RequestHandler {
                 .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
         uriBuilder.setParameters(queryParamsExpanded);
         return uriBuilder.build();
+    }
+
+    public void setNextRequestHeaders(Map<String, String> headers) {
+        requestHeaders.set(headers);
+    }
+
+    public Map<String, String> getHeaders() {
+        return requestHeaders.get();
     }
 }

@@ -96,7 +96,7 @@ public class RequestHandler {
                     .get();
 
         } catch (URISyntaxException | IOException | InterruptedException | HttpResponseException e) {
-            throw ResponseErrorHandler.parseError(e);
+            throw ErrorHandler.parseError(e);
         }
     }
 

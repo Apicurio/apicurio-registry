@@ -14,21 +14,8 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.request;
+package io.apicurio.registry.rest.client.exception;
 
-
-import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.BadRequestException;
-import io.apicurio.registry.rest.client.exception.DefaultRuleDeletionException;
-import io.apicurio.registry.rest.client.exception.InvalidArtifactStateException;
-import io.apicurio.registry.rest.client.exception.InvalidArtifactTypeException;
-import io.apicurio.registry.rest.client.exception.RestClientException;
-import io.apicurio.registry.rest.client.exception.RuleAlreadyExistsException;
-import io.apicurio.registry.rest.client.exception.RuleNotFoundException;
-import io.apicurio.registry.rest.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.client.exception.UnprocessableEntityException;
-import io.apicurio.registry.rest.client.exception.VersionNotFoundException;
 
 /**
  * @author Carles Arnal <carles.arnal@redhat.com>

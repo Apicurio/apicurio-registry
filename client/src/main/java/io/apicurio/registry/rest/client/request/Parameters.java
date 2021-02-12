@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.impl;
+package io.apicurio.registry.rest.client.request;
 
+/**
+ * @author Carles Arnal <carnalca@redhat.com>
+ */
 public class Parameters {
 
-    protected static String LIMIT = "limit";
-    protected static String OFFSET = "offset";
-    protected static String SORT_ORDER = "order";
-    protected static String ORDER_BY = "order_by";
-    protected static String CANONICAL = "canonical";
-    protected static String NAME = "name";
-    protected static String GROUP = "group";
-    protected static String DESCRIPTION = "";
-    protected static String PROPERTIES = "properties";
-    protected static String LABELS = "labels";
+    public static String LIMIT = "limit";
+    public static String OFFSET = "offset";
+    public static String SORT_ORDER = "order";
+    public static String ORDER_BY = "order_by";
+    public static String CANONICAL = "canonical";
+    public static String NAME = "name";
+    public static String GROUP = "group";
+    public static String DESCRIPTION = "";
+    public static String PROPERTIES = "properties";
+    public static String LABELS = "labels";
+    public static String IF_EXISTS = "ifExists";
 }

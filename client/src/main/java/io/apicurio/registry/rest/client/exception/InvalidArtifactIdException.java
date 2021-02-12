@@ -17,6 +17,9 @@ package io.apicurio.registry.rest.client.exception;
 
 import io.apicurio.registry.utils.ArtifactIdValidator;
 
+/**
+ * @author Carles Arnal <carnalca@redhat.com>
+ */
 public class InvalidArtifactIdException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;

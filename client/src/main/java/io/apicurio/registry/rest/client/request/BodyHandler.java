@@ -54,7 +54,7 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
         return () -> {
             try {
                 if (isFailure(responseInfo)) {
-                    throw ResponseErrorHandler.handleErrorResponse(body, responseInfo);
+                    throw ErrorHandler.handleErrorResponse(body, responseInfo);
                 } else {
                     //TODO think of a better solution to this
                     switch (targetType.getSimpleName()) {

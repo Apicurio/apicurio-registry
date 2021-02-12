@@ -16,7 +16,9 @@
 
 package io.apicurio.registry.rest.client.request;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.client.exception.ExceptionMapper;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
@@ -32,12 +34,12 @@ import java.util.logging.Logger;
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
-public class ResponseErrorHandler {
+public class ErrorHandler {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Logger logger = Logger.getLogger(BodyHandler.class.getName());
 
-    protected static RestClientException handleErrorResponse(InputStream body, HttpResponse.ResponseInfo responseInfo) {
+    public static RestClientException handleErrorResponse(InputStream body, HttpResponse.ResponseInfo responseInfo) {
         try {
             if (responseInfo.statusCode() == HttpStatus.SC_UNAUTHORIZED) {
                 //authorization error
@@ -69,8 +71,15 @@ public class ResponseErrorHandler {
         }
     }
 
-    protected static RestClientException parseError(Exception ex) {
+    public static RestClientException parseInputSerializingError(JsonProcessingException ex) {
+        final Error error = new Error();
+        error.setName(ex.getClass().getSimpleName());
+        error.setDetail(ex.getMessage());
+        error.setMessage("Error trying to parse request body");
+        return new RestClientException(new Error());
+    }
 
+    public static RestClientException parseError(Exception ex) {
         if (ex instanceof HttpResponseException) {
             //authorization error since something went wrong in the auth provider
             HttpResponseException hre = (HttpResponseException) ex;

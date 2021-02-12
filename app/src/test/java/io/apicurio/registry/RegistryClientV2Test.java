@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -752,8 +753,6 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         assertEquals(0, ruleTypes.size());
     }
 
-    //TODO Commented out since log configuration has not been implemented yet.
-    /*
     @Test
     public void smokeLogLevels() {
 
@@ -766,8 +765,6 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
         assertEquals(logger, logConfiguration.getName());
     }
-    */
-
 
     private ArtifactMetaData createArtifact(String groupId, String artifactId) {
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -791,7 +788,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         final Rule rule = new Rule();
         rule.setConfig(ruleConfig);
         rule.setType(ruleType);
-        clientV2.createGlobalRule( rule);
+        clientV2.createGlobalRule(rule);
 
         return rule;
     }

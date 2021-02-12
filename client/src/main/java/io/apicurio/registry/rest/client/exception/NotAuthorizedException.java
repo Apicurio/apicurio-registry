@@ -17,6 +17,9 @@ package io.apicurio.registry.rest.client.exception;
 
 import io.apicurio.registry.rest.v2.beans.Error;
 
+/**
+ * @author Carles Arnal <carnalca@redhat.com>
+ */
 public class NotAuthorizedException extends RestClientException {
 
     private static final long serialVersionUID = 1L;

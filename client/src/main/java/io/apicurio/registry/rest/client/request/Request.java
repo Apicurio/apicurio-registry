@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rest.client.request;
 
+import io.apicurio.registry.rest.client.request.provider.Operation;
+
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -118,9 +120,5 @@ public class Request<T> {
         public Request<T> build() {
             return new Request<>(operation, path, headers, queryParams, responseClass, data, pathParams);
         }
-    }
-
-    public enum Operation {
-        PUT, POST, GET, DELETE
     }
 }

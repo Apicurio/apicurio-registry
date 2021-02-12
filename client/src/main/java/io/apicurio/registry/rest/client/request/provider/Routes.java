@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.impl;
+package io.apicurio.registry.rest.client.request.provider;
 
 /**
  * @author Carles Arnal <carnalca@redhat.com>

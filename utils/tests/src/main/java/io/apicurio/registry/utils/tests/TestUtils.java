@@ -30,10 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
-
-
-import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import java.util.function.Predicate;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -43,7 +40,6 @@ import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
@@ -59,7 +55,6 @@ public class TestUtils {
     private static final String REGISTRY_HOST = System.getenv().getOrDefault("REGISTRY_HOST", DEFAULT_REGISTRY_HOST);
     private static final int REGISTRY_PORT = Integer.parseInt(System.getenv().getOrDefault("REGISTRY_PORT", String.valueOf(DEFAULT_REGISTRY_PORT)));
     private static final String EXTERNAL_REGISTRY = System.getenv().getOrDefault("EXTERNAL_REGISTRY", "false");
-    private static final String TEST_REGISTRY_CLIENT = System.getenv("TEST_REGISTRY_CLIENT");
 
     private TestUtils() {
         // All static methods
@@ -78,27 +73,27 @@ public class TestUtils {
     }
 
     public static String getRegistryUIUrl() {
-        return getRegistryUrl().concat("/ui");
+        return getRegistryBaseUrl().concat("/ui");
+    }
+
+    public static String getRegistryApiUrl() {
+        return getRegistryBaseUrl().concat("/api");
     }
 
     public static String getRegistryV1ApiUrl() {
-        return getRegistryUrl().concat("/api/v1");
+        return getRegistryApiUrl().concat("/v1");
     }
 
     public static String getRegistryV2ApiUrl() {
-        return getRegistryUrl().concat("/api/v2");
+        return getRegistryApiUrl().concat("/v2");
     }
 
-    private static String getRegistryUrl() {
+    public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
             return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
         } else {
             return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
         }
-    }
-
-    public static String getTestRegistryClients() {
-        return TEST_REGISTRY_CLIENT;
     }
 
     /**
@@ -121,23 +116,55 @@ public class TestUtils {
     }
 
     /**
+     * Generic check if an endpoint is network reachable
+     * @param host
+     * @param port
+     * @param component
+     * @return true if it's possible to open a network connection to the endpoint
+     */
+    public static boolean isReachable(String host, int port, String component) {
+        try (Socket socket = new Socket()) {
+            log.info("Trying to connect to {}:{}", host, port);
+            socket.connect(new InetSocketAddress(host, port), 5_000);
+            log.info("Client is able to connect to " + component);
+            return  true;
+        } catch (IOException ex) {
+            log.warn("Cannot connect to {}: {}", component, ex.getMessage());
+            return false; // Either timeout or unreachable or failed DNS lookup.
+        }
+    }
+
+
+    /**
      * Checks the readniess endpoint of the registry
      *
      * @return true if registry readiness endpoint replies sucessfully
      */
     public static boolean isReady(boolean logResponse) {
+        return isReady(getRegistryBaseUrl(), logResponse, "Apicurio Registry");
+    }
+
+    /**
+     * Generic check of the /health/ready endpoint
+     *
+     * @param baseUrl
+     * @param logResponse
+     * @param component
+     * @return true if the readiness endpoint replies successfully
+     */
+    public static boolean isReady(String baseUrl, boolean logResponse, String component) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(getRegistryUrl().concat("/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat("/health/ready")));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
-                log.info("Service registry is ready");
+                log.info(component + " is ready");
             }
             if (logResponse) {
                 log.info(IoUtil.toString(res.getEntity().getContent()));
             }
             return ok;
         } catch (IOException e) {
-            log.warn("Service registry is not ready {}", e.getMessage());
+            log.warn(component + " is not ready {}", e.getMessage());
             return false;
         }
     }
@@ -225,6 +252,10 @@ public class TestUtils {
         return UUID.randomUUID().toString();
     }
 
+    public static String generateGroupId() {
+        return UUID.randomUUID().toString();
+    }
+
     @FunctionalInterface
     public interface RunnableExc {
         void run() throws Exception;
@@ -238,7 +269,7 @@ public class TestUtils {
     }
 
     public static <T> T retry(Callable<T> callable) throws Exception {
-        return retry(callable, "Action #" + System.currentTimeMillis(), 15);
+        return retry(callable, "Action #" + System.currentTimeMillis(), 20);
     }
 
     public static void retry(RunnableExc runnable, String name, int maxRetries) throws Exception {
@@ -274,51 +305,51 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
-            assertClientError(expectedErrorName, expectedCode, runnable, false);
+            assertClientError(expectedErrorName, expectedCode, runnable, false, errorCodeExtractor);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         if (retry) {
-            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor));
         } else {
-            internalAssertClientError(expectedErrorName, expectedCode, runnable);
+            internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         }
     }
 
-    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable, Function<Exception, Integer> errorCodeExtractor) {
         try {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
             Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, ((RestClientException) e).getError().getErrorCode());
+            Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(e));
         }
     }
 
     // some impl details ...
 
-    public static void waitForSchema(RegistryRestClient service, byte[] bytes) throws Exception {
-        waitForSchema(service, bytes, ByteBuffer::getLong);
+    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes) throws Exception {
+        waitForSchema(schemaFinder, bytes, ByteBuffer::getLong);
     }
 
-    public static void waitForSchema(RegistryRestClient service, byte[] bytes, Function<ByteBuffer, Long> fn) throws Exception {
-        waitForSchemaCustom(service, bytes, input -> {
+    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes, Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
+        waitForSchemaCustom(schemaFinder, bytes, input -> {
             ByteBuffer buffer = ByteBuffer.wrap(input);
             buffer.get(); // magic byte
-            return fn.apply(buffer);
+            return globalIdExtractor.apply(buffer);
         });
     }
 
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
-    public static void waitForSchemaCustom(RegistryRestClient service, byte[] bytes, Function<byte[], Long> fn) throws Exception {
-        long id = fn.apply(bytes);
-        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
-        Assertions.assertNotNull(amd); // wait for global id to populate
+    public static void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes, Function<byte[], Long> globalIdExtractor) throws Exception {
+        long id = globalIdExtractor.apply(bytes);
+        boolean schemaExists = retry(() -> schemaFinder.test(id));
+        Assertions.assertTrue(schemaExists); // wait for global id to populate
     }
 
 }

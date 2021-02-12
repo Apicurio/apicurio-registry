@@ -126,7 +126,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.waitForSchema(client, bytes, bb -> (long) bb.getInt());
+            TestUtils.waitForSchema(globalId -> client.getArtifactMetaDataByGlobalId(globalId) != null, bytes, bb -> (long) bb.getInt());
 
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());

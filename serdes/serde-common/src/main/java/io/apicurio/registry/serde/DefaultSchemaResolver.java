@@ -51,9 +51,11 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
     private boolean isKey;
     private ArtifactResolverStrategy<S> artifactResolverStrategy;
 
-    private boolean autoCreateArtifact;
-    private IfExists autoCreateBehavior;
+    private boolean autoCreateArtifact = false;
+    private IfExists autoCreateBehavior = IfExists.RETURN_OR_UPDATE;
 //    private boolean useLatestArtifact;
+
+    private String artifactGroupId;
 
     /**
      * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
@@ -91,12 +93,17 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
         }
 
-        String createArtifactBehavior = (String) configs.get(SerdeConfigKeys.CREATE_ARTIFACT_BEHAVIOR);
+        this.autoCreateArtifact = Utils.isTrue(configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT));
+        String createArtifactBehavior = (String) configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT_BEHAVIOR);
         if (createArtifactBehavior != null) {
             this.autoCreateArtifact = true;
             this.autoCreateBehavior = IfExists.fromValue(createArtifactBehavior);
         }
 
+        String groupIdOverride = (String) configs.get(SerdeConfigKeys.ARTIFACT_GROUP_ID);
+        if (groupIdOverride != null) {
+            this.artifactGroupId = groupIdOverride;
+        }
     }
 
     /**
@@ -130,8 +137,7 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
 
         SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-        final ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, parsedSchema.map(ParsedSchema<S>::getParsedSchema).orElse(null));
-        //TODO implement override reference values by config properties here
+        final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
 
         {
             Long globalId = globalIdCacheByArtifactReference.get(artifactReference);
@@ -197,6 +203,19 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             return result.build();
         }
 
+    }
+
+    private ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
+        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, parsedSchema.map(ParsedSchema<S>::getParsedSchema).orElse(null));
+        //TODO implement override reference values by config properties here
+        if (this.artifactGroupId != null) {
+            artifactReference = ArtifactReference.builder()
+                    .groupId(this.artifactGroupId)
+                    .artifactId(artifactReference.getArtifactId())
+                    .version(artifactReference.getVersion())
+                    .build();
+        }
+        return artifactReference;
     }
 
     private void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

@@ -133,6 +133,12 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-client</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-rest-client</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -319,7 +325,7 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke | cluster | ui</groups>
+                <groups>smoke | serdes | ui</groups>
             </properties>
         </profile>
 
@@ -332,10 +338,10 @@
         </profile>
 
         <profile>
-            <id>cluster</id>
+            <id>serdes</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>cluster</groups>
+                <groups>serdes</groups>
             </properties>
         </profile>
 

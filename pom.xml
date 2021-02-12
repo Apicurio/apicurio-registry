@@ -98,9 +98,11 @@
         <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
-        <module>tests</module>
         <module>rest-client</module>
         <module>client</module>
+        <module>integration-tests/integration-tests-common</module>
+        <module>integration-tests/legacy-tests</module>
+        <module>integration-tests/testsuite</module>
     </modules>
 
     <properties>
@@ -288,6 +290,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-tests</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-integration-tests-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

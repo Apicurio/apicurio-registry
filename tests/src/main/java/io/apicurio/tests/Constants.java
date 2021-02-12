@@ -33,9 +33,9 @@ public interface Constants {
      */
     String SMOKE = "smoke";
     /**
-     * Tag for tests, which are working with the cluster (integration of kafka with registries)
+     * Tag for tests, which are working with the cluster (integration of kafka with registries) such as serdes and converters
      */
-    String CLUSTER = "cluster";
+    String SERDES = "serdes";
     /**
      * Tag for web ui tests
      */

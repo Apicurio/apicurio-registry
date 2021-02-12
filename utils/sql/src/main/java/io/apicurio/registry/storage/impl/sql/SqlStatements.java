@@ -340,4 +340,24 @@ public interface SqlStatements {
      */
     public String selectContentByContentHash();
 
+    /**
+     * A statement to select the log configuration for a given logger name
+     */
+    public String selectLogConfigurationByLogger();
+
+    /**
+     * A statement to "upsert" a row in the "logconfiguration" table
+     */
+    public String upsertLogConfiguration();
+
+    /**
+     * A statement to delete a row in the "logconfiguration" table
+     */
+    public String deleteLogConfiguration();
+
+    /**
+     * A statement to select all rows in the "logconfiguration" table
+     */
+    public String selectAllLogConfigurations();
+
 }

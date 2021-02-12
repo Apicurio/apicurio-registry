@@ -57,6 +57,7 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -65,6 +66,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -76,6 +78,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -108,6 +111,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected Map<Long, String> contentHash;
     protected MultiMap<ArtifactKey, String, String> artifactRules;
     protected Map<String, String> globalRules;
+    protected Map<String, String> logConfigurations;
 
     protected void beforeInit() {
     }
@@ -121,6 +125,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         global = createGlobalMap();
         globalRules = createGlobalRulesMap();
         artifactRules = createArtifactRulesMap();
+        logConfigurations = createLogConfigurationMap();
         afterInit();
     }
 
@@ -143,9 +148,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
     protected abstract MultiMap<ArtifactKey, String, String> createArtifactRulesMap();
 
+    protected abstract Map<String, String> createLogConfigurationMap();
+
     private Map<Long, Map<String, String>> getVersion2ContentMap(String groupId, String artifactId) throws ArtifactNotFoundException {
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
-        
+
         Map<Long, Map<String, String>> v2c = storage.get(akey);
         if (v2c == null || v2c.isEmpty()) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -979,4 +986,32 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             throw new RuleNotFoundException(rule);
         }
     }
+
+    @Override
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        String level = logConfigurations.get(logger);
+        if (level == null) {
+            return null;
+        }
+        return new LogConfigurationDto(logger, LogLevel.fromValue(level));
+    }
+
+    @Override
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
+        logConfigurations.put(logConfiguration.getLogger(), logConfiguration.getLogLevel().value());
+    }
+
+    @Override
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        logConfigurations.remove(logger);
+    }
+
+    @Override
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
+        return logConfigurations.entrySet()
+                .stream()
+                .map(e -> new LogConfigurationDto(e.getKey(), LogLevel.fromValue(e.getValue())))
+                .collect(Collectors.toList());
+    }
+
 }

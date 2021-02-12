@@ -45,6 +45,7 @@ import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.result.ResultIterable;
 import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.StatementContext;
+import org.jdbi.v3.core.statement.Update;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -67,6 +69,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -79,6 +82,7 @@ import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
@@ -1807,6 +1811,80 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getLogConfiguration(java.lang.String)
+     */
+    @Override
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        log.debug("Selecting a single log configuration: {}", logger);
+        try {
+            return this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.selectLogConfigurationByLogger();
+                return handle.createQuery(sql)
+                        .bind(0, logger)
+                        .map(LogConfigurationMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new LogConfigurationNotFoundException(logger);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
+     */
+    @Override @Transactional
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
+        log.debug("Upsert log configuration: {}", logConfiguration.getLogger());
+        withHandle(handle -> {
+            String sql = sqlStatements.upsertLogConfiguration();
+
+            Update query = handle.createUpdate(sql)
+                    .bind(0, logConfiguration.getLogger())
+                    .bind(1, logConfiguration.getLogLevel().value());
+            if ("postgresql".equals(sqlStatements.dbType())) {
+                query.bind(2, logConfiguration.getLogLevel().value());
+            }
+            query.execute();
+
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#removeLogConfiguration(java.lang.String)
+     */
+    @Override @Transactional
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        log.debug("Removing a log configuration: {}", logger);
+        withHandle( handle -> {
+            String sql = sqlStatements.deleteLogConfiguration();
+            int rowCount = handle.createUpdate(sql)
+                  .bind(0, logger)
+                  .execute();
+            if (rowCount == 0) {
+                throw new LogConfigurationNotFoundException(logger);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listLogConfigurations()
+     */
+    @Override
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
+        log.debug("Selecting all log configurations");
+        return withHandle(handle -> {
+            String sql = sqlStatements.selectAllLogConfigurations();
+            return handle.createQuery(sql)
+                    .map(LogConfigurationMapper.instance)
+                    .list();
+        });
     }
 
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {

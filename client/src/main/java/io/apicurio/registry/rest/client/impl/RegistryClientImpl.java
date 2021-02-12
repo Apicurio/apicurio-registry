@@ -143,8 +143,8 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
 
-        } catch (IOException e) {
-            throw parseError(e);
+        } catch (JsonProcessingException e) {
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -183,7 +183,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -220,7 +220,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .build());
 
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -245,7 +245,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -260,7 +260,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -296,7 +296,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -322,7 +322,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -514,7 +514,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .responseClass(Void.class)
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -551,7 +551,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -599,7 +599,7 @@ public class RegistryClientImpl implements RegistryClient {
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                     .build());
         } catch (JsonProcessingException e) {
-            throw parseError(e);
+            throw parseInputSerializingError(e);
         }
     }
 
@@ -640,8 +640,11 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
-    private RestClientException parseError(Exception ex) {
-        //FIXME proper error handling
+    private RestClientException parseInputSerializingError(JsonProcessingException ex) {
+        final Error error = new Error();
+        error.setName(ex.getClass().getSimpleName());
+        error.setDetail(ex.getMessage());
+        error.setMessage("Error trying to parse request body");
         return new RestClientException(new Error());
     }
 }

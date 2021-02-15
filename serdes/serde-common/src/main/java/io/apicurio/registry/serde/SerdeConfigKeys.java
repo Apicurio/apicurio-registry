@@ -18,35 +18,38 @@ package io.apicurio.registry.serde;
 
 import java.util.Properties;
 
+import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
+
 /**
  * Contains all of the Serde configuration properties.  These are all the property names used when
  * configuring serde classes in Kafka apps via a {@link Properties} object.  Serde classes can be
  * used by creating them directly as well, in which case these property names are not relevant.
  * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
 public class SerdeConfigKeys {
 
     /**
-     * Fully qualified Java classname of a class that implements {@link ArtifactIdStrategy} and is
+     * Fully qualified Java classname of a class that implements {@link ArtifactResolverStrategy} and is
      * responsible for mapping between the Kafka serde information and an artifactId.  For example
      * there is a strategy to use the topic name as the schema's artifactId.  Only used by the
      * <em>Serializer</em> serde class.
      */
     public static final String ARTIFACT_ID_STRATEGY = "apicurio.registry.artifact-id";
-//    /**
-//     * Fully qualified Java classname of a class that implements {@link GlobalIdStrategy} and is
-//     * responsible for resolving the schema to a unique globalId.  For example, there is a strategy
-//     * that simply uses the most recent version of an artifact as the schema.  Only used by the
-//     * <em>Serializer</em> serde class.
-//     */
-//    public static final String GLOBAL_ID_STRATEGY = "apicurio.registry.global-id";
+
+    /**
+     * Fully qualified Java classname of a class that implements {@link SchemaResolver}.
+     * {@link DefaultSchemaResolver} is used by default.
+     * The SchemaResolver is used both by Serializer and Deserializer classes.
+     */
     public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver";
 
     public static final String AUTO_REGISTER_ARTIFACT = "apicurio.registry.auto-register";
     public static final String AUTO_REGISTER_ARTIFACT_BEHAVIOR = "apicurio.registry.auto-register.if-exists";
-    public static final String GET_LATEST_ARTIFACT = "apicurio.registry.get.latest";
 
-
+    /**
+     * Optional, overrides the groupId returned by the {@link ArtifactResolverStrategy}
+     */
     public static final String ARTIFACT_GROUP_ID = "apicurio.registry.artifact.group-id";
 
     /**

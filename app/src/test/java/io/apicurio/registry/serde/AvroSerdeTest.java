@@ -86,7 +86,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
         config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
-        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
         serializer.configure(config, true);
@@ -105,7 +104,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
         config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class);
-        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class);
         serializer.configure(config, true);
         bytes = serializer.serialize(topic, record);
@@ -115,7 +113,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
         config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class.getName());
-        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class.getName());
         serializer.configure(config, true);
         bytes = serializer.serialize(topic, record);

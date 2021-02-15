@@ -16,51 +16,51 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.EditableMetaData;
-import io.apicurio.registry.rest.v1.beans.VersionMetaData;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.BaseIT;
-import io.apicurio.tests.utils.subUtils.ArtifactUtils;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+
 import org.hamcrest.number.OrderingComparison;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioV2BaseIT;
+import io.apicurio.tests.common.Constants;
 
-import static io.apicurio.tests.Constants.SMOKE;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-@Tag(SMOKE)
-class MetadataIT extends BaseIT {
+@Tag(Constants.SMOKE)
+class MetadataIT extends ApicurioV2BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataIT.class);
 
     @Test
     @Tag(ACCEPTANCE)
     void getAndUpdateMetadataOfArtifact() throws Exception {
+        String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
-        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
-        ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(artifactId);
+        ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(groupId, artifactId);
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
         assertThat(artifactMetaData.getCreatedOn().getTime(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getModifiedOn().getTime(), OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getId(), is(artifactId));
-        assertThat(artifactMetaData.getVersion(), is(1));
+        assertThat(artifactMetaData.getVersion(), is(1L));
         assertThat(artifactMetaData.getType().value(), is("AVRO"));
 
         EditableMetaData emd = new EditableMetaData();
@@ -68,14 +68,14 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.updateArtifactMetaData(artifactId, emd);
+        registryClient.updateArtifactMetaData(groupId, artifactId, emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData amd = registryClient.getArtifactMetaData(artifactId);
+            ArtifactMetaData amd = registryClient.getArtifactMetaData(groupId, artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
-            assertThat(amd.getVersion(), is(1));
+            assertThat(amd.getVersion(), is(1L));
             assertThat(amd.getType().value(), is("AVRO"));
             assertThat(amd.getDescription(), is("The description of the artifact."));
             assertThat(amd.getName(), is("Artifact Updated Name"));
@@ -84,24 +84,21 @@ class MetadataIT extends BaseIT {
 
     @Test
     void getAndUpdateMetadataOfArtifactSpecificVersion() throws Exception {
+        String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
-        ArtifactMetaData amd1 = metaData;
-        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd1.getGlobalId()));
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData);
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ByteArrayInputStream artifactUpdateData = new ByteArrayInputStream(artifactUpdateDefinition.getBytes(StandardCharsets.UTF_8));
 
-        metaData = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactUpdateData);
+        metaData = updateArtifact(groupId, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
-        ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
 
-        VersionMetaData versionMetaData = registryClient.getArtifactVersionMetaData(artifactId, 2);
+        VersionMetaData versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "2");
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -113,22 +110,22 @@ class MetadataIT extends BaseIT {
         emd.setName("Artifact Updated Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.updateArtifactVersionMetaData(artifactId, 2, emd);
+        registryClient.updateArtifactVersionMetaData(groupId, artifactId, "2", emd);
 
         TestUtils.retry(() -> {
-            ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(artifactId);
+            ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(groupId, artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
-            assertThat(artifactMetaData.getVersion(), is(2));
+            assertThat(artifactMetaData.getVersion(), is(2L));
             assertThat(artifactMetaData.getType().value(), is("AVRO"));
             assertThat(artifactMetaData.getName(), is("Artifact Updated Name"));
             assertThat(artifactMetaData.getDescription(), is("The description of the artifact."));
             assertThat(artifactMetaData.getModifiedOn(), notNullValue());
         });
 
-        versionMetaData = registryClient.getArtifactVersionMetaData(artifactId, 1);
+        versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "1");
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
-        assertThat(versionMetaData.getVersion(), is(1));
+        assertThat(versionMetaData.getVersion(), is(1L));
         assertThat(versionMetaData.getType().value(), is("AVRO"));
         assertThat(versionMetaData.getName(), is("myrecord1"));
         assertThat(versionMetaData.getDescription(),  nullValue());

@@ -1,4 +1,4 @@
-name: Integration Tests Workflow
+name: Integration Tests Workflow - feat/artifact-groups only
 on:
   push:
     paths-ignore:
@@ -7,7 +7,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, '[1-9].[1-9].x']
+    branches: [feat/artifact-groups]
   pull_request:
     paths-ignore:
       - '.github/**'
@@ -15,11 +15,11 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [feat/artifact-groups]
 
 jobs:
   integration-tests:
-    name: Integration Tests
+    name: Integration Tests - feat/artifact-groups only
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
     steps:
@@ -39,18 +39,18 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests
-      - name: Run Integration Tests - streams
-        run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Build All Variants - the ones implemented - running unit tests as well
+        run: mvn clean install -Pprod -Psql -Pinfinispan #-Pstreams -Pasyncmem -Pkafkasql -DskipTests
+      # - name: Run Integration Tests - streams
+        # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql
         run: mvn verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - infinispan
         run: mvn verify -Pintegration-tests -Pacceptance -Pinfinispan -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      - name: Run Integration Tests - kafkasql
-        run: mvn verify -Pintegration-tests -Pacceptance -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      - name: Run Legacy Tests - streams
-        run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+      # - name: Run Integration Tests - kafkasql
+        # run: mvn verify -Pintegration-tests -Pacceptance -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      # - name: Run Legacy Tests - streams
+        # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Legacy Tests - sql
         run: mvn verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Collect logs

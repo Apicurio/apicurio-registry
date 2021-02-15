@@ -75,7 +75,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
-            config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);
@@ -128,7 +127,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
-            config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);
@@ -172,7 +170,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
-            config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);

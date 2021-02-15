@@ -15,139 +15,123 @@
  */
 package io.apicurio.tests.ui;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Duration;
-import java.util.List;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.selenium.SeleniumChrome;
 import io.apicurio.tests.selenium.SeleniumProvider;
-import io.apicurio.tests.selenium.resources.ArtifactListItem;
 
-@Tag(UI)
+@Tag(Constants.UI)
 @SeleniumChrome
 public class DeleteArtifactIT extends ApicurioV2BaseIT {
 
     SeleniumProvider selenium = SeleniumProvider.getInstance();
 
-    @AfterEach
-    void logIfError(ExtensionContext ctx) {
-        if (ctx.getExecutionException().isPresent()) {
-            logger.error("", ctx.getExecutionException().get());
-        }
-    }
-
-    @Test
-    void testDeleteArtifacts() throws Exception {
-        RegistryUITester page = new RegistryUITester(selenium);
-        page.openWebPage();
-
-        String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, registryClient.listArtifacts().size());
-        page.goBackToArtifactsList();
-
-        String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
-        String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, registryClient.listArtifacts().size());
-        page.goBackToArtifactsList();
-
-        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-        assertEquals(2, webArtifacts.size());
-
-        webArtifacts.removeIf(artifact -> {
-            return artifact.getArtifactId().equals(artifactId1) || artifact.getArtifactId().equals(artifactId2);
-        });
-        assertTrue(webArtifacts.isEmpty());
-
-        page.deleteArtifact(artifactId1);
-
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
-            try {
-                return page.getArtifactsList().size() == 1;
-            } catch (Exception e) {
-                logger.error("", e);
-                return false;
-            }
-        });
-        webArtifacts = page.getArtifactsList();
-        assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
-
-        page.deleteArtifact(artifactId2);
-
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
-            try {
-                return page.getArtifactsList().size() == 0;
-            } catch (Exception e) {
-                logger.error("", e);
-                return false;
-            }
-        });
-    }
-
-    @Test
-    void testDeleteViaApi() throws Exception {
-        RegistryUITester page = new RegistryUITester(selenium);
-        page.openWebPage();
-
-        String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
-        assertEquals(1, registryClient.listArtifacts().size());
-        page.goBackToArtifactsList();
-
-        String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
-        String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
-        assertEquals(2, registryClient.listArtifacts().size());
-        page.goBackToArtifactsList();
-
-        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-        assertEquals(2, webArtifacts.size());
-
-        webArtifacts.removeIf(artifact -> {
-            return artifact.getArtifactId().equals(artifactId1) || artifact.getArtifactId().equals(artifactId2);
-        });
-        assertTrue(webArtifacts.isEmpty());
-
-        registryClient.deleteArtifact(artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId1), true, errorCodeExtractor);
-
-        selenium.refreshPage();
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return page.getArtifactsList().size() == 1;
-            } catch (Exception e) {
-                logger.error("", e);
-                return false;
-            }
-        });
-        webArtifacts = page.getArtifactsList();
-        assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
-
-        registryClient.deleteArtifact(artifactId2);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId2), true, errorCodeExtractor);
-
-        selenium.refreshPage();
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return page.getArtifactsList().size() == 0;
-            } catch (Exception e) {
-                logger.error("", e);
-                return false;
-            }
-        });
-    }
+//    @AfterEach
+//    void logIfError(ExtensionContext ctx) {
+//        if (ctx.getExecutionException().isPresent()) {
+//            logger.error("", ctx.getExecutionException().get());
+//        }
+//    }
+//
+//    @Test
+//    void testDeleteArtifacts() throws Exception {
+//        RegistryUITester page = new RegistryUITester(selenium);
+//        page.openWebPage();
+//
+//        String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
+//        String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
+//        assertEquals(1, registryClient.listArtifacts().size());
+//        page.goBackToArtifactsList();
+//
+//        String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
+//        String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
+//        assertEquals(2, registryClient.listArtifacts().size());
+//        page.goBackToArtifactsList();
+//
+//        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
+//        assertEquals(2, webArtifacts.size());
+//
+//        webArtifacts.removeIf(artifact -> {
+//            return artifact.getArtifactId().equals(artifactId1) || artifact.getArtifactId().equals(artifactId2);
+//        });
+//        assertTrue(webArtifacts.isEmpty());
+//
+//        page.deleteArtifact(artifactId1);
+//
+//        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
+//            try {
+//                return page.getArtifactsList().size() == 1;
+//            } catch (Exception e) {
+//                logger.error("", e);
+//                return false;
+//            }
+//        });
+//        webArtifacts = page.getArtifactsList();
+//        assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
+//
+//        page.deleteArtifact(artifactId2);
+//
+//        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Duration.ofSeconds(60).toMillis(), () -> {
+//            try {
+//                return page.getArtifactsList().size() == 0;
+//            } catch (Exception e) {
+//                logger.error("", e);
+//                return false;
+//            }
+//        });
+//    }
+//
+//    @Test
+//    void testDeleteViaApi() throws Exception {
+//        RegistryUITester page = new RegistryUITester(selenium);
+//        page.openWebPage();
+//
+//        String content1 = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
+//        String artifactId1 = page.uploadArtifact(null, ArtifactType.PROTOBUF, content1);
+//        assertEquals(1, registryClient.listArtifacts().size());
+//        page.goBackToArtifactsList();
+//
+//        String content2 = resourceToString("artifactTypes/" + "jsonSchema/person_v1.json");
+//        String artifactId2 = page.uploadArtifact(null, ArtifactType.JSON, content2);
+//        assertEquals(2, registryClient.listArtifacts().size());
+//        page.goBackToArtifactsList();
+//
+//        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
+//        assertEquals(2, webArtifacts.size());
+//
+//        webArtifacts.removeIf(artifact -> {
+//            return artifact.getArtifactId().equals(artifactId1) || artifact.getArtifactId().equals(artifactId2);
+//        });
+//        assertTrue(webArtifacts.isEmpty());
+//
+//        registryClient.deleteArtifact(artifactId1);
+//        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId1), true, errorCodeExtractor);
+//
+//        selenium.refreshPage();
+//        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+//            try {
+//                return page.getArtifactsList().size() == 1;
+//            } catch (Exception e) {
+//                logger.error("", e);
+//                return false;
+//            }
+//        });
+//        webArtifacts = page.getArtifactsList();
+//        assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
+//
+//        registryClient.deleteArtifact(artifactId2);
+//        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId2), true, errorCodeExtractor);
+//
+//        selenium.refreshPage();
+//        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+//            try {
+//                return page.getArtifactsList().size() == 0;
+//            } catch (Exception e) {
+//                logger.error("", e);
+//                return false;
+//            }
+//        });
+//    }
 
 }

@@ -29,8 +29,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
+
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -38,6 +42,8 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -54,76 +60,67 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
         restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
     }
 
-//    @Test
-//    public void testConfiguration() throws Exception {
-//
-//        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
-//        String schema = IoUtil.toString(toSchemaProto(record));
-//        System.out.println(schema);
-//
-//        String groupId = TestUtils.generateGroupId();
-//        String topic = generateArtifactId();
-//
-//        createArtifact(groupId, topic, ArtifactType.PROTOBUF, schema);
-//
-//        Map<String, Object> config = new HashMap<>();
-//        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-//        config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
-//        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
-//        Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
-//        serializer.configure(config, true);
-//
-//        byte[] bytes = serializer.serialize(topic, record);
-//
-//        Map<String, Object> deserializerConfig = new HashMap<>();
-//        deserializerConfig.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-//        Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer();
-//        deserializer.configure(deserializerConfig, true);
-//
-//        DynamicMessage deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class);
-//        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
-//        serializer.configure(config, true);
-//        bytes = serializer.serialize(topic, record);
-//
-//        deserializer.configure(deserializerConfig, true);
-//        deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class.getName());
-//        config.put(SerdeConfigKeys.GET_LATEST_ARTIFACT, "true");
-//        serializer.configure(config, true);
-//        bytes = serializer.serialize(topic, record);
-//        deserializer.configure(deserializerConfig, true);
-//        deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        serializer.close();
-//        deserializer.close();
-//    }
-//
-//    private <T extends Message> byte[] toSchemaProto(T record) {
-//        FileDescriptor file = record.getDescriptorForType().getFile();
-//        return toSchemaProto(file).toByteArray();
-////        Serde.Schema.Builder b = Serde.Schema.newBuilder();
-////        b.setFile(file.toProto());
-////        for (Descriptors.FileDescriptor d : file.getDependencies()) {
-////            b.addImport(toSchemaProto(d));
-////        }
-////        return b.build().toByteArray();
-//    }
-//
-//    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
-//        Serde.Schema.Builder b = Serde.Schema.newBuilder();
-//        b.setFile(file.toProto());
-//        for (Descriptors.FileDescriptor d : file.getDependencies()) {
-//            b.addImport(toSchemaProto(d));
-//        }
-//        return b.build();
-//    }
+    @Test
+    public void testConfiguration() throws Exception {
+
+        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+        String schema = IoUtil.toString(toSchemaProto(record));
+        System.out.println(schema);
+
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+
+        createArtifact(groupId, topic, ArtifactType.PROTOBUF, schema);
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
+        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
+        Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
+        serializer.configure(config, true);
+
+        byte[] bytes = serializer.serialize(topic, record);
+
+        Map<String, Object> deserializerConfig = new HashMap<>();
+        deserializerConfig.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer();
+        deserializer.configure(deserializerConfig, true);
+
+        DynamicMessage deserializedRecord = deserializer.deserialize(topic, bytes);
+        assertProtobufEquals(record, deserializedRecord);
+
+        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class);
+        serializer.configure(config, true);
+        bytes = serializer.serialize(topic, record);
+
+        deserializer.configure(deserializerConfig, true);
+        deserializedRecord = deserializer.deserialize(topic, bytes);
+        assertProtobufEquals(record, deserializedRecord);
+
+        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class.getName());
+        serializer.configure(config, true);
+        bytes = serializer.serialize(topic, record);
+        deserializer.configure(deserializerConfig, true);
+        deserializedRecord = deserializer.deserialize(topic, bytes);
+        assertProtobufEquals(record, deserializedRecord);
+
+        serializer.close();
+        deserializer.close();
+    }
+
+    private <T extends Message> byte[] toSchemaProto(T record) {
+        FileDescriptor file = record.getDescriptorForType().getFile();
+        return toSchemaProto(file).toByteArray();
+    }
+
+    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
+        Serde.Schema.Builder b = Serde.Schema.newBuilder();
+        b.setFile(file.toProto());
+        for (Descriptors.FileDescriptor d : file.getDependencies()) {
+            b.addImport(toSchemaProto(d));
+        }
+        return b.build();
+    }
 
     @Test
     public void testProto() throws Exception {

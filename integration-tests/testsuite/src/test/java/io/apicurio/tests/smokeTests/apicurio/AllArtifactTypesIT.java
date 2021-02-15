@@ -17,116 +17,115 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import static io.apicurio.tests.common.Constants.SMOKE;
 
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.RuleViolationException;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import io.apicurio.tests.ApicurioV2BaseIT;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
 @Tag(SMOKE)
-class AllArtifactTypesIT extends BaseIT {
+class AllArtifactTypesIT extends ApicurioV2BaseIT {
 
-    void doTest(RegistryRestClient client, String v1Resource, String v2Resource, ArtifactType atype) {
+    void doTest(RegistryClient client, String v1Resource, String v2Resource, ArtifactType atype) throws Exception {
+        String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        try {
-            // Load/Assert resources exist.
-            String v1Content = resourceToString("artifactTypes/" + v1Resource);
-            String v2Content = resourceToString("artifactTypes/" + v2Resource);
+        // Load/Assert resources exist.
+        String v1Content = resourceToString("artifactTypes/" + v1Resource);
+        String v2Content = resourceToString("artifactTypes/" + v2Resource);
 
-            // Enable syntax validation global rule
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            client.createGlobalRule(rule);
+        // Enable syntax validation global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("SYNTAX_ONLY");
+        client.createGlobalRule(rule);
 
-            // Make sure we have rule
-            TestUtils.retry(() -> client.getGlobalRuleConfig(rule.getType()));
+        // Make sure we have rule
+        TestUtils.retry(() -> client.getGlobalRuleConfig(rule.getType()));
 
-            // Create artifact
-            ArtifactMetaData amd = ArtifactUtils.createArtifact(client, atype, artifactId, IoUtil.toStream(v1Content));
-            // Make sure artifact is fully registered
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
+        // Create artifact
+        createArtifact(groupId, artifactId, atype, IoUtil.toStream(v1Content));
 
-            // Test update (valid content)
-            client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
+        // Test update (valid content)
+        client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream(v2Content));
 
-            // Test update (invalid content)
-            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")), errorCodeExtractor);
+        // Test update (invalid content)
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("This is not valid content")), errorCodeExtractor);
 
-            // Update artifact (valid v2 content)
-            ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
+        // Update artifact (valid v2 content)
+        //TODO old tests used update artifact instead of create new version, is still ok?
+        createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
 
-            // Find artifact by content
-            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, false, IoUtil.toStream(v1Content));
-            assertNotNull(byContent);
-            assertNotNull(byContent.getGlobalId());
-            assertEquals(artifactId, byContent.getId());
-            assertNotNull(byContent.getVersion());
+        // Find artifact by content
+        VersionMetaData byContent = client.getArtifactVersionMetaDataByContent(groupId, artifactId, false, IoUtil.toStream(v1Content));
+        assertNotNull(byContent);
+        assertNotNull(byContent.getGlobalId());
+        assertEquals(artifactId, byContent.getId());
+        assertNotNull(byContent.getVersion());
 
-            // Update artifact (invalid content)
-            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")), errorCodeExtractor);
+        // Update artifact (invalid content)
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.createArtifactVersion(groupId, artifactId, null, IoUtil.toStream("This is not valid content.")), errorCodeExtractor);
 
-            // Override Validation rule for the artifact
-            rule.setConfig("NONE");
-            client.createArtifactRule(artifactId, rule);
+        // Override Validation rule for the artifact
+        rule.setConfig("NONE");
+        client.createArtifactRule(groupId, artifactId, rule);
 
-            // Make sure we have rule
-            TestUtils.retry(() -> client.getArtifactRuleConfig(artifactId, rule.getType()));
+        // Make sure we have rule
+        TestUtils.retry(() -> client.getArtifactRuleConfig(groupId, artifactId, rule.getType()));
 
-            // Update artifact (invalid content) - should work now
-            ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content."));
-            // Make sure artifact is fully registered
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
-        } catch (Exception e) {
-            LOGGER.error("Error on AllArtifactTypesIT", e);
-            throw new IllegalStateException(e);
-        }
+        // Update artifact (invalid content) - should work now
+        VersionMetaData amd2 = createArtifactVersion(groupId, artifactId, IoUtil.toStream("This is not valid content."));
+        // Make sure artifact is fully registered
+        TestUtils.retry(() -> client.getContentByGlobalId(amd2.getGlobalId()));
     }
 
     @Test
     @Tag(ACCEPTANCE)
-    void testAvro() {
+    void testAvro() throws Exception {
         doTest(registryClient, "avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO);
     }
 
     @Test
     @Tag(ACCEPTANCE)
-    void testProtobuf() {
+    void testProtobuf() throws Exception {
         doTest(registryClient, "protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF);
     }
 
     @Test
     @Tag(ACCEPTANCE)
-    void testJsonSchema() {
+    void testJsonSchema() throws Exception {
         doTest(registryClient, "jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON);
     }
 
     @Test
-    void testKafkaConnect() {
+    void testKafkaConnect() throws Exception {
         doTest(registryClient, "kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT);
     }
 
     @Test
-    void testOpenApi30() {
+    void testOpenApi30() throws Exception {
         doTest(registryClient, "openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI);
     }
 
     @Test
-    void testAsyncApi() {
+    void testAsyncApi() throws Exception {
         doTest(registryClient, "asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI);
     }
 
     @Test
-    void testGraphQL() {
+    void testGraphQL() throws Exception {
         doTest(registryClient, "graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL);
     }
 

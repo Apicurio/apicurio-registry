@@ -19,10 +19,17 @@ package io.apicurio.tests;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +41,8 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v2.beans.SearchedVersion;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -71,13 +80,47 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
     }
 
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
-
         ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         // make sure we have schema registered
         retry(() -> registryClient.getContentByGlobalId(amd.getGlobalId()));
         retry(() -> registryClient.getArtifactVersionMetaData(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion())));
         return amd;
+    }
+
+    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, InputStream artifact) throws Exception {
+        VersionMetaData meta = registryClient.createArtifactVersion(groupId, artifactId, null, artifact);
+
+        //wait for storage
+        retry(() -> registryClient.getContentByGlobalId(meta.getGlobalId()));
+        retry(() -> registryClient.getArtifactVersionMetaData(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion())));
+        return meta;
+    }
+
+    protected ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream artifact) throws Exception {
+        ArtifactMetaData meta = registryClient.updateArtifact(groupId, artifactId, artifact);
+
+        //wait for storage
+        retry(() -> registryClient.getContentByGlobalId(meta.getGlobalId()));
+        retry(() -> registryClient.getArtifactVersionMetaData(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion())));
+        return meta;
+    }
+
+    protected List<Long> listArtifactVersions(String groupId, String artifactId) {
+        return registryClient.listArtifactVersions(groupId, artifactId, 0, 10)
+                .getVersions()
+                .stream()
+                .map(SearchedVersion::getVersion)
+                .collect(Collectors.toList());
+    }
+
+    protected final String resourceToString(String resourceName) {
+        try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
+            Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

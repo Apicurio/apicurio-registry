@@ -100,9 +100,6 @@
         <module>docs</module>
         <module>rest-client</module>
         <module>client</module>
-        <module>integration-tests/integration-tests-common</module>
-        <module>integration-tests/legacy-tests</module>
-        <module>integration-tests/testsuite</module>
     </modules>
 
     <properties>
@@ -891,6 +888,14 @@
             <id>perftest</id>
             <modules>
                 <module>perftest</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>integration-tests/integration-tests-common</module>
+                <module>integration-tests/legacy-tests</module>
+                <module>integration-tests/testsuite</module>
             </modules>
         </profile>
         <profile>

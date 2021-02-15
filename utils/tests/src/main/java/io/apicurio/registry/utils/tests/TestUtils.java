@@ -305,7 +305,7 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
             assertClientError(expectedErrorName, expectedCode, runnable, false, errorCodeExtractor);
         } catch (Exception e) {
@@ -313,7 +313,7 @@ public class TestUtils {
         }
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         if (retry) {
             retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor));
         } else {
@@ -321,7 +321,7 @@ public class TestUtils {
         }
     }
 
-    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable, Function<Exception, Integer> errorCodeExtractor) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
         try {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);

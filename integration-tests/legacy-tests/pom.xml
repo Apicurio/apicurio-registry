@@ -16,23 +16,17 @@
     <properties>
         <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.source>11</maven.compiler.source>
-<!--         <groups></groups> -->
-<!--         <skipTests>true</skipTests> -->
+        <groups></groups>
+        <skipTests>true</skipTests>
         
         <junit.version>5.7.0</junit.version>
         <junit.platform-launcher.version>1.7.0</junit.platform-launcher.version>
         <version.okhttp>4.9.0</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
-<!--         <scala.version>2.12.10</scala.version> -->
-<!--         <maven.dependency.version>3.1.1</maven.dependency.version> -->
-<!--         <logback.version>1.2.3</logback.version> -->
-<!--         <hamcrest.version>2.2</hamcrest.version> -->
-<!--         <commons-logging.version>1.2</commons-logging.version> -->
+
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>
         <jersey.microprofile.version>2.33</jersey.microprofile.version>
 
-<!--         junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
-<!--         <junit4.version>4.13.1</junit4.version> -->
     </properties>
 
     <repositories>
@@ -50,33 +44,6 @@
             <artifactId>apicurio-registry-integration-tests-common</artifactId>
         </dependency>
         
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-tests</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        
-
-<!--         Third Party Libraries -->
-<!--         <dependency> -->
-<!--             <groupId>io.apicurio</groupId> -->
-<!--             <artifactId>apicurio-data-models</artifactId> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
-
-<!--         <dependency> -->
-<!--             <groupId>org.hamcrest</groupId> -->
-<!--             <artifactId>hamcrest</artifactId> -->
-<!--             <version>${hamcrest.version}</version> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>commons-logging</groupId> -->
-<!--             <artifactId>commons-logging</artifactId> -->
-<!--             <version>${commons-logging.version}</version> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
-
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -121,18 +88,6 @@
             <artifactId>connect-json</artifactId>
             <version>${kafka.version}</version>
         </dependency>
-
-<!--         <dependency> -->
-<!--             <groupId>org.slf4j</groupId> -->
-<!--             <artifactId>slf4j-api</artifactId> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>ch.qos.logback</groupId> -->
-<!--             <artifactId>logback-classic</artifactId> -->
-<!--             <version>${logback.version}</version> -->
-<!--             <scope>runtime</scope> -->
-<!--         </dependency> -->
 
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -179,32 +134,6 @@
              <version>${version.okhttp}</version>
              <scope>test</scope>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.testcontainers</groupId> -->
-<!--             <artifactId>testcontainers</artifactId> -->
-<!--             <version>${test-containers.version}</version> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--              <groupId>junit</groupId> -->
-<!--              <artifactId>junit</artifactId> -->
-<!--              <version>${junit4.version}</version> -->
-<!--              <scope>compile</scope> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>org.testcontainers</groupId> -->
-<!--             <artifactId>postgresql</artifactId> -->
-<!--             <version>${test-containers.version}</version> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>org.testcontainers</groupId> -->
-<!--             <artifactId>kafka</artifactId> -->
-<!--             <scope>compile</scope> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>org.postgresql</groupId> -->
-<!--             <artifactId>postgresql</artifactId> -->
-<!--             <scope>test</scope> -->
-<!--         </dependency> -->
 
     </dependencies>
 
@@ -264,35 +193,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>${version.puppycrawl}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <configuration>
-                            <configLocation>.checkstyle/checkstyle.xml</configLocation>
-                            <headerLocation>.checkstyle/java.header</headerLocation>
-                            <suppressionsLocation>.checkstyle/suppressions.xml</suppressionsLocation>
-                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <encoding>UTF-8</encoding>
-                            <consoleOutput>true</consoleOutput>
-                            <failsOnError>true</failsOnError>
-                        </configuration>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 

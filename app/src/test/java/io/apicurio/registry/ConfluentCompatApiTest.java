@@ -67,7 +67,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"";
 
-    private static final String INVALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"int\\\"}]}\"}\"";
+    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
     /**
      * Endpoint: /subjects/(string: subject)/versions
      */
@@ -222,10 +222,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(INVALID_AVRO_SCHEMA)
+                .body(SCHEMA_INVALID_WRAPPED)
                 .post("/ccompat/subjects/{subject}/versions", SUBJECT)
                 .then()
-                .statusCode(409);
+                .statusCode(422);
     }
 
     @Test

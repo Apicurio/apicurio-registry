@@ -175,7 +175,7 @@
         
         <!-- Gatling -->
         <version.gatling>3.5.1</version.gatling>
-        <version.gatling.plugin>3.1.1</version.gatling.plugin>
+        <version.gatling.plugin>3.1.2</version.gatling.plugin>
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>

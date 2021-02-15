@@ -19,6 +19,7 @@ package io.apicurio.registry.rest.client.impl;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.request.RequestHandler;
 import io.apicurio.registry.rest.client.request.provider.AdminRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
@@ -39,7 +40,7 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-
+import io.apicurio.registry.utils.ArtifactIdValidator;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
@@ -186,6 +187,9 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
+        if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+            throw new InvalidArtifactIdException();
+        }
         final Map<String, String> headers = new HashMap<>();
         if (artifactId != null) {
             headers.put(Headers.ARTIFACT_ID, artifactId);

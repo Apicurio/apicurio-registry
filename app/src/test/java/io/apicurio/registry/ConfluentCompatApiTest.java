@@ -65,6 +65,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
+    private static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"";
+
+    private static final String INVALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"int\\\"}]}\"}\"";
     /**
      * Endpoint: /subjects/(string: subject)/versions
      */
@@ -145,7 +148,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testCompatibilityCheck() throws Exception {
-        final String SUBJECT = "subject2";
+        final String SUBJECT = "testCompatibilityCheck";
         // Prepare
         given()
             .when()
@@ -184,6 +187,45 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .body("is_compatible", equalTo(false));
         });
+    }
+
+    /**
+     * Endpoint: /compatibility/subjects/{subject}/versions/{version}
+     */
+    @Test
+    public void testCompatibilityInvalidSchema() throws Exception {
+
+        final String SUBJECT = "testCompatibilityInvalidSchema";
+
+        // Prepare
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(VALID_AVRO_SCHEMA)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body(anything());
+
+        this.waitForArtifact(SUBJECT);
+
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CONFIG_BACKWARD)
+                .put("/ccompat/config/{subject}", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body(anything());
+
+        // Prepare
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(INVALID_AVRO_SCHEMA)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(409);
     }
 
     @Test

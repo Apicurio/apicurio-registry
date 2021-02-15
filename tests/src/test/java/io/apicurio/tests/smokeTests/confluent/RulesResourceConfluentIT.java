@@ -57,8 +57,8 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
         LOGGER.info("Checking 'Subject not found' and expected code {}", 404);
         GlobalRuleUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", "subject-not-found", 404);
 
-        LOGGER.info("Checking 'Invalid avro format' and expected code {}", 400);
-        GlobalRuleUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
+        LOGGER.info("Checking 'Invalid avro format' and expected code {}", 409);
+        GlobalRuleUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"int\\\"}]}\"}", schemeSubject, 409);
 
         confluentService.deleteSubject(schemeSubject);
         waitForSubjectDeleted(schemeSubject);

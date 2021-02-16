@@ -44,9 +44,9 @@ jobs:
       # - name: Run Integration Tests - streams
         # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - inmemory
-        run: mvn verify -Pintegration-tests -Pacceptance -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn verify -Pintegration-tests -Pacceptance -Pinmemory -am -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql
-        run: mvn verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn verify -Pintegration-tests -Pacceptance -Psql -am -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       # - name: Run Integration Tests - infinispan
       #   run: mvn verify -Pintegration-tests -Pacceptance -Pinfinispan -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       # - name: Run Integration Tests - kafkasql
@@ -54,7 +54,7 @@ jobs:
       # - name: Run Legacy Tests - streams
         # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Legacy Tests - sql
-        run: mvn verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn verify -Pintegration-tests -Pacceptance -Psql -am -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh

@@ -23,11 +23,18 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -319,8 +326,17 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void testLoggerSetsLevel() {
-        for (LogLevel level : LogLevel.values()) {
+    void testLoggerSetsLevel() throws Exception {
+        String defaultLogLevel = Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName();
+        verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+        //remove default log level to avoid conflicts with the checkLogLevel daemon process
+        List<LogLevel> levels =  EnumSet.allOf(LogLevel.class)
+            .stream()
+            .filter(l -> !l.value().equals(defaultLogLevel))
+            .collect(Collectors.toList());
+
+
+        for (LogLevel level : levels) {
             LogConfiguration lc = new LogConfiguration();
             lc.setLevel(level);
             given()
@@ -333,7 +349,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+            TestUtils.retry(() -> assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName()));
         }
     }
 
@@ -350,8 +366,22 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .statusCode(400);
     }
 
+    private void verifyLogLevel(LogLevel level) {
+        given()
+            .when()
+                .pathParam("logger", TEST_LOGGER_NAME)
+                .get("/v2/admin/loggers/{logger}")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("level", is(level.value()));
+    }
+
     @Test
     void testLoggersCRUD() throws Exception {
+        String defaultLogLevel = Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName();
+        verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+
         Consumer<LogLevel> setLog = (level) -> {
             LogConfiguration lc = new LogConfiguration();
             lc.setLevel(level);
@@ -369,15 +399,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
-            given()
-                .when()
-                    .pathParam("logger", TEST_LOGGER_NAME)
-                    .get("/v2/admin/loggers/{logger}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body("level", is(level.value()));
-
             Response res = given()
                 .when()
                     .get("/v2/admin/loggers")
@@ -390,12 +411,30 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
         };
 
-        final LogLevel firstLevel = LogLevel.DEBUG;
+
+        //remove default log level to avoid conflicts with the checkLogLevel daemon process
+        List<LogLevel> levels =  EnumSet.allOf(LogLevel.class)
+            .stream()
+            .filter(l -> !l.value().equals(defaultLogLevel))
+            .collect(Collectors.toList());
+        //pick two random levels that are not the default level
+        Random r = new Random();
+
+        Map<String, LogLevel> testLevels = new HashMap<>();
+        TestUtils.retry(() -> {
+            testLevels.put("first", levels.get(r.nextInt(levels.size())));
+            testLevels.put("second", levels.get(r.nextInt(levels.size())));
+            assertNotEquals(testLevels.get("first"), testLevels.get("second"));
+        });
+        LogLevel firstLevel = testLevels.get("first");
+        LogLevel secondLevel = testLevels.get("second");
+
         setLog.accept(firstLevel);
+        TestUtils.retry(() -> verifyLogLevel(firstLevel));
         TestUtils.retry(() -> verifyLevel.accept(firstLevel));
 
-        final LogLevel secondLevel = LogLevel.FINEST;
         setLog.accept(secondLevel);
+        TestUtils.retry(() -> verifyLogLevel(secondLevel));
         TestUtils.retry(() -> verifyLevel.accept(secondLevel));
 
         given()

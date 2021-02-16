@@ -299,8 +299,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(0, tenantContext.tenantId())
                         .bind(1, contentId)
                         .map(ContentMapper.instance)
-                        .one();
+                        .first();
             } catch (IllegalStateException e) {
+                log.debug("Error getArtifactByContentId", e);
                 throw new ContentNotFoundException("contentId-" + contentId);
             }
         });
@@ -318,8 +319,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(0, tenantContext.tenantId())
                         .bind(1, contentHash)
                         .map(ContentMapper.instance)
-                        .one();
+                        .first();
             } catch (IllegalStateException e) {
+                log.debug("Error getArtifactByContentHash", e);
                 throw new ContentNotFoundException("contentHash-" + contentHash);
             }
         });

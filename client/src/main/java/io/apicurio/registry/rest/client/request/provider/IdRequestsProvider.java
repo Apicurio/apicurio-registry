@@ -19,7 +19,6 @@ package io.apicurio.registry.rest.client.request.provider;
 import io.apicurio.registry.rest.client.request.Request;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 

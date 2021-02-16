@@ -85,7 +85,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             waitForArtifact(groupId, artifactId);
 
             EditableMetaData emd = new EditableMetaData();
-            emd.setName("myname");
+            emd.setName("testAsyncCRUD");
 
             clientV2.updateArtifactMetaData(groupId, artifactId, emd);
 
@@ -94,7 +94,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
                 ArtifactMetaData artifactMetaData = clientV2
                         .getArtifactMetaData(groupId, artifactId);
                 Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals("testAsyncCRUD", artifactMetaData.getName());
             });
 
             stream = IoUtil.toStream(UPDATED_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -334,7 +334,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
             this.waitForArtifact(groupId, artifactId);
             EditableMetaData emd = new EditableMetaData();
-            emd.setName("myname");
+            emd.setName("testLabels");
 
             final List<String> artifactLabels = Arrays.asList("Open Api", "Awesome Artifact", "JSON", "registry-client-test-testLabels");
             emd.setLabels(artifactLabels);
@@ -346,13 +346,13 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             retry(() -> {
                 ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
                 Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals("testLabels", artifactMetaData.getName());
                 Assertions.assertEquals(4, artifactMetaData.getLabels().size());
                 Assertions.assertTrue(artifactMetaData.getLabels().containsAll(artifactLabels));
             });
 
             retry((() -> {
-                ArtifactSearchResults results = clientV2.searchArtifacts(null, "myname", null, null, null, SortBy.name, SortOrder.asc, 0, 10);
+                ArtifactSearchResults results = clientV2.searchArtifacts(null, "testLabels", null, null, null, SortBy.name, SortOrder.asc, 0, 10);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount());
                 Assertions.assertEquals(1, results.getArtifacts().size());
@@ -375,7 +375,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             this.waitForArtifact(groupId, artifactId);
 
             EditableMetaData emd = new EditableMetaData();
-            emd.setName("myname");
+            emd.setName("testProperties");
 
             final Map<String, String> artifactProperties = new HashMap<>();
             artifactProperties.put("extraProperty1", "value for extra property 1");
@@ -390,7 +390,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
             retry(() -> {
                 ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
                 Assertions.assertNotNull(artifactMetaData);
-                Assertions.assertEquals("myname", artifactMetaData.getName());
+                Assertions.assertEquals("testProperties", artifactMetaData.getName());
                 Assertions.assertEquals(3, artifactMetaData.getProperties().size());
                 Assertions.assertTrue(artifactMetaData.getProperties().keySet().containsAll(artifactProperties.keySet()));
                 for (String key : artifactMetaData.getProperties().keySet()) {

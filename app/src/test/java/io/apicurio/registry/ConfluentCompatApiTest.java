@@ -21,6 +21,7 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
@@ -218,14 +219,18 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(anything());
 
-        // Prepare
-        given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_INVALID_WRAPPED)
-                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
-                .then()
-                .statusCode(422);
+        this.waitForArtifactRule(SUBJECT, RuleType.COMPATIBILITY);
+
+        // POST
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_INVALID_WRAPPED)
+                    .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                    .then()
+                    .statusCode(422);
+        });
     }
 
     @Test

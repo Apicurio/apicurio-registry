@@ -179,7 +179,7 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer
-            limit, Integer offset) {
+            offset, Integer limit) {
         final Map<String, List<String>> queryParams = new HashMap<>();
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
         return requestHandler.sendRequest(GroupRequestsProvider.listArtifactsInGroup(groupId, queryParams));

@@ -16,7 +16,9 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaParseException;
 import org.apache.avro.SchemaValidationException;
 import org.apache.avro.SchemaValidator;
 import org.apache.avro.SchemaValidatorBuilder;
@@ -50,13 +52,14 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
 
         List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
         Collections.reverse(existingSchemas); // the most recent must come first, i.e. reverse-chronological.
-        Schema toValidate = new Schema.Parser().parse(proposedSchemaString);
-
         try {
+            Schema toValidate = new Schema.Parser().parse(proposedSchemaString);
             schemaValidator.validate(toValidate, existingSchemas);
             return CompatibilityExecutionResult.compatible();
         } catch (SchemaValidationException e) {
             return CompatibilityExecutionResult.incompatible(e);
+        } catch (SchemaParseException e) {
+            throw new UnprocessableEntityException(e.getMessage());
         }
     }
 

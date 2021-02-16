@@ -43,7 +43,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new DownloadRegistryMojo();
-        this.mojo.registryUrl = TestUtils.getRegistryV1ApiUrl();
+        this.mojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
     }
 
     @Test

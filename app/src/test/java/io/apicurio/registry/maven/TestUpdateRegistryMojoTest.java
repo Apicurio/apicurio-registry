@@ -45,7 +45,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.registryUrl = TestUtils.getRegistryV1ApiUrl();
+        this.mojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
     }
 
     @Test

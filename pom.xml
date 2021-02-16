@@ -131,7 +131,7 @@
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Storage types -->
-        <infinispan.version>12.0.0.Final</infinispan.version>
+        <infinispan.version>12.0.1.Final</infinispan.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>

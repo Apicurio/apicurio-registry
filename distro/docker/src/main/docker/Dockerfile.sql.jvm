@@ -1,4 +1,5 @@
-FROM fabric8/java-alpine-openjdk8-jre
+#FROM fabric8/java-alpine-openjdk8-jre
+FROM azul/zulu-openjdk-alpine
 
 ENV APP_URL="${docker.sql.file}"
 ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
@@ -6,4 +7,6 @@ ENV AB_ENABLED=jmx_exporter
 
 ADD "$APP_URL" /deployments
 
-ENTRYPOINT [ "/deployments/run-java.sh" ]
+#ENTRYPOINT [ "/deployments/run-java.sh" ]
+ENTRYPOINT ["java","-jar","/deployments/apicurio-registry-storage-sql-2.0.0-SNAPSHOT-runner.jar"]
+

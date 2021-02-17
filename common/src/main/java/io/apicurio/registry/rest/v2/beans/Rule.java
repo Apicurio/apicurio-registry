@@ -19,6 +19,7 @@ import io.apicurio.registry.types.RuleType;
     "config",
     "type"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class Rule {
 
     /**

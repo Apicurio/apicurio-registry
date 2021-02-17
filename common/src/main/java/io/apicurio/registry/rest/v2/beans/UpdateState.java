@@ -18,6 +18,7 @@ import io.apicurio.registry.types.ArtifactState;
 @JsonPropertyOrder({
     "state"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class UpdateState {
 
     /**

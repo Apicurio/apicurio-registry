@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "artifacts",
     "count"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class ArtifactSearchResults {
 
     /**

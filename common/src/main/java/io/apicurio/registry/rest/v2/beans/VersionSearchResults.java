@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "count",
     "versions"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class VersionSearchResults {
 
     /**

@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -64,7 +65,7 @@ public class SimpleAuthTestV2 extends AbstractResourceTestBase {
     final String groupId = "authTestGroupId";
 
     private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, auth);
+        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
     /**

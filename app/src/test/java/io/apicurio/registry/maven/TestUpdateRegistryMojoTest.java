@@ -75,7 +75,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                    " \"name\": \"user\"," +
                                                    " \"fields\": [" +
                                                    "     {\"name\": \"name\", \"type\": \"string\"}," +
-                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}," +
+                                                   "     {\"name\": \"favorite_number\",  \"type\": \"string\"}," +
                                                    "     {\"name\": \"favorite_color\", \"type\": \"string\", \"default\": \"green\"}" +
                                                    " ]" +
                                                    "}");

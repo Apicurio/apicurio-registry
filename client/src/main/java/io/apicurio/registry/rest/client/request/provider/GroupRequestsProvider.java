@@ -165,17 +165,13 @@ public class GroupRequestsProvider {
     }
 
     public static Request<Void> testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(ARTIFACT_TEST)
-                    .pathParams(List.of(groupId, artifactId))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseClass(Void.class)
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(ARTIFACT_TEST)
+                .pathParams(List.of(groupId, artifactId))
+                .data(data)
+                .responseClass(Void.class)
+                .build();
     }
 
     public static Request<Void> updateArtifactState(String groupId, String artifactId, UpdateState data) {

@@ -34,6 +34,8 @@ import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.client.exception.ForbiddenException;
 import io.apicurio.registry.client.exception.NotAuthorizedException;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -77,6 +79,18 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         System.out.println("Auth is " + authEnabled);
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
         return this.createClient(auth);
+    }
+
+    /**
+     * For delete all global rules to work
+     *
+     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
+     */
+    @Override
+    protected RegistryClient createRestClientV2() {
+        System.out.println("Auth is " + authEnabled);
+        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        return RegistryClientFactory.create(registryV2ApiUrl, auth);
     }
 
     @AfterEach

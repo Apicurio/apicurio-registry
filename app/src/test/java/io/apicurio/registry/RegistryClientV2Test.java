@@ -17,6 +17,7 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -40,7 +41,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -69,7 +69,6 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
-
 
     @Test
     public void testAsyncCRUD() throws Exception {
@@ -504,6 +503,11 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         //Assertions
         assertNotNull(content);
         assertEquals(ARTIFACT_CONTENT, IOUtils.toString(content, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testArtifactNotFound() {
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> clientV2.getArtifactMetaData(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
     }
 
     @Test

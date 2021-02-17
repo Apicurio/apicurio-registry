@@ -23,10 +23,14 @@ import org.apache.http.message.BasicNameValuePair;
 import org.keycloak.authorization.client.util.HttpResponseException;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,13 +105,25 @@ public class RequestHandler {
     }
 
     private static URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
-        final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, pathParams.toArray()));
+        Object[] encodedPathParams = pathParams
+                .stream()
+                .map(RequestHandler::encodeURIComponent)
+                .toArray();
+        final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
         final List<NameValuePair> queryParamsExpanded = new ArrayList<>();
         //Iterate over query params list so we can add multiple query params with the same key
         queryParams.forEach((key, paramList) -> paramList
                 .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
         uriBuilder.setParameters(queryParamsExpanded);
         return uriBuilder.build();
+    }
+
+    private static String encodeURIComponent(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public void setNextRequestHeaders(Map<String, String> headers) {

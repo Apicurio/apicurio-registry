@@ -92,9 +92,12 @@
         <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
+        <module>serdes/serde-common</module>
+        <module>serdes/avro-serde</module>
+        <module>serdes/protobuf-serde</module>
+        <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
-        <module>tests</module>
         <module>rest-client</module>
         <module>client</module>
     </modules>
@@ -288,6 +291,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-integration-tests-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-asyncmem</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -304,6 +312,26 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serde-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -860,6 +888,14 @@
             <id>perftest</id>
             <modules>
                 <module>perftest</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>integration-tests/integration-tests-common</module>
+                <module>integration-tests/legacy-tests</module>
+                <module>integration-tests/testsuite</module>
             </modules>
         </profile>
         <profile>

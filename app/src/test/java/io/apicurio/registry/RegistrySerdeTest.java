@@ -231,7 +231,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(subject, record);
 
             // some impl details ...
-            waitForSchema(restClient, bytes);
+            waitForSchema(globalId -> restClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes);
 
             GenericData.Record ir = deserializer.deserialize(subject, bytes);
 
@@ -263,7 +263,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
 
             // some impl details ...
-            waitForSchema(restClient, bytes);
+            waitForSchema(globalId -> restClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes);
 
             GenericData.Record ir = deserializer.deserialize(subject, bytes);
 
@@ -315,7 +315,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
             Tester tester = new Tester("Apicurio");
             byte[] bytes = serializer.serialize(artifactId, tester);
 
-            waitForSchema(restClient, bytes);
+            waitForSchema(globalId -> restClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes);
 
             tester = deserializer.deserialize(artifactId, bytes);
 
@@ -336,7 +336,7 @@ public class RegistrySerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(subject, record);
 
-            waitForSchema(restClient, bytes);
+            waitForSchema(globalId -> restClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes);
 
             DynamicMessage dm = deserializer.deserialize(subject, bytes);
             Descriptors.Descriptor descriptor = dm.getDescriptorForType();

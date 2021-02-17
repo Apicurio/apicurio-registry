@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.client.request;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ExceptionMapper;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
@@ -36,7 +37,9 @@ import java.util.logging.Logger;
  */
 public class ErrorHandler {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     private static final Logger logger = Logger.getLogger(BodyHandler.class.getName());
 
     public static RestClientException handleErrorResponse(InputStream body, HttpResponse.ResponseInfo responseInfo) {

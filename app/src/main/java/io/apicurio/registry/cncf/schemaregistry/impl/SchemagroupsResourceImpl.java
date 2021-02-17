@@ -111,7 +111,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     @Override
     public SchemaGroup getGroup(String groupId) {
-        GroupMetaDataDto group = storage.getGroupMetadata(groupId);
+        GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return dtoToSchemaGroup(group);
     }
 
@@ -127,7 +127,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         try {
             storage.createGroup(group);
         } catch (GroupAlreadyExistsException e) {
-            storage.updateGroupMetadata(group);
+            storage.updateGroupMetaData(group);
         }
     }
 
@@ -272,7 +272,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     private void verifyGroupExists(String groupId) {
         // this will throw GroupNotFoundException if the group does not exist
-        storage.getGroupMetadata(groupId);
+        storage.getGroupMetaData(groupId);
     }
 
 }

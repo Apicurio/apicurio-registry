@@ -47,6 +47,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
 import io.apicurio.registry.storage.impl.ArtifactKey;
 import io.apicurio.registry.storage.impl.MultiMap;
@@ -76,6 +77,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     static String GLOBAL_CACHE = "global-cache";
     static String GLOBAL_RULES_CACHE = "global-rules-cache";
     static String LOG_CONFIGURATION_CACHE = "log-configuration-cache";
+    static String GROUPS_CACHE = "groups-cache";
 
     @Inject
     EmbeddedCacheManager manager;
@@ -98,12 +100,12 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     protected long nextGlobalId() {
         return counter.compute(KEY, (SerializableBiFunction<? super String, ? super Long, ? extends Long>) (k, v) -> (v == null ? 1 : v + 1));
     }
-    
+
     @Override
     protected long nextContentId() {
         return nextGlobalId();
     }
-    
+
     @Override
     protected Map<Long, String> createContentHashMap() {
         manager.defineConfiguration(
@@ -115,7 +117,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
         return manager.getCache(CONTENT_HASH_CACHE, true);
     }
-    
+
     @Override
     protected Map<String, StoredContent> createContentMap() {
         manager.defineConfiguration(
@@ -194,6 +196,21 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
         Cache<ArtifactKey, MapValue<String, String>> cache = manager.getCache(ARTIFACT_RULES_CACHE, true);
         return new CacheMultiMap<>(cache);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGroupsMap()
+     */
+    @Override
+    protected Map<String, GroupMetaDataDto> createGroupsMap() {
+        manager.defineConfiguration(
+            GROUPS_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(GROUPS_CACHE, true);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

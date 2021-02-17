@@ -509,7 +509,7 @@ public interface RegistryStorage {
      * @param group
      * @throws RegistryStorageException
      */
-    public void updateGroupMetadata(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException;
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException;
 
     /**
      * Deletes a group intified by the given groupId and DELETES ALL resources related to this group
@@ -532,6 +532,6 @@ public interface RegistryStorage {
      * @param groupId
      * @return
      */
-    public GroupMetaDataDto getGroupMetadata(String groupId) throws GroupNotFoundException, RegistryStorageException;
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException;
 
 }

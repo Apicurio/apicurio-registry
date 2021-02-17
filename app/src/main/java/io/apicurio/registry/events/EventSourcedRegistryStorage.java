@@ -311,8 +311,8 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
-    public void updateGroupMetadata(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
-        storage.updateGroupMetadata(group);
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        storage.updateGroupMetaData(group);
     }
 
     /**
@@ -335,8 +335,8 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
      */
     @Override
-    public GroupMetaDataDto getGroupMetadata(String groupId) throws GroupNotFoundException, RegistryStorageException {
-        return storage.getGroupMetadata(groupId);
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        return storage.getGroupMetaData(groupId);
     }
 
 }

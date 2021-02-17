@@ -16,14 +16,9 @@
 
 package io.apicurio.tests.utils.subUtils;
 
-import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.utils.BaseHttpUtils;
 import io.apicurio.tests.common.utils.subUtils.RestConstants;
-import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.response.Response;
 
 public class GlobalRuleUtils {
@@ -72,32 +67,4 @@ public class GlobalRuleUtils {
         return BaseHttpUtils.deleteRequest(RestConstants.JSON, "/artifacts/" + artifactId + "/rules", 204);
     }
 
-    // ================================================
-
-    public static Response testCompatibility(String body, String schemaName, int returnCode) {
-        try {
-            URL url = new URL(TestUtils.getRegistryApiUrl() + "/ccompat/compatibility/subjects/" + schemaName + "/versions/latest");
-            return BaseHttpUtils.rulesPostRequest(RestConstants.SR, body, url, returnCode);
-        } catch (MalformedURLException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public static Response createGlobalCompatibilityConfig(String typeOfCompatibility) {
-        try {
-            URL url = new URL(TestUtils.getRegistryApiUrl() + "/ccompat/config");
-            return BaseHttpUtils.putRequest(RestConstants.SR, "{\"compatibility\":\"" + typeOfCompatibility + "\"}", url, 200);
-        } catch (MalformedURLException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public static Response getGlobalCompatibilityConfig() {
-        try {
-            URL url = new URL(TestUtils.getRegistryApiUrl() + "/ccompat/config");
-            return BaseHttpUtils.getRequest(RestConstants.JSON, url, 204);
-        } catch (MalformedURLException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
 }

@@ -35,7 +35,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 
 public abstract class ConfluentBaseIT extends ApicurioV2BaseIT {
 
-    protected static SchemaRegistryClient confluentService;
+    protected SchemaRegistryClient confluentService;
 
     @BeforeAll
     void confluentBeforeAll(TestInfo info) throws Exception {

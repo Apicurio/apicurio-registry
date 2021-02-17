@@ -16,134 +16,157 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.hasItems;
+
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.restassured.response.Response;
+
+import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static io.apicurio.tests.common.Constants.SMOKE;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 @Tag(SMOKE)
 public class SchemasConfluentIT extends ConfluentBaseIT {
 
-//    private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);
-//
-//    @Test
-//    @Tag(ACCEPTANCE)
-//    void createAndUpdateSchema() throws Exception {
-//        String artifactId = TestUtils.generateArtifactId();
-//
-//        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(schema, artifactId);
-//
-//        ParsedSchema updatedSchema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo2\",\"type\":\"long\"}]}");
-//        createArtifactViaConfluentClient(updatedSchema, artifactId);
-//
-//        assertThrows(SchemaParseException.class, () -> new AvroSchema("<type>record</type>\n<name>test</name>"));
-//        assertThat(confluentService.getAllVersions(artifactId), hasItems(1, 2));
-//
-//        confluentService.deleteSubject(artifactId);
-//        waitForSubjectDeleted(artifactId);
-//    }
-//
-//    @Test
-//    void createAndDeleteMultipleSchemas() throws IOException, RestClientException, TimeoutException {
-//        String prefix = TestUtils.generateArtifactId();
-//
-//        for (int i = 0; i < 50; i++) {
-//            String name = "myrecord" + i;
-//            String subjectName = prefix + i;
-//            ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-//            createArtifactViaConfluentClient(schema, subjectName);
-//        }
-//
-//        assertThat(50, is(confluentService.getAllSubjects().size()));
-//        LOGGER.info("All subjects {} schemas", confluentService.getAllSubjects().size());
-//
-//        for (int i = 0; i < 50; i++) {
-//            confluentService.deleteSubject(prefix + i);
-//        }
-//
-//        TestUtils.waitFor("all schemas deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                return confluentService.getAllSubjects().size() == 0;
-//            } catch (IOException | RestClientException e) {
-//                return false;
-//            }
-//        });
-//    }
-//
-//    @Test
-//    void deleteSchemasSpecificVersion() throws Exception {
-//        String artifactId = TestUtils.generateArtifactId();
-//
-//        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(schema, artifactId);
-//        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(schema, artifactId);
-//
-//        List<Integer> schemeVersions = confluentService.getAllVersions(artifactId);
-//
-//        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
-//        assertThat(schemeVersions, hasItems(1, 2));
-//
-//        schemeVersions = confluentService.getAllVersions(artifactId);
-//
-//        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
-//        assertThat(schemeVersions, hasItems(1));
-//
-//        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(schema, artifactId);
-//
-//        confluentService.deleteSchemaVersion(artifactId, "2");
-//
-//        TestUtils.waitFor("all specific schema version deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                return confluentService.getAllVersions(artifactId).size() == 2;
-//            } catch (IOException | RestClientException e) {
-//                return false;
-//            }
-//        });
-//
-//        schemeVersions = confluentService.getAllVersions(artifactId);
-//
-//        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
-//        assertThat(schemeVersions, hasItems(1, 3));
-//
-//        confluentService.deleteSubject(artifactId);
-//        waitForSubjectDeleted(artifactId);
-//    }
-//
-//    @Test
-//    void createInvalidSchemaDefinition() {
-//        String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
-//
-//        Response response = ArtifactUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
-//
-//        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
-//    }
-//
-//    @Test
-//    void createSchemaSpecifyVersion() throws Exception {
-//        String artifactId = TestUtils.generateArtifactId();
-//
-//        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(schema, artifactId);
-//
-//        ParsedSchema updatedArtifact = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-//        createArtifactViaConfluentClient(updatedArtifact, artifactId);
-//
-//        List<Integer> schemaVersions = confluentService.getAllVersions(artifactId);
-//
-//        LOGGER.info("Available versions of schema with NAME {} are: {}", artifactId, schemaVersions.toString());
-//        assertThat(schemaVersions, hasItems(1, 2));
-//
-//        confluentService.deleteSubject(artifactId);
-//        waitForSubjectDeleted(artifactId);
-//    }
-//
-//    @Test
-//    void deleteNonexistingSchema() {
-//        assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
-//    }
-//
+    private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);
+
+    @Test
+    @Tag(ACCEPTANCE)
+    void createAndUpdateSchema() throws Exception {
+        String artifactId = TestUtils.generateArtifactId();
+
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, artifactId);
+
+        ParsedSchema updatedSchema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord2\",\"fields\":[{\"name\":\"foo2\",\"type\":\"long\"}]}");
+        createArtifactViaConfluentClient(updatedSchema, artifactId);
+
+        assertThrows(SchemaParseException.class, () -> new AvroSchema("<type>record</type>\n<name>test</name>"));
+        assertThat(confluentService.getAllVersions(artifactId), hasItems(1, 2));
+
+        confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
+    }
+
+    @Test
+    void createAndDeleteMultipleSchemas() throws IOException, RestClientException, TimeoutException {
+        String prefix = TestUtils.generateArtifactId();
+
+        for (int i = 0; i < 50; i++) {
+            String name = "myrecord" + i;
+            String subjectName = prefix + i;
+            ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+            createArtifactViaConfluentClient(schema, subjectName);
+        }
+
+        assertThat(50, is(confluentService.getAllSubjects().size()));
+        LOGGER.info("All subjects {} schemas", confluentService.getAllSubjects().size());
+
+        for (int i = 0; i < 50; i++) {
+            confluentService.deleteSubject(prefix + i);
+        }
+
+        TestUtils.waitFor("all schemas deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllSubjects().size() == 0;
+            } catch (IOException | RestClientException e) {
+                return false;
+            }
+        });
+    }
+
+    @Test
+    void deleteSchemasSpecificVersion() throws Exception {
+        String artifactId = TestUtils.generateArtifactId();
+
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"mynewrecord\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, artifactId);
+        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo1\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, artifactId);
+
+        List<Integer> schemeVersions = confluentService.getAllVersions(artifactId);
+
+        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
+        assertThat(schemeVersions, hasItems(1, 2));
+
+        schemeVersions = confluentService.getAllVersions(artifactId);
+
+        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
+        assertThat(schemeVersions, hasItems(1));
+
+        schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecordx\",\"fields\":[{\"name\":\"foo" + 4 + "\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, artifactId);
+
+        confluentService.deleteSchemaVersion(artifactId, "2");
+
+        TestUtils.waitFor("all specific schema version deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllVersions(artifactId).size() == 2;
+            } catch (IOException | RestClientException e) {
+                return false;
+            }
+        });
+
+        schemeVersions = confluentService.getAllVersions(artifactId);
+
+        LOGGER.info("Available version of schema with name:{} are {}", artifactId, schemeVersions);
+        assertThat(schemeVersions, hasItems(1, 3));
+
+        confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
+    }
+
+    @Test
+    void createInvalidSchemaDefinition() {
+        String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
+
+        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
+
+        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
+    }
+
+    @Test
+    void createSchemaSpecifyVersion() throws Exception {
+        String artifactId = TestUtils.generateArtifactId();
+
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(schema, artifactId);
+
+        ParsedSchema updatedArtifact = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        createArtifactViaConfluentClient(updatedArtifact, artifactId);
+
+        List<Integer> schemaVersions = confluentService.getAllVersions(artifactId);
+
+        LOGGER.info("Available versions of schema with NAME {} are: {}", artifactId, schemaVersions.toString());
+        assertThat(schemaVersions, hasItems(1, 2));
+
+        confluentService.deleteSubject(artifactId);
+        waitForSubjectDeleted(artifactId);
+    }
+
+    @Test
+    void deleteNonexistingSchema() {
+        assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
+    }
+
+    //TODO decide what to do to make artifacts created via confluent api available in v2 api, define a default group used for v1 api and confluent api?
 //    @Test
 //    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
 //        String name = "schemaname";
@@ -155,6 +178,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 //        assertThat(1, is(confluentService.getAllSubjects().size()));
 //
 //        Response ar = ArtifactUtils.getArtifact(subjectName);
+////        registryClient.getLatestArtifact(subjectName, rawSchema)
 //        assertEquals(rawSchema, ar.asString());
 //        LOGGER.info(ar.asString());
 //
@@ -177,7 +201,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 //
 //        assertThat(1, is(confluentService.getAllSubjects().size()));
 //
-//        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(globalId));
+//        TestUtils.retry(() -> registryClient.getContentByGlobalId(globalId));
 //
 //        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
 //            try {

@@ -102,7 +102,7 @@ class MetadataIT extends ApicurioV2BaseIT {
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
-        assertThat(versionMetaData.getVersion(), is(2));
+        assertThat(versionMetaData.getVersion(), is(2L));
         assertThat(versionMetaData.getType().value(), is("AVRO"));
 
         EditableMetaData emd = new EditableMetaData();

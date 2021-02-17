@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.utils;
+package io.apicurio.tests.common.utils;
 
 import io.restassured.response.Response;
 

@@ -73,10 +73,6 @@
             <version>${junit.platform-launcher.version}</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>

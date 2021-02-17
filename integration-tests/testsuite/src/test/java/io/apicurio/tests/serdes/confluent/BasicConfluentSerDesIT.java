@@ -16,83 +16,146 @@
 
 package io.apicurio.tests.serdes.confluent;
 
-import io.apicurio.tests.ConfluentBaseIT;
+import static io.apicurio.tests.common.Constants.SERDES;
+import java.util.List;
+import org.apache.avro.generic.GenericRecord;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-//@Tag(SERDES)
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.common.KafkaFacade;
+import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
+import io.apicurio.tests.serdes.apicurio.WrongConfiguredSerdesTesterBuilder;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.subject.RecordNameStrategy;
+import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+
+@Tag(SERDES)
 public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
+    private KafkaFacade kafkaCluster = KafkaFacade.getInstance();
+
+    @BeforeAll
+    void setupEnvironment() {
+        kafkaCluster.startIfNeeded();
+    }
+
+    @AfterAll
+    void teardownEnvironment() throws Exception {
+        kafkaCluster.stopIfPossible();
+    }
+
+    @Test
+    void testAvroConfluentSerDes() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withDeserializer(KafkaAvroDeserializer.class)
+            .withStrategy(TopicNameStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .withDataValidator(avroSchema::validateRecord)
+            .build()
+            .test();
+    }
+
+    @Test
+    void testAvroConfluentSerDesFail() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = "myrecordconfluent2";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        AvroGenericRecordSchemaFactory wrongSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of("wrongkey"));
+
+        new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withStrategy(RecordNameStrategy.class)
+            //note, we use an incorrect wrong data generator in purpose
+            .withDataGenerator(wrongSchema::generateRecord)
+            .build()
+            .test();
+
+    }
+
+    @Test
+    void testAvroConfluentSerDesWrongStrategyTopic() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = "myrecordconfluent3";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withStrategy(TopicNameStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .build()
+            .test();
+    }
+
+    @Test
+    void testAvroConfluentSerDesWrongStrategyRecord() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent4", List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        AvroGenericRecordSchemaFactory wrongSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent4", List.of("wrongkey"));
+
+        new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withStrategy(RecordNameStrategy.class)
+            //note, we use an incorrect wrong data generator in purpose
+            .withDataGenerator(wrongSchema::generateRecord)
+            .build()
+            .test();
+    }
+
 //    @Test
-//    void testAvroConfluentSerDes() throws IOException, RestClientException, InterruptedException, ExecutionException, TimeoutException {
-//        String topicName = TestUtils.generateTopic();
-//        String subjectName = topicName + "-value";
-//        String schemaKey = "key1";
-//        kafkaCluster.createTopic(topicName, 1, 1);
-//
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecordconfluent1\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
-//        KafkaClients.produceAvroConfluentMessagesTopicStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroConfluentMessages(topicName, 10).get(5, TimeUnit.SECONDS);
-//    }
-//
-//    @Test
-//    void testAvroConfluentSerDesFail() throws IOException, RestClientException, TimeoutException {
-//        String topicName = TestUtils.generateTopic();
-//        String subjectName = "myrecordconfluent2";
-//        String schemaKey = "key1";
-//        kafkaCluster.createTopic(topicName, 1, 1);
-//
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
-//        assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
-//    }
-//
-//    @Test
-//    void testAvroConfluentSerDesWrongStrategyTopic() throws IOException, RestClientException, TimeoutException {
-//        String topicName = TestUtils.generateTopic();
-//        String subjectName = "myrecordconfluent3";
-//        String schemaKey = "key1";
-//        kafkaCluster.createTopic(topicName, 1, 1);
-//
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
-//        assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesTopicStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
-//    }
-//
-//    @Test
-//    void testAvroConfluentSerDesWrongStrategyRecord() throws IOException, RestClientException, TimeoutException {
-//        String topicName = TestUtils.generateTopic();
-//        String subjectName = topicName + "-value";
-//        String schemaKey = "key1";
-//        kafkaCluster.createTopic(topicName, 1, 1);
-//
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecordconfluent4\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
-//        assertThrows(ExecutionException.class, () -> KafkaClients.produceAvroConfluentMessagesRecordStrategy(topicName, subjectName, schema, 10, "wrong-key").get(5, TimeUnit.SECONDS));
-//    }
-//
-//    @Test
-//    void testEvolveAvroConfluent() throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
+//    void testEvolveAvroConfluent() throws Exception {
 //        String topicName = TestUtils.generateTopic();
 //        String recordName = "myrecordconfluent5";
 //        String subjectName = topicName + "-" + recordName;
-//        String schemaKey = "key1";
+////        String schemaKey = "key1";
 //        kafkaCluster.createTopic(topicName, 1, 1);
 //
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
+////        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+////        Schema schema = new Schema.Parser().parse(rawSchema);
+//
+//        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordName, List.of("key1"));
+//
+//        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
 //        createArtifactViaConfluentClient(pschema, subjectName);
 //
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
@@ -146,14 +209,5 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 //        KafkaClients.consumeAvroApicurioMessages(topicName3, 10).get(5, TimeUnit.SECONDS);
 //    }
 //
-//    @BeforeAll
-//    static void setupEnvironment() {
-//        kafkaCluster.startIfNeeded();
-//    }
-//
-//    @AfterAll
-//    static void teardownEnvironment() throws Exception {
-//        kafkaCluster.stopIfPossible();
-//    }
 }
 

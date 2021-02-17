@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.common.utils.subUtils.ConfluentConfigUtils;
 import io.apicurio.tests.utils.subUtils.GlobalRuleUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -38,7 +39,7 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
     @Test
     @Tag(ACCEPTANCE)
     void compatibilityGlobalRules() throws Exception {
-        GlobalRuleUtils.createGlobalCompatibilityConfig("FULL");
+        ConfluentConfigUtils.createGlobalCompatibilityConfig("FULL");
 
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
@@ -52,13 +53,13 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
         createArtifactViaConfluentClient(newSchema, schemeSubject);
 
         LOGGER.info("Checking 'Compability with same scheme' and expected code {}", 200);
-        GlobalRuleUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", schemeSubject, 200);
+        ConfluentConfigUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", schemeSubject, 200);
 
         LOGGER.info("Checking 'Subject not found' and expected code {}", 404);
-        GlobalRuleUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", "subject-not-found", 404);
+        ConfluentConfigUtils.testCompatibility("{\"schema\":\"{\\\"type\\\":\\\"record\\\",\\\"name\\\":\\\"myrecord2\\\",\\\"fields\\\":[{\\\"name\\\":\\\"foo\\\",\\\"type\\\":\\\"string\\\"}]}\"}", "subject-not-found", 404);
 
         LOGGER.info("Checking 'Invalid avro format' and expected code {}", 400);
-        GlobalRuleUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
+        ConfluentConfigUtils.testCompatibility("{\"type\":\"INVALID\",\"config\":\"invalid\"}", schemeSubject, 400);
 
         confluentService.deleteSubject(schemeSubject);
         waitForSubjectDeleted(schemeSubject);

@@ -22,6 +22,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -143,7 +144,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     void createInvalidSchemaDefinition() {
         String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
 
-        Response response = ArtifactUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
+        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
 
         assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
     }

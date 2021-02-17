@@ -20,23 +20,20 @@ import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.utils.BaseHttpUtils;
 import io.apicurio.tests.common.utils.subUtils.RestConstants;
-import io.apicurio.tests.utils.BaseHttpUtils;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
-import static io.apicurio.tests.utils.BaseHttpUtils.getRequest;
-import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
+import static io.apicurio.tests.common.utils.BaseHttpUtils.getRequest;
+import static io.apicurio.tests.common.utils.BaseHttpUtils.putRequest;
 
 public class ArtifactUtils {
 
@@ -203,22 +200,6 @@ public class ArtifactUtils {
 
     // ================================================================================
 
-    public static Response getAllSchemas(int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/subjects"), returnCode);
-    }
-
-    public static Response getLatestVersionSchema(String nameOfSchema) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/subjects/" + nameOfSchema + "/versions/latest"), 200);
-    }
-
-    public static Response createSchema(String schemeDefinition, String schemaName, int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, getCCompatURL("/ccompat/subjects/" + schemaName + "/versions"), returnCode);
-    }
-
-    public static Response updateSchemaMetadata(String schemaName, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, getCCompatURL("/ccompat/subjects/" + schemaName + "/meta"), returnCode);
-    }
-
     private static String encodeURIComponent(String value) {
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
@@ -227,11 +208,4 @@ public class ArtifactUtils {
         }
     }
 
-    private static URL getCCompatURL(String ccompatPath) {
-        try {
-            return new URL(TestUtils.getRegistryApiUrl() + ccompatPath);
-        } catch (MalformedURLException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
 }

@@ -30,6 +30,9 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+
+import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,6 +43,9 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -90,7 +96,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifact(groupId, invalidArtifactId, ArtifactType.AVRO, iad), errorCodeExtractor);
+        assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> registryClient.createArtifact(groupId, invalidArtifactId, ArtifactType.AVRO, iad), errorCodeExtractor);
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         ArtifactMetaData metaData = registryClient.updateArtifact(groupId, artifactId, artifactData);
@@ -117,29 +123,31 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         assertThat(response.get("fields").elements().next().get("name").asText(), is("foo"));
     }
 
-//    @Test
-//    void createAndDeleteMultipleArtifacts() throws Exception {
-//        LOGGER.info("Creating some artifacts...");
-////        Map<String, String> idMap = createMultipleArtifacts(registryClient, 10);
-//        String groupId = TestUtils.generateArtifactId();
-//
-//        List<ArtifactMetaData> artifacts = IntStream.range(0, 10)
-//            .mapToObj(i -> {
-//                String artifactId = TestUtils.generateSubject();
-//                return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
-//            })
-//            .collect(Collectors.toList());
-//
-//        LOGGER.info("Created  {} artifacts", artifacts.size());
-//
-//
-//
-////        deleteMultipleArtifacts(registryClient, idMap);
-//
-////        for (Map.Entry<String, String> entry : idMap.entrySet()) {
-////            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(entry.getValue()), true, errorCodeExtractor);
-////        }
-//    }
+    @Test
+    void createAndDeleteMultipleArtifacts() throws Exception {
+        LOGGER.info("Creating some artifacts...");
+        String groupId = TestUtils.generateGroupId();
+
+        List<ArtifactMetaData> artifacts = IntStream.range(0, 10)
+            .mapToObj(i -> {
+                String artifactId = TestUtils.generateSubject();
+                try {
+                    return super.createArtifact(groupId, artifactId, ArtifactType.AVRO, new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchemaStream());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            })
+            .collect(Collectors.toList());
+
+        LOGGER.info("Created  {} artifacts", artifacts.size());
+
+        LOGGER.info("Removing all artifacts in group {}", groupId);
+        registryClient.deleteArtifactsInGroup(groupId);
+
+        for (ArtifactMetaData artifact : artifacts) {
+            assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifact.getGroupId(), artifact.getId()), true, errorCodeExtractor);
+        }
+    }
 
     @Test
     @Tag(ACCEPTANCE)
@@ -188,7 +196,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, iad), true, errorCodeExtractor);
+        assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, iad), true, errorCodeExtractor);
     }
 
     @Test
@@ -211,7 +219,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(groupId, artifactId), true, errorCodeExtractor);
+            assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(groupId, artifactId), true, errorCodeExtractor);
         });
 
         // Re-enable the artifact
@@ -361,7 +369,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
     @Test
     void deleteNonexistingSchema() throws Exception {
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.deleteArtifact("nonn-existent-group", "non-existing"), errorCodeExtractor);
+        assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.deleteArtifact("nonn-existent-group", "non-existing"), errorCodeExtractor);
     }
 
     @Test

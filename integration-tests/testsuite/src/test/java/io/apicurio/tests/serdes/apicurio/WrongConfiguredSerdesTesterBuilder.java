@@ -24,7 +24,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.tests.serdes.apicurio.SerdesTester.DataGenerator;
 import io.apicurio.tests.serdes.apicurio.Tester.TesterBuilder;
 
@@ -62,7 +61,7 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
         return this;
     }
 
-    public <U extends ArtifactResolverStrategy<?>> WrongConfiguredSerdesTesterBuilder<P> withStrategy(Class<U> strategy) {
+    public WrongConfiguredSerdesTesterBuilder<P> withStrategy(Class<?> strategy) {
         this.artifactResolverStrategy = strategy;
         return this;
     }

@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "context"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class RuleViolationCause {
 
     @JsonProperty("description")

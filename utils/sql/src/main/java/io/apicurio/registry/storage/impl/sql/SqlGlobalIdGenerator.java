@@ -20,17 +20,7 @@ import org.jdbi.v3.core.Handle;
 /**
  * @author Fabian Martinez
  */
-//public class SqlGlobalIdGenerator {
-//
-//    public static GlobalIdGenerator withHandle(Handle handle) {
-//        return () -> {
-//            return handle.createQuery("SELECT nextval('globalidsequence')")
-//                    .mapTo(Long.class)
-//                    .one();
-//        };
-//    }
-//
-//}
+
 public class SqlGlobalIdGenerator {
 
     public static GlobalIdGenerator withHandle(Handle handle) {
@@ -47,9 +37,6 @@ public class SqlGlobalIdGenerator {
             Long globalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().get();
 
             return globalId;
-//            return handle.createQuery("SELECT nextval('globalidsequence')")
-//                    .mapTo(Long.class)
-//                    .one();
         };
     }
 

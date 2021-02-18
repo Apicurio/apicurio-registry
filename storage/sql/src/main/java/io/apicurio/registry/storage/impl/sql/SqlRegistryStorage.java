@@ -60,7 +60,6 @@ public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
 
     @PostConstruct
     void onConstruct() throws IOException {
-//        GoogleCredentials.getApplicationDefault();
         log.info("Using SQL storage with credentials {}");
     }
 

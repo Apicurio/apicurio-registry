@@ -166,7 +166,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
         }
     }
-
+Ω
     /**
      * @return true if the database has already been initialized
      */
@@ -492,7 +492,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
             //ie do nothing
             log.info("Identical content hash exists with this id: {}", uuidString);
-
         }
 
         return handle.createQuery(sqlStatements.selectContentIdByHash())
@@ -702,13 +701,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        // Put the content in the DB and get the unique content ID back.
-//        long contentId = withHandle(handle -> {
-//            return createOrUpdateContent(handle, artifactType, content);
-//        });
-        String contentId = withHandle(handle -> {
-            return createOrUpdateContent(handle, artifactType, content);
-        });
+        String contentId = withHandle(handle -> createOrUpdateContent(handle, artifactType, content));
 
         // Extract meta-data from the content if no metadata is provided
         if (metaData == null) {

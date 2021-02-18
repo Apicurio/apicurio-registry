@@ -75,6 +75,10 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
         this.validationEnabled = validationEnabled;
     }
 
+    /**
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#configure(java.util.Map, boolean)
+     */
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
@@ -111,11 +115,10 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(java.lang.Object, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
     protected T readData(ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
-
         try {
             JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
 
@@ -131,7 +134,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, java.lang.Object, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
     protected T readData(Headers headers, ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {

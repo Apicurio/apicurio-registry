@@ -140,8 +140,8 @@ public class SerdeConfigKeys {
 //    public static final String REQUEST_KEY_PASSWORD = RestClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
 
     /**
-     * Used by the Avro serde classes to choose an {@link AvroEncoding}, for example <code>JSON</code> or
-     * </code>BINARY</code>.  Serializer and Deserializer configuration must match.
+     * Used by the Avro serde classes to choose an <code>io.apicurio.registry.serde.avro.AvroEncoding</code>,
+     * for example <code>JSON</code> or </code>BINARY</code>.  Serializer and Deserializer configuration must match.
      */
     public static final String AVRO_ENCODING = "apicurio.registry.avro.encoding";
 

@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * Implements the {@link RulesService} interface.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 public class RulesServiceImpl implements RulesService {
@@ -83,7 +83,7 @@ public class RulesServiceImpl implements RulesService {
             globalOrArtifactRulesMap = globalRules.stream()
                 .collect(Collectors.toMap(ruleType -> ruleType, storage::getGlobalRule));
 
-            // Add any default globalIdStore rules to the map (after filtering out any globalIdStore rules from artifactStore)
+            // Add any default global rules to the map (after filtering out any global rules from artifactStore)
             Map<RuleType, RuleConfigurationDto>  filteredDefaultGlobalRulesMap = rulesProperties.getFilteredDefaultGlobalRules(globalRules).stream()
                 .collect(Collectors.toMap(ruleType -> ruleType, rulesProperties::getDefaultGlobalRuleConfiguration));
             globalOrArtifactRulesMap.putAll(filteredDefaultGlobalRulesMap);

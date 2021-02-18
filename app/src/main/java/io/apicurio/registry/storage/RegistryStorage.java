@@ -51,7 +51,7 @@ public interface RegistryStorage {
     /**
      * Is the artifactStore ready?
      * <p>
-     * By default we check if it can access list of globalIdStore rules.
+     * By default we check if it can access list of global rules.
      *
      * @return true if yes, false if no
      */
@@ -240,7 +240,7 @@ public interface RegistryStorage {
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
-     * Gets the stored meta-data for an artifact by globalIdStore ID.  This will include client-editable meta-data such as
+     * Gets the stored meta-data for an artifact by global ID.  This will include client-editable meta-data such as
      * name and description, but also generated meta-data such as "modifedOn" and "versionId".
      * @param globalId
      * @throws ArtifactNotFoundException
@@ -354,7 +354,7 @@ public interface RegistryStorage {
     public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
-     * Gets the stored artifact content for the artifact version with the given unique globalIdStore ID.
+     * Gets the stored artifact content for the artifact version with the given unique global ID.
      * @param id
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
@@ -421,13 +421,13 @@ public interface RegistryStorage {
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
     
     /**
-     * Gets a list of all globalIdStore rule names.
+     * Gets a list of all global rule names.
      * @throws RegistryStorageException
      */
     public List<RuleType> getGlobalRules() throws RegistryStorageException;
 
     /**
-     * Creates a single globalIdStore rule.  Duplicates (by name) are not allowed.  Stores the rule name and configuration.
+     * Creates a single global rule.  Duplicates (by name) are not allowed.  Stores the rule name and configuration.
      * @param rule
      * @param config
      * @throws RuleAlreadyExistsException
@@ -442,7 +442,7 @@ public interface RegistryStorage {
     public void deleteGlobalRules() throws RegistryStorageException;
     
     /**
-     * Gets all information about a single globalIdStore rule.
+     * Gets all information about a single global rule.
      * @param rule
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
@@ -450,7 +450,7 @@ public interface RegistryStorage {
     public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
 
     /**
-     * Updates the configuration settings for a single globalIdStore rule.
+     * Updates the configuration settings for a single global rule.
      * @param rule
      * @param config
      * @throws RuleNotFoundException
@@ -459,7 +459,7 @@ public interface RegistryStorage {
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException;
 
     /**
-     * Deletes a single globalIdStore rule.
+     * Deletes a single global rule.
      * @param rule
      * @throws RuleNotFoundException
      * @throws RegistryStorageException

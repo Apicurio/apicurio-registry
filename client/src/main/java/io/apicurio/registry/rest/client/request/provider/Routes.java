@@ -17,7 +17,7 @@
 package io.apicurio.registry.rest.client.request.provider;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class Routes {
 

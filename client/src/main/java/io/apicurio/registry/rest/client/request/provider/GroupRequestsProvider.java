@@ -51,7 +51,7 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.VERSION_M
 import static io.apicurio.registry.rest.client.request.provider.Routes.VERSION_STATE;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class GroupRequestsProvider {
 
@@ -243,6 +243,7 @@ public class GroupRequestsProvider {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     public static Request<List> listArtifactRules(String groupId, String artifactId) {
         return new Request.RequestBuilder<List>()
                 .operation(GET)

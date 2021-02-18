@@ -37,7 +37,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Path("/ccompat/config")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
@@ -48,7 +48,7 @@ public interface ConfigResource {
     // ----- Path: /config -----
 
     /**
-     * Get globalIdStore compatibility level.
+     * Get global compatibility level.
      *
      * Response:
      *     - compatibility (string) – Global compatibility level. Will be one of
@@ -63,10 +63,10 @@ public interface ConfigResource {
 
 
     /**
-     * Update globalIdStore compatibility level.
+     * Update global compatibility level.
      *
      * Request:
-     *     - compatibility (string) – New globalIdStore compatibility level. Must be one of
+     *     - compatibility (string) – New global compatibility level. Must be one of
      *         BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
      *
      * Status Codes:

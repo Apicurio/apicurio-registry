@@ -16,13 +16,6 @@
     <name>apicurio-registry-serde-common</name>
 
     <dependencies>
-
-<!--         <dependency> -->
-<!--             <groupId>org.projectlombok</groupId> -->
-<!--             <artifactId>lombok</artifactId> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
@@ -32,20 +25,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
         </dependency>
-
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     
 </project>

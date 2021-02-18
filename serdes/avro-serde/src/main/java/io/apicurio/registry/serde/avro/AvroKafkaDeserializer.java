@@ -66,6 +66,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         return this;
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);

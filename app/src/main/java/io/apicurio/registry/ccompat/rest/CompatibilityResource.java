@@ -36,7 +36,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * The compatibility resource allows the user to test schemas for compatibility against specific versions of a subject’s schema.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Path("/ccompat/compatibility")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
@@ -50,7 +50,7 @@ public interface CompatibilityResource {
      * Note that the compatibility level applied for the check
      * is the configured compatibility level for the subject (GET /config/(string: subject)).
      * If this subject’s compatibility level was never changed,
-     * then the globalIdStore compatibility level applies (GET /config).
+     * then the global compatibility level applies (GET /config).
      *
      * @param subject Subject of the schema version against which compatibility is to be tested
      * @param version Version of the subject’s schema against which compatibility is to be tested.

@@ -19,7 +19,7 @@ package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 import lombok.Getter;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public enum DiffType {
 

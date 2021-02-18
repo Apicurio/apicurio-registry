@@ -26,7 +26,7 @@ import io.apicurio.registry.types.RuleType;
  * any rules configured for the artifact.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public interface RulesService {
 

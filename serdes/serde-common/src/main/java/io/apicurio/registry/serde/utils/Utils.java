@@ -37,6 +37,7 @@ public class Utils {
     }
 
     //TODO make the instantiation mechanism configurable
+    @SuppressWarnings("unchecked")
     public static <V> void instantiate(Class<V> type, Object value, Consumer<V> setter) {
         if (value != null) {
             if (type.isInstance(value)) {
@@ -54,6 +55,7 @@ public class Utils {
     }
 
     //TODO make the instantiation mechanism configurable
+    @SuppressWarnings("unchecked")
     private static <V> Class<V> loadClass(Class<V> type, String className) {
         try {
             //noinspection unchecked
@@ -66,7 +68,7 @@ public class Utils {
     //TODO make the instantiation mechanism configurable
     public static <V> V instantiate(Class<V> clazz) {
         try {
-            return clazz.newInstance();
+            return clazz.getConstructor().newInstance();
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }

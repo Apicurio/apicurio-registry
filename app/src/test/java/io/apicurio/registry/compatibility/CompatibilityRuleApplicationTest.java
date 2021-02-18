@@ -41,7 +41,7 @@ import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @QuarkusTest
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {

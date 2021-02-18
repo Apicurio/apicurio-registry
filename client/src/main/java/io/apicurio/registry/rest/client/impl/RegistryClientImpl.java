@@ -49,7 +49,7 @@ import java.util.Map;
 
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class RegistryClientImpl implements RegistryClient {
 
@@ -98,6 +98,7 @@ public class RegistryClientImpl implements RegistryClient {
         return requestHandler.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(groupId, artifactId, queryParams, data));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
         return requestHandler.sendRequest(GroupRequestsProvider.listArtifactRules(groupId, artifactId));
@@ -269,6 +270,7 @@ public class RegistryClientImpl implements RegistryClient {
         return requestHandler.sendRequest(SearchRequestsProvider.searchArtifactsByContent(data, queryParams));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public List<RuleType> listGlobalRules() {
         return requestHandler.sendRequest(AdminRequestsProvider.listGlobalRules());
@@ -299,6 +301,7 @@ public class RegistryClientImpl implements RegistryClient {
         requestHandler.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
         return requestHandler.sendRequest(AdminRequestsProvider.listLogConfigurations());

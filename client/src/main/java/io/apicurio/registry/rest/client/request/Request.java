@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class Request<T> {
     private final Operation operation;

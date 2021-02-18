@@ -20,7 +20,7 @@ package io.apicurio.registry.rest.client.exception;
 import io.apicurio.registry.rest.v2.beans.Error;
 
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author Carles Arnal 'carles.arnal@redhat.com'
  */
 public class RestClientException extends RuntimeException {
 

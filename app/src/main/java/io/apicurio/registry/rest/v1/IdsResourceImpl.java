@@ -80,7 +80,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.IdsResource#getArtifactByGlobalId(long)
+     * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactByGlobalId(long)
      */
     @Override
     public Response getArtifactByGlobalId(long globalId) {
@@ -102,7 +102,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.IdsResource#getArtifactMetaDataByGlobalId(long)
+     * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactMetaDataByGlobalId(long)
      */
     @Override
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {

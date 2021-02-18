@@ -77,7 +77,7 @@ public class AdminResourceImpl implements AdminResource {
     LogConfigurationService logConfigService;
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#listGlobalRules()
+     * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
      */
     @Override
     public List<RuleType> listGlobalRules() {
@@ -89,7 +89,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
     public void createGlobalRule(Rule data) {
@@ -99,7 +99,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#deleteAllGlobalRules()
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteAllGlobalRules()
      */
     @Override
     public void deleteAllGlobalRules() {
@@ -107,7 +107,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
@@ -115,7 +115,7 @@ public class AdminResourceImpl implements AdminResource {
         try {
             dto = storage.getGlobalRule(rule);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // Check if the rule exists in the default globalIdStore rules
+            // Check if the rule exists in the default global rules
             dto = rulesProperties.getDefaultGlobalRuleConfiguration(rule);
             if (dto == null) {
                 throw ruleNotFoundException;
@@ -128,7 +128,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
@@ -137,8 +137,8 @@ public class AdminResourceImpl implements AdminResource {
         try {
             storage.updateGlobalRule(rule, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // This globalIdStore rule doesn't exist in artifactStore - if the rule exists in the default
-            // globalIdStore rules, override the default by creating a new globalIdStore rule
+            // This global rule doesn't exist in artifactStore - if the rule exists in the default
+            // global rules, override the default by creating a new global rule
             if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
                 storage.createGlobalRule(rule, configDto);
             } else {
@@ -152,15 +152,15 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.RulesResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteGlobalRule(RuleType rule) {
         try {
             storage.deleteGlobalRule(rule);
         } catch (RuleNotFoundException ruleNotFoundException) {
-            // This globalIdStore rule doesn't exist in artifactStore - if the rule exists in
-            // the default globalIdStore rules, return a DefaultRuleDeletionException.
+            // This global rule doesn't exist in artifactStore - if the rule exists in
+            // the default global rules, return a DefaultRuleDeletionException.
             // Otherwise, return the RuleNotFoundException
             if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
                 throw new DefaultRuleDeletionException(rule);

@@ -16,11 +16,21 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.types.ArtifactMediaTypes;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ServiceInitializer;
@@ -28,17 +38,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -58,7 +57,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryApiBaseUrl;
     protected String registryV1ApiUrl;
     protected String registryV2ApiUrl;
-    protected RegistryRestClient client;
     protected RegistryClient clientV2;
 
 
@@ -68,11 +66,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryV1ApiUrl = registryApiBaseUrl + "/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/v2";
         clientV2 = createRestClientV2();
-        client = createRestClient();
-    }
-
-    protected RegistryRestClient createRestClient() {
-        return RegistryRestClientFactory.create(registryV1ApiUrl);
     }
 
     protected RegistryClient createRestClientV2() {
@@ -94,7 +87,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
-        // Delete all globalIdStore rules
+        // Delete all global rules
         clientV2.deleteAllGlobalRules();
         TestUtils.retry(() -> {
             assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
@@ -342,7 +335,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     /**
-     * Wait for an artifact version's state to change (by globalIdStore id).
+     * Wait for an artifact version's state to change (by global id).
      * @param globalId
      * @param state
      * @throws Exception

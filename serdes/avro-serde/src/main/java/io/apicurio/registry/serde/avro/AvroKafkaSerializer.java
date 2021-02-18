@@ -81,6 +81,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
         return this;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
@@ -121,8 +122,9 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(java.lang.Object, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
+    @SuppressWarnings("unchecked")
     @Override
     protected void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
         Encoder encoder = createEncoder(schema.getParsedSchema(), out);
@@ -139,7 +141,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, A
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, java.lang.Object, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {

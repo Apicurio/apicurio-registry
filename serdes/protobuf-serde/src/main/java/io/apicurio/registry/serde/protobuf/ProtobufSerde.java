@@ -25,6 +25,7 @@ import org.apache.kafka.common.serialization.Deserializer;
  * Wraps the ProtobufKafkaSerializer and ProtobufKafkaDeserializer.
  */
 public class ProtobufSerde<T extends Message> extends AbstractSerde<T> {
+    @SuppressWarnings("unchecked")
     public ProtobufSerde() {
         super(new ProtobufKafkaSerializer<T>(), (Deserializer<T>) new ProtobufKafkaDeserializer());
     }

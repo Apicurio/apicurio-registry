@@ -69,6 +69,12 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         rule.setConfig("BACKWARD");
         clientV2.createArtifactRule(groupId, artifactId, rule);
 
+        // Wait for the rule configuration to be set.
+        TestUtils.retry(() -> {
+            Rule rconfig = clientV2.getArtifactRuleConfig(groupId, artifactId, RuleType.COMPATIBILITY);
+            Assertions.assertEquals("BACKWARD", rconfig.getConfig());
+        });
+
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
                                                    " \"type\": \"record\"," +

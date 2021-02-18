@@ -87,7 +87,7 @@ import io.apicurio.registry.utils.ArtifactIdValidator;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
- * 
+ *
  * Note: this class is deprecated in favor of v2 of the REST API.  See {@link GroupsResourceImpl} instead.
  *
  * @author eric.wittmann@gmail.com
@@ -222,7 +222,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.v1.v1.beans.UpdateState)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.v1.beans.UpdateState)
      */
     @Override
     public void updateArtifactState(String artifactId, UpdateState data) {
@@ -232,15 +232,15 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#listArtifacts()
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#listArtifacts()
      */
     @Override
     public List<String> listArtifacts() {
     	return new ArrayList<>(storage.getArtifactIds(GET_ARTIFACT_IDS_LIMIT));
-    }    
+    }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.UpdateState)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactVersionState(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.UpdateState)
      */
     @Override
     public void updateArtifactVersionState(Integer version, String artifactId, UpdateState data) {
@@ -251,7 +251,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#testUpdateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#testUpdateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.io.InputStream)
      */
     @Override
     public void testUpdateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
@@ -271,7 +271,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
@@ -281,7 +281,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
-        
+
         String ct = getContentType();
         final ContentHandle finalContent = content;
         try {
@@ -319,7 +319,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getLatestArtifact(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getLatestArtifact(java.lang.String)
      */
     @Override
     public Response getLatestArtifact(String artifactId) {
@@ -360,7 +360,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifact(java.lang.String, ArtifactType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifact(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
     public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
@@ -372,7 +372,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#deleteArtifact(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifact(java.lang.String)
      */
     @Override
     public void deleteArtifact(String artifactId) {
@@ -380,7 +380,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#listArtifactVersions(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#listArtifactVersions(java.lang.String)
      */
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
@@ -389,7 +389,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#createArtifactVersion(java.lang.String, ArtifactType, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifactVersion(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
     public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
@@ -410,7 +410,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getArtifactVersion(java.lang.Integer, java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getArtifactVersion(java.lang.Integer, java.lang.String)
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
@@ -438,7 +438,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#listArtifactRules(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#listArtifactRules(java.lang.String)
      */
     @Override
     public List<RuleType> listArtifactRules(String artifactId) {
@@ -446,7 +446,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#createArtifactRule(java.lang.String, io.apicurio.registry.rest.v1.v1.beans.Rule)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifactRule(java.lang.String, io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
     public void createArtifactRule(String artifactId, Rule data) {
@@ -456,7 +456,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#deleteArtifactRules(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactRules(java.lang.String)
      */
     @Override
     public void deleteArtifactRules(String artifactId) {
@@ -465,7 +465,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String)
      */
     @Override
     public Rule getArtifactRuleConfig(RuleType rule, String artifactId) {
@@ -477,7 +477,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.Rule)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactRuleConfig(io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
     public Rule updateArtifactRuleConfig(RuleType rule, String artifactId, Rule data) {
@@ -490,7 +490,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#deleteArtifactRule(io.apicurio.registry.types.RuleType, java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactRule(io.apicurio.registry.types.RuleType, java.lang.String)
      */
     @Override
     public void deleteArtifactRule(RuleType rule, String artifactId) {
@@ -498,7 +498,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getArtifactMetaData(java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getArtifactMetaData(java.lang.String)
      */
     @Override
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
@@ -507,7 +507,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
     public VersionMetaData getArtifactVersionMetaDataByContent(String artifactId, Boolean canonical,
@@ -528,7 +528,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifactMetaData(java.lang.String, io.apicurio.registry.rest.v1.v1.beans.EditableMetaData)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactMetaData(java.lang.String, io.apicurio.registry.rest.v1.v1.beans.EditableMetaData)
      */
     @Override
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
@@ -541,7 +541,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#getArtifactVersionMetaData(java.lang.Integer, java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#getArtifactVersionMetaData(java.lang.Integer, java.lang.String)
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
@@ -550,7 +550,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#updateArtifactVersionMetaData(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.EditableMetaData)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactVersionMetaData(java.lang.Integer, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.EditableMetaData)
      */
     @Override
     public void updateArtifactVersionMetaData(Integer version, String artifactId, EditableMetaData data) {
@@ -563,7 +563,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.ArtifactsResource#deleteArtifactVersionMetaData(java.lang.Integer, java.lang.String)
+     * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactVersionMetaData(java.lang.Integer, java.lang.String)
      */
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {

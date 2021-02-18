@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString

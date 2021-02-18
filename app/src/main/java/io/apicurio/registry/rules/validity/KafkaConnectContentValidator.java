@@ -37,7 +37,7 @@ import io.apicurio.registry.types.RuleType;
  */
 @ApplicationScoped
 public class KafkaConnectContentValidator implements ContentValidator {
-    
+
     private static final ObjectMapper mapper;
     private static final JsonConverter jsonConverter;
     static {
@@ -45,7 +45,7 @@ public class KafkaConnectContentValidator implements ContentValidator {
         jsonConverter = new JsonConverter();
         Map<String, Object> configs = new HashMap<>();
         configs.put("converter.type", "key");
-        configs.put(JsonConverterConfig.SCHEMAS_CACHE_SIZE_CONFIG, new Integer(0));
+        configs.put(JsonConverterConfig.SCHEMAS_CACHE_SIZE_CONFIG, 0);
         jsonConverter.configure(configs);
     }
 

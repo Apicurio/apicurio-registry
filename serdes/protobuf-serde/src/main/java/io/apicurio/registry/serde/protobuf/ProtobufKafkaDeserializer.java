@@ -60,6 +60,7 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<Descrip
         super(schemaResolver);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
@@ -89,7 +90,7 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<Descrip
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(java.lang.Object, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
     protected DynamicMessage readData(ParsedSchema<Descriptors.FileDescriptor> schema, ByteBuffer buffer, int start, int length) {
@@ -108,7 +109,7 @@ public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<Descrip
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, java.lang.Object, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
     protected DynamicMessage readData(Headers headers, ParsedSchema<Descriptors.FileDescriptor> schema, ByteBuffer buffer, int start, int length) {

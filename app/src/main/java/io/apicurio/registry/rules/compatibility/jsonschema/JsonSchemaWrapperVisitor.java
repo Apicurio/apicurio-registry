@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public abstract class JsonSchemaWrapperVisitor {
 

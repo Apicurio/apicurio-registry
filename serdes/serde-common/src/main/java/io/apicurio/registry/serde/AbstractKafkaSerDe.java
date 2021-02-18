@@ -77,6 +77,7 @@ public abstract class AbstractKafkaSerDe<T, U, S extends AbstractKafkaSerDe<T, U
         return self();
     }
 
+    @SuppressWarnings("unchecked")
     protected void configure(Map<String, ?> configs, boolean isKey) {
         key = isKey;
 
@@ -107,6 +108,7 @@ public abstract class AbstractKafkaSerDe<T, U, S extends AbstractKafkaSerDe<T, U
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected S self() {
         //noinspection unchecked
         return (S) this;

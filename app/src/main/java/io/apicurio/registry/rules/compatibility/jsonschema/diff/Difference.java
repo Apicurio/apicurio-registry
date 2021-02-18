@@ -25,7 +25,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Builder
 @Getter

@@ -13,6 +13,7 @@ import java.time.format.DateTimeParseException;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
+import javax.enterprise.inject.Instance;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -20,7 +21,7 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.ext.Provider;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Readiness
@@ -38,7 +39,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
-    Integer configErrorThreshold;
+    Instance<Integer> configErrorThreshold;
 
     /**
      * The counter is reset after some time without errors.
@@ -47,27 +48,27 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    Integer configCounterResetWindowDurationSec;
+    Instance<Integer> configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    Integer configStatusResetWindowDurationSec;
+    Instance<Integer> configStatusResetWindowDurationSec;
 
     /**
      * Set the request duration in seconds, after which it's considered an error.
      * TODO This may be expected on some endpoints. Add a way to ignore those.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
-    Integer configTimeoutSec;
+    Instance<Integer> configTimeoutSec;
 
     private Duration timeoutSec;
 
     @PostConstruct
     void init() {
-        init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
-        timeoutSec = Duration.ofSeconds(configTimeoutSec);
+        init(configErrorThreshold.get(), configCounterResetWindowDurationSec.get(), configStatusResetWindowDurationSec.get());
+        timeoutSec = Duration.ofSeconds(configTimeoutSec.get());
     }
 
     @Override

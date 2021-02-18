@@ -33,7 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class ErrorHandler {
 

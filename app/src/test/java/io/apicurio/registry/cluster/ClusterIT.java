@@ -1,14 +1,32 @@
 package io.apicurio.registry.cluster;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.cluster.support.ClusterUtils;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v1.beans.EditableMetaData;
-import io.apicurio.registry.rest.v1.beans.Rule;
-import io.apicurio.registry.rest.v1.beans.SearchOver;
-import io.apicurio.registry.rest.v1.beans.SortOrder;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.support.HealthResponse;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -20,27 +38,13 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.quarkus.runtime.configuration.QuarkusConfigFactory;
 import io.smallrye.config.SmallRyeConfig;
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-
-import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
 
 /**
  * @author Ales Justin
  */
 public class ClusterIT {
+
+    private final String groupId = getClass().getSimpleName();
 
     @BeforeAll
     public static void startCluster() throws Exception {
@@ -75,19 +79,19 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api/v1");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api/v1");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/api/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/api/v2");
 
         // warm-up both nodes (its storages)
-        client1.listArtifacts();
-        client2.listArtifacts();
+        client1.listArtifactsInGroup("testSmoke");
+        client2.listArtifactsInGroup("testSmoke");
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream("{\"name\":\"redhat\"}".getBytes(StandardCharsets.UTF_8));
-        long globalId = client1.createArtifact(artifactId, ArtifactType.JSON, stream).getGlobalId();
+        client1.createArtifact(groupId, artifactId, ArtifactType.JSON, stream).getGlobalId();
         try {
             TestUtils.retry(() -> {
-                ArtifactMetaData amd = client2.getArtifactMetaData(artifactId);
+                ArtifactMetaData amd = client2.getArtifactMetaData(groupId, artifactId);
                 Assertions.assertEquals(1, amd.getVersion());
             }, "ClusterIT-SmokeTest-CreateArtifact", 10);
 
@@ -97,10 +101,10 @@ public class ClusterIT {
             EditableMetaData emd = new EditableMetaData();
             emd.setName(name);
             emd.setDescription(desc);
-            client1.updateArtifactMetaData(artifactId, emd);
+            client1.updateArtifactMetaData(groupId, artifactId, emd);
 
             TestUtils.retry(() -> {
-                ArtifactMetaData amd = client2.getArtifactMetaDataByGlobalId(globalId);
+                ArtifactMetaData amd = client2.getArtifactMetaData(groupId, artifactId);
                 Assertions.assertEquals(name, amd.getName());
                 Assertions.assertEquals(desc, amd.getDescription());
             });
@@ -108,19 +112,19 @@ public class ClusterIT {
             Rule rule = new Rule();
             rule.setType(RuleType.VALIDITY);
             rule.setConfig("myconfig");
-            client1.createArtifactRule(artifactId, rule);
+            client1.createArtifactRule(groupId, artifactId, rule);
 
             TestUtils.retry(() -> {
-                Rule config = client2.getArtifactRuleConfig(artifactId, RuleType.VALIDITY);
+                Rule config = client2.getArtifactRuleConfig(groupId, artifactId, RuleType.VALIDITY);
                 Assertions.assertEquals(rule.getConfig(), config.getConfig());
             });
 
-            List<Long> v1 = client1.listArtifactVersions(artifactId);
-            List<Long> v2 = client2.listArtifactVersions(artifactId);
-            Assertions.assertEquals(v1, v2);
+            VersionSearchResults vres1 = client1.listArtifactVersions(groupId, artifactId, 0, 500);
+            VersionSearchResults vres2 = client2.listArtifactVersions(groupId, artifactId, 0, 500);
+            Assertions.assertEquals(vres1.getCount(), vres2.getCount());
 
-            List<RuleType> rt1 = client1.listArtifactRules(artifactId);
-            List<RuleType> rt2 = client2.listArtifactRules(artifactId);
+            List<RuleType> rt1 = client1.listArtifactRules(groupId, artifactId);
+            List<RuleType> rt2 = client2.listArtifactRules(groupId, artifactId);
             Assertions.assertEquals(rt1, rt2);
 
             Rule globalRule = new Rule();
@@ -136,11 +140,8 @@ public class ClusterIT {
                 client1.deleteGlobalRule(RuleType.COMPATIBILITY);
             }
         } finally {
-            client1.deleteArtifact(artifactId);
+            client1.deleteArtifact(groupId, artifactId);
         }
-
-        client1.close();
-        client2.close();
     }
 
     @Test
@@ -174,16 +175,16 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryRestClient client1 = RegistryRestClientFactory.create("http://localhost:8080/api/v1");
-        RegistryRestClient client2 = RegistryRestClientFactory.create("http://localhost:8081/api/v1");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/api/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/api/v2");
 
         // warm-up both nodes (its storages)
-        client1.listArtifacts();
-        client2.listArtifacts();
+        client1.listArtifactsInGroup(groupId);
+        client2.listArtifactsInGroup(groupId);
 
         String artifactId = UUID.randomUUID().toString();
         ByteArrayInputStream stream = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
-        client1.createArtifact(artifactId, ArtifactType.JSON, stream);
+        client1.createArtifact(groupId, artifactId, ArtifactType.JSON, stream);
         try {
             String name = UUID.randomUUID().toString();
             String desc = UUID.randomUUID().toString();
@@ -192,11 +193,11 @@ public class ClusterIT {
                 EditableMetaData emd = new EditableMetaData();
                 emd.setName(name);
                 emd.setDescription(desc);
-                client2.updateArtifactMetaData(artifactId, emd);
+                client2.updateArtifactMetaData(groupId, artifactId, emd);
             });
 
             TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(name, SearchOver.name, SortOrder.asc, 0, 2);
+                ArtifactSearchResults results = client2.searchArtifacts(groupId, name, null, null, null, SortBy.name, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- name");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- name");
@@ -205,26 +206,15 @@ public class ClusterIT {
             });
             TestUtils.retry(() -> {
                 // client 1 !
-                ArtifactSearchResults results = client1.searchArtifacts(desc, SearchOver.description, SortOrder.desc, 0, 2);
+                ArtifactSearchResults results = client1.searchArtifacts(groupId, null, desc, null, null, SortBy.name, SortOrder.asc, 0, 2);
                 Assertions.assertNotNull(results);
                 Assertions.assertEquals(1, results.getCount(), "Invalid results count -- description");
                 Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- description");
                 Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
                 Assertions.assertEquals(desc, results.getArtifacts().get(0).getDescription());
             });
-            TestUtils.retry(() -> {
-                ArtifactSearchResults results = client2.searchArtifacts(desc, SearchOver.everything, SortOrder.desc, 0, 2);
-                Assertions.assertNotNull(results);
-                Assertions.assertEquals(1, results.getCount(), "Invalid results count -- everything");
-                Assertions.assertEquals(1, results.getArtifacts().size(), "Invalid artifacts size -- everything");
-                Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
-                Assertions.assertEquals(desc, results.getArtifacts().get(0).getDescription());
-            });
         } finally {
-            client1.deleteArtifact(artifactId);
+            client1.deleteArtifact(groupId, artifactId);
         }
-
-        client1.close();
-        client2.close();
     }
 }

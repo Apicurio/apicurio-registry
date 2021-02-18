@@ -63,7 +63,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQU
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class RequestHandler {
 

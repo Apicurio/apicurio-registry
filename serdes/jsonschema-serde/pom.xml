@@ -16,7 +16,6 @@
     <name>apicurio-registry-serdes-jsonschema-serde</name>
 
     <dependencies>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-serde-common</artifactId>
@@ -26,20 +25,6 @@
             <groupId>com.worldturner.medeia</groupId>
             <artifactId>medeia-validator-jackson</artifactId>
         </dependency>
-
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     
 </project>

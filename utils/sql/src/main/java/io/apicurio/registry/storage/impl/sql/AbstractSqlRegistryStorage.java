@@ -94,7 +94,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 /**
- * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
+ * A SQL implementation of the {@link io.apicurio.registry.storage.RegistryStorage} interface.  This impl does not
  * use any ORM technology - it simply uses native SQL for all operations.
  * @author eric.wittmann@gmail.com
  */
@@ -262,7 +262,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         try {
             @SuppressWarnings("unchecked")
             Class<IDbUpgrader> upgraderClass = (Class<IDbUpgrader>) Class.forName(cname);
-            IDbUpgrader upgrader = upgraderClass.newInstance();
+            IDbUpgrader upgrader = upgraderClass.getConstructor().newInstance();
             upgrader.upgrade(handle);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -382,7 +382,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, ArtifactType artifactType,

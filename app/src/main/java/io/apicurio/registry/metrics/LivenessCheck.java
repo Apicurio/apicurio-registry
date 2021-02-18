@@ -19,7 +19,7 @@ package io.apicurio.registry.metrics;
 /**
  * Common interface for a liveness check.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public interface LivenessCheck {
 

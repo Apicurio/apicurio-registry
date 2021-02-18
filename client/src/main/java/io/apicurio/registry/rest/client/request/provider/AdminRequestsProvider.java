@@ -38,7 +38,7 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.RULES_BAS
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULE_PATH;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class AdminRequestsProvider {
 
@@ -79,6 +79,7 @@ public class AdminRequestsProvider {
                 .build();
     }
 
+    @SuppressWarnings("rawtypes")
     public static Request<List> listLogConfigurations() {
         return new Request.RequestBuilder<List>()
                 .operation(GET)
@@ -140,6 +141,7 @@ public class AdminRequestsProvider {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     public static Request<List> listGlobalRules() {
         return new Request.RequestBuilder<List>()
                 .operation(GET)

@@ -64,7 +64,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
     public void testDefaultGlobalRules() throws Exception {
         this.createArtifact(this.generateArtifactId(), ArtifactType.JSON, "{}");
 
-        // Verify the default globalIdStore rule exists
+        // Verify the default global rule exists
         TestUtils.retry(() -> {
             given()
                 .when()
@@ -92,7 +92,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
                     .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         });
 
-        // Add another globalIdStore rule
+        // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
         given()
@@ -208,7 +208,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
                     .body("config", equalTo("FULL"));
         });
 
-        // Delete the globalIdStore rule by name (should fail with a 409)
+        // Delete the global rule by name (should fail with a 409)
         given()
             .when()
                 .delete("/v1/rules/VALIDITY")

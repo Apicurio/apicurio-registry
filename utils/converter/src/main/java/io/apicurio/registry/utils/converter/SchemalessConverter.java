@@ -31,10 +31,11 @@ import java.util.Objects;
 /**
  * Very simplistic converter -- no Schema handling atm.
  * Subclasses should override {@link #applySchema(Schema, Object)} and
- * {@link #provideSchema(T)} or {@link #toSchemaAndValue(T)}.
+ * {@link #provideSchema(Object)} or {@link #toSchemaAndValue(Object)}.
  *
  * @author Ales Justin
  */
+@SuppressWarnings("rawtypes")
 public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConverter<T>> implements Converter {
     public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
     public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
@@ -95,6 +96,7 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConvert
         super.close();
     }
 
+    @SuppressWarnings("unchecked")
     protected T applySchema(Schema schema, Object value) {
         //noinspection unchecked
         return (T) value;

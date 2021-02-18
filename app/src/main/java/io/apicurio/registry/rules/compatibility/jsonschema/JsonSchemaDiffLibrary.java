@@ -32,7 +32,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class JsonSchemaDiffLibrary {
 
@@ -41,7 +41,7 @@ public class JsonSchemaDiffLibrary {
      *
      * @param original Original/Previous/First/Left JSON schema representation
      * @param updated  Updated/Next/Second/Right JSON schema representation
-     * @return an object to access the found differences: Original -> Updated
+     * @return an object to access the found differences: Original -&gt; Updated
      * @throws IllegalArgumentException if the input is not a valid representation of a JsonSchema
      */
     public static DiffContext findDifferences(String original, String updated) {

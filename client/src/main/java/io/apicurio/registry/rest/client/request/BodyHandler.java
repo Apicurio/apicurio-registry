@@ -26,7 +26,7 @@ import java.net.http.HttpResponse;
 import java.util.function.Supplier;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
 
@@ -50,6 +50,7 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
                 inputStream -> toSupplierOfType(inputStream, targetType, responseInfo));
     }
 
+    @SuppressWarnings("unchecked")
     public static <W> Supplier<W> toSupplierOfType(InputStream body, Class<W> targetType, HttpResponse.ResponseInfo responseInfo) {
         return () -> {
             try {

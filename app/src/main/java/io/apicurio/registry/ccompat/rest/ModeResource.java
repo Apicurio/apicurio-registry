@@ -35,7 +35,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * We <b>DO NOT</b> support this endpoint. Fails with 404.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Path("/ccompat/mode")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

@@ -73,7 +73,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
  *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Provider

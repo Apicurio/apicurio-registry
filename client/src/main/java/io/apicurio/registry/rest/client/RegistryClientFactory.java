@@ -22,7 +22,7 @@ import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import java.util.Map;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class RegistryClientFactory {
 

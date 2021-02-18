@@ -97,7 +97,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(java.lang.Object, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(ParsedSchema<Serde.Schema> schema, U data, OutputStream out) throws IOException {
@@ -109,7 +109,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, java.lang.Object, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<Serde.Schema> schema, U data, OutputStream out) throws IOException {

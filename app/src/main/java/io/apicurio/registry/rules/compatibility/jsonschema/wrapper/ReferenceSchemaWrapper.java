@@ -26,7 +26,7 @@ import org.everit.json.schema.SchemaLocation;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString

@@ -60,7 +60,7 @@ public class AvroSchemaUtils {
     }
 
     static Schema getReflectSchema(Object object) {
-        Class<?> clazz = (object instanceof Class) ? (Class) object : object.getClass();
+        Class<?> clazz = (object instanceof Class) ? (Class<?>) object : object.getClass();
         Schema schema = ReflectData.get().getSchema(clazz);
         if (schema == null) {
             throw new SerializationException("No schema for class: " + clazz.getName());

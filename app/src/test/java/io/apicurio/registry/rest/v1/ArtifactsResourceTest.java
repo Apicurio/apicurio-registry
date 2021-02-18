@@ -125,7 +125,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
     public void testCreateArtifactInvalidSyntax() throws Exception {
         String invalidArtifactContent = resourceToString("openapi-invalid-syntax.json");
 
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");

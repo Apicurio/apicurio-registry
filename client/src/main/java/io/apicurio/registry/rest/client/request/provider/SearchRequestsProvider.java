@@ -28,7 +28,7 @@ import static io.apicurio.registry.rest.client.request.provider.Operation.POST;
 import static io.apicurio.registry.rest.client.request.provider.Routes.SEARCH_ARTIFACTS;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class SearchRequestsProvider {
 

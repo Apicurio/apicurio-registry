@@ -83,7 +83,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalRules() throws Exception {
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
@@ -119,7 +119,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("message", equalTo("A rule named 'VALIDITY' already exists."));
         });
 
-        // Add another globalIdStore rule
+        // Add another global rule
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
         given()
@@ -256,7 +256,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testDeleteAllGlobalRules() throws Exception {
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("FULL");
@@ -303,7 +303,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testCompatilibityLevelNone() throws Exception {
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.NONE.name());

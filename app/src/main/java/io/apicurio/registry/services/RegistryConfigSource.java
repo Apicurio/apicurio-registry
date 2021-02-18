@@ -24,7 +24,7 @@ import java.util.Map;
 
 /**
  * ConfigSource that turns env vars into plain properties.
- * e.g. REGISTRY_STREAMS_TOPOLOGY_SECURITY_PROTOCOL=SSL --> %dev.registry.streams.topology.security.protocol=SSL
+ * e.g. REGISTRY_STREAMS_TOPOLOGY_SECURITY_PROTOCOL=SSL --&gt; %dev.registry.streams.topology.security.protocol=SSL
  * <p>
  * docker run -it -p 8080:8080 -e REGISTRY_PROPERTIES_PREFIX=REGISTRY_ -e REGISTRY_STREAMS_TOPOLOGY_SECURITY_PROTOCOL=SSL apicurio/apicurio-registry-streams
  *

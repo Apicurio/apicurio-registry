@@ -28,7 +28,7 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_CONTE
 import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_GLOBAL_ID;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class IdRequestsProvider {
 

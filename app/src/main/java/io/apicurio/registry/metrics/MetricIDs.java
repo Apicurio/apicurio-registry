@@ -3,7 +3,7 @@ package io.apicurio.registry.metrics;
 /**
  * Metrics naming constants.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public interface MetricIDs {
 

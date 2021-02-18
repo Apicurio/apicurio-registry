@@ -35,7 +35,7 @@ import java.util.function.Function;
  *
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public interface RegistryStorageFacade {
 

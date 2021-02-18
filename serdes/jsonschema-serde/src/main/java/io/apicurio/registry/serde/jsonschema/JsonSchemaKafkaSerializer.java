@@ -78,6 +78,10 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
         this.validationEnabled = validationEnabled;
     }
 
+    /**
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#configure(java.util.Map, boolean)
+     */
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
@@ -134,7 +138,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
 //    }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(java.lang.Object, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(ParsedSchema<SchemaValidator> schema, T data, OutputStream out) throws IOException {
@@ -150,7 +154,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, java.lang.Object, java.lang.Object, java.io.ByteArrayOutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<SchemaValidator> schema, T data, OutputStream out) throws IOException {

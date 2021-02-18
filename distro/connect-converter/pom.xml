@@ -34,10 +34,6 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-converter</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-rest-client</artifactId>
-        </dependency>
 <!--         <dependency> -->
 <!--             <groupId>org.apache.geronimo.config</groupId> -->
 <!--             <artifactId>geronimo-config-impl</artifactId> -->

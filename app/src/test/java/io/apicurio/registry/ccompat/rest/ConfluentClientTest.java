@@ -38,8 +38,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;
@@ -110,7 +109,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(client.testCompatibility(subject, schema2));
 
-        // globalIdStore id can be mapped async
+        // global id can be mapped async
         retry(() -> {
             ParsedSchema schema3 = client.getSchemaById(id2);
             Assertions.assertNotNull(schema3);
@@ -158,7 +157,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int id = client.register(subject + "-value", schema);
         client.reset();
 
-        // globalIdStore id can be mapped async
+        // global id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
@@ -244,7 +243,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int id = client.register(subject, schema);
         client.reset();
 
-        // globalIdStore id can be mapped async
+        // global id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);
@@ -270,20 +269,19 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGlobalRule() throws Exception {
-        RegistryRestClient apicurioClient = client;
         SchemaRegistryClient client = buildClient();
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        apicurioClient.createGlobalRule(rule);
+        clientV2.createGlobalRule(rule);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         int id = client.register(subject, schema);
         client.reset();
 
-        // globalIdStore id can be mapped async
+        // global id can be mapped async
         retry(() -> {
             ParsedSchema schema2 = client.getSchemaById(id);
             Assertions.assertNotNull(schema2);

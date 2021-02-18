@@ -52,7 +52,7 @@ public class SqlUtil {
     }
 
     /**
-     * Deserialize the labels from their string form to a List<String> form.
+     * Deserialize the labels from their string form to a <code>List&lt;String&gt;</code> form.
      * @param labelsStr
      */
     @SuppressWarnings("unchecked")

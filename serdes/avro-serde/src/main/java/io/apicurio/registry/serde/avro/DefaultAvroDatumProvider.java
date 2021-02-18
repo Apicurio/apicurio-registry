@@ -63,7 +63,7 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
             Class<SpecificRecord> readerClass = SpecificData.get().getClass(schema);
             if (readerClass != null) {
                 try {
-                    return readerClass.newInstance().getSchema();
+                    return readerClass.getConstructor().newInstance().getSchema();
                 } catch (Exception e) {
                     throw new IllegalStateException(String.format("Error getting schema [%s]: %s",
                                                                   schema.getFullName(),

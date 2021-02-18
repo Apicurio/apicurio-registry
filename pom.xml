@@ -84,11 +84,10 @@
         <module>app</module>
         <module>cli</module>
         <module>ui</module>
-        <module>utils/converter</module>
+<!--         <module>utils/converter</module> -->
         <module>utils/kafka</module>
         <module>utils/streams</module>
         <module>utils/maven-plugin</module>
-        <module>utils/serde</module>
         <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
@@ -98,7 +97,6 @@
         <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
-        <module>rest-client</module>
         <module>client</module>
     </modules>
 
@@ -108,8 +106,8 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
         <docker.tag.name>latest-release</docker.tag.name>
         <tar.long.file.mode>gnu</tar.long.file.mode>
@@ -231,11 +229,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-rest-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -260,11 +253,6 @@
                 <version>${project.version}</version>
                 <scope>test</scope>
                 <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-serde</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
@@ -763,7 +751,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${maven.compiler.target}</source>
+                    <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                     <showDeprecation>false</showDeprecation>
                     <showWarnings>false</showWarnings>
@@ -802,7 +790,7 @@
                     </additionalDependencies>
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
-                    <source>8</source>
+                    <source>${maven.compiler.source}</source>
                 </configuration>
             </plugin>
             <plugin>

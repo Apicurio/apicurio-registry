@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal 'carnalca@redhat.com'
  * <p>
  * Rest client compatible with the Registry API V2
  */

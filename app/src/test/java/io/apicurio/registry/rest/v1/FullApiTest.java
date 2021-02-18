@@ -49,7 +49,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationOpenAPI/API", artifactType, artifactContent);
 
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
@@ -61,7 +61,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .statusCode(204)
                 .body(anything());
 
-        // Get the globalIdStore rule (make sure it was created)
+        // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
             given()
                 .when()
@@ -98,7 +98,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         // First, create an artifact without the rule installed.  Should work.
         createArtifact("testGlobalRuleApplicationProtobuf/API", artifactType, artifactContent);
 
-        // Add a globalIdStore rule
+        // Add a global rule
         Rule rule = new Rule();
         rule.setType(RuleType.VALIDITY);
         rule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
@@ -110,7 +110,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .statusCode(204)
                 .body(anything());
 
-        // Get the globalIdStore rule (make sure it was created)
+        // Get the global rule (make sure it was created)
         TestUtils.retry(() -> {
             given()
                 .when()

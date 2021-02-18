@@ -73,7 +73,7 @@ public class SearchResourceImpl implements SearchResource {
     RegistryStorage registryStorage;
 
     /**
-     * @see io.apicurio.registry.rest.v1.v1.SearchResource#searchArtifacts(String, Integer, Integer, SearchOver, OrderDirection)
+     * @see io.apicurio.registry.rest.v1.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v1.beans.SearchOver, io.apicurio.registry.rest.v1.beans.SortOrder)
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
@@ -86,7 +86,7 @@ public class SearchResourceImpl implements SearchResource {
         final OrderBy orderBy = OrderBy.name;
         final OrderDirection orderDir = sortOrder == null || sortOrder == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
         final SearchOver over = searchOver == null ? SearchOver.everything : searchOver;
-        
+
         Set<SearchFilter> filters = new HashSet<>();
         if (search != null && !search.trim().isEmpty()) {
             SearchFilter filter = new SearchFilter();

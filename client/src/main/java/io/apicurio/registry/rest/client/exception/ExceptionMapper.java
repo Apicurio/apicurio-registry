@@ -18,7 +18,7 @@ package io.apicurio.registry.rest.client.exception;
 
 
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author Carles Arnal 'carles.arnal@redhat.com'
  */
 public class ExceptionMapper {
 

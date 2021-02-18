@@ -19,6 +19,8 @@ package io.apicurio.registry.rest.client;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 
+import java.util.Map;
+
 /**
  * @author Carles Arnal <carnalca@redhat.com>
  */
@@ -28,7 +30,11 @@ public class RegistryClientFactory {
         return new RegistryClientImpl(basePath);
     }
 
-    public static RegistryClient create(String basePath, Auth auth) {
-        return new RegistryClientImpl(basePath, auth);
+    public static RegistryClient create(String baseUrl, Map<String, Object> configs) {
+        return new RegistryClientImpl(baseUrl, configs);
+    }
+
+    public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
+        return new RegistryClientImpl(baseUrl, configs, auth);
     }
 }

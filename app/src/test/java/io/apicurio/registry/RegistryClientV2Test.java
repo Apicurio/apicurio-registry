@@ -768,6 +768,7 @@ public class RegistryClientV2Test extends AbstractResourceTestBase {
         final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
         assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
         assertEquals(logger, logConfiguration.getName());
+        clientV2.removeLogConfiguration(logger);
     }
 
     private ArtifactMetaData createArtifact(String groupId, String artifactId) {

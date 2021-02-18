@@ -9,5 +9,5 @@ services:
       - REGISTRY_DATASOURCE_URL="jdbc:cloudspanner:/projects/es-s2-core-d/instances/es-s2-core-d-spannertest/databases/apicurio"
       - GOOGLE_APPLICATION_CREDENTIALS=/config/es-s2-core-d-1e0ceedeb23e.json
     volumes:
-    - /phoenix/apicurio-registry/es-s2-core-d-1e0ceedeb23e.json:/config/es-s2-core-d-1e0ceedeb23e.json
+    - /Users/ze6295/Downloads/es-s2-core-d-1e0ceedeb23e.json:/config/es-s2-core-d-1e0ceedeb23e.json
     #TODO: HOW DO WE WANT TO POPULATE WITH CICD AUTOMATION?

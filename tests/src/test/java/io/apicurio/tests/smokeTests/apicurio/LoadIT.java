@@ -53,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  */
 @Tag(SMOKE)
-@Disabled
+@Disabled("Doesn't work with H2 test env after code change for Spanner")
 public class LoadIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadIT.class);

@@ -145,11 +145,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         if (initDB) {
             // TODO create the JDBI handle once and pass it in to all these DB related methods
-//            try {
-//                log.info("CREDENTIALS: {}", GoogleCredentials.getApplicationDefault());
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
             synchronized (dbMutex) {
                 if (!isDatabaseInitialized()) {
                     log.info("Database not initialized.");
@@ -479,7 +474,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         handle.getConnection().setReadOnly(false);
 
         String uuidString;
-
         Long matchingContentHashCount = handle.createQuery("SELECT count(*) FROM content WHERE contenthash = ?").bind(0, contentHash).mapTo(Long.class).one();
 
         if (matchingContentHashCount.equals(0L)) {
@@ -501,9 +495,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         }
 
-        sql = sqlStatements.selectContentIdByHash();
-
-        return handle.createQuery(sql)
+        return handle.createQuery(sqlStatements.selectContentIdByHash())
                     .bind(0, contentHash)
                     .mapTo(String.class)
                     .one();

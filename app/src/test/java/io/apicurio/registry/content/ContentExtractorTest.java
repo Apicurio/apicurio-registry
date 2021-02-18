@@ -169,7 +169,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(name, emd.getName());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testAvroClient() throws Exception {
         String artifactId = generateArtifactId();
@@ -209,7 +209,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testJsonSchemaClient() throws Exception {
         String artifactId = generateArtifactId();
@@ -249,7 +249,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testOpenApiClient() throws Exception {
         String artifactId = generateArtifactId();
@@ -289,7 +289,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertEquals(description, emd.getDescription());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testAsyncApiClient() throws Exception {
         String artifactId = generateArtifactId();
@@ -327,7 +327,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertNull(emd.getDescription());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testWsdlClient() {
         String artifactId = generateArtifactId();

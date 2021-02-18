@@ -63,7 +63,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(client.hashCode(), client.hashCode());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testAsyncCRUD() throws Exception {
         String artifactId = generateArtifactId();
@@ -89,7 +89,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         }
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testSearchArtifact() throws Exception {
         // warm-up
@@ -118,7 +118,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertTrue(results.getCount() > 0);
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testSearchVersion() throws Exception {
         // warm-up
@@ -159,7 +159,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(name, results.getVersions().get(0).getName());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testSearchDisabledArtifacts() throws Exception {
         // warm-up
@@ -211,7 +211,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 .count());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testSearchDisabledVersions() throws Exception {
         // warm-up
@@ -266,7 +266,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 .count());
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testLabels() throws Exception {
         String artifactId = generateArtifactId();
@@ -304,7 +304,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         }
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testProperties() throws Exception {
         String artifactId = generateArtifactId();
@@ -339,7 +339,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         }
     }
 
-    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void nameOrderingTest() throws Exception {
         final String firstArtifactId = generateArtifactId();

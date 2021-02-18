@@ -16,13 +16,8 @@
 
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.client.exception.RuleAlreadyExistsException;
-import io.apicurio.registry.client.exception.RuleNotFoundException;
-import io.apicurio.registry.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
@@ -38,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.function.Function;
-
 import static io.apicurio.tests.common.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,8 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class RulesResourceIT extends BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);
-
-    private Function<Exception, Integer> errorCodeExtractor = e -> ((RestClientException) e).getError().getErrorCode();
 
     @Test
     void createAndDeleteGlobalRules() throws Exception {
@@ -80,10 +71,10 @@ class RulesResourceIT extends BaseIT {
         });
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> registryClient.getGlobalRuleConfig(RuleType.COMPATIBILITY), errorCodeExtractor);
+        assertWebError(404, () -> registryClient.getGlobalRuleConfig(RuleType.COMPATIBILITY));
 
         // Should be null/error (deleted the VALIDITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> registryClient.getGlobalRuleConfig(RuleType.VALIDITY), errorCodeExtractor);
+        assertWebError(404, () -> registryClient.getGlobalRuleConfig(RuleType.VALIDITY));
     }
 
     @Test
@@ -96,14 +87,14 @@ class RulesResourceIT extends BaseIT {
         TestUtils.retry(() -> registryClient.createGlobalRule(rule));
         LOGGER.info("Created rule: {} - {}", rule.getType(), rule.getConfig());
 
-        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> registryClient.createGlobalRule(rule), true, errorCodeExtractor);
+        assertWebError(409, () -> registryClient.createGlobalRule(rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         String artifactId = TestUtils.generateArtifactId();
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)), errorCodeExtractor);
+        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
+        assertWebError(404, () -> ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, IoUtil.toStream(invalidArtifactDefinition)));
 
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
 
@@ -149,13 +140,13 @@ class RulesResourceIT extends BaseIT {
         registryClient.createArtifactRule(artifactId1, rule);
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
-        TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> registryClient.createArtifactRule(artifactId1, rule), true, errorCodeExtractor);
+        assertWebError(409, () -> registryClient.createArtifactRule(artifactId1, rule), true);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         artifactData = new ByteArrayInputStream(invalidArtifactDefinition.getBytes(StandardCharsets.UTF_8));
 
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId1, iad), errorCodeExtractor);
+        assertWebError(409, () -> ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId1, iad));
 
         String updatedArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
 
@@ -198,12 +189,12 @@ class RulesResourceIT extends BaseIT {
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
         registryClient.deleteArtifact(artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifactId1), true, errorCodeExtractor);
+        assertWebError(404, () -> registryClient.getArtifactMetaData(artifactId1), true);
 
         assertThat(0, is(registryClient.listArtifacts().size()));
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(artifactId1), errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY), errorCodeExtractor);
+        assertWebError(404, () -> registryClient.listArtifactRules(artifactId1));
+        assertWebError(404, () -> registryClient.getArtifactRuleConfig(artifactId1, RuleType.VALIDITY));
     }
 
     @AfterEach

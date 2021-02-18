@@ -16,10 +16,8 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
@@ -31,8 +29,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.function.Function;
-
 import static io.apicurio.tests.common.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,21 +61,22 @@ class AllArtifactTypesIT extends BaseIT {
             client.testUpdateArtifact(artifactId, atype, IoUtil.toStream(v2Content));
 
             // Test update (invalid content)
-            Function<Exception, Integer> errorCodeExtractor = e -> ((RestClientException) e).getError().getErrorCode();
-            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")), errorCodeExtractor);
+            //WARNING, we are not 100% compliant  with the old API, before this and many other errors were a 400 error code, now they are 409
+            //example https://github.com/Apicurio/apicurio-registry/blob/1.3.2.Final/tests/src/test/java/io/apicurio/tests/smokeTests/apicurio/AllArtifactTypesIT.java
+            assertWebError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
 
             // Find artifact by content
-            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, false, IoUtil.toStream(v1Content));
+            ArtifactMetaData byContent = client.getArtifactMetaDataByContent(artifactId, IoUtil.toStream(v1Content));
             assertNotNull(byContent);
             assertNotNull(byContent.getGlobalId());
             assertEquals(artifactId, byContent.getId());
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")), errorCodeExtractor);
+            assertWebError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");

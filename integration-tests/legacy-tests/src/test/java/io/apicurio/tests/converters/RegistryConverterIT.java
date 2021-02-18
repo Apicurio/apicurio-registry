@@ -44,8 +44,8 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.converter.AvroConverter;
 import io.apicurio.registry.utils.converter.ExtJsonConverter;
@@ -56,9 +56,9 @@ import io.apicurio.registry.utils.converter.json.CompactFormatStrategy;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
+import io.apicurio.registry.utils.serde.AbstractKafkaStrategyAwareSerDe;
 import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
 import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
-import io.apicurio.registry.utils.serde.SerdeConfig;
 import io.apicurio.registry.utils.serde.avro.AvroDatumProvider;
 import io.apicurio.registry.utils.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.utils.serde.strategy.AutoRegisterIdStrategy;
@@ -79,7 +79,7 @@ public class RegistryConverterIT extends BaseIT {
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO,
+        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO, null,
             new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         // wait for global id store to populate (in case of Kafka / Streams)
@@ -90,10 +90,10 @@ public class RegistryConverterIT extends BaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV1ApiUrl());
+        config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, TestUtils.getRegistryV1ApiUrl());
         config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
-        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
+        config.put(AbstractKafkaStrategyAwareSerDe.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM, new TopicRecordIdStrategy());
         config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
         SchemalessConverter<GenericData.Record> converter = new SchemalessConverter<>();
 
@@ -136,8 +136,8 @@ public class RegistryConverterIT extends BaseIT {
 
     @Test
     public void testAvro() throws Exception {
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(createRegistryClient());
-             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(createRegistryClient())) {
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(createCompatibleClient());
+             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(createCompatibleClient())) {
 
             serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
@@ -165,7 +165,7 @@ public class RegistryConverterIT extends BaseIT {
     @Test
     public void testPrettyJson() throws Exception {
         testJson(
-            createRegistryClient(),
+            createCompatibleClient(),
             new PrettyFormatStrategy(),
             input -> {
                 try {
@@ -182,7 +182,7 @@ public class RegistryConverterIT extends BaseIT {
     @Test
     public void testCompactJson() throws Exception {
         testJson(
-            createRegistryClient(),
+            createCompatibleClient(),
             new CompactFormatStrategy(),
             input -> {
                 ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
@@ -191,7 +191,7 @@ public class RegistryConverterIT extends BaseIT {
         );
     }
 
-    private void testJson(RegistryRestClient restClient, FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
+    private void testJson(RegistryService restClient, FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
         try (ExtJsonConverter converter = new ExtJsonConverter(restClient)) {
             converter.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
             converter.setFormatStrategy(formatStrategy);

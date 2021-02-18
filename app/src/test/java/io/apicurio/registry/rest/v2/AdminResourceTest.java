@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -60,10 +61,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     private static final String TEST_LOGGER_NAME = "org.acme.test";
 
+    @ConfigProperty(name = "quarkus.log.level")
+    String defaultLogLevel;
+
     @BeforeEach
     public void setUp() {
         Logger logger = Logger.getLogger(TEST_LOGGER_NAME);
-        logger.setLevel(Level.INFO);
+        logger.setLevel(Level.parse(defaultLogLevel));
     }
 
     @Test

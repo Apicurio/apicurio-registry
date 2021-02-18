@@ -56,7 +56,7 @@ public class RegistryClientImpl implements RegistryClient {
     private final RequestHandler requestHandler;
 
     public RegistryClientImpl(String endpoint) {
-        this(endpoint, null, null);
+        this(endpoint, Collections.emptyMap(), null);
     }
 
     public RegistryClientImpl(String endpoint, Map<String, Object> configs) {

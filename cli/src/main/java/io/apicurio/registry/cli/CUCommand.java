@@ -53,11 +53,10 @@ public abstract class CUCommand extends ArtifactCommand {
             } else {
                 throw new IllegalArgumentException("Missing content!");
             }
-            if (debug) {
-                String content = IoUtil.toString(data);
-                log.info("Content: " + content);
-                data = IoUtil.toStream(content);
-            }
+            String content = IoUtil.toString(data);
+            log.fine("Content: " + content);
+            data = IoUtil.toStream(content);
+
             Object result = run(data);
             println(String.format("Response [%s]: " + result, spec.name()));
         } catch (IOException e) {

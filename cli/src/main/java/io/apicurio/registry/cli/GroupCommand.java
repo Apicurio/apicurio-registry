@@ -18,22 +18,10 @@ package io.apicurio.registry.cli;
 
 import picocli.CommandLine;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
 /**
  * @author Ales Justin
  */
-@CommandLine.Command(name = "clear", aliases = {"cls"}, description = "Clear console")
-public class ClearCommand implements Runnable {
-    @CommandLine.ParentCommand
-    MainCommand parent;
-
-    public void run() {
-        try {
-            parent.reader.clearScreen();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
+public abstract class GroupCommand extends AbstractCommand {
+    @CommandLine.Option(names = {"-g", "--groupId"}, description = "Group id", required = true)
+    String groupId;
 }

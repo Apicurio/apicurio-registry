@@ -1,7 +1,6 @@
 
 package io.apicurio.registry.rest.v1.beans;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -10,7 +9,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -51,7 +49,7 @@ public class SearchedVersion {
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
-    private Date createdOn;
+    private long createdOn;
     /**
      *
      * (Required)
@@ -143,8 +141,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("createdOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
@@ -154,7 +151,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 

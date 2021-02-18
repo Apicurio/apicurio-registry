@@ -16,11 +16,13 @@
 
 package io.apicurio.tests;
 
+import io.apicurio.registry.client.CompatibleClient;
 import io.apicurio.registry.client.RegistryRestClient;
 import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.EditableMetaData;
+import io.apicurio.registry.client.RegistryService;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.beans.IfExistsType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -48,6 +50,8 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.WebApplicationException;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,6 +65,10 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
 
     protected RegistryRestClient createRegistryClient() {
         return RegistryRestClientFactory.create(TestUtils.getRegistryV1ApiUrl());
+    }
+
+    protected RegistryService createCompatibleClient() {
+        return CompatibleClient.createCompatible(TestUtils.getRegistryV1ApiUrl(), new HashMap<>());
     }
 
     protected final String resourceToString(String resourceName) {
@@ -87,9 +95,6 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
         for (String artifactId : artifacts) {
             try {
                 registryClient.deleteArtifact(artifactId);
-            } catch (ArtifactNotFoundException e) {
-                //because of async storage artifact may be already deleted but listed anyway
-                LOGGER.info(e.getMessage());
             } catch (Exception e) {
                 LOGGER.error("", e);
             }
@@ -106,7 +111,7 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
 
             String artifactDefinition = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             ByteArrayInputStream artifactData = new ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
-            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
+            ArtifactMetaData amd = apicurioService.createArtifact(artifactId, ArtifactType.AVRO, IfExistsType.FAIL, artifactData);
 
             // Make sure artifact is fully registered
             TestUtils.retry(() -> apicurioService.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -129,6 +134,7 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData artifactMetadata = client.createArtifact(
                 artifactName,
                 ArtifactType.AVRO,
+                null,
                 new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
         );
         EditableMetaData editableMetaData = new EditableMetaData();
@@ -165,5 +171,31 @@ public abstract class BaseIT extends ApicurioRegistryBaseIT {
 
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();
+    }
+
+    public static void assertWebError(int expectedCode, Runnable runnable) {
+        try {
+            assertWebError(expectedCode, runnable, false);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static void assertWebError(int expectedCode, Runnable runnable, boolean retry) throws Exception {
+        if (retry) {
+            TestUtils.retry(() -> internalAssertWebError(expectedCode, runnable));
+        } else {
+            internalAssertWebError(expectedCode, runnable);
+        }
+    }
+
+    private static void internalAssertWebError(int expectedCode, Runnable runnable) {
+        try {
+            runnable.run();
+            Assertions.fail("Expected (but didn't get) a web application exception with code: " + expectedCode);
+        } catch (Exception e) {
+            Assertions.assertEquals(WebApplicationException.class.getName(), e.getClass().getName(), () -> "e: " + e);
+            Assertions.assertEquals(expectedCode, WebApplicationException.class.cast(e).getResponse().getStatus());
+        }
     }
 }

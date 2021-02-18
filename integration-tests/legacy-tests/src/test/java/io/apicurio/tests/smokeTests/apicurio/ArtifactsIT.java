@@ -15,15 +15,10 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
-import io.apicurio.registry.client.exception.ArtifactAlreadyExistsException;
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.client.exception.RestClientException;
-import io.apicurio.registry.client.exception.RuleViolationException;
-import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v1.beans.Rule;
-import io.apicurio.registry.rest.v1.beans.UpdateState;
-import io.apicurio.registry.rest.v1.beans.VersionMetaData;
+import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -32,7 +27,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -46,8 +40,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-
 import static io.apicurio.tests.common.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
@@ -60,8 +52,6 @@ class ArtifactsIT extends BaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactsIT.class);
 
     private final ObjectMapper mapper = new ObjectMapper();
-
-    private Function<Exception, Integer> errorCodeExtractor = e -> ((RestClientException) e).getError().getErrorCode();
 
     @Test
     @Tag(ACCEPTANCE)
@@ -96,7 +86,7 @@ class ArtifactsIT extends BaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         ByteArrayInputStream iad = artifactData;
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, invalidArtifactId, iad), errorCodeExtractor);
+        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, invalidArtifactId, iad));
 
         artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}".getBytes(StandardCharsets.UTF_8));
         metaData = ArtifactUtils.updateArtifact(registryClient, ArtifactType.AVRO, artifactId, artifactData);
@@ -132,7 +122,7 @@ class ArtifactsIT extends BaseIT {
         deleteMultipleArtifacts(registryClient, idMap);
 
         for (Map.Entry<String, String> entry : idMap.entrySet()) {
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(entry.getValue()), true, errorCodeExtractor);
+            assertWebError(404, () -> registryClient.getLatestArtifact(entry.getValue()), true);
         }
     }
 
@@ -142,7 +132,7 @@ class ArtifactsIT extends BaseIT {
         ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"INVALID\",\"config\":\"invalid\"}".getBytes(StandardCharsets.UTF_8));
         String artifactId = TestUtils.generateArtifactId();
 
-        ArtifactMetaData amd = registryClient.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+        ArtifactMetaData amd = registryClient.createArtifact(artifactId, ArtifactType.JSON, null, artifactData);
         // Make sure artifact is fully registered
         TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
 
@@ -188,7 +178,7 @@ class ArtifactsIT extends BaseIT {
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
-        TestUtils.assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, iad), true, errorCodeExtractor);
+        assertWebError(409, () -> ArtifactUtils.createArtifact(registryClient, ArtifactType.AVRO, artifactId, iad), true);
     }
 
     @Test
@@ -216,7 +206,7 @@ class ArtifactsIT extends BaseIT {
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = registryClient.getArtifactMetaData(artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(artifactId), true, errorCodeExtractor);
+            assertWebError(404, () -> registryClient.getLatestArtifact(artifactId), true);
         });
 
         // Re-enable the artifact
@@ -367,75 +357,7 @@ class ArtifactsIT extends BaseIT {
 
     @Test
     void deleteNonexistingSchema() throws Exception {
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.deleteArtifact("non-existing"), errorCodeExtractor);
-    }
-
-    @Test
-    void testForbiddenSpecialCharacters() throws Exception {
-        forbiddenSpecialCharactersTestClient("ab%c");
-        forbiddenSpecialCharactersTestClient("._:-ç'`¡¿?0=)(/&$·!ªº<>,;,:");
-    }
-
-    void forbiddenSpecialCharactersTestClient(String artifactId) {
-        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-
-        Assertions.assertThrows(InvalidArtifactIdException.class, () -> {
-            registryClient.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
-        });
-
-        ArtifactUtils.createArtifact(artifactId, content, 400);
-
-    }
-
-    @Test
-    void testAllowedSpecialCharacters() throws Exception {
-        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
-
-        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-        ArtifactMetaData metaData = registryClient.createArtifact(artifactId, ArtifactType.AVRO, artifactData);
-
-        TestUtils.retry(() -> registryClient.getArtifactMetaDataByGlobalId(metaData.getGlobalId()));
-
-        registryClient.getArtifactMetaData(artifactId);
-
-        registryClient.getArtifactMetaDataByContent(artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.listArtifactVersions(artifactId);
-
-        registryClient.testUpdateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.getLatestArtifact(artifactId);
-
-        ArtifactUtils.getArtifact(artifactId);
-    }
-
-    @Test
-    void testAllowedSpecialCharactersCreateViaApi() throws Exception {
-        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
-
-        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-
-        ArtifactUtils.createArtifact(artifactId, content, 200);
-
-        TestUtils.retry(() -> registryClient.getArtifactMetaData(artifactId));
-
-        registryClient.getArtifactMetaData(artifactId);
-
-        registryClient.getArtifactMetaDataByContent(artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.listArtifactVersions(artifactId);
-
-        registryClient.testUpdateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-
-        registryClient.getLatestArtifact(artifactId);
-
-        ArtifactUtils.getArtifact(artifactId);
+        assertWebError(404, () -> registryClient.deleteArtifact("non-existing"));
     }
 
     @AfterEach

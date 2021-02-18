@@ -17,7 +17,6 @@
 
 package io.apicurio.registry.rest.v1.beans;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -26,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,8 +33,8 @@ import java.util.stream.Collectors;
 /**
  * Root Type for ArtifactMetaData
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -64,61 +62,61 @@ public class ArtifactMetaData {
     @JsonProperty("labels")
     private List<String> labels;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    private Date createdOn;
+    private long createdOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("modifiedBy")
     private String modifiedBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
-    private Date modifiedOn;
+    private long modifiedOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     @JsonPropertyDescription("")
     private String id;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
     private Integer version;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
@@ -184,30 +182,29 @@ public class ArtifactMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("modifiedBy")
     public String getModifiedBy() {
@@ -225,30 +222,29 @@ public class ArtifactMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
-    public Date getModifiedOn() {
+    public long getModifiedOn() {
         return modifiedOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(Date modifiedOn) {
+    public void setModifiedOn(long modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     public String getId() {

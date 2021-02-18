@@ -18,8 +18,6 @@
 package io.apicurio.registry.rest.v1;
 
 import java.util.ArrayList;
-import java.util.Date;
-
 import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v1.beans.SearchedArtifact;
@@ -49,7 +47,7 @@ public final class V1ApiUtil {
                                                   ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
         if (artifactId != null) {
             metaData.setId(artifactId);
@@ -57,7 +55,7 @@ public final class V1ApiUtil {
             metaData.setId(dto.getId());
         }
         metaData.setModifiedBy(dto.getModifiedBy());
-        metaData.setModifiedOn(new Date(dto.getModifiedOn()));
+        metaData.setModifiedOn(dto.getModifiedOn());
         metaData.setName(dto.getName());
         if (artifactType != null) {
             metaData.setType(artifactType);
@@ -76,11 +74,11 @@ public final class V1ApiUtil {
             ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
         metaData.setId(artifactId);
         metaData.setModifiedBy(dto.getCreatedBy());
-        metaData.setModifiedOn(new Date(dto.getCreatedOn()));
+        metaData.setModifiedOn(dto.getCreatedOn());
         metaData.setName(dto.getName());
         if (artifactType != null) {
             metaData.setType(artifactType);
@@ -108,7 +106,7 @@ public final class V1ApiUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
@@ -156,7 +154,7 @@ public final class V1ApiUtil {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setId(artifactId);
         metaData.setCreatedBy(dto.getCreatedBy());
-        metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setCreatedOn(dto.getCreatedOn());
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
@@ -198,12 +196,12 @@ public final class V1ApiUtil {
         dto.getArtifacts().forEach(artifact -> {
             SearchedArtifact sa = new SearchedArtifact();
             sa.setCreatedBy(artifact.getCreatedBy());
-            sa.setCreatedOn(artifact.getCreatedOn());
+            sa.setCreatedOn(artifact.getCreatedOn().getTime());
             sa.setDescription(artifact.getDescription());
             sa.setId(artifact.getId());
             sa.setLabels(artifact.getLabels());
             sa.setModifiedBy(artifact.getModifiedBy());
-            sa.setModifiedOn(artifact.getModifiedOn());
+            sa.setModifiedOn(artifact.getModifiedOn().getTime());
             sa.setName(artifact.getName());
             sa.setState(artifact.getState());
             sa.setType(artifact.getType());
@@ -219,7 +217,7 @@ public final class V1ApiUtil {
         dto.getVersions().forEach(version -> {
             SearchedVersion sv = new SearchedVersion();
             sv.setCreatedBy(version.getCreatedBy());
-            sv.setCreatedOn(version.getCreatedOn());
+            sv.setCreatedOn(version.getCreatedOn().getTime());
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
             sv.setLabels(version.getLabels());

@@ -16,8 +16,7 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
@@ -38,8 +37,6 @@ import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
-
 import static io.apicurio.tests.common.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
@@ -51,8 +48,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class SchemasConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);
-
-    private Function<Exception, Integer> errorCodeExtractor = e -> ((io.apicurio.registry.client.exception.RestClientException) e).getError().getErrorCode();
 
     @Test
     @Tag(ACCEPTANCE)
@@ -243,9 +238,9 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(subjectName), true, errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(subjectName), true, errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(subjectName, rules.get(0)), true, errorCodeExtractor);
+        assertWebError(404, () -> registryClient.getLatestArtifact(subjectName), true);
+        assertWebError(404, () -> registryClient.listArtifactRules(subjectName), true);
+        assertWebError(404, () -> registryClient.getArtifactRuleConfig(subjectName, rules.get(0)), true);
 
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);

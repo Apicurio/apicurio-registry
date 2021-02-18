@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.rest.v1.beans;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -25,13 +24,12 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
 /**
  * Models a single artifact from the result set returned when searching for artifacts.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -49,51 +47,51 @@ import java.util.List;
 public class SearchedArtifact {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     @JsonPropertyDescription("")
     private String id;
     /**
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("")
     private String name;
     /**
-     * 
+     *
      */
     @JsonProperty("description")
     @JsonPropertyDescription("")
     private String description;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     @JsonPropertyDescription("")
-    private Date createdOn;
+    private long createdOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     @JsonPropertyDescription("")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
@@ -101,34 +99,34 @@ public class SearchedArtifact {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
     /**
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
     @JsonPropertyDescription("")
-    private Date modifiedOn;
+    private long modifiedOn;
     /**
-     * 
+     *
      */
     @JsonProperty("modifiedBy")
     @JsonPropertyDescription("")
     private String modifiedBy;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     public String getId() {
@@ -178,30 +176,29 @@ public class SearchedArtifact {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
-    public Date getCreatedOn() {
+    public long getCreatedOn() {
         return createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
-    public void setCreatedOn(Date createdOn) {
+    public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -287,24 +284,23 @@ public class SearchedArtifact {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
-    public Date getModifiedOn() {
+    public long getModifiedOn() {
         return modifiedOn;
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("modifiedOn")
-    public void setModifiedOn(Date modifiedOn) {
+    public void setModifiedOn(long modifiedOn) {
         this.modifiedOn = modifiedOn;
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("modifiedBy")
     public String getModifiedBy() {

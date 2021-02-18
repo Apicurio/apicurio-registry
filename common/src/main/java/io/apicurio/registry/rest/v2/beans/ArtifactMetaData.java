@@ -37,6 +37,7 @@ import io.apicurio.registry.types.ArtifactType;
     "groupId",
     "contentId"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class ArtifactMetaData {
 
     @JsonProperty("name")

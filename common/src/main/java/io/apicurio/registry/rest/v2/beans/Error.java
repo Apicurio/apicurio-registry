@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "detail",
     "name"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class Error {
 
     /**

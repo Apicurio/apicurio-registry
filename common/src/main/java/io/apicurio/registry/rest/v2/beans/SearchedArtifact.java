@@ -30,6 +30,7 @@ import io.apicurio.registry.types.ArtifactType;
     "modifiedBy",
     "groupId"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class SearchedArtifact {
 
     /**

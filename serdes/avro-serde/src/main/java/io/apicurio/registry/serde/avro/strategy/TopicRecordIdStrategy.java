@@ -30,7 +30,7 @@ public class TopicRecordIdStrategy extends RecordIdStrategy {
      */
     @Override
     public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
-        var reference = super.artifactReference(topic, isKey, schema);
+        ArtifactReference reference = super.artifactReference(topic, isKey, schema);
         return ArtifactReference.builder()
                 .groupId(reference.getGroupId())
                 .artifactId(topic + "-" + reference.getArtifactId())

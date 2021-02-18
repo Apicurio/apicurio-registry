@@ -279,11 +279,11 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
                     //TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce this to only one http call
                     Long gid;
                     if (version == null) {
-                        var metadata = client.getArtifactMetaData(groupId, artifactId);
+                        ArtifactMetaData metadata = client.getArtifactMetaData(groupId, artifactId);
                         loadFromArtifactMetaData(metadata, result);
                         gid = metadata.getGlobalId();
                     } else {
-                        var metadata = client.getArtifactVersionMetaData(groupId, artifactId, version);
+                        VersionMetaData metadata = client.getArtifactVersionMetaData(groupId, artifactId, version);
                         loadFromArtifactMetaData(metadata, result);
                         gid = metadata.getGlobalId();
                     }

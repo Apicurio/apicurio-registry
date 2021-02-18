@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "labels",
     "properties"
 })
+@io.quarkus.runtime.annotations.RegisterForReflection
 public class EditableMetaData {
 
     @JsonProperty("name")

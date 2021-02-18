@@ -2365,7 +2365,7 @@
                         "type": "integer"
                     },
                     "version": {
-                        "format": "int32",
+                        "format": "int64",
                         "description": "",
                         "type": "integer"
                     },
@@ -2663,23 +2663,6 @@
                     }
                 }
             },
-            "LogLevel": {
-                "description": "",
-                "enum": [
-                    "DEBUG",
-                    "TRACE",
-                    "WARN",
-                    "ERROR",
-                    "SEVERE",
-                    "WARNING",
-                    "INFO",
-                    "CONFIG",
-                    "FINE",
-                    "FINER",
-                    "FINEST"
-                ],
-                "type": "string"
-            },
             "NamedLogConfiguration": {
                 "description": "",
                 "type": "object",
@@ -2727,6 +2710,24 @@
                     "createdOn"
                 ],
                 "type": "string"
+            },
+            "LogLevel": {
+                "description": "",
+                "enum": [
+                    "DEBUG",
+                    "TRACE",
+                    "WARN",
+                    "ERROR",
+                    "SEVERE",
+                    "WARNING",
+                    "INFO",
+                    "CONFIG",
+                    "FINE",
+                    "FINER",
+                    "FINEST"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.registry.types"
             }
         },
         "responses": {
@@ -2853,5 +2854,10 @@
             "name": "Admin",
             "description": "Application functionality that is only accessible to admin users.  Includes things like Logging and Global Rules."
         }
-    ]
+    ],
+    "x-codegen": {
+        "bean-annotations": [
+            "io.quarkus.runtime.annotations.RegisterForReflection"
+        ]
+    }
 }

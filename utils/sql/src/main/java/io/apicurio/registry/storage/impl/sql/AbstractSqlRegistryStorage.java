@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+//import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -26,6 +27,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+//import com.google.auth.oauth2.GoogleCredentials;
 import io.quarkus.security.identity.SecurityIdentity;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -143,6 +145,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         if (initDB) {
             // TODO create the JDBI handle once and pass it in to all these DB related methods
+//            try {
+//                log.info("CREDENTIALS: {}", GoogleCredentials.getApplicationDefault());
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
             synchronized (dbMutex) {
                 if (!isDatabaseInitialized()) {
                     log.info("Database not initialized.");

@@ -18,6 +18,7 @@ package io.apicurio.registry.serde;
 
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,7 +153,7 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
+     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, Optional)
      */
     @Override
     public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
@@ -266,7 +267,7 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByCoordinates(java.lang.String, java.lang.String, int)
+     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByCoordinates(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId, String version) {
@@ -335,7 +336,7 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
 
-        return RegistryClientFactory.create(registryUrl, auth);
+        return RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
     }
 
     private void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

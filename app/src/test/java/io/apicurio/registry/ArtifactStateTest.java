@@ -49,7 +49,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         return us;
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testSmoke() throws Exception {
         String artifactId = generateArtifactId();
@@ -147,7 +147,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         });
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testEnableDisableArtifact() throws Exception {
         String artifactId = generateArtifactId();
@@ -194,7 +194,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ArtifactState.ENABLED, vmd.getState());
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testDeprecateDisableArtifact() throws Exception {
         String artifactId = generateArtifactId();

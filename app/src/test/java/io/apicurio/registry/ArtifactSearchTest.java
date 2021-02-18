@@ -50,7 +50,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             "    }\r\n" + 
             "}";
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testCaseInsensitiveSearch() throws Exception {
 

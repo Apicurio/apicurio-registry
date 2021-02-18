@@ -261,7 +261,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     /**
      * Endpoint: /subjects/{subject}/versions
      */
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testRegisterWithType() throws Exception {
         final String SUBJECT = "subjectRegisterWithType";

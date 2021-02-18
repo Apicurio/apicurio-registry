@@ -41,7 +41,7 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testSchema() throws Exception {
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");

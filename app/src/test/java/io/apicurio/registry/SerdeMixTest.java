@@ -46,7 +46,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         return new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testVersions() throws Exception {
         SchemaRegistryClient confClient = buildClient();
@@ -109,7 +109,7 @@ public class SerdeMixTest extends AbstractResourceTestBase {
         Assertions.assertTrue(versions2.contains(3L));
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @SuppressWarnings("resource")
     @Test
     public void testSerdeMix() throws Exception {

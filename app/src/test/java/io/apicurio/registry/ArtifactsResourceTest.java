@@ -244,7 +244,7 @@ public class ArtifactsResourceTest extends AbstractResourceTestBase {
                 .statusCode(400);
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testDeleteArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");

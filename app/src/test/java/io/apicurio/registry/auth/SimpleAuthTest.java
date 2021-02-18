@@ -101,7 +101,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testReadOnly() throws Exception {
 
@@ -135,7 +135,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testDevRole() throws Exception {
 
@@ -168,7 +168,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")("Doesn't work with H2 test env after code change for Spanner")
+    @Disabled@Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testAdminRole() throws Exception {
 

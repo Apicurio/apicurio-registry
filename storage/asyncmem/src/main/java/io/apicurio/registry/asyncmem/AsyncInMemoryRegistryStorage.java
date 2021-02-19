@@ -80,19 +80,19 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     long updateDelay;
     @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "500")
     long deleteDelay;
-    
+
     private AtomicLong globalCounter = new AtomicLong(1);
     private AtomicLong contentCounter = new AtomicLong(1);
     private Map<String, Long> artifactCreation = new HashMap<>();
     private Map<Long, Long> globalCreation = new HashMap<>();
-    
+
     private ExecutorService executor = Executors.newCachedThreadPool();
-    
+
     @Override
     protected long nextGlobalId() {
         return globalCounter.getAndIncrement();
     }
-    
+
     @Override
     protected long nextContentId() {
         return contentCounter.getAndIncrement();
@@ -115,7 +115,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             throw new RegistryStorageException("Invalid state", e);
         }
     }
-    
+
    // private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
 
     /**
@@ -134,7 +134,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
@@ -168,7 +168,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
@@ -218,7 +218,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
@@ -233,12 +233,13 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Integer, io.apicurio.registry.types.ArtifactState)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Long, io.apicurio.registry.types.ArtifactState)
      */
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Integer version, ArtifactState state) {
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
@@ -246,7 +247,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, long, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
@@ -263,7 +264,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
@@ -280,7 +281,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
@@ -294,7 +295,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
@@ -304,7 +305,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifact(groupId, artifactId);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
@@ -314,7 +315,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactMetaData(groupId, artifactId);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
      */
@@ -334,7 +335,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkGlobalCreation(id);
         return super.getArtifactMetaData(id);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
@@ -344,7 +345,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
@@ -354,7 +355,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactRule(groupId, artifactId, rule);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(long)
      */
@@ -364,7 +365,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkGlobalCreation(id);
         return super.getArtifactVersion(id);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, long)
      */
@@ -374,7 +375,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactVersion(groupId, artifactId, version);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
@@ -384,7 +385,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactVersions(groupId, artifactId);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, long)
      */
@@ -394,7 +395,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkArtifactCreation(groupId, artifactId);
         return super.getArtifactVersionMetaData(groupId, artifactId, version);
     }
-    
+
     private final void checkArtifactCreation(String groupId, String artifactId) throws ArtifactNotFoundException {
         if (!this.artifactCreation.containsKey(artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -405,7 +406,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
     }
-    
+
     private final void checkGlobalCreation(long globalId) throws ArtifactNotFoundException {
         if (!this.globalCreation.containsKey(globalId)) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
@@ -416,7 +417,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
      */
@@ -432,7 +433,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         });
         return rval;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifacts(java.lang.String)
      */
@@ -445,7 +446,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, long)
      */
@@ -462,7 +463,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, long)
      */
@@ -479,7 +480,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
@@ -496,7 +497,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
      */
@@ -513,13 +514,13 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        // Check if the globalIdStore rule exists.
+        // Check if the global rule exists.
         this.getGlobalRule(rule);
 
         this.executor.execute(() -> {
@@ -529,7 +530,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteGlobalRules()
      */
@@ -568,11 +569,11 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     private void preUpdateSleep() {
         doSleep(this.updateDelay);
     }
-    
+
     private void preCreateSleep() {
         doSleep(this.createDelay);
     }
-    
+
     private void doSleep(long delay) {
         try {
             Thread.sleep(delay);
@@ -580,7 +581,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             e.printStackTrace();
         }
     }
-    
+
     protected void runWithErrorSuppression(Runnable command) {
         try {
             command.run();

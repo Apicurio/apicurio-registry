@@ -336,7 +336,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         long version = v2c.keySet().stream().max(Long::compareTo).orElse(0L) + 1;
         long prevVersion = version - 1;
-        
+
         StoredContent storedContent = ensureStoredContent(artifactType, content);
 
         Map<String, String> contents = new ConcurrentHashMap<>();
@@ -422,21 +422,21 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Integer, io.apicurio.registry.types.ArtifactState)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Long, io.apicurio.registry.types.ArtifactState)
      */
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Integer version, ArtifactState state)
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = null;
         if (version == null) {
             content = getLatestContentMap(groupId, artifactId, null);
-            version = Integer.parseInt(content.get(MetaDataKeys.VERSION));
+            version = Long.parseLong(content.get(MetaDataKeys.VERSION));
         }
-        int fVersion = version;
+        long fVersion = version;
         if (content == null) {
             content = getContentMap(groupId, artifactId, version.longValue(), null);
         }
-        
+
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
         ArtifactStateExt.applyState(s -> storage.put(akey, fVersion, MetaDataKeys.STATE, s.name()), content, state);
     }
@@ -491,7 +491,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         this.deleteArtifactRulesInternal(groupId, artifactId);
         return new TreeSet<>(v2c.keySet());
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifacts(java.lang.String)
      */
@@ -510,7 +510,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         return toStoredArtifact(getLatestContentMap(groupId, artifactId, ArtifactStateExt.ACTIVE_STATES));
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
      */
@@ -522,7 +522,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
         return getArtifactByContentHash(contentHash);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
@@ -584,7 +584,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                     .collect(Collectors.toSet());
         }
     }
-    
+
     private Set<ArtifactKey> getArtifactKeys() {
         return storage.keySet();
     }
@@ -633,7 +633,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
             final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = getArtifactVersionMetaData(groupId, artifactId, versions.last());
             artifactMetaDataDto.setModifiedOn(artifactVersionMetaDataDto.getCreatedOn());
         }
-        
+
         String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
         long contentId = this.content.get(contentHash).getContentId();
         artifactMetaDataDto.setContentId(contentId);

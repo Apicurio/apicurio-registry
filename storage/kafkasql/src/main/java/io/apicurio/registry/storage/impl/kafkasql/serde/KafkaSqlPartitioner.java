@@ -30,7 +30,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 /**
  * A custom Kafka partitioner that uses the ArtifactId (when available) as the key to proper
  * partitioning.  The ArtifactId is extractable from the key in most cases.  For some keys
- * (e.g. globalIdStore rule related messages) no ArtifactId is available.  In those cases, a constant
+ * (e.g. global rule related messages) no ArtifactId is available.  In those cases, a constant
  * unique string is used instead, which ensures that those messages are all put on the same
  * partition.
  *

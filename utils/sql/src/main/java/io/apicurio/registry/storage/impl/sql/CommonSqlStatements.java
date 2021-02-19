@@ -488,7 +488,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactRuleCountByType() {
-        return "SELECT COUNT(r.type) FROM rules r WHERE r.tenantId = ? AND r.artifactId = ? AND r.type = ?";
+        return "SELECT COUNT(r.type) FROM rules r WHERE r.tenantId = ? AND r.groupId = ? AND r.artifactId = ? AND r.type = ?";
     }
 
     /**

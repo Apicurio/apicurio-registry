@@ -354,10 +354,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Integer, io.apicurio.registry.types.ArtifactState)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Long, io.apicurio.registry.types.ArtifactState)
      */
-    @Override @Transactional
-    public void updateArtifactState(String groupId, String artifactId, Integer version, ArtifactState state) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    @Override
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} {}, version {} to {}", groupId, artifactId, version, state.name());
         ArtifactVersionMetaDataDto dto = this.getArtifactVersionMetaData(groupId, artifactId, version);
         withHandle( handle -> {
@@ -1706,7 +1707,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
-        log.debug("Inserting a globalIdStore rule row for: {}", rule.name());
+        log.debug("Inserting a global rule row for: {}", rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.insertGlobalRule();
@@ -1746,7 +1747,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public RuleConfigurationDto getGlobalRule(RuleType rule)
             throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single globalIdStore rule: {}", rule.name());
+        log.debug("Selecting a single global rule: {}", rule.name());
         try {
             return this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.selectGlobalRuleByType();
@@ -1769,7 +1770,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override @Transactional
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Updating a globalIdStore rule: {}::{}", rule.name(), config.getConfiguration());
+        log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateGlobalRule();
@@ -1795,7 +1796,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override @Transactional
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Deleting a globalIdStore rule: {}", rule.name());
+        log.debug("Deleting a global rule: {}", rule.name());
         try {
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.deleteGlobalRule();

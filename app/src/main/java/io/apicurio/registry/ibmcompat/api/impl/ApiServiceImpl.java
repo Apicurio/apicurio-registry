@@ -270,7 +270,7 @@ public class ApiServiceImpl implements ApiService {
         ArtifactVersionMetaDataDto avmdd = storage.getArtifactVersionMetaData(null, schemaid, versionnum);
         if (artifactState != null && !artifactState.equals(avmdd.getState())) {
             // Modify the artifact version state
-            storage.updateArtifactState(null, schemaid, versionnum, artifactState);
+            storage.updateArtifactState(null, schemaid, Long.valueOf(versionnum), artifactState);
         }
     }
 

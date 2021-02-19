@@ -247,7 +247,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         Objects.requireNonNull(artifactId);
         Objects.requireNonNull(data.getState());
         Objects.requireNonNull(version);
-        storage.updateArtifactState(null, artifactId, version, data.getState());
+        Long v = null;
+        if (version != null) {
+            v = version.longValue();
+        }
+        storage.updateArtifactState(null, artifactId, v, data.getState());
     }
 
     /**

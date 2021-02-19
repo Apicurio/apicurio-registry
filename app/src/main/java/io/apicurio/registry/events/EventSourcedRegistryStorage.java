@@ -76,12 +76,14 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) {
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
+            throws ArtifactNotFoundException, RegistryStorageException {
         storage.updateArtifactState(groupId, artifactId, state);
     }
 
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Integer version, ArtifactState state) {
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.updateArtifactState(groupId, artifactId, version, state);
     }
 
@@ -113,12 +115,12 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifact(groupId, artifactId);
     }
-    
+
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return storage.getArtifactByContentHash(contentHash);
     }
-    
+
     @Override
     public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return storage.getArtifactByContentId(contentId);

@@ -112,7 +112,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
-    /* Fake globalIdStore rules as an artifact */
+    /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;

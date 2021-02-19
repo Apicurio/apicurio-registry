@@ -71,12 +71,12 @@ public interface SqlStatements {
     public String insertGlobalRule();
 
     /**
-     * A statement used to select all globalIdStore rules.
+     * A statement used to select all global rules.
      */
     public String selectGlobalRules();
 
     /**
-     * A statement used to select a single globalIdStore rule by its type/id.
+     * A statement used to select a single global rule by its type/id.
      */
     public String selectGlobalRuleByType();
 
@@ -91,7 +91,7 @@ public interface SqlStatements {
     public String deleteGlobalRules();
 
     /**
-     * A statement used to update information about a globalIdStore rule.
+     * A statement used to update information about a global rule.
      */
     public String updateGlobalRule();
 
@@ -326,7 +326,7 @@ public interface SqlStatements {
     public String selectArtifactRuleCountByType();
 
     /**
-     * A statement to select the number of globalIdStore rule rows for a given rule type.
+     * A statement to select the number of global rule rows for a given rule type.
      */
     public String selectGlobalRuleCountByType();
 

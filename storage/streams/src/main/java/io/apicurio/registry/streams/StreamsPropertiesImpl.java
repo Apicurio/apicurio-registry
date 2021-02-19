@@ -25,19 +25,19 @@ public class StreamsPropertiesImpl implements StreamsProperties {
     // just to make sure we can always move the whole system
     // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
     public long getBaseOffset() {
-        return Long.parseLong(properties.getProperty("artifactStore.base.offset", "0"));
+        return Long.parseLong(properties.getProperty("storage.base.offset", "0"));
     }
 
     public String getStorageStoreName() {
-        return properties.getProperty("artifactStore.store", "artifactStore-store");
+        return properties.getProperty("storage.store", "storage-store");
     }
 
     public String getGlobalIdStoreName() {
-        return properties.getProperty("globalIdStore.id.store", "globalIdStore-id-store");
+        return properties.getProperty("global.id.store", "global-id-store");
     }
 
     public String getStorageTopic() {
-        return properties.getProperty("artifactStore.topic", "artifactStore-topic");
+        return properties.getProperty("storage.topic", "storage-topic");
     }
 
     public String getApplicationServer() {

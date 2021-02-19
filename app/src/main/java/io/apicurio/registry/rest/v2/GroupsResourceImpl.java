@@ -352,7 +352,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-        
+
         long versionL = Long.valueOf(version);
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(groupId, artifactId, versionL);
@@ -386,7 +386,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-        
+
         long versionL = Long.valueOf(version);
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(groupId, artifactId, versionL);
         return V2ApiUtil.dtoToVersionMetaData(groupId, artifactId, dto.getType(), dto);
@@ -400,7 +400,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-        
+
         long versionL = Long.valueOf(version);
 
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
@@ -419,7 +419,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-        
+
         long versionL = Long.valueOf(version);
 
         storage.deleteArtifactVersionMetaData(groupId, artifactId, versionL);
@@ -434,12 +434,12 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-        
-        Integer versionI = Integer.valueOf(version);
 
-        storage.updateArtifactState(groupId, artifactId, versionI, data.getState());
+        Long versionL = Long.valueOf(version);
+
+        storage.updateArtifactState(groupId, artifactId, versionL, data.getState());
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactsInGroup(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy)
      */
@@ -457,7 +457,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (limit == null) {
             limit = 20;
         }
-        
+
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
 
@@ -474,7 +474,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     public void deleteArtifactsInGroup(String groupId) {
         requireParameter("groupId", groupId);
-        
+
         storage.deleteArtifacts(groupId);
     }
 
@@ -489,15 +489,15 @@ public class GroupsResourceImpl implements GroupsResource {
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
             throw new InvalidGroupIdException(ArtifactIdValidator.GROUP_ID_ERROR_MESSAGE);
         }
-        
+
         // TODO do something with the optional user-provided Version
-        
+
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
-        
+
         String ct = getContentType();
         final ContentHandle finalContent = content;
         try {
@@ -549,7 +549,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (limit == null) {
             limit = 20;
         }
-        
+
         VersionSearchResultsDto resultsDto = storage.searchVersions(groupId, artifactId, offset, limit);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
@@ -561,10 +561,10 @@ public class GroupsResourceImpl implements GroupsResource {
     public CompletionStage<VersionMetaData> createArtifactVersion(String groupId, String artifactId,
             String xRegistryVersion, InputStream data) {
         // TODO do something with the user-provided version info
-        
+
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        
+
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -608,7 +608,7 @@ public class GroupsResourceImpl implements GroupsResource {
     private String getContentType() {
         return request.getContentType();
     }
-    
+
     private static final void requireParameter(String parameterName, Object parameterValue) {
         if (parameterValue == null) {
             throw new MissingRequiredParameterException(parameterName);

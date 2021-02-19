@@ -19,25 +19,19 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactVersionKey extends AbstractMessageKey {
+public class GroupKey extends AbstractMessageKey {
 
     private String groupId;
-    private String artifactId;
-    private Long version;
 
     /**
      * Creator method.
      * @param tenantId
      * @param groupId
-     * @param artifactId
-     * @param version
      */
-    public static final ArtifactVersionKey create(String tenantId, String groupId, String artifactId, Long version) {
-        ArtifactVersionKey key = new ArtifactVersionKey();
+    public static final GroupKey create(String tenantId, String groupId) {
+        GroupKey key = new GroupKey();
         key.setTenantId(tenantId);
         key.setGroupId(groupId);
-        key.setArtifactId(artifactId);
-        key.setVersion(version);
         return key;
     }
 
@@ -46,7 +40,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      */
     @Override
     public MessageType getType() {
-        return MessageType.ArtifactVersion;
+        return MessageType.Group;
     }
 
     /**
@@ -54,7 +48,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + groupId + "/" + artifactId;
+        return getTenantId() + "/" + groupId;
     }
 
     /**
@@ -72,40 +66,11 @@ public class ArtifactVersionKey extends AbstractMessageKey {
     }
 
     /**
-     * @return the artifactId
-     */
-    public String getArtifactId() {
-        return artifactId;
-    }
-
-    /**
-     * @param artifactId the artifactId to set
-     */
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
-    }
-
-    /**
-     * @return the version
-     */
-    public Long getVersion() {
-        return version;
-    }
-
-    /**
-     * @param version the version to set
-     */
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    /**
      * @see java.lang.Object#toString()
      */
     @Override
     public String toString() {
-        return "ArtifactVersionKey [groupId=" + groupId + ", artifactId=" + artifactId + ", version="
-                + version + "]";
+        return "GroupKey [groupId=" + groupId + "]";
     }
 
 }

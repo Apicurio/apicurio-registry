@@ -84,7 +84,7 @@
         <module>app</module>
         <module>cli</module>
         <module>ui</module>
-<!--         <module>utils/converter</module> -->
+        <module>utils/converter</module>
         <module>utils/kafka</module>
         <module>utils/streams</module>
         <module>utils/maven-plugin</module>

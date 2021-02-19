@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.utils.converter.json;
 
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.strategy.DefaultIdHandler;
-import io.apicurio.registry.utils.serde.strategy.IdHandler;
-
 import java.nio.ByteBuffer;
 import java.util.Objects;
+
+import io.apicurio.registry.serde.AbstractKafkaSerDe;
+import io.apicurio.registry.serde.DefaultIdHandler;
+import io.apicurio.registry.serde.IdHandler;
 
 /**
  * @author Ales Justin

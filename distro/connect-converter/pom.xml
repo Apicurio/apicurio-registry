@@ -34,12 +34,10 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-converter</artifactId>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.apache.geronimo.config</groupId> -->
-<!--             <artifactId>geronimo-config-impl</artifactId> -->
-<!--             <version>${version.geronimo.config}</version> -->
-<!--             <scope>runtime</scope> -->
-<!--         </dependency> -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-client</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

@@ -16,155 +16,190 @@
 
 package io.apicurio.tests.converters;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Record;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.AbstractKafkaSerDe;
+import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.avro.AvroDatumProvider;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.converter.AvroConverter;
+import io.apicurio.registry.utils.converter.ExtJsonConverter;
+import io.apicurio.registry.utils.converter.SerdeBasedConverter;
+import io.apicurio.registry.utils.converter.json.CompactFormatStrategy;
+import io.apicurio.registry.utils.converter.json.FormatStrategy;
+import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
+import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 
 /**
  * @author Ales Justin
  */
-//@Tag(SERDES)
-//@Tag(ACCEPTANCE)
+@Tag(Constants.SERDES)
+@Tag(Constants.ACCEPTANCE)
 public class RegistryConverterIT extends ApicurioV2BaseIT {
 
-    //TODO implement tests for new converters? if any? otherwise implement tests for old converters, but using new api
+    @Test
+    public void testConfiguration() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String topic = TestUtils.generateArtifactId();
+        String recordName = "myrecord4";
+        AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName, List.of("bar"));
+        Schema schema = schemaFactory.generateSchema();
 
-//    @Test
-//    public void testConfiguration() throws Exception {
-//        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord4\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-//
-//        String artifactId = generateArtifactId();
-//
-//        ArtifactMetaData amd = registryClient.createArtifact(artifactId + "-myrecord4", ArtifactType.AVRO,
-//            new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8))
-//        );
-//        // wait for global id store to populate (in case of Kafka / Streams)
-//        ArtifactMetaData amdById = retry(() -> registryClient.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
-//        Assertions.assertNotNull(amdById);
-//
-//        GenericData.Record record = new GenericData.Record(schema);
-//        record.put("bar", "somebar");
-//
-//        Map<String, Object> config = new HashMap<>();
-//        config.put(SerdeConfig.REGISTRY_URL, RestAssured.baseURI);
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
-//        config.put(SerdeConfig.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
-//        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
-//        SchemalessConverter<GenericData.Record> converter = new SchemalessConverter<>();
-//
-//        byte[] bytes;
-//        try {
-//            converter.configure(config, true);
-//            bytes = converter.fromConnectData(artifactId, null, record);
-//            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
-//            Assertions.assertEquals("somebar", record.get("bar").toString());
-//        } finally {
-//            converter.close();
-//        }
-//
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class);
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class);
-//
-//        converter = new SchemalessConverter<>();
-//        try {
-//            converter.configure(config, true);
-//            bytes = converter.fromConnectData(artifactId, null, record);
-//            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
-//            Assertions.assertEquals("somebar", record.get("bar").toString());
-//        } finally {
-//            converter.close();
-//        }
-//
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
-//        config.put(SchemalessConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
-//
-//        converter = new SchemalessConverter<>();
-//        try {
-//            converter.configure(config, true);
-//            bytes = converter.fromConnectData(artifactId, null, record);
-//            record = (GenericData.Record) converter.toConnectData(artifactId, bytes).value();
-//            Assertions.assertEquals("somebar", record.get("bar").toString());
-//        } finally {
-//            converter.close();
-//        }
-//    }
-//
-//    @Test
-//    public void testAvro() throws Exception {
-//        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(createRegistryClient());
-//             AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(createRegistryClient())) {
-//
-//            serializer.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-//            AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-//            try (AvroConverter<Record> converter = new AvroConverter<>(serializer, deserializer, avroData)) {
-//
-//                org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-//                                                                       .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-//                                                                       .build();
-//                Struct struct = new Struct(sc);
-//                struct.put("bar", "somebar");
-//
-//                String subject = generateArtifactId();
-//
-//                byte[] bytes = converter.fromConnectData(subject, sc, struct);
-//
-//                // some impl details ...
-//                waitForSchema(globalId -> registryClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes);
-//
-//                Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
-//                Assertions.assertEquals("somebar", ir.get("bar").toString());
-//            }
-//        }
-//    }
-//
-//    @Test
-//    public void testPrettyJson() throws Exception {
-//        testJson(
-//            createRegistryClient(),
-//            new PrettyFormatStrategy(),
-//            input -> {
-//                try {
-//                    ObjectMapper mapper = new ObjectMapper();
-//                    JsonNode root = mapper.readTree(input);
-//                    return root.get("schemaId").asLong();
-//                } catch (IOException e) {
-//                    throw new UncheckedIOException(e);
-//                }
-//            }
-//        );
-//    }
-//
-//    @Test
-//    public void testCompactJson() throws Exception {
-//        testJson(
-//            createRegistryClient(),
-//            new CompactFormatStrategy(),
-//            input -> {
-//                ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
-//                return buffer.getLong();
-//            }
-//        );
-//    }
-//
-//    private void testJson(RegistryRestClient restClient, FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
-//        try (ExtJsonConverter converter = new ExtJsonConverter(restClient)) {
-//            converter.setGlobalIdStrategy(new AutoRegisterIdStrategy<>());
-//            converter.setFormatStrategy(formatStrategy);
-//            converter.configure(Collections.emptyMap(), false);
-//
-//            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
-//                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-//                                                                   .build();
-//            Struct struct = new Struct(sc);
-//            struct.put("bar", "somebar");
-//
-//            byte[] bytes = converter.fromConnectData("extjson", sc, struct);
-//
-//            // some impl details ...
-//            waitForSchemaCustom(globalId -> restClient.getArtifactMetaDataByGlobalId(globalId) != null, bytes, fn);
-//
-//            //noinspection rawtypes
-//            Map ir = (Map) converter.toConnectData("extjson", bytes).value();
-//            Assertions.assertEquals("somebar", ir.get("bar").toString());
-//        }
-//    }
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+
+        GenericData.Record record = new GenericData.Record(schema);
+        record.put("bar", "somebar");
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
+        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
+        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
+        SerdeBasedConverter<Void, GenericData.Record> converter = new SerdeBasedConverter<>();
+
+        byte[] bytes;
+        try {
+            converter.configure(config, true);
+            bytes = converter.fromConnectData(topic, null, record);
+            record = (GenericData.Record) converter.toConnectData(topic, bytes).value();
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+        } finally {
+            converter.close();
+        }
+
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class);
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class);
+
+        converter = new SerdeBasedConverter<>();
+        try {
+            converter.configure(config, true);
+            bytes = converter.fromConnectData(topic, null, record);
+            record = (GenericData.Record) converter.toConnectData(topic, bytes).value();
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+        } finally {
+            converter.close();
+        }
+
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
+
+        converter = new SerdeBasedConverter<>();
+        try {
+            converter.configure(config, true);
+            bytes = converter.fromConnectData(topic, null, record);
+            record = (GenericData.Record) converter.toConnectData(topic, bytes).value();
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+        } finally {
+            converter.close();
+        }
+    }
+
+    @Test
+    public void testAvro() throws Exception {
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                   .build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
+
+            String subject = TestUtils.generateArtifactId();
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testPrettyJson() throws Exception {
+        testJson(
+            createRegistryClient(),
+            new PrettyFormatStrategy(),
+            input -> {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode root = mapper.readTree(input);
+                    return root.get("schemaId").asLong();
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        );
+    }
+
+    @Test
+    public void testCompactJson() throws Exception {
+        testJson(
+            createRegistryClient(),
+            new CompactFormatStrategy(),
+            input -> {
+                ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
+                return buffer.getLong();
+            }
+        );
+    }
+
+    private void testJson(RegistryClient restClient, FormatStrategy formatStrategy, Function<byte[], Long> fn) throws Exception {
+        try (ExtJsonConverter converter = new ExtJsonConverter(restClient)) {
+            converter.setFormatStrategy(formatStrategy);
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+                                                                   .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+                                                                   .build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
+
+            byte[] bytes = converter.fromConnectData("extjson", sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchemaCustom(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes, fn);
+
+            //noinspection rawtypes
+            Map ir = (Map) converter.toConnectData("extjson", bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
 }

@@ -35,61 +35,37 @@ import java.util.Objects;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public abstract class AbstractKafkaSerDe<T, U, S extends AbstractKafkaSerDe<T, U, S>> implements SchemaParser<T> {
+public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<T, U> implements SchemaParser<T> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final byte MAGIC_BYTE = 0x0;
     protected boolean key; // do we handle key or value with this ser/de?
 
-    private SchemaResolver<T, U> schemaResolver;
-    private IdHandler idHandler;
+    IdHandler idHandler;
     protected HeaderUtils headerUtils;
 
 
     public AbstractKafkaSerDe() {
-        //empty
+        super();
     }
 
     public AbstractKafkaSerDe(RegistryClient client) {
-        this(client, new DefaultSchemaResolver<>());
+        super(client);
     }
 
     public AbstractKafkaSerDe(SchemaResolver<T, U> schemaResolver) {
-        this(null, schemaResolver);
+        super(schemaResolver);
     }
 
-    public AbstractKafkaSerDe(
-        RegistryClient client,
-        SchemaResolver<T, U> schemaResolver
-    ) {
-        this();
-        setSchemaResolver(schemaResolver);
-        getSchemaResolver().setClient(client);
-    }
-
-    protected SchemaResolver<T, U> getSchemaResolver() {
-        return schemaResolver;
-    }
-
-    public S setSchemaResolver(SchemaResolver<T, U> schemaResolver) {
-        this.schemaResolver = Objects.requireNonNull(schemaResolver);
-        return self();
+    public AbstractKafkaSerDe(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
+        super(client, schemaResolver);
     }
 
     @SuppressWarnings("unchecked")
     protected void configure(Map<String, ?> configs, boolean isKey) {
+        super.configure(configs, isKey, this);
         key = isKey;
-
-        if (this.schemaResolver == null) {
-            Object sr = configs.get(SerdeConfigKeys.SCHEMA_RESOLVER);
-            if (null == sr) {
-                this.setSchemaResolver(new DefaultSchemaResolver<>());
-            } else {
-                Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
-            }
-        }
-        getSchemaResolver().configure(configs, isKey, this);
 
         if (idHandler == null) {
             Object idh = configs.get(SerdeConfigKeys.ID_HANDLER);
@@ -108,12 +84,6 @@ public abstract class AbstractKafkaSerDe<T, U, S extends AbstractKafkaSerDe<T, U
         }
     }
 
-    @SuppressWarnings("unchecked")
-    protected S self() {
-        //noinspection unchecked
-        return (S) this;
-    }
-
     public IdHandler getIdHandler() {
         if (idHandler == null) {
             idHandler = new DefaultIdHandler();
@@ -121,13 +91,12 @@ public abstract class AbstractKafkaSerDe<T, U, S extends AbstractKafkaSerDe<T, U
         return idHandler;
     }
 
-    public S setIdHandler(IdHandler idHandler) {
+    public void setIdHandler(IdHandler idHandler) {
         this.idHandler = Objects.requireNonNull(idHandler);
-        return self();
     }
 
-    public S asLegacyId() {
-        return setIdHandler(new Legacy4ByteIdHandler());
+    public void asLegacyId() {
+        setIdHandler(new Legacy4ByteIdHandler());
     }
 
     public void reset() {

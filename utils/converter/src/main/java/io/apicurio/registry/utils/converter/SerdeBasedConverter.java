@@ -16,27 +16,32 @@
 
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
+
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.storage.Converter;
 
+import java.io.Closeable;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Very simplistic converter -- no Schema handling atm.
- * Subclasses should override {@link #applySchema(Schema, Object)} and
- * {@link #provideSchema(Object)} or {@link #toSchemaAndValue(Object)}.
+ * Very simplistic converter that delegates most of the work to the configured serializer and deserializer.
+ * Subclasses should override applySchema(Schema, Object) and provideSchema(T) or toSchemaAndValue(T).
  *
  * @author Ales Justin
+ * @author Fabian Martinez
  */
 @SuppressWarnings("rawtypes")
-public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConverter<T>> implements Converter {
+public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+
     public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
     public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
 
@@ -46,19 +51,8 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConvert
     protected Deserializer<T> deserializer;
     private boolean createdDeserializer;
 
-    public SchemalessConverter() {
-    }
-
-    public SchemalessConverter(Serde<T> serde) {
-        this(
-            Objects.requireNonNull(serde).serializer(),
-            Objects.requireNonNull(serde).deserializer()
-        );
-    }
-
-    public SchemalessConverter(Serializer<T> serializer, Deserializer<T> deserializer) {
-        setSerializer(serializer);
-        setDeserializer(deserializer);
+    public SerdeBasedConverter() {
+        super();
     }
 
     protected Class<? extends Serializer> serializerClass() {
@@ -69,19 +63,30 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConvert
         return Deserializer.class;
     }
 
+    //set converter's schema resolver, to share the cache between serializer and deserializer
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         if (serializer == null) {
             Object sp = configs.get(REGISTRY_CONVERTER_SERIALIZER_PARAM);
-            instantiate(serializerClass(), sp, this::setSerializer);
-            serializer.configure(configs, isKey);
+            Utils.instantiate(serializerClass(), sp, this::setSerializer);
             createdSerializer = true;
         }
         if (deserializer == null) {
             Object dsp = configs.get(REGISTRY_CONVERTER_DESERIALIZER_PARAM);
-            instantiate(deserializerClass(), dsp, this::setDeserializer);
-            deserializer.configure(configs, isKey);
+            Utils.instantiate(deserializerClass(), dsp, this::setDeserializer);
             createdDeserializer = true;
+        }
+        if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
+            AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
+            super.configure(configs, isKey, ser);
+            ser.setSchemaResolver(getSchemaResolver());
+            ser.configure(configs, isKey);
+        }
+        if (AbstractKafkaDeserializer.class.isAssignableFrom(deserializer.getClass())) {
+            AbstractKafkaDeserializer<S, T> des = (AbstractKafkaDeserializer<S, T>) deserializer;
+            des.setSchemaResolver(getSchemaResolver());
+            des.configure(configs, isKey);
         }
     }
 
@@ -93,7 +98,6 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConvert
         if (createdDeserializer) {
             IoUtil.closeIgnore(deserializer);
         }
-        super.close();
     }
 
     @SuppressWarnings("unchecked")
@@ -131,4 +135,5 @@ public class SchemalessConverter<T> extends AbstractKafkaSerDe<SchemalessConvert
     public void setDeserializer(Deserializer<T> deserializer) {
         this.deserializer = Objects.requireNonNull(deserializer);
     }
+
 }

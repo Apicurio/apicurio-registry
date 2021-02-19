@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-rest-client</artifactId>
+            <artifactId>apicurio-registry-client</artifactId>
         </dependency>
 <!--         <dependency> -->
 <!--             <groupId>org.apache.geronimo.config</groupId> -->

@@ -119,22 +119,21 @@
         </dependency>
         
         
-        <!-- TODO new converters 2.0 ?? -->
-<!--         <dependency> -->
-<!--             <groupId>io.apicurio</groupId> -->
-<!--             <artifactId>apicurio-registry-utils-converter</artifactId> -->
-<!--             <exclusions> -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-converter</artifactId>
+            <exclusions>
 <!--                 exclude these so that the project can decide which version to use -->
-<!--                 <exclusion> -->
-<!--                     <groupId>org.apache.kafka</groupId> -->
-<!--                     <artifactId>connect-api</artifactId> -->
-<!--                 </exclusion> -->
-<!--                 <exclusion> -->
-<!--                     <groupId>org.apache.kafka</groupId> -->
-<!--                     <artifactId>connect-json</artifactId> -->
-<!--                 </exclusion> -->
-<!--             </exclusions> -->
-<!--         </dependency> -->
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>connect-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>connect-json</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         
         <!-- UI tests  -->
         <dependency>

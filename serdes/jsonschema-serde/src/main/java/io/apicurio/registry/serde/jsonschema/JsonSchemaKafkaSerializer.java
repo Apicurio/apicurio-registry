@@ -49,7 +49,7 @@ import io.apicurio.registry.utils.IoUtil;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<SchemaValidator, T, JsonSchemaKafkaSerializer<T>> implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<SchemaValidator, T> implements Serializer<T> {
 
     protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();

@@ -46,7 +46,7 @@ import io.apicurio.registry.utils.IoUtil;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<SchemaValidator, T, JsonSchemaKafkaDeserializer<T>> implements Deserializer<T> {
+public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<SchemaValidator, T> implements Deserializer<T> {
 
     protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();

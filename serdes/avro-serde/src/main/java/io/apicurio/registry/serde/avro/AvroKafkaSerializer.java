@@ -42,7 +42,7 @@ import io.apicurio.registry.utils.IoUtil;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U, AvroKafkaSerializer<U>> {
+public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private AvroDatumProvider<U> avroDatumProvider = new DefaultAvroDatumProvider<>();

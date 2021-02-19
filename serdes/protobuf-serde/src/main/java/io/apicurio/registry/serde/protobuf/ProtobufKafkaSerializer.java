@@ -40,7 +40,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Hiram Chirino
  * @author Fabian Martinez
  */
-public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<Serde.Schema, U, ProtobufKafkaSerializer<U>> {
+public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<Serde.Schema, U> {
 
     public ProtobufKafkaSerializer() {
         super();

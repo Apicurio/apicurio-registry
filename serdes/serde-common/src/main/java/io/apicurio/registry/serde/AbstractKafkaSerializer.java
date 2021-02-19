@@ -33,7 +33,7 @@ import java.util.Optional;
 /**
  * @author Fabian Martinez
  */
-public abstract class AbstractKafkaSerializer<T, U, S extends AbstractKafkaSerializer<T, U, S>> extends AbstractKafkaSerDe<T, U, S> implements Serializer<U> {
+public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T, U> implements Serializer<U> {
 
     public AbstractKafkaSerializer() {
         super();

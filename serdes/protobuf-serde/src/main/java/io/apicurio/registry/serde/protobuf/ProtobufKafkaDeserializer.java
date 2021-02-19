@@ -41,7 +41,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Hiram Chirino
  * @author Fabian Martinez
  */
-public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<Descriptors.FileDescriptor, DynamicMessage, ProtobufKafkaDeserializer> {
+public class ProtobufKafkaDeserializer extends AbstractKafkaDeserializer<Descriptors.FileDescriptor, DynamicMessage> {
 
     public ProtobufKafkaDeserializer() {
         super();

@@ -22,7 +22,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
+
+import io.apicurio.registry.serde.avro.NonRecordContainer;
+
 import org.apache.avro.JsonProperties;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericEnumSymbol;

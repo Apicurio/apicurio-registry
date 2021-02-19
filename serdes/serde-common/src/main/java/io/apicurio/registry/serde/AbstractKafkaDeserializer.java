@@ -28,7 +28,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public abstract class AbstractKafkaDeserializer<T, U, S extends AbstractKafkaDeserializer<T, U, S>> extends AbstractKafkaSerDe<T, U, S> implements Deserializer<U> {
+public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T, U> implements Deserializer<U> {
 
     public AbstractKafkaDeserializer() {
         super();

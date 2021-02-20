@@ -23,18 +23,19 @@ import java.util.function.Consumer;
  */
 public class Utils {
 
-    public static boolean isTrue(Object parameter) {
-        if (parameter == null) {
-            return false;
+    @SuppressWarnings("unchecked")
+    public static <T> Class<T> loadClass(String javaType) {
+        try {
+            return (Class<T>) Thread.currentThread().getContextClassLoader().loadClass(javaType);
+        } catch (ClassNotFoundException ignored) {
         }
-        if (parameter instanceof Boolean) {
-            return (Boolean) parameter;
+        try {
+            return (Class<T>) Class.forName(javaType);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        if (parameter instanceof String) {
-            return Boolean.parseBoolean((String) parameter);
-        }
-        return false;
     }
+
 
     //TODO make the instantiation mechanism configurable
     @SuppressWarnings("unchecked")

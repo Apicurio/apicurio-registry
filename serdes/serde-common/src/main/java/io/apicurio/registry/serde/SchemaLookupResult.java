@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.serde.strategy.ArtifactReference;
+
 /**
  * @author Fabian Martinez
  */
@@ -80,6 +82,15 @@ public class SchemaLookupResult<T> {
      */
     public String getVersion() {
         return version;
+    }
+
+    public ArtifactReference toArtifactReference() {
+        return ArtifactReference.builder()
+                .globalId(this.getGlobalId())
+                .groupId(this.getGroupId())
+                .artifactId(this.getArtifactId())
+                .version(this.getVersion())
+                .build();
     }
 
     public static <T> SchemaLookupResultBuilder<T> builder() {

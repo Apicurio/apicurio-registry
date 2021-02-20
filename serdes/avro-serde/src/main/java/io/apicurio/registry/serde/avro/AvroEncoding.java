@@ -15,28 +15,9 @@
  */
 package io.apicurio.registry.serde.avro;
 
-import java.util.Map;
-
-import io.apicurio.registry.serde.SerdeConfigKeys;
-
 public enum AvroEncoding {
 
     BINARY,
     JSON;
 
-    public static final String AVRO_JSON = "JSON";
-
-    public static final String AVRO_BINARY = "BINARY";
-
-    public static AvroEncoding fromConfig(Map<String, ?> config){
-        AvroEncoding encoding = AvroEncoding.BINARY;
-        if(config.containsKey(SerdeConfigKeys.AVRO_ENCODING)){
-            try {
-                encoding = AvroEncoding.valueOf((String) config.get(SerdeConfigKeys.AVRO_ENCODING));
-            }
-            catch (IllegalArgumentException ex){
-            }
-        }
-        return encoding;
-    }
 }

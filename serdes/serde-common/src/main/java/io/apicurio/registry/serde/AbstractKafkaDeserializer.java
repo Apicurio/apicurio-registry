@@ -18,11 +18,11 @@
 package io.apicurio.registry.serde;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * @author Ales Justin
@@ -46,11 +46,6 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         super(client, schemaResolver);
     }
 
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
-    }
-
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
     protected abstract U readData(Headers headers, ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
@@ -64,7 +59,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         ByteBuffer buffer = getByteBuffer(data);
         long id = getIdHandler().readId(buffer);
 
-        SchemaLookupResult<T> schema = getSchemaResolver().resolveSchemaByGlobalId(id);
+        SchemaLookupResult<T> schema = getSchemaResolver()
+                .resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(id).build());
 
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
@@ -84,17 +80,11 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         // check if data contains the magic byte
         if (data[0] == MAGIC_BYTE){
             return deserialize(topic, data);
+        } else if (headers == null){
+            throw new IllegalStateException("Headers cannot be null");
         } else {
-            SchemaLookupResult<T> schema = null;
-            Long id = headerUtils.getGlobalId(headers);
-            if (id == null) {
-                String groupId = headerUtils.getGroupId(headers);
-                String artifactId = headerUtils.getArtifactId(headers);
-                Integer version = headerUtils.getVersion(headers);
-                schema = getSchemaResolver().resolveSchemaByCoordinates(groupId, artifactId, Integer.toString(version));
-            } else {
-                schema = getSchemaResolver().resolveSchemaByGlobalId(id);
-            }
+            ArtifactReference artifactReference = headersHandler.readHeaders(headers);
+            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
 
             ByteBuffer buffer = ByteBuffer.wrap(data);
             int length = buffer.limit();

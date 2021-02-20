@@ -18,7 +18,6 @@ package io.apicurio.registry.serde;
 
 import java.io.InputStream;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,9 +31,9 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -45,7 +44,6 @@ import io.apicurio.registry.utils.IoUtil;
  */
 public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
 
-    //TODO improve cache and add refresh period
     private final Map<Long, SchemaLookupResult<S>> schemasCache = new ConcurrentHashMap<>();
     private final Map<String, Long> globalIdCacheByContent = new ConcurrentHashMap<>();
     private CheckPeriodCache<ArtifactReference, Long> globalIdCacheByArtifactReference = new CheckPeriodCache<>(0);
@@ -55,11 +53,13 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
     private boolean isKey;
     private ArtifactResolverStrategy<S> artifactResolverStrategy;
 
-    private boolean autoCreateArtifact = false;
-    private IfExists autoCreateBehavior = IfExists.RETURN_OR_UPDATE;
-//    private boolean useLatestArtifact;
+    private boolean autoCreateArtifact;
+    private IfExists autoCreateBehavior;
+    private boolean findLatest;
 
-    private String artifactGroupId;
+    private String explicitArtifactGroupId;
+    private String explicitArtifactId;
+    private String explicitArtifactVersion;
 
     /**
      * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
@@ -68,51 +68,35 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
         this.schemaParser = schemaParser;
         this.isKey = isKey;
+        DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
         if (client == null) {
-            String baseUrl = (String) configs.get(SerdeConfigKeys.REGISTRY_URL);
+            String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfigKeys.REGISTRY_URL);
+                throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
             }
 
-            String authServerURL = (String) configs.get(SerdeConfigKeys.AUTH_SERVICE_URL);
+            String authServerURL = config.getAuthServiceUrl();
 
             try {
                 if (authServerURL != null) {
-                    client = configureClientWithAuthentication(configs, baseUrl, authServerURL);
+                    client = configureClientWithAuthentication(config, baseUrl, authServerURL);
                 } else {
-                    client = RegistryClientFactory.create(baseUrl);
+                    client = RegistryClientFactory.create(baseUrl, config.originals());
                 }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }
 
-        Object ais = configs.get(SerdeConfigKeys.ARTIFACT_ID_STRATEGY);
-        if (ais == null) {
-            if (this.artifactResolverStrategy == null) {
-                this.setArtifactResolverStrategy(new TopicIdStrategy<>());
-            }
-        } else {
-            Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
-        }
+        Object ais = config.getArtifactResolverStrategy();
+        Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
 
-        this.autoCreateArtifact = Utils.isTrue(configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT));
-        Object createArtifactBehavior = configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT_BEHAVIOR);
-        if (createArtifactBehavior instanceof IfExists) {
-            this.autoCreateArtifact = true;
-            this.autoCreateBehavior = (IfExists) createArtifactBehavior;
-        } else if (createArtifactBehavior != null) {
-            this.autoCreateArtifact = true;
-            this.autoCreateBehavior = IfExists.fromValue(createArtifactBehavior.toString());
-        }
-
-        String groupIdOverride = (String) configs.get(SerdeConfigKeys.ARTIFACT_GROUP_ID);
-        if (groupIdOverride != null) {
-            this.artifactGroupId = groupIdOverride;
-        }
+        this.autoCreateArtifact = config.autoRegisterArtifact();
+        this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
+        this.findLatest = config.findLatest();
 
         long checkPeriod = 0;
-        Object cp = configs.get(SerdeConfigKeys.CHECK_PERIOD_MS);
+        Object cp = config.getCheckPeriodMs();
         if (cp != null) {
             long checkPeriodParam;
             if (cp instanceof Number) {
@@ -130,6 +114,20 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             checkPeriod = checkPeriodParam;
         }
         globalIdCacheByArtifactReference = new CheckPeriodCache<>(checkPeriod);
+
+        String groupIdOverride = config.getExplicitArtifactGroupId();
+        if (groupIdOverride != null) {
+            this.explicitArtifactGroupId = groupIdOverride;
+        }
+        String artifactIdOverride = config.getExplicitArtifactId();
+        if (groupIdOverride != null) {
+            this.explicitArtifactId = artifactIdOverride;
+        }
+        String artifactVersionOverride = config.getExplicitArtifactVersion();
+        if (groupIdOverride != null) {
+            this.explicitArtifactVersion = artifactVersionOverride;
+        }
+
     }
 
     /**
@@ -173,7 +171,6 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             }
         }
 
-
         if (autoCreateArtifact && parsedSchema.isPresent()) {
 
             byte[] rawSchema = parsedSchema.get().getRawSchema();
@@ -197,8 +194,11 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             });
 
             return schemasCache.get(globalId);
+        } else if (findLatest || artifactReference.getVersion() != null) {
+
+            return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
+
         } else if (parsedSchema.isPresent()) {
-            //compatibilty with FindBySchemaIdStrategy
 
             byte[] rawSchema = parsedSchema.get().getRawSchema();
             String rawSchemaString = IoUtil.toString(rawSchema);
@@ -227,24 +227,30 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
 
     private ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, parsedSchema.map(ParsedSchema<S>::getParsedSchema).orElse(null));
-        //TODO implement override reference values by config properties here
-        if (this.artifactGroupId != null) {
-            artifactReference = ArtifactReference.builder()
-                    .groupId(this.artifactGroupId)
-                    .artifactId(artifactReference.getArtifactId())
-                    .version(artifactReference.getVersion())
-                    .build();
-        }
+        artifactReference = ArtifactReference.builder()
+                .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
+                .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
+                .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
+                .build();
         if (artifactReference.getGroupId() == null) {
-            throw new RuntimeException("Invalid artifact reference, GroupId is null.  Override by configuring a GroupId directly in your serializer using property 'SerdeConfigKeys.ARTIFACT_GROUP_ID'.");
+            throw new RuntimeException("Invalid artifact reference, GroupId is null. Override by configuring a GroupId directly in your serializer using property 'SerdeConfigKeys.EXPLICIT_ARTIFACT_GROUP_ID'.");
         }
         return artifactReference;
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByGlobalId(long)
+     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.serde.strategy.ArtifactReference)
      */
     @Override
+    public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
+        //TODO add here more conditions whenever we support referencing by contentId or contentHash
+        if (reference.getGlobalId() == null) {
+            return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        } else {
+            return resolveSchemaByGlobalId(reference.getGlobalId());
+        }
+    }
+
     public SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
 
         return schemasCache.computeIfAbsent(globalId, k -> {
@@ -256,9 +262,9 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);
 
-          SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-          return result
+            return result
               //FIXME it's impossible to retrieve this info with only the globalId
 //                  .groupId(null)
 //                  .artifactId(null)
@@ -272,11 +278,14 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
 
     }
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByCoordinates(java.lang.String, java.lang.String, java.lang.String)
-     */
-    @Override
-    public SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId, String version) {
+    private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId, String version) {
+
+        if (groupId == null) {
+            throw new IllegalStateException("groupId cannot be null");
+        }
+        if (artifactId == null) {
+            throw new IllegalStateException("artifactId cannot be null");
+        }
 
         ArtifactReference reference = ArtifactReference.builder().groupId(groupId).artifactId(artifactId).version(version).build();
 
@@ -322,27 +331,27 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
         this.globalIdCacheByArtifactReference.clear();
     }
 
-    private RegistryClient configureClientWithAuthentication(Map<String, ?> configs, String registryUrl, String authServerUrl) {
+    private RegistryClient configureClientWithAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl) {
 
-        final String realm = (String) configs.get(SerdeConfigKeys.AUTH_REALM);
+        final String realm = config.getAuthRealm();
 
         if (realm == null) {
-            throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfigKeys.AUTH_REALM);
+            throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
         }
-        final String clientId = (String) configs.get(SerdeConfigKeys.AUTH_CLIENT_ID);
+        final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
-            throw new IllegalArgumentException("Missing registry auth clientId, set " + SerdeConfigKeys.AUTH_CLIENT_ID);
+            throw new IllegalArgumentException("Missing registry auth clientId, set " + SerdeConfig.AUTH_CLIENT_ID);
         }
-        final String clientSecret = (String) configs.get(SerdeConfigKeys.AUTH_CLIENT_SECRET);
+        final String clientSecret = config.getAuthClientSecret();
 
         if (clientSecret == null) {
-            throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfigKeys.AUTH_CLIENT_SECRET);
+            throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
 
-        return RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
     }
 
     private void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

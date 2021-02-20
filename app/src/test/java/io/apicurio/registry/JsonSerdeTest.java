@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
@@ -58,7 +58,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV2, true);
              JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV2, true)) {
 
-            Map<String, String> configs = Map.of(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
+            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             serializer.configure(configs, false);
 
             deserializer.configure(configs, false);

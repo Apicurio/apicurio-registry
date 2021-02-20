@@ -18,23 +18,40 @@ package io.apicurio.tests.serdes.apicurio;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
@@ -45,6 +62,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.KafkaFacade;
+import io.apicurio.tests.common.serdes.TestObject;
 
 /**
  * @author Fabian Martinez
@@ -172,7 +190,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withStrategy(TopicIdStrategy.class)
             .withDataGenerator(avroSchema::generateRecord)
             .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true")
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
                 return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
             })
@@ -188,7 +206,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
-    void testAvroSerDesFail() throws Exception {
+    void testAvroSerDesFailDifferentSchemaByContent() throws Exception {
         String topicName = TestUtils.generateTopic();
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -207,7 +225,29 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withDataGenerator(avroSchemaB::generateRecord)
             .build()
             .test();
+    }
 
+    @Test
+    void testAvroSerDesFailDifferentSchemaByRecordName() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String groupId = TestUtils.generateSubject();
+        String artifactId = TestUtils.generateSubject();
+        AvroGenericRecordSchemaFactory avroSchemaA = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("keyA"));
+        AvroGenericRecordSchemaFactory avroSchemaB = new AvroGenericRecordSchemaFactory(groupId, "notexistent", List.of("keyB"));
+
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchemaA.generateSchemaStream());
+
+        new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withStrategy(RecordIdStrategy.class)
+            //note, we use an incorrect wrong data generator in purpose
+            .withDataGenerator(avroSchemaB::generateRecord)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
     }
 
     @Test
@@ -371,6 +411,106 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
 
         IoUtil.closeIgnore(producer);
         IoUtil.closeIgnore(consumer);
+
+    }
+
+    @Test
+    public void testAvroJSON() throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(registryClient);
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(registryClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            deserializer.configure(config, false);
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String artifactId = TestUtils.generateArtifactId();
+
+            byte[] bytes = serializer.serialize(artifactId, record);
+
+            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
+            JsonNode json = new ObjectMapper().readTree(Arrays.copyOfRange(bytes, 9, bytes.length));
+            Assertions.assertEquals("somebar", json.get("bar").textValue());
+//            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+//            Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
+
+            // some impl details ...
+            TestUtils.waitForSchema(globalId -> registryClient.getContentByGlobalId(globalId) != null, bytes);
+
+            GenericData.Record ir = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals(record, ir);
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testAvroUsingHeaders() throws Exception {
+        Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(registryClient);
+             Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(registryClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            deserializer.configure(config, false);
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String artifactId = TestUtils.generateArtifactId();
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, record);
+
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
+            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            long id = ByteBuffer.wrap(globalId.value()).getLong();
+
+            TestUtils.retry(() -> registryClient.getContentByGlobalId(id) != null);
+
+            GenericData.Record ir = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals(record, ir);
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    //TODO TEST avro specific record
+
+    @Test
+    @Tag(ACCEPTANCE)
+    public void testReflectAutoRegister() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        new SimpleSerdesTesterBuilder<TestObject, TestObject>()
+            .withTopic(topicName)
+            .withStrategy(TopicIdStrategy.class)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withDataGenerator(i -> new TestObject("Apicurio"))
+            .withDataValidator(o -> "Apicurio".equals(o.getName()))
+            .withProducerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+            .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
+            .withAfterProduceValidator(() -> {
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+            })
+            .build()
+            .test();
 
     }
 

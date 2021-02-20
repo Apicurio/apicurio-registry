@@ -24,6 +24,7 @@ import io.apicurio.registry.serde.ParsedSchema;
 import io.apicurio.registry.serde.SchemaLookupResult;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
@@ -104,7 +105,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         long globalId = ip.getGlobalId();
 
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByGlobalId(globalId);
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
 
         Schema schema = jsonConverter.asConnectSchema(schemaLookupResult.getSchema());
 

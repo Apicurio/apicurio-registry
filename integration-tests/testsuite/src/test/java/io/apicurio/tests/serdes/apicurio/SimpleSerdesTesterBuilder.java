@@ -50,6 +50,7 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
     private Class<?> deserializer;
 
     private Properties producerProperties = new Properties();
+    private Properties consumerProperties = new Properties();
 
     public SimpleSerdesTesterBuilder() {
         super();
@@ -57,6 +58,11 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
     public SimpleSerdesTesterBuilder<P, C> withProducerProperty(String key, String value) {
         producerProperties.put(key, value);
+        return this;
+    }
+
+    public SimpleSerdesTesterBuilder<P, C> withConsumerProperty(String key, String value) {
+        consumerProperties.put(key, value);
         return this;
     }
 
@@ -101,6 +107,7 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
     @Override
     public Tester build() {
         Objects.requireNonNull(producerProperties);
+        Objects.requireNonNull(consumerProperties);
         Objects.requireNonNull(serializer);
         Objects.requireNonNull(topic);
         Objects.requireNonNull(artifactResolverStrategy);
@@ -127,7 +134,7 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");
             }
 
-            Consumer<String, C> consumer = this.createConsumer(StringDeserializer.class, deserializer, topic);
+            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
 
             this.consumeMessages(consumer, topic, messageCount, dataValidator);
         }

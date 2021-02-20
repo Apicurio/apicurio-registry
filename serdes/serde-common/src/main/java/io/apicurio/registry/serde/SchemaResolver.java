@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 
 /**
@@ -44,10 +45,7 @@ public interface SchemaResolver<SCHEMA, DATA> {
 
     public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, Optional<ParsedSchema<SCHEMA>> parsedSchema);
 
-    public SchemaLookupResult<SCHEMA> resolveSchemaByGlobalId(long globalId);
-
-    //maybe change this to ByArtifactReference ??
-    public SchemaLookupResult<SCHEMA> resolveSchemaByCoordinates(String groupId, String artifactId, String version);
+    public SchemaLookupResult<SCHEMA> resolveSchemaByArtifactReference(ArtifactReference reference);
 
     /**
      * Hard reset cache

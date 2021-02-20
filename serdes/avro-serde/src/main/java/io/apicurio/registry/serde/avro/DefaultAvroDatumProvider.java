@@ -29,8 +29,6 @@ import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
-import io.apicurio.registry.serde.utils.Utils;
-
 /**
  * @author Ales Justin
  */
@@ -51,9 +49,9 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
     }
 
     @Override
-    public void configure(Map<String, ?> configs) {
+    public void configure(AvroKafkaSerdeConfig config) {
         if (useSpecificAvroReader == null) {
-            useSpecificAvroReader = Utils.isTrue(configs.get(REGISTRY_USE_SPECIFIC_AVRO_READER_CONFIG_PARAM));
+            useSpecificAvroReader = config.useSpecificAvroReader();
         }
     }
 

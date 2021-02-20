@@ -22,7 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.utils.HeaderUtils;
+import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.headers.HeadersHandler;
 import io.apicurio.registry.serde.utils.Utils;
 
 import java.nio.ByteBuffer;
@@ -35,16 +36,15 @@ import java.util.Objects;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<T, U> implements SchemaParser<T> {
+public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<T, U> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final byte MAGIC_BYTE = 0x0;
     protected boolean key; // do we handle key or value with this ser/de?
 
-    IdHandler idHandler;
-    protected HeaderUtils headerUtils;
-
+    protected IdHandler idHandler;
+    protected HeadersHandler headersHandler;
 
     public AbstractKafkaSerDe() {
         super();
@@ -62,16 +62,16 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
         super(client, schemaResolver);
     }
 
-    @SuppressWarnings("unchecked")
-    protected void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey, this);
-        key = isKey;
+    public abstract void configure(Map<String, ?> configs, boolean isKey);
 
+    protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
+        super.configure(config.originals(), isKey, schemaParser());
+        key = isKey;
         if (idHandler == null) {
-            Object idh = configs.get(SerdeConfigKeys.ID_HANDLER);
+            Object idh = config.getIdHandler();
             Utils.instantiate(IdHandler.class, idh, this::setIdHandler);
 
-            if (Utils.isTrue(configs.get(SerdeConfigKeys.ENABLE_CONFLUENT_ID_HANDLER))) {
+            if (config.enableConfluentIdHandler()) {
                 if (idHandler != null && !(idHandler instanceof Legacy4ByteIdHandler)) {
                     log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh, "as-confluent"));
                 }
@@ -79,16 +79,22 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
             }
         }
 
-        if (Utils.isTrue(configs.get(SerdeConfigKeys.USE_HEADERS))) {
-            headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+        boolean headersEnabled = config.enableHeaders();
+        if (headersEnabled) {
+            Object headersHandler = config.getHeadersHandler();
+            Utils.instantiate(HeadersHandler.class, headersHandler, this::setHeadersHandler);
+            this.headersHandler.configure(config.originals(), isKey);
         }
     }
 
+    public abstract SchemaParser<T> schemaParser();
+
     public IdHandler getIdHandler() {
-        if (idHandler == null) {
-            idHandler = new DefaultIdHandler();
-        }
         return idHandler;
+    }
+
+    public void setHeadersHandler(HeadersHandler headersHandler) {
+        this.headersHandler = headersHandler;
     }
 
     public void setIdHandler(IdHandler idHandler) {

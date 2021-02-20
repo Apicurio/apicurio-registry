@@ -41,9 +41,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.serde.avro.AvroDatumProvider;
-import io.apicurio.registry.serde.avro.AvroEncoding;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
@@ -83,10 +82,10 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-        config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
-        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
         serializer.configure(config, true);
 
@@ -95,7 +94,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         byte[] bytes = serializer.serialize(topic, record);
 
         Map<String, Object> deserializerConfig = new HashMap<>();
-        deserializerConfig.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<GenericData.Record>();
         deserializer.configure(deserializerConfig, true);
 
@@ -103,8 +102,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         Assertions.assertEquals(record, deserializedRecord);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class);
-        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class);
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class);
+        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class);
         serializer.configure(config, true);
         bytes = serializer.serialize(topic, record);
 
@@ -112,8 +111,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         record = deserializer.deserialize(topic, bytes);
         Assertions.assertEquals("somebar", record.get("bar").toString());
 
-        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, TopicRecordIdStrategy.class.getName());
-        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, DefaultAvroDatumProvider.class.getName());
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
         serializer.configure(config, true);
         bytes = serializer.serialize(topic, record);
         deserializer.configure(deserializerConfig, true);
@@ -131,8 +130,9 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, RecordIdStrategy.class);
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -169,12 +169,13 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
-            config.put(SerdeConfigKeys.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
-            config.put(SerdeConfigKeys.AVRO_ENCODING, AvroEncoding.AVRO_JSON);
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -205,12 +206,12 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
-            config.put(SerdeConfigKeys.USE_HEADERS, "true");
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
             config = new HashMap<>();
-            config.put(SerdeConfigKeys.USE_HEADERS, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -238,13 +239,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(restClient);
              AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(restClient)) {
 
-            serializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
             Map<String, String> config = new HashMap<>();
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             serializer.configure(config, false);
 
-            deserializer.setAvroDatumProvider(new ReflectAvroDatumProvider<>());
             config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
             String artifactId = generateArtifactId();

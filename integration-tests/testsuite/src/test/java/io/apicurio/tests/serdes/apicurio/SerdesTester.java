@@ -37,7 +37,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.KafkaFacade;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -82,8 +82,8 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
         } else {
-            props.putIfAbsent(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-            props.putIfAbsent(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, artifactIdStrategy.getName());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
 
         return new KafkaProducer<>(props);
@@ -105,7 +105,7 @@ public class SerdesTester<K, P, C> {
         if (valueDeserializer.getName().contains("confluent")) {
             props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat");
         } else {
-            props.putIfAbsent(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         }
         return new KafkaConsumer<>(props);
     }

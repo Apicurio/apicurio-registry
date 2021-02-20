@@ -18,37 +18,41 @@ package io.apicurio.registry.serde.protobuf;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.Message;
 
 import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
+import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author Ales Justin
  * @author Hiram Chirino
  * @author Fabian Martinez
  */
-public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<Serde.Schema, U> {
+public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<FileDescriptor, U> {
+
+    private MessageTypeSerdeHeaders serdeHeaders;
+    private ProtobufSchemaParser parser = new ProtobufSchemaParser();
 
     public ProtobufKafkaSerializer() {
         super();
     }
 
     public ProtobufKafkaSerializer(RegistryClient client,
-            ArtifactResolverStrategy<Serde.Schema> artifactResolverStrategy,
-            SchemaResolver<Serde.Schema, U> schemaResolver) {
+            ArtifactResolverStrategy<FileDescriptor> artifactResolverStrategy,
+            SchemaResolver<FileDescriptor, U> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -56,72 +60,62 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
         super(client);
     }
 
-    public ProtobufKafkaSerializer(SchemaResolver<Serde.Schema, U> schemaResolver) {
+    public ProtobufKafkaSerializer(SchemaResolver<FileDescriptor, U> schemaResolver) {
         super(schemaResolver);
     }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(configs, isKey);
+        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.PROTOBUF_FD;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
-     */
-    @Override
-    public Serde.Schema parseSchema(byte[] rawSchema) {
-        try {
-            return Serde.Schema.parseFrom(rawSchema);
-        } catch (InvalidProtocolBufferException e) {
-            throw new UncheckedIOException(e);
-        }
+    public SchemaParser<FileDescriptor> schemaParser() {
+        return parser;
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
      */
     @Override
-    protected ParsedSchema<Serde.Schema> getSchemaFromData(U data) {
-        Serde.Schema schema = toSchemaProto(data.getDescriptorForType().getFile());
-        return new ParsedSchema<Serde.Schema>()
-                .setParsedSchema(schema)
-                .setRawSchema(schema.toByteArray());
+    protected ParsedSchema<FileDescriptor> getSchemaFromData(U data) {
+        byte[] rawSchema = parser.serializeSchema(data.getDescriptorForType());
+
+        return new ParsedSchema<FileDescriptor>()
+                .setParsedSchema(data.getDescriptorForType().getFile())
+                .setRawSchema(rawSchema);
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<Serde.Schema> schema, U data, OutputStream out) throws IOException {
-        Serde.Ref ref = Serde.Ref.newBuilder()
-                                 .setName(data.getDescriptorForType().getName())
-                                 .build();
-        ref.writeDelimitedTo(out);
-        data.writeTo(out);
+    protected void serializeData(ParsedSchema<FileDescriptor> schema, U data, OutputStream out) throws IOException {
+        serializeData(null, schema, data, out);
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<Serde.Schema> schema, U data, OutputStream out) throws IOException {
-        serializeData(schema, data, out);
+    protected void serializeData(Headers headers, ParsedSchema<FileDescriptor> schema, U data, OutputStream out) throws IOException {
+        if (headers != null) {
+            serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
+        }
+
+        if (schema.getParsedSchema() != null && schema.getParsedSchema().findMessageTypeByName(data.getDescriptorForType().getName()) == null) {
+            throw new SerializationException("Missing message type " + data.getDescriptorForType().getName() + " in the protobuf schema");
+        }
+
+        Serde.Ref ref = Serde.Ref.newBuilder()
+                .setName(data.getDescriptorForType().getName())
+                .build();
+        ref.writeDelimitedTo(out);
+        data.writeTo(out);
     }
 
-    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
-        Serde.Schema.Builder b = Serde.Schema.newBuilder();
-        b.setFile(file.toProto());
-        for (Descriptors.FileDescriptor d : file.getDependencies()) {
-            b.addImport(toSchemaProto(d));
-        }
-        return b.build();
-    }
 }

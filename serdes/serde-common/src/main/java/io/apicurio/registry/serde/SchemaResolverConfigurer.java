@@ -65,7 +65,7 @@ public class SchemaResolverConfigurer<T, U> {
 
     protected void configure(Map<String, ?> configs, boolean isKey, SchemaParser<T> schemaParser) {
         if (this.schemaResolver == null) {
-            Object sr = configs.get(SerdeConfigKeys.SCHEMA_RESOLVER);
+            Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
             if (null == sr) {
                 this.setSchemaResolver(new DefaultSchemaResolver<>());
             } else {

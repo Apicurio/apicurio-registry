@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +29,7 @@ import lombok.ToString;
 @Getter
 @EqualsAndHashCode
 @ToString
-public class Difference implements CompatibilityDifference {
+public class Difference {
 
     @NonNull
     private final DiffType diffType;
@@ -47,12 +45,4 @@ public class Difference implements CompatibilityDifference {
 
     @NonNull
     private final String subSchemaUpdated;
-
-    /**
-     * @see io.apicurio.registry.rules.compatibility.CompatibilityDifference#asRuleViolationCause()
-     */
-    @Override
-    public RuleViolationCause asRuleViolationCause() {
-        return new RuleViolationCause(getDiffType().getDescription(), getPathUpdated());
-    }
 }

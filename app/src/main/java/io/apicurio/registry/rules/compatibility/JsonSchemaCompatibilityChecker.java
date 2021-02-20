@@ -72,7 +72,11 @@ public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
             case NONE:
                 break;
         }
-        Set<CompatibilityDifference> diffs = incompatibleDiffs.stream().map(diff -> (CompatibilityDifference) diff).collect(Collectors.toSet());
+        Set<CompatibilityDifference> diffs =
+            incompatibleDiffs
+                .stream()
+                .map(JsonSchemaCompatibilityDifference::new)
+                .collect(Collectors.toSet());
         return CompatibilityExecutionResult.incompatible(diffs);
     }
 

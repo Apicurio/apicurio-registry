@@ -117,21 +117,21 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.10.5.Final</quarkus.version>
+        <quarkus.version>1.11.3.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.1</avro.version>
-        <json-schema-validator.version>1.0.48</json-schema-validator.version>
+        <json-schema-validator.version>1.0.49</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.14.0</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Storage types -->
-        <infinispan.version>12.0.0.Final</infinispan.version>
+        <infinispan.version>12.0.1.Final</infinispan.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>
@@ -175,7 +175,7 @@
         
         <!-- Gatling -->
         <version.gatling>3.5.1</version.gatling>
-        <version.gatling.plugin>3.1.1</version.gatling.plugin>
+        <version.gatling.plugin>3.1.2</version.gatling.plugin>
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
@@ -195,7 +195,7 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.2</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.40</version.puppycrawl>
@@ -205,7 +205,7 @@
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.15.1</test-containers.version>
+        <test-containers.version>1.15.2</test-containers.version>
         <keycloak.testcontainers.version>1.5.0</keycloak.testcontainers.version>
     </properties>
 

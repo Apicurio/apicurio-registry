@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+
 /**
  * @author Ales Justin
  */
@@ -57,18 +58,19 @@ public class Submitter<T> {
         return builder;
     }
 
-    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, Str.ArtifactKey key, long version, ArtifactType artifactType, byte[] content, String createdBy) {
+    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, Str.ArtifactKey key, long version, ArtifactType artifactType, long contentId, String createdBy, Map<String, String> extractedContents) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
+
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
         }
-        if (content != null) {
-            builder.setContent(ByteString.copyFrom(content));
-        }
+        builder.setContentId(contentId);
 
         if (createdBy != null) {
             builder.putMetadata(CREATED_BY, createdBy);
         }
+
+        builder.putAllMetadata(extractedContents);
 
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.ARTIFACT, actionType, key, version).setArtifact(builder);
         return submit(rvb.build());
@@ -122,4 +124,29 @@ public class Submitter<T> {
 		return submit(rvb.build());
 	}
 
+    public CompletableFuture<T> submitLogConfig(Str.ActionType actionType, Str.ArtifactKey key, String logger, String logLevel) {
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.LOGCONFIG, actionType, key, -1L);
+        Str.LogConfigValue.Builder builder = Str.LogConfigValue.newBuilder();
+        if (logger != null) {
+            builder.setLogger(logger);
+        }
+        if (logLevel != null) {
+            builder.setLogLevel(logLevel);
+        }
+        rvb.setLogConfig(builder);
+        return submit(rvb.build());
+    }
+
+    public CompletableFuture<T> submitContent(Str.ActionType actionType, Str.ArtifactKey key, String contentHash, byte[] content, String canonicalContentHash) {
+
+        Str.ContentValue.Builder builder = Str.ContentValue.newBuilder()
+                .setContentHash(contentHash)
+                .setCanonicalHash(canonicalContentHash)
+                .setContent(ByteString.copyFrom(content));
+
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.CONTENT, actionType, key, -1L)
+                .setContent(builder);
+
+        return submit(rvb.build());
+    }
 }

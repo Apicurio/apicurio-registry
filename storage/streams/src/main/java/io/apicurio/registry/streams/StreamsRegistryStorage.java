@@ -18,6 +18,8 @@ package io.apicurio.registry.streams;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -25,11 +27,24 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.impl.SearchUtil;
@@ -37,6 +52,7 @@ import io.apicurio.registry.storage.proto.Str;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -50,6 +66,7 @@ import io.apicurio.registry.utils.streams.distore.FilterPredicate;
 import io.quarkus.security.identity.SecurityIdentity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -58,10 +75,23 @@ import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -70,7 +100,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.metrics.MetricIDs.*;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
@@ -85,11 +122,19 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 @Logged
 public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
+    private static final Logger log = LoggerFactory.getLogger(StreamsRegistryStorage.class);
+
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
 
     /* Fake groupId for legacy artifacts*/
     public static final String LEGACY_GROUP_ID = "null";
+
+    /* Fake logging configuration as an artifact */
+    public static final String LOGGING_CONFIGURATION_ID = "__LOGGING_CONFIGURATION__";
+
+    /* Fake content as an artifact*/
+    public static final String CONTENT_ID = "__CONTENT_ID__";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
@@ -133,9 +178,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return storageProducer.apply(record);
     }
 
-    private static StoredArtifactDto addContent(Str.ArtifactValue value) {
+    private StoredArtifactDto addContent(Str.ArtifactValue value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
-        MetaDataKeys.putContent(contents, value.getContent().toByteArray());
+        MetaDataKeys.putContent(contents, getArtifactByContentId(value.getContentId()).bytes());
         return toStoredArtifact(contents);
     }
 
@@ -287,6 +332,35 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return false;
     }
 
+    private static Str.ArtifactKey buildKey(String groupId, String artifactId) {
+
+        if (null == groupId) {
+            groupId = LEGACY_GROUP_ID;
+        }
+
+        return Str.ArtifactKey.newBuilder()
+                .setGroupId(groupId)
+                .setArtifactId(artifactId)
+                .build();
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
+     * @param artifactType
+     * @param content
+     */
+    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        try {
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+            return canonicalizer.canonicalize(content);
+        } catch (Exception e) {
+            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            return content;
+        }
+    }
+
     @Override
     public boolean isReady() {
         // first a quick local check
@@ -341,19 +415,72 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, key, -1, artifactType, content.bytes(), securityIdentity.getPrincipal().getName());
-        return submitCF.thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
-                       .thenApply(rd -> {
-                           RecordMetadata rmd = rd.getRmd();
-                           Str.Data d = rd.getData();
-                           Str.ArtifactValue first = d.getArtifacts(0);
-                           long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
-                           if (first.getId() != globalId) {
-                               // somebody beat us to it ...
-                               throw new ArtifactAlreadyExistsException(groupId, artifactId);
-                           }
-                           return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
-                       });
+        final Map<String, String> extractedContents = extractMetaDataFromContent(key, content, artifactType);
+        final String principalName = securityIdentity.getPrincipal().getName();
+
+        return submitContent(content, artifactType)
+                .thenCompose(contentId -> submitter.submitArtifact(Str.ActionType.CREATE, key, -1, artifactType, contentId, principalName, extractedContents))
+                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
+                .thenApply(rd -> {
+                            RecordMetadata rmd = rd.getRmd();
+                            Str.Data d = rd.getData();
+                            Str.ArtifactValue first = d.getArtifacts(0);
+                            long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
+                            if (first.getId() != globalId) {
+                                // somebody beat us to it ...
+                                throw new ArtifactAlreadyExistsException(groupId, artifactId);
+                            }
+                            return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+                        }
+                );
+    }
+
+    private Map<String, String> extractMetaDataFromContent(Str.ArtifactKey key, ContentHandle content, ArtifactType artifactType) {
+
+        final Map<String, String> extractedContents = new HashMap<>();
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+
+        ExtractedMetaData emd = extractor.extract(content);
+        if (extractor.isExtracted(emd)) {
+            if (!isEmpty(emd.getName())) {
+                checkNull(key, extractedContents, MetaDataKeys.NAME, emd.getName());
+            }
+            if (!isEmpty(emd.getDescription())) {
+                checkNull(key, extractedContents, MetaDataKeys.DESCRIPTION, emd.getDescription());
+            }
+        }
+        return extractedContents;
+    }
+
+    private static void checkNull(Str.ArtifactKey artifactKey, Map<String, String> contents, String key, String value) {
+        if (key != null && value != null) {
+            contents.put(key, value);
+        } else {
+            log.warn("Metadata - null key {} or value {} - [{}]", key, value, artifactKey);
+        }
+    }
+
+    private CompletableFuture<Long> submitContent(ContentHandle content, ArtifactType artifactType) {
+
+        final Str.ArtifactKey key = buildKey(CONTENT_ID, CONTENT_ID);
+        final byte[] contentBytes = content.bytes();
+        final String contentHash = DigestUtils.sha256Hex(contentBytes);
+        final ContentHandle canonicalContent = canonicalizeContent(artifactType, content);
+        final byte[] canonicalContentBytes = canonicalContent.bytes();
+        final String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+
+        return submitter.submitContent(Str.ActionType.CREATE, key, contentHash, content.bytes(), canonicalContentHash)
+                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
+                .thenApply(rd -> {
+                    Str.Data d = rd.getData();
+                    for (Str.ContentValue contentValue : d.getContentsList()) {
+                        if (contentValue.getContentHash().equals(contentHash)) {
+                            return contentValue.getId();
+                        }
+                    }
+                    throw new IllegalStateException();
+                });
     }
 
     @Override
@@ -381,7 +508,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             // Delete any rules configured for the artifact.
             this.deleteArtifactRulesInternal(key);
 
-            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, -1, null, null, null));
+            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, -1, null, -1, null, Collections.emptyMap()));
 
             SortedSet<Long> result = new TreeSet<>();
             List<Str.ArtifactValue> list = data.getArtifactsList();
@@ -412,12 +539,32 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
-        return null;
+        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
+        Str.Data data = storageStore.get(contentKey);
+        if (data != null) {
+            return ContentHandle.create(data.getContentsList()
+                    .stream()
+                    .filter(v -> v.getId() == contentId)
+                    .findFirst()
+                    .orElseThrow(() -> new ContentNotFoundException(String.valueOf(contentId))).getContent().toByteArray());
+        } else {
+            throw new LogConfigurationNotFoundException(String.valueOf(contentId));
+        }
     }
 
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
-        return null;
+        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
+        Str.Data data = storageStore.get(contentKey);
+        if (data != null) {
+            return ContentHandle.create(data.getContentsList()
+                    .stream()
+                    .filter(v -> v.getContentHash().equals(contentHash))
+                    .findFirst()
+                    .orElseThrow(() -> new ContentNotFoundException(contentHash)).getContent().toByteArray());
+        } else {
+            throw new ContentNotFoundException(contentHash);
+        }
     }
 
     @Override
@@ -433,26 +580,30 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
 
-        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, key, -1, artifactType, content.bytes(), securityIdentity.getPrincipal().getName());
-        return submitCF.thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
-                       .thenApply(rd -> {
-                           RecordMetadata rmd = rd.getRmd();
-                           Str.Data d = rd.getData();
-                           long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
-                           for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
-                               Str.ArtifactValue value = d.getArtifacts(i);
-                               if (value.getId() == globalId) {
-                                   ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+        final Map<String, String> extractedContents = extractMetaDataFromContent(key, content, artifactType);
+        final String principalName = securityIdentity.getPrincipal().getName();
 
-                                   if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
-                                       ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
-                                       artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
-                                   }
-                                   return artifactMetaDataDto;
-                               }
-                           }
-                           throw new ArtifactNotFoundException(groupId, artifactId);
-                       });
+        return submitContent(content, artifactType)
+                .thenCompose(contentId -> submitter.submitArtifact(Str.ActionType.UPDATE, key, -1, artifactType, contentId, principalName, extractedContents))
+                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
+                .thenApply(rd -> {
+                    RecordMetadata rmd = rd.getRmd();
+                    Str.Data d = rd.getData();
+                    long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
+                    for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
+                        Str.ArtifactValue value = d.getArtifacts(i);
+                        if (value.getId() == globalId) {
+                            ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+
+                            if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+                                ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
+                                artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
+                            }
+                            return artifactMetaDataDto;
+                        }
+                    }
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                });
     }
 
 
@@ -481,6 +632,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
         ids.remove(GLOBAL_RULES_ID);
+        ids.remove(LOGGING_CONFIGURATION_ID);
         return ids;
     }
 
@@ -540,7 +692,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             return null;
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
@@ -557,7 +709,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             // canonicalize the inbound content
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(metaData.getType());
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            
+
             byte[] contentToCompare;
             if (canonical) {
                 ContentHandle canonicalContent = canonicalizer.canonicalize(content);
@@ -569,7 +721,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--) {
                 Str.ArtifactValue candidateArtifact = data.getArtifacts(i);
                 if (isValid(candidateArtifact)) {
-                    ContentHandle candidateContent = ContentHandle.create(candidateArtifact.getContent().toByteArray());
+                    ContentHandle candidateContent = getArtifactByContentId(candidateArtifact.getContentId());
                     byte[] candidateBytes;
                     if (canonical) {
                         ContentHandle canonicalCandidateContent = canonicalizer.canonicalize(candidateContent);
@@ -776,7 +928,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return handleVersion(buildKey(groupId, artifactId), version, ArtifactStateExt.ACTIVE_STATES, StreamsRegistryStorage::addContent);
+        return handleVersion(buildKey(groupId, artifactId), version, ArtifactStateExt.ACTIVE_STATES, this::addContent);
     }
 
     @Override
@@ -784,7 +936,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
-        handleVersion(key, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, version, null, null, null)));
+        handleVersion(key, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, version, null, -1, null, Collections.emptyMap())));
     }
 
     @Override
@@ -798,7 +950,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
         handleVersion(
-               key,
+                key,
                 version,
                 ArtifactStateExt.ACTIVE_STATES,
                 value -> ConcurrentUtil.get(submitter.submitMetadata(Str.ActionType.UPDATE, key, version, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties()))
@@ -848,23 +1000,52 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         deleteArtifactRule(GLOBAL_RULES_ID, GLOBAL_RULES_ID, rule);
     }
 
+    @Override
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        final Str.ArtifactKey logKey = buildKey(LOGGING_CONFIGURATION_ID, LOGGING_CONFIGURATION_ID);
+        Str.Data data = storageStore.get(logKey);
+        if (data != null) {
+            return data.getLogConfigsList()
+                    .stream()
+                    .filter(v -> v.getLogger().equals(logger))
+                    .findFirst()
+                    .map(v -> new LogConfigurationDto(v.getLogger(), LogLevel.fromValue(v.getLogLevel())))
+                    .orElseThrow(() -> new LogConfigurationNotFoundException(logger));
+        } else {
+            throw new LogConfigurationNotFoundException(logger);
+        }
+    }
+
+    @Override
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(LOGGING_CONFIGURATION_ID, LOGGING_CONFIGURATION_ID);
+        ConcurrentUtil.get(submitter.submitLogConfig(Str.ActionType.CREATE, key, logConfiguration.getLogger(), logConfiguration.getLogLevel().value()));
+    }
+
+    @Override
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        final Str.ArtifactKey key = buildKey(LOGGING_CONFIGURATION_ID, LOGGING_CONFIGURATION_ID);
+        ConcurrentUtil.get(submitter.submitLogConfig(Str.ActionType.DELETE, key, logger, null));
+    }
+
+    @Override
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(LOGGING_CONFIGURATION_ID, LOGGING_CONFIGURATION_ID);
+        Str.Data data = storageStore.get(key);
+        if (data != null) {
+            return data.getLogConfigsList()
+                    .stream()
+                    .map(v -> new LogConfigurationDto(v.getLogger(), LogLevel.fromValue(v.getLogLevel())))
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     @AllArgsConstructor
     @Getter
     private static class RecordData {
         private RecordMetadata rmd;
         private Str.Data data;
     }
-
-    private static Str.ArtifactKey buildKey(String groupId, String artifactId) {
-
-        if (null == groupId) {
-            groupId = LEGACY_GROUP_ID;
-        }
-
-        return Str.ArtifactKey.newBuilder()
-                .setGroupId(groupId)
-                .setArtifactId(artifactId)
-                .build();
-    }
-
 }

@@ -20,13 +20,23 @@ import org.jdbi.v3.core.Handle;
 /**
  * @author Fabian Martinez
  */
+
 public class SqlGlobalIdGenerator {
 
     public static GlobalIdGenerator withHandle(Handle handle) {
         return () -> {
-            return handle.createQuery("SELECT nextval('globalidsequence')")
-                    .mapTo(Long.class)
-                    .one();
+
+            if(!handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().isPresent()){
+
+                handle.createUpdate("INSERT into sequences (next_value, name) VALUES (?,?)").bind(0, 0).bind(1, "globalId").execute();
+            } else {
+                Long globalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().get();
+                handle.createUpdate("UPDATE sequences SET next_value = ? WHERE name = ?").bind(0, globalId + 1).bind(1, "globalId").execute();
+            }
+
+            Long globalId = handle.createQuery("SELECT next_value FROM sequences where name = \"globalId\";").mapTo(Long.class).findFirst().get();
+
+            return globalId;
         };
     }
 

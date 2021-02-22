@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
+
 import java.util.Date;
 import java.util.concurrent.CompletionStage;
 
@@ -49,7 +51,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String sql = sqlStatements().selectArtifactRuleCountByType();
             return handle.createQuery(sql)
                     .bind(0, tenantContext().tenantId())
-                    .bind(1, groupId)
+                    .bind(1, normalizeGroupId(groupId))
                     .bind(2, artifactId)
                     .bind(3, rule.name())
                     .mapTo(Integer.class)

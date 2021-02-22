@@ -39,7 +39,7 @@ public class GroupValue extends AbstractMessageValue {
      */
     @Override
     public MessageType getType() {
-        return MessageType.Artifact;
+        return MessageType.Group;
     }
 
 }

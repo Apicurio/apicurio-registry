@@ -18,11 +18,10 @@ package io.apicurio.registry;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
@@ -88,9 +87,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
-        clientV2.deleteAllGlobalRules();
+        given().when().delete("/v2/admin/rules");
+
         TestUtils.retry(() -> {
-            assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
         });
     }
 

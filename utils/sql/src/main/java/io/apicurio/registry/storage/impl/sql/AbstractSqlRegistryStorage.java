@@ -166,7 +166,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
         }
     }
-Ω
+
     /**
      * @return true if the database has already been initialized
      */

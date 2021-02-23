@@ -77,15 +77,15 @@ public class TestUtils {
     }
 
     public static String getRegistryApiUrl() {
-        return getRegistryBaseUrl().concat("/api");
+        return getRegistryBaseUrl().concat("/apis");
     }
 
     public static String getRegistryV1ApiUrl() {
-        return getRegistryApiUrl().concat("/v1");
+        return getRegistryApiUrl().concat("/registry/v1");
     }
 
     public static String getRegistryV2ApiUrl() {
-        return getRegistryApiUrl().concat("/v2");
+        return getRegistryApiUrl().concat("/registry/v2");
     }
 
     public static String getRegistryBaseUrl() {

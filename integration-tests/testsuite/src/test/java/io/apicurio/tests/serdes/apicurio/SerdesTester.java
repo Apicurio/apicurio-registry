@@ -78,7 +78,7 @@ public class SerdesTester<K, P, C> {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClass.getName());
         // Schema Registry location.
         if (valueSerializerClass.getName().contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, TestUtils.getRegistryApiUrl() + "/ccompat/v6");
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
         } else {

@@ -39,7 +39,7 @@ public abstract class ConfluentBaseIT extends BaseIT {
 
     @BeforeAll
     static void confluentBeforeAll(TestInfo info) throws Exception {
-        confluentService = new CachedSchemaRegistryClient(TestUtils.getRegistryApiUrl() + "/ccompat", 3);
+        confluentService = new CachedSchemaRegistryClient(TestUtils.getRegistryApiUrl() + "/ccompat/v6", 3);
         clearAllConfluentSubjects();
     }
 

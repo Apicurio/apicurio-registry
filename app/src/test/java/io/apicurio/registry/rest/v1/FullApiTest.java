@@ -56,7 +56,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/v1/rules")
+                .post("/registry/v1/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -65,7 +65,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -82,7 +82,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-                .post("/v1/artifacts")
+                .post("/registry/v1/artifacts")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
@@ -105,7 +105,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(rule)
-                .post("/v1/rules")
+                .post("/registry/v1/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -114,7 +114,7 @@ public class FullApiTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -131,7 +131,7 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-                .post("/v1/artifacts")
+                .post("/registry/v1/artifacts")
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))

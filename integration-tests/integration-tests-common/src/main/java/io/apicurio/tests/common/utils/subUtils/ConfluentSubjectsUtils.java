@@ -32,19 +32,19 @@ import io.restassured.response.Response;
 public class ConfluentSubjectsUtils {
 
     public static Response getAllSchemas(int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/subjects"), returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/v6/subjects"), returnCode);
     }
 
     public static Response getLatestVersionSchema(String nameOfSchema) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/subjects/" + nameOfSchema + "/versions/latest"), 200);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/v6/subjects/" + nameOfSchema + "/versions/latest"), 200);
     }
 
     public static Response createSchema(String schemeDefinition, String schemaName, int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, getCCompatURL("/ccompat/subjects/" + schemaName + "/versions"), returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, getCCompatURL("/ccompat/v6/subjects/" + schemaName + "/versions"), returnCode);
     }
 
     public static Response updateSchemaMetadata(String schemaName, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, getCCompatURL("/ccompat/subjects/" + schemaName + "/meta"), returnCode);
+        return putRequest(RestConstants.JSON, metadata, getCCompatURL("/ccompat/v6/subjects/" + schemaName + "/meta"), returnCode);
     }
 
     private static URL getCCompatURL(String ccompatPath) {

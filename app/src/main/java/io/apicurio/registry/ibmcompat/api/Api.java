@@ -60,7 +60,7 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-@Path("/ibmcompat")
+@Path("/ibmcompat/v1")
 @RestMetricsApply
 @Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})

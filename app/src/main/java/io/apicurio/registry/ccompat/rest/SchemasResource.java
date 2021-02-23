@@ -37,7 +37,7 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * @author Ales Justin
  * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/ccompat/schemas")
+@Path("/ccompat/v6/schemas")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SchemasResource {

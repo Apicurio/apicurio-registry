@@ -74,7 +74,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
 
-        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/api/ccompat"), 3, schemaProviders, null, null);
+        return new CachedSchemaRegistryClient(new RestService("http://localhost:8081/apis/ccompat/v6"), 3, schemaProviders, null, null);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         final Properties config = new Properties();
         config.put(KafkaJsonSchemaSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
+        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
 
         try (KafkaJsonSchemaSerializer serializer = new KafkaJsonSchemaSerializer(client, new HashMap(config));
                 KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config, SchemaContent.class )){
@@ -209,7 +209,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         final Properties config = new Properties();
         config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/api/ccompat");
+        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
 
         try (KafkaProtobufSerializer serializer = new KafkaProtobufSerializer(client, new HashMap(config));
                 KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)){

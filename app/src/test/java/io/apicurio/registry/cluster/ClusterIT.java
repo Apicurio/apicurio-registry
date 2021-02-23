@@ -79,8 +79,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/api/v2");
-        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/api/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup("testSmoke");
@@ -149,8 +149,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/api/ccompat", 3);
-        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/api/ccompat", 3);
+        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/apis/ccompat/v6", 3);
+        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/apis/ccompat/v6", 3);
 
         String subject = UUID.randomUUID().toString();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
@@ -175,8 +175,8 @@ public class ClusterIT {
         Properties properties = getClusterProperties();
         Assumptions.assumeTrue(properties != null);
 
-        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/api/v2");
-        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/api/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup(groupId);

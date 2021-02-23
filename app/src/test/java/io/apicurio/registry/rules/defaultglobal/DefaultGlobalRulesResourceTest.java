@@ -52,7 +52,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .get("/v1/rules")
+                .get("/registry/v1/rules")
             .then()
                 .statusCode(200)
                 .body("size()", is(1))
@@ -68,7 +68,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -85,7 +85,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
             given()
                 .when()
                     .contentType(CT_JSON).body(rule)
-                    .post("/v1/rules")
+                    .post("/registry/v1/rules")
                 .then()
                     .statusCode(409)
                     .body("error_code", equalTo(409))
@@ -99,7 +99,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .post("/v1/rules")
+                .post("/registry/v1/rules")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -108,7 +108,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules")
+                    .get("/registry/v1/rules")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -124,7 +124,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body(rule)
-                .put("/v1/rules/VALIDITY")
+                .put("/registry/v1/rules/VALIDITY")
             .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -135,7 +135,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -146,7 +146,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         // Delete the updated default rule
         given()
             .when()
-                .delete("/v1/rules/VALIDITY")
+                .delete("/registry/v1/rules/VALIDITY")
             .then()
                 .statusCode(204)
                 .body(anything());
@@ -155,7 +155,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -167,7 +167,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                .get("/v1/rules")
+                .get("/registry/v1/rules")
                 .then()
                 .log().all()
                 .statusCode(200)
@@ -180,7 +180,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         // Delete all rules
         given()
             .when()
-                .delete("/v1/rules")
+                .delete("/registry/v1/rules")
             .then()
                 .statusCode(204);
 
@@ -188,7 +188,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules")
+                    .get("/registry/v1/rules")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -200,7 +200,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .get("/v1/rules/VALIDITY")
+                    .get("/registry/v1/rules/VALIDITY")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
@@ -211,7 +211,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
         // Delete the global rule by name (should fail with a 409)
         given()
             .when()
-                .delete("/v1/rules/VALIDITY")
+                .delete("/registry/v1/rules/VALIDITY")
             .then()
                 .statusCode(409)
                 .contentType(ContentType.JSON)

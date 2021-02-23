@@ -15,7 +15,7 @@ import javax.ws.rs.QueryParam;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/v2/search")
+@Path("/registry/v2/search")
 public interface SearchResource {
   /**
    * Returns a paginated list of all artifacts that match the provided filter criteria.

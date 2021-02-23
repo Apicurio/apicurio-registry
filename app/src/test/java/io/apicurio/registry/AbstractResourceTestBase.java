@@ -61,9 +61,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @BeforeAll
     protected void beforeAll() throws Exception {
-        registryApiBaseUrl = "http://localhost:8081/api";
-        registryV1ApiUrl = registryApiBaseUrl + "/v1";
-        registryV2ApiUrl = registryApiBaseUrl + "/v2";
+        registryApiBaseUrl = "http://localhost:8081/apis";
+        registryV1ApiUrl = registryApiBaseUrl + "/registry/v1";
+        registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
     }
 
@@ -87,7 +87,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
-        given().when().delete("/v2/admin/rules");
+        given().when().delete("/registry/v2/admin/rules");
 
         TestUtils.retry(() -> {
             Assertions.assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
@@ -101,7 +101,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/v1/artifacts")
+            .post("/registry/v1/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -121,7 +121,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/v2/groups/{groupId}/artifacts")
+            .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -139,7 +139,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .pathParam("artifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/v1/artifacts/{artifactId}/versions")
+            .post("/registry/v1/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -156,7 +156,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .pathParam("artifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -176,7 +176,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/v1/artifacts/{artifactId}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -195,7 +195,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
-                .get("/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -214,7 +214,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -235,7 +235,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -252,7 +252,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/v1/ids/{globalId}/meta")
+                .get("/registry/v1/ids/{globalId}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -270,7 +270,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/v1/artifacts/{artifactId}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/meta")
                 .then(), state, false);
         });
     }
@@ -289,7 +289,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
-                .get("/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then(), state, false);
         });
     }
@@ -308,7 +308,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}/meta")
                 .then(), state, true);
         });
     }
@@ -329,7 +329,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then(), state, true);
         });
     }
@@ -346,7 +346,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/v1/ids/{globalId}/meta")
+                .get("/registry/v1/ids/{globalId}/meta")
                 .then(), state, true);
         });
     }

@@ -17,7 +17,7 @@ import javax.ws.rs.Produces;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/v2/admin")
+@Path("/registry/v2/admin")
 public interface AdminResource {
   /**
    * Gets a list of all the currently configured global rules (if any).

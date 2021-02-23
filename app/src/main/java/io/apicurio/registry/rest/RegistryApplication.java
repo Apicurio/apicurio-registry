@@ -24,7 +24,7 @@ import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationPath("/api")
+@ApplicationPath("/apis")
 @RestMetricsResponseFilteredNameBinding
 public class RegistryApplication extends Application {
 

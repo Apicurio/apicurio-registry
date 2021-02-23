@@ -44,7 +44,7 @@ public abstract class AbstractCommand implements Runnable {
         log.setLevel(level);
     }
 
-    @CommandLine.Option(names = {"-url", "--url"}, description = "Registry url", defaultValue = "http://localhost:8080/api/v2")
+    @CommandLine.Option(names = {"-url", "--url"}, description = "Registry url", defaultValue = "http://localhost:8080/apis/registry/v2")
     String url;
 
     private static RegistryClient client; // single stateless client instance for all commands

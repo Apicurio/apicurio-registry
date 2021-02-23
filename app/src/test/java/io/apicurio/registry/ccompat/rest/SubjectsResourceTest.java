@@ -30,7 +30,7 @@ public class SubjectsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testListSubjectsEndpoint() {
         given()
-            .when().contentType(CT_JSON).get("/ccompat/subjects")
+            .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
             .then()
             .statusCode(200)
             .body(anything());

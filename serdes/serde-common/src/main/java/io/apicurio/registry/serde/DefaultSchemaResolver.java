@@ -97,10 +97,13 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
         }
 
         this.autoCreateArtifact = Utils.isTrue(configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT));
-        String createArtifactBehavior = (String) configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT_BEHAVIOR);
-        if (createArtifactBehavior != null) {
+        Object createArtifactBehavior = configs.get(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT_BEHAVIOR);
+        if (createArtifactBehavior instanceof IfExists) {
             this.autoCreateArtifact = true;
-            this.autoCreateBehavior = IfExists.fromValue(createArtifactBehavior);
+            this.autoCreateBehavior = (IfExists) createArtifactBehavior;
+        } else if (createArtifactBehavior != null) {
+            this.autoCreateArtifact = true;
+            this.autoCreateBehavior = IfExists.fromValue(createArtifactBehavior.toString());
         }
 
         String groupIdOverride = (String) configs.get(SerdeConfigKeys.ARTIFACT_GROUP_ID);
@@ -231,6 +234,9 @@ public class DefaultSchemaResolver<S, T> implements SchemaResolver<S, T>{
                     .artifactId(artifactReference.getArtifactId())
                     .version(artifactReference.getVersion())
                     .build();
+        }
+        if (artifactReference.getGroupId() == null) {
+            throw new RuntimeException("Invalid artifact reference, GroupId is null.  Override by configuring a GroupId directly in your serializer using property 'SerdeConfigKeys.ARTIFACT_GROUP_ID'.");
         }
         return artifactReference;
     }

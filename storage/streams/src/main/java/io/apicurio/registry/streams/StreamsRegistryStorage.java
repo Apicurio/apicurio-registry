@@ -299,7 +299,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
-    private void updateArtifactState(Str.Data data, Integer version, ArtifactState state) {
+    private void updateArtifactState(Str.Data data, Long version, ArtifactState state) {
         Str.ArtifactKey key = data.getKey();
         ArtifactState current = handleVersion(
             key,
@@ -311,7 +311,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         ArtifactStateExt.applyState(
             s -> ConcurrentUtil.get(
                 submitter.submitState(data.getKey(),
-                                      version.longValue(),
+                                      version,
                                       state)
             ),
             current,
@@ -384,14 +384,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         Str.Data data = storageStore.get(buildKey(groupId, artifactId));
 
         if (data != null) {
-            updateArtifactState(data, data.getArtifactsCount(), state);
+            updateArtifactState(data, Long.valueOf(data.getArtifactsCount()), state);
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
     }
 
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Integer version, ArtifactState state) {
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
         Str.Data data = storageStore.get(buildKey(groupId, artifactId));
 

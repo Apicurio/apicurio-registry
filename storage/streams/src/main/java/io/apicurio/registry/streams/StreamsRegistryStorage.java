@@ -430,7 +430,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                                 // somebody beat us to it ...
                                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
                             }
-                            return MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+                            final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+                            artifactMetaDataDto.setContentId(first.getContentId());
+                            return artifactMetaDataDto;
                         }
                 );
     }
@@ -599,6 +601,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                                 ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
                                 artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
                             }
+
+                            artifactMetaDataDto.setContentId(value.getContentId());
                             return artifactMetaDataDto;
                         }
                     }
@@ -668,9 +672,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
 
+        final Str.ArtifactValue artifactValue = getLastArtifact(groupId, artifactId);
         final Map<String, String> content = getLastArtifact(groupId, artifactId).getMetadataMap();
 
         final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
+
+        artifactMetaDataDto.setContentId(artifactValue.getContentId());
+
         if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
             ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
             artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
@@ -730,7 +738,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                         candidateBytes = candidateContent.bytes();
                     }
                     if (Arrays.equals(contentToCompare, candidateBytes)) {
-                        return MetaDataKeys.toArtifactVersionMetaData(candidateArtifact.getMetadataMap());
+                        final ArtifactVersionMetaDataDto candidateVersionMetaDataDto = MetaDataKeys.toArtifactVersionMetaData(candidateArtifact.getMetadataMap());
+                        candidateVersionMetaDataDto.setContentId(candidateArtifact.getContentId());
+                        return candidateVersionMetaDataDto;
                     }
                 }
             }
@@ -744,7 +754,12 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         if (tuple == null) {
             throw new ArtifactNotFoundException("GlobalId: " + id);
         }
-        return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> MetaDataKeys.toArtifactMetaData(value.getMetadataMap()));
+        return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> {
+                    final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+                    artifactMetaDataDto.setContentId(value.getContentId());
+                    return artifactMetaDataDto;
+                }
+        );
     }
 
     @Override
@@ -941,7 +956,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return handleVersion(buildKey(groupId, artifactId), version, null, value -> MetaDataKeys.toArtifactVersionMetaData(value.getMetadataMap()));
+        return handleVersion(buildKey(groupId, artifactId), version, null, value -> {
+            final ArtifactVersionMetaDataDto artifactVersionMetaDataDto = MetaDataKeys.toArtifactVersionMetaData(value.getMetadataMap());
+            artifactVersionMetaDataDto.setContentId(value.getContentId());
+            return artifactVersionMetaDataDto;
+        });
     }
 
     @Override

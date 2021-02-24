@@ -48,7 +48,7 @@ public class ConfigJsServlet extends HttpServlet {
 
     @Inject
     UiConfigProperties uiConfig;
-    
+
     @Inject
     SecurityIdentity identity;
 
@@ -72,14 +72,14 @@ public class ConfigJsServlet extends HttpServlet {
             config.mode = "prod";
 
             config.artifacts.url = this.generateApiUrl(request);
-            
+
             config.ui.url = this.generateUiUrl(request);
             config.ui.contextPath = "/ui";
-            
+
             config.features.readOnly = uiConfig.isFeatureReadOnly();
-            
+
             configureAuth(config);
-            
+
             g.writeObject(config);
 
             g.flush();
@@ -107,19 +107,20 @@ public class ConfigJsServlet extends HttpServlet {
      * @param request
      */
     private String generateApiUrl(HttpServletRequest request) {
+        String apiRelativePath = "/apis/registry";
         try {
             String apiUrl = uiConfig.getApiUrl();
             if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
                 return apiUrl;
             }
-            
-            String url = resolveUrlFromXForwarded(request, "/api");
+
+            String url = resolveUrlFromXForwarded(request, apiRelativePath);
             if (url != null) {
                 return url;
             }
-            
+
             url = request.getRequestURL().toString();
-            url = new URI(url).resolve("/api").toString();
+            url = new URI(url).resolve(apiRelativePath).toString();
             if (url.startsWith("http:") && request.isSecure()) {
                 url = url.replaceFirst("http", "https");
             }
@@ -139,7 +140,7 @@ public class ConfigJsServlet extends HttpServlet {
             if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
                 return uiUrl;
             }
-            
+
             String url = resolveUrlFromXForwarded(request, "/ui");
             if (url != null) {
                 return url;

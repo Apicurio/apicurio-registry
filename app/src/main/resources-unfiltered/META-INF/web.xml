@@ -29,7 +29,14 @@
     </filter>
     <filter-mapping>
         <filter-name>SpecUrlFilter</filter-name>
-        <url-pattern>/api</url-pattern>
+        <url-pattern>/apis/registry/v2</url-pattern>
+        <url-pattern>/apis/registry/v2/</url-pattern>
+        <url-pattern>/apis/registry/v1</url-pattern>
+        <url-pattern>/apis/registry/v1/</url-pattern>
+        <url-pattern>/apis/ccompat/v6</url-pattern>
+        <url-pattern>/apis/ccompat/v6/</url-pattern>
+        <url-pattern>/apis/ibmcompat/v1</url-pattern>
+        <url-pattern>/apis/ibmcompat/v1/</url-pattern>
     </filter-mapping>
 
     <servlet>
@@ -57,7 +64,16 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>ApiDocsServlet</servlet-name>
-        <url-pattern>/api</url-pattern>
+        <url-pattern>/apis</url-pattern>
+        <url-pattern>/apis/</url-pattern>
+        <url-pattern>/apis/registry/v2</url-pattern>
+        <url-pattern>/apis/registry/v2/</url-pattern>
+        <url-pattern>/apis/registry/v1</url-pattern>
+        <url-pattern>/apis/registry/v1/</url-pattern>
+        <url-pattern>/apis/ccompat/v6</url-pattern>
+        <url-pattern>/apis/ccompat/v6/</url-pattern>
+        <url-pattern>/apis/ibmcompat/v1</url-pattern>
+        <url-pattern>/apis/ibmcompat/v1/</url-pattern>
     </servlet-mapping>
 
 </web-app>

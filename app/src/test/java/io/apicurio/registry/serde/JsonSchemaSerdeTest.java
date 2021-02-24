@@ -73,8 +73,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
              Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-            config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);
@@ -125,8 +125,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
              Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-            config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);
@@ -168,8 +168,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
              Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-            config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializer.configure(config, false);
 
             deserializer.configure(Collections.emptyMap(), false);

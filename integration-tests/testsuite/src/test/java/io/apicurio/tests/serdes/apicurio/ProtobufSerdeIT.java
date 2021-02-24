@@ -24,10 +24,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.DynamicMessage;
-
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
+import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializerConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
@@ -37,8 +36,8 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.KafkaFacade;
-import io.apicurio.tests.common.serdes.proto.MsgTypes;
 import io.apicurio.tests.common.serdes.proto.TestCmmn;
+import io.apicurio.tests.protobuf.ProtobufTestMessage;
 
 /**
  * @author Fabian Martinez
@@ -68,17 +67,18 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        ProtobufMsgFactory schema = new ProtobufMsgFactory();
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF_FD, schema.generateSchemaStream());
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
-        new SimpleSerdesTesterBuilder<MsgTypes.Msg, DynamicMessage>()
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
             .withSerializer(serializer)
             .withDeserializer(deserializer)
             .withStrategy(TopicIdStrategy.class)
             .withDataGenerator(schema::generateMessage)
             .withDataValidator(schema::validateMessage)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
             .build()
             .test();
     }
@@ -89,51 +89,20 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         String artifactId = topicName;
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        ProtobufMsgFactory schema = new ProtobufMsgFactory();
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF_FD, schema.generateSchemaStream());
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
-        new SimpleSerdesTesterBuilder<MsgTypes.Msg, DynamicMessage>()
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
             .withSerializer(serializer)
             .withDeserializer(deserializer)
             .withStrategy(SimpleTopicIdStrategy.class)
             .withDataGenerator(schema::generateMessage)
             .withDataValidator(schema::validateMessage)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
             .build()
             .test();
-    }
-
-    @Test
-    @Tag(Constants.ACCEPTANCE)
-    void testTopicIdStrategyAutoRegister() throws Exception {
-        String topicName = TestUtils.generateTopic();
-        //because of using TopicIdStrategy
-        String artifactId = topicName + "-value";
-        kafkaCluster.createTopic(topicName, 1, 1);
-
-        ProtobufMsgFactory schema = new ProtobufMsgFactory();
-
-        new SimpleSerdesTesterBuilder<MsgTypes.Msg, DynamicMessage>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(schema::generateMessage)
-            .withDataValidator(schema::validateMessage)
-            .withProducerProperty(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true")
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
-            })
-            .build()
-            .test();
-
-
-        ArtifactMetaData meta = registryClient.getArtifactMetaData(topicName, artifactId);
-        byte[] rawSchema = IoUtil.toBytes(registryClient.getContentByGlobalId(meta.getGlobalId()));
-
-        assertEquals(new String(schema.generateSchemaBytes()), new String(rawSchema));
-
     }
 
     @Test
@@ -144,10 +113,10 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         String groupId = TestUtils.generateSubject();
         String artifactId = topicName + "-value";
 
-        ProtobufMsgFactory schemaA = new ProtobufMsgFactory();
+        ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(groupId, artifactId, ArtifactType.PROTOBUF_FD, schemaA.generateSchemaStream());
+        createArtifact(groupId, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
             .withTopic(topicName)
@@ -164,17 +133,246 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         String topicName = TestUtils.generateSubject();
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        ProtobufMsgFactory schema = new ProtobufMsgFactory();
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
         //note, we don't create any artifact
 
-        new WrongConfiguredSerdesTesterBuilder<MsgTypes.Msg>()
+        new WrongConfiguredSerdesTesterBuilder<ProtobufTestMessage>()
             .withTopic(topicName)
             .withSerializer(serializer)
             .withStrategy(TopicIdStrategy.class)
             .withDataGenerator(schema::generateMessage)
             .build()
             .test();
+    }
+
+    @Test
+    void testConsumeDynamicMessage() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateDynamicMessage)
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
+    }
+
+    @Test
+    void testConsumeReturnSpecificClass() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, ProtobufTestMessage.class.getName())
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
+    }
+
+    @Test
+    void testFindLatestDeriveClassProtobufTypeTopicIdStrategy() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
+    }
+
+    @Test
+    public void testFindLatestDeriveClassProtobufTypeSimpleTopicIdStrategy() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName;
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(SimpleTopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
+    }
+
+    @Test
+    public void testFindLatestSpecificProtobufType() throws Exception {
+
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName;
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String schemaContent = resourceToString("serdes/testmessage.proto");
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(SimpleTopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .build()
+            .test();
+
+    }
+
+    @Test
+    public void testFindLatestDynamicMessageProtobufType() throws Exception {
+
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName;
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String schemaContent = resourceToString("serdes/testmessage.proto");
+
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(SimpleTopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateDynamicMessage)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
+            .build()
+            .test();
+    }
+
+    @Test
+    @Tag(Constants.ACCEPTANCE)
+    void testTopicIdStrategyAutoRegister() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+            .withAfterProduceValidator(() -> {
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+            })
+            .build()
+            .test();
+
+        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        assertEquals(1, versions);
+
+    }
+
+    @Test
+    public void testAutoRegisterDynamicMessageProtobufType() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateDynamicMessage)
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
+            .withAfterProduceValidator(() -> {
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+            })
+            .build()
+            .test();
+
+        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        assertEquals(1, versions);
+    }
+
+    @Test
+    public void testAutoRegisterDeriveClassProtobufType() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateMessage)
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+            .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+            .withAfterProduceValidator(() -> {
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+            })
+            .build()
+            .test();
+
+        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        assertEquals(1, versions);
     }
 
 }

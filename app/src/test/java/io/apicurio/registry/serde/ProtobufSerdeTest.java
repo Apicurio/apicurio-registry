@@ -121,8 +121,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
              Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class);
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
             deserializer.configure(config, false);
 

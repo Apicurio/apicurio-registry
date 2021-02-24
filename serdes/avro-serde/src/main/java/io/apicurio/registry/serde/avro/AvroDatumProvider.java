@@ -20,16 +20,12 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 
-import java.util.Map;
-
 /**
  * @author Ales Justin
  */
 public interface AvroDatumProvider<T> {
-    String REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM = "apicurio.registry.avro-datum-provider";
-    String REGISTRY_USE_SPECIFIC_AVRO_READER_CONFIG_PARAM = "apicurio.registry.use-specific-avro-reader";
 
-    default void configure(Map<String, ?> configs) {}
+    default void configure(AvroKafkaSerdeConfig config) {}
 
     DatumWriter<T> createDatumWriter(T data, Schema schema);
 

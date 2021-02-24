@@ -32,10 +32,10 @@ import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.utils.Utils;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
@@ -45,8 +45,10 @@ import io.apicurio.registry.utils.IoUtil;
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();
-    private AvroDatumProvider<U> avroDatumProvider = new DefaultAvroDatumProvider<>();
+    private AvroSchemaParser parser = new AvroSchemaParser();
+    private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding encoding;
+    private AvroSerdeHeaders avroHeaders;
 
     public AvroKafkaSerializer() {
         super();
@@ -66,17 +68,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
-    public AvroKafkaSerializer(
-        RegistryClient client,
-        ArtifactResolverStrategy<Schema> artifactIdStrategy,
-        SchemaResolver<Schema, U> schemaResolver,
-        AvroDatumProvider<U> avroDatumProvider
-    ) {
-        super(client, artifactIdStrategy, schemaResolver);
-        setAvroDatumProvider(avroDatumProvider);
-    }
-
-    public AvroKafkaSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
+    private AvroKafkaSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
         this.avroDatumProvider = Objects.requireNonNull(avroDatumProvider);
         return this;
     }
@@ -84,30 +76,24 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     @SuppressWarnings("rawtypes")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
-        encoding = AvroEncoding.fromConfig(configs);
+        AvroKafkaSerdeConfig config = new AvroKafkaSerdeConfig(configs);
+        super.configure(config, isKey);
+        encoding = config.getAvroEncoding();
 
-        Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
-        //noinspection rawtypes
+        Class<?> adp = config.getAvroDatumProvider();
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
         Utils.instantiate(AvroDatumProvider.class, adp, consumer);
-        avroDatumProvider.configure(configs);
+        avroDatumProvider.configure(config);
+
+        avroHeaders = new AvroSerdeHeaders(isKey);
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.AVRO;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
-     */
-    @Override
-    public Schema parseSchema(byte[] rawSchema) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema));
+    public SchemaParser<Schema> schemaParser() {
+        return parser;
     }
 
     /**
@@ -145,8 +131,8 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
-        if (headerUtils != null) {
-            headerUtils.addEncodingHeader(headers, encoding.name());
+        if (headers != null) {
+            avroHeaders.addEncodingHeader(headers, encoding.name());
         }
         serializeData(schema, data, out);
     }

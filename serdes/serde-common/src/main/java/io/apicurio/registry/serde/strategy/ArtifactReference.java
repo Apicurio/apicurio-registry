@@ -24,14 +24,29 @@ package io.apicurio.registry.serde.strategy;
  */
 public class ArtifactReference {
 
+    /**
+     * Optional, unless globalId is empty
+     */
     private String groupId;
+    /**
+     * Optional, unless globalId is empty
+     */
     private String artifactId;
+    /**
+     * Optional
+     */
     private String version;
 
-    private ArtifactReference(String groupId, String artifactId, String version) {
+    /**
+     * Optional, unless the rest of the fields are empty
+     */
+    private Long globalId;
+
+    private ArtifactReference(String groupId, String artifactId, String version, Long globalId) {
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
+        this.globalId = globalId;
     }
 
     /**
@@ -56,6 +71,14 @@ public class ArtifactReference {
     }
 
     /**
+     * @return the globalId
+     */
+    public Long getGlobalId() {
+        return globalId;
+    }
+
+
+    /**
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -63,6 +86,7 @@ public class ArtifactReference {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((artifactId == null) ? 0 : artifactId.hashCode());
+        result = prime * result + ((globalId == null) ? 0 : globalId.hashCode());
         result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
         result = prime * result + ((version == null) ? 0 : version.hashCode());
         return result;
@@ -85,6 +109,11 @@ public class ArtifactReference {
                 return false;
         } else if (!artifactId.equals(other.artifactId))
             return false;
+        if (globalId == null) {
+            if (other.globalId != null)
+                return false;
+        } else if (!globalId.equals(other.globalId))
+            return false;
         if (groupId == null) {
             if (other.groupId != null)
                 return false;
@@ -104,7 +133,7 @@ public class ArtifactReference {
     @Override
     public String toString() {
         return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
-                + "]";
+                + ", globalId=" + globalId + "]";
     }
 
     public static ArtifactReferenceBuilder builder(){
@@ -116,6 +145,7 @@ public class ArtifactReference {
         private String groupId;
         private String artifactId;
         private String version;
+        private Long globalId;
 
         ArtifactReferenceBuilder() {
             //empty
@@ -136,8 +166,23 @@ public class ArtifactReference {
             return ArtifactReferenceBuilder.this;
         }
 
+        public ArtifactReferenceBuilder globalId(Long globalId) {
+            this.globalId = globalId;
+            return ArtifactReferenceBuilder.this;
+        }
+
         public ArtifactReference build() {
-            return new ArtifactReference(this.groupId, this.artifactId, this.version);
+            //TODO revisit, not sure if this is a good idea
+//            if (groupId == null && artifactId == null) {
+//                Objects.requireNonNull(globalId, "globalId is required if no groupId and artifactId is provided");
+//            }
+//            if (globalId == null) {
+//                Objects.requireNonNull(groupId, "groupId is required");
+//            }
+//            if (globalId == null) {
+//                Objects.requireNonNull(artifactId, "artifactId is required");
+//            }
+            return new ArtifactReference(this.groupId, this.artifactId, this.version, this.globalId);
         }
 
     }

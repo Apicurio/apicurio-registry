@@ -40,9 +40,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.serde.SerdeConfigKeys;
-import io.apicurio.registry.serde.avro.AvroDatumProvider;
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
@@ -79,11 +79,11 @@ public class RegistryConverterIT extends ApicurioV2BaseIT {
         record.put("bar", "somebar");
 
         Map<String, Object> config = new HashMap<>();
-        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class.getName());
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class.getName());
-        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new TopicRecordIdStrategy());
-        config.put(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM, new DefaultAvroDatumProvider<>());
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
         SerdeBasedConverter<Void, GenericData.Record> converter = new SerdeBasedConverter<>();
 
         byte[] bytes;
@@ -96,31 +96,6 @@ public class RegistryConverterIT extends ApicurioV2BaseIT {
             converter.close();
         }
 
-        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, AvroKafkaSerializer.class);
-        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, AvroKafkaDeserializer.class);
-
-        converter = new SerdeBasedConverter<>();
-        try {
-            converter.configure(config, true);
-            bytes = converter.fromConnectData(topic, null, record);
-            record = (GenericData.Record) converter.toConnectData(topic, bytes).value();
-            Assertions.assertEquals("somebar", record.get("bar").toString());
-        } finally {
-            converter.close();
-        }
-
-        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM, new AvroKafkaSerializer<>());
-        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM, new AvroKafkaDeserializer<>());
-
-        converter = new SerdeBasedConverter<>();
-        try {
-            converter.configure(config, true);
-            bytes = converter.fromConnectData(topic, null, record);
-            record = (GenericData.Record) converter.toConnectData(topic, bytes).value();
-            Assertions.assertEquals("somebar", record.get("bar").toString());
-        } finally {
-            converter.close();
-        }
     }
 
     @Test
@@ -128,8 +103,8 @@ public class RegistryConverterIT extends ApicurioV2BaseIT {
         try (AvroConverter<Record> converter = new AvroConverter<>()) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
             org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
@@ -183,7 +158,7 @@ public class RegistryConverterIT extends ApicurioV2BaseIT {
         try (ExtJsonConverter converter = new ExtJsonConverter(restClient)) {
             converter.setFormatStrategy(formatStrategy);
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfigKeys.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
             org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()

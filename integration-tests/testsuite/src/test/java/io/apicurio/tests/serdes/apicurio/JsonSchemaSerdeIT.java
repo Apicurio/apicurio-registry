@@ -16,11 +16,14 @@
 
 package io.apicurio.tests.serdes.apicurio;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
@@ -129,6 +132,28 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 //        assertEquals(new String(schema.getSchemaBytes()), new String(rawSchema));
 //
 //    }
+
+    @Test
+    void testConsumeReturnSpecificClass() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName;
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
+
+        createArtifact(topicName, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ValidMessage, Map<String, Object>>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(SimpleTopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessage)
+            .withDataValidator(schema::validateAsMap)
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Map.class.getName())
+            .build()
+            .test();
+    }
 
     @Test
     void testWrongSchema() throws Exception {

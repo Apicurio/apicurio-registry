@@ -33,10 +33,8 @@ import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.utils.HeaderUtils;
+import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.utils.Utils;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -45,55 +43,45 @@ import io.apicurio.registry.utils.IoUtil;
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
 
     private final DecoderFactory decoderFactory = DecoderFactory.get();
+    private AvroSchemaParser parser = new AvroSchemaParser();
     private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding configEncoding;
+    private AvroSerdeHeaders avroHeaders;
 
     public AvroKafkaDeserializer() {
-        this(null);
+        super();
     }
 
     public AvroKafkaDeserializer(RegistryClient client) {
-        this(client, new DefaultAvroDatumProvider<>());
-    }
-
-    public AvroKafkaDeserializer(RegistryClient client, AvroDatumProvider<U> avroDatumProvider) {
         super(client);
-        setAvroDatumProvider(avroDatumProvider);
     }
 
-    public AvroKafkaDeserializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
+    private AvroKafkaDeserializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
         this.avroDatumProvider = Objects.requireNonNull(avroDatumProvider);
         return this;
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("rawtypes")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
-        configEncoding = AvroEncoding.fromConfig(configs);
-        // Always add headerUtils, so consumer can read both formats i.e. id stored in header or magic byte
-        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
-        Object adp = configs.get(AvroDatumProvider.REGISTRY_AVRO_DATUM_PROVIDER_CONFIG_PARAM);
-        //noinspection rawtypes
+        AvroKafkaSerdeConfig config = new AvroKafkaSerdeConfig(configs);
+        super.configure(config, isKey);
+        configEncoding = config.getAvroEncoding();
+
+        Class adp = config.getAvroDatumProvider();
         Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
         Utils.instantiate(AvroDatumProvider.class, adp, consumer);
-        avroDatumProvider.configure(configs);
+        avroDatumProvider.configure(config);
+
+        avroHeaders = new AvroSerdeHeaders(isKey);
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.AVRO;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
-     */
-    @Override
-    public Schema parseSchema(byte[] rawSchema) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema));
+    public SchemaParser<Schema> schemaParser() {
+        return parser;
     }
 
     @Override
@@ -104,8 +92,8 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     @Override
     protected U readData(Headers headers, ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
         AvroEncoding encoding = null;
-        if (headers != null && headerUtils != null){
-            String encodingHeader = headerUtils.getEncoding(headers);
+        if (headers != null){
+            String encodingHeader = avroHeaders.getEncoding(headers);
             if (encodingHeader != null) {
                 encoding = AvroEncoding.valueOf(encodingHeader);
             }

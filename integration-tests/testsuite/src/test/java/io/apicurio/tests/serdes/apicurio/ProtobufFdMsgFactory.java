@@ -28,7 +28,7 @@ import io.apicurio.tests.common.serdes.proto.MsgTypes;
 /**
  * @author Fabian Martinez
  */
-public class ProtobufMsgFactory {
+public class ProtobufFdMsgFactory {
 
     public MsgTypes.Msg generateMessage(int count) {
 
@@ -39,13 +39,21 @@ public class ProtobufMsgFactory {
         return msg;
     }
 
-    public boolean validateMessage(DynamicMessage message) {
+    public boolean validateDynamicMessage(DynamicMessage message) {
         Descriptors.Descriptor descriptor = message.getDescriptorForType();
         String what = (String) message.getField(descriptor.findFieldByName("what"));
 
         Object when = message.getField(descriptor.findFieldByName("when"));
 
         return what != null && when != null;
+    }
+
+    public boolean validateMessage(MsgTypes.Msg msg) {
+        String what = msg.getWhat();
+
+        long when = msg.getWhen();
+
+        return what != null && when > 0L;
     }
 
     public Serde.Schema generateSchema() {

@@ -79,7 +79,7 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
         }
         if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
             AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
-            super.configure(configs, isKey, ser);
+            super.configure(configs, isKey, ser.schemaParser());
             ser.setSchemaResolver(getSchemaResolver());
             ser.configure(configs, isKey);
         }

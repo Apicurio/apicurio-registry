@@ -19,6 +19,7 @@ package io.apicurio.registry.serde.jsonschema;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.common.header.Headers;
@@ -34,9 +35,9 @@ import com.worldturner.medeia.schema.validation.SchemaValidator;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.SerdeConfigKeys;
-import io.apicurio.registry.serde.utils.HeaderUtils;
+import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
@@ -46,12 +47,17 @@ import io.apicurio.registry.utils.IoUtil;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<SchemaValidator, T> implements Deserializer<T> {
+public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<SchemaValidator, T> implements Deserializer<T>, SchemaParser<SchemaValidator> {
 
     protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();
 
     private Boolean validationEnabled;
+    /**
+     * Optional, the full class name of the java class to deserialize
+     */
+    private Class<T> specificReturnClass;
+    private MessageTypeSerdeHeaders serdeHeaders;
 
     public JsonSchemaKafkaDeserializer() {
         super();
@@ -81,21 +87,29 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
     @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+        JsonSchemaKafkaDeserializerConfig config = new JsonSchemaKafkaDeserializerConfig(configs, isKey);
+        super.configure(config, isKey);
 
         if (validationEnabled == null) {
-            Object ve = configs.get(SerdeConfigKeys.VALIDATION_ENABLED);
-            this.validationEnabled = Utils.isTrue(ve);
+            this.validationEnabled = config.validationEnabled();
         }
 
-        //headers funcionality is always enabled for jsonschema
-        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
+        this.specificReturnClass = (Class<T>) config.getSpecificReturnClass();
 
-        // TODO allow the schema to be configured here
+        this.serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
+
     }
 
     public boolean isValidationEnabled() {
         return validationEnabled != null && validationEnabled;
+    }
+
+    /**
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
+     */
+    @Override
+    public SchemaParser<SchemaValidator> schemaParser() {
+        return this;
     }
 
     /**
@@ -119,18 +133,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
      */
     @Override
     protected T readData(ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
-        try {
-            JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
-
-            JsonNode javaType = jsonSchema.get("javaType");
-            if (javaType == null || javaType.isNull()) {
-                throw new IllegalStateException("Missing javaType info in jsonschema, unable to deserialize.");
-            }
-
-            return internalReadData(getMessageType(javaType.textValue()), schema.getParsedSchema(), buffer, start, length);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return internalReadData(null, schema, buffer, start, length);
     }
 
     /**
@@ -138,10 +141,10 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
      */
     @Override
     protected T readData(Headers headers, ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
-        return internalReadData(getMessageType(headers), schema.getParsedSchema(), buffer, start, length);
+        return internalReadData(headers, schema, buffer, start, length);
     }
 
-    private T internalReadData(Class<T> messageType, SchemaValidator schema, ByteBuffer buffer, int start, int length) {
+    private T internalReadData(Headers headers, ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
         byte[] data = new byte[length];
         System.arraycopy(buffer.array(), start, data, 0, length);
 
@@ -149,35 +152,37 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
             JsonParser parser = mapper.getFactory().createParser(data);
 
             if (isValidationEnabled()) {
-                parser = api.decorateJsonParser(schema, parser);
+                parser = api.decorateJsonParser(schema.getParsedSchema(), parser);
             }
 
-            return mapper.readValue(parser, messageType);
+            Class<T> messageType = null;
+
+            if (this.specificReturnClass != null) {
+                messageType = this.specificReturnClass;
+            } else if (headers == null) {
+                JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
+
+                String javaType = null;
+                JsonNode javaTypeNode = jsonSchema.get("javaType");
+                if (javaTypeNode != null && !javaTypeNode.isNull()) {
+                    javaType = javaTypeNode.textValue();
+                }
+                //TODO if javaType is null, maybe warn something like this?
+                //You can try configure the property \"apicurio.registry.serde.json-schema.java-type\" with the full class name to use for deserialization
+                messageType = javaType == null ? null : Utils.loadClass(javaType);
+            } else {
+                String javaType = serdeHeaders.getMessageType(headers);
+                messageType = javaType == null ? null : Utils.loadClass(javaType);
+            }
+
+            if (messageType == null) {
+                //TODO maybe warn there is no message type and the deserializer will return a JsonNode
+                return mapper.readTree(parser);
+            } else {
+                return mapper.readValue(parser, messageType);
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    /**
-     * Gets the message type from the headers.  Throws if not found.
-     *
-     * @param headers the headers
-     */
-    protected Class<T> getMessageType(Headers headers) {
-        String msgTypeName = headerUtils.getMessageType(headers);
-        return getMessageType(msgTypeName);
-    }
-
-    @SuppressWarnings("unchecked")
-    protected Class<T> getMessageType(String javaType) {
-        try {
-            return (Class<T>) Thread.currentThread().getContextClassLoader().loadClass(javaType);
-        } catch (ClassNotFoundException ignored) {
-        }
-        try {
-            return (Class<T>) Class.forName(javaType);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 

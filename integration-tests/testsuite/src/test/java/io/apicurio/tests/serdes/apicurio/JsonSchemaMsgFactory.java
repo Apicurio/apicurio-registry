@@ -18,6 +18,7 @@ package io.apicurio.tests.serdes.apicurio;
 
 import java.io.InputStream;
 import java.util.Date;
+import java.util.Map;
 
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.common.serdes.json.Msg;
@@ -53,6 +54,12 @@ public class JsonSchemaMsgFactory {
         msg.setMessage("Hello " + count);
         msg.setTime(new Date().getTime());
         return msg;
+    }
+
+    public boolean validateAsMap(Map<String, Object> map) {
+        String msg = (String) map.get("message");
+        Long time = (Long) map.get("time");
+        return msg != null && time != null;
     }
 
     public boolean validateMessage(Msg message) {

@@ -18,12 +18,12 @@ package io.apicurio.registry.serde.jsonschema;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worldturner.medeia.api.StreamSchemaSource;
 import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
@@ -32,11 +32,10 @@ import com.worldturner.medeia.schema.validation.SchemaValidator;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.SerdeConfigKeys;
+import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.serde.utils.HeaderUtils;
-import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -49,11 +48,13 @@ import io.apicurio.registry.utils.IoUtil;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<SchemaValidator, T> implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<SchemaValidator, T> implements Serializer<T>, SchemaParser<SchemaValidator> {
 
     protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();
+
     private Boolean validationEnabled;
+    private MessageTypeSerdeHeaders serdeHeaders;
 
     public JsonSchemaKafkaSerializer() {
         super();
@@ -81,20 +82,16 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#configure(java.util.Map, boolean)
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+        JsonSchemaKafkaSerializerConfig config = new JsonSchemaKafkaSerializerConfig(configs);
+        super.configure(config, isKey);
 
         if (validationEnabled == null) {
-            Object ve = configs.get(SerdeConfigKeys.VALIDATION_ENABLED);
-            this.validationEnabled = Utils.isTrue(ve);
+            this.validationEnabled = config.validationEnabled();
         }
 
-        //headers funcionality is always enabled for jsonschema
-        headerUtils = new HeaderUtils((Map<String, Object>) configs, isKey);
-
-        // TODO allow the schema to be configured here
+        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 
     public boolean isValidationEnabled() {
@@ -106,6 +103,14 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      */
     public void setValidationEnabled(Boolean validationEnabled) {
         this.validationEnabled = validationEnabled;
+    }
+
+    /**
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
+     */
+    @Override
+    public SchemaParser<SchemaValidator> schemaParser() {
+        return this;
     }
 
     /**
@@ -142,14 +147,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      */
     @Override
     protected void serializeData(ParsedSchema<SchemaValidator> schema, T data, OutputStream out) throws IOException {
-        // note, if no headers to pass the messageType (javaType) the user is responsible for putting the javaType in the jsonschema, so the deserializer can know the java class to use.
-        JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
-
-        JsonNode javaType = jsonSchema.get("javaType");
-        if (javaType == null || javaType.isNull()) {
-            throw new IllegalStateException("Missing javaType info in jsonschema, unable to deserialize.");
-        }
-
+        //TODO add property to specify a jsonschema to allow for auto-register json schemas
         serializeData(null, schema, data, out);
     }
 
@@ -163,8 +161,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
             generator = api.decorateJsonGenerator(schema.getParsedSchema(), generator);
         }
         if (headers != null) {
-            //TODO add logic to override the messageType via config property?
-            headerUtils.addMessageTypeHeader(headers, data.getClass().getName());
+            serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
         mapper.writeValue(generator, data);
     }

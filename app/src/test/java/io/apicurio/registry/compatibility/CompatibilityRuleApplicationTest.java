@@ -16,13 +16,6 @@
 
 package io.apicurio.registry.compatibility;
 
-import java.util.Set;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
@@ -39,6 +32,11 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import javax.inject.Inject;
+import java.util.Set;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -88,19 +86,53 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
 
         Set<RuleViolation> ruleViolationCauses = ruleViolationException.getCauses();
-        RuleViolation ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age");
+        RuleViolation ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age/type");
         RuleViolation zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
 
-        Assertions.assertEquals("/properties/age", ageViolationCause.getContext());
-        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageViolationCause.getDescription());
+        /* Explanation for why the following diff type is not SUBSCHEMA_TYPE_CHANGED:
+         *
+         * Consider the following schemas, with FORWARD compatibility checking
+         * (i.e. B is newer, but is checked in a reverse order):
+         * A:
+         * ```
+         * {
+         *   "type": "object",
+         *   "properties": {
+         *     "age": {
+         *       "type": "integer",
+         *       "minimum": 0
+         *     }
+         *   }
+         * }
+         * ```
+         * B:
+         * ```
+         * {
+         *   "type": "object",
+         *   "properties": {
+         *     "age": {
+         *       "type": "string",
+         *       "minimum": 0
+         *     }
+         *   }
+         * }
+         * ```
+         * A is incompatible with B, because the `type` property has been changed from `string` to `integer`,
+         * however the `minimum` property, which is found in number schemas remained in B.
+         * The Everit library parses subschema of the `age` property in B not as a string schema with an extra property,
+         * but as a "synthetic" allOf combined schema of string and number.
+         * The compatibility checking then compares this synthetic number subschema to the number schema in A.
+         */
+        Assertions.assertEquals("/properties/age/type", ageViolationCause.getContext());
+        Assertions.assertEquals(DiffType.NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE.getDescription(), ageViolationCause.getDescription());
         Assertions.assertEquals("/properties/zipcode", zipCodeViolationCause.getContext());
         Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), zipCodeViolationCause.getDescription());
 
     }
 
     private RuleViolation findCauseByContext(Set<RuleViolation> ruleViolations, String context) {
-        for(RuleViolation violation : ruleViolations) {
-            if(violation.getContext().equals(context)) {
+        for (RuleViolation violation : ruleViolations) {
+            if (violation.getContext().equals(context)) {
                 return violation;
             }
         }

@@ -36,6 +36,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
@@ -86,6 +87,7 @@ public class RequestHandler {
 
     private static HttpClient.Builder handleConfiguration(Map<String, Object> configs) {
         HttpClient.Builder clientBuilder = HttpClient.newBuilder();
+        clientBuilder.version(Version.HTTP_1_1);
         addHeaders(configs);
         clientBuilder = addSSL(clientBuilder, configs);
         return clientBuilder;

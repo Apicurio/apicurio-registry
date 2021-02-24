@@ -40,9 +40,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Build All Variants - the ones implemented - running unit tests as well
-        run: mvn clean install -Pprod -Psql #-Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests
-      # - name: Run Integration Tests - streams
-        # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn clean install -Pprod -Psql -Pstreams #-Pinfinispan  -Pasyncmem -Pkafkasql -DskipTests
+      - name: Run Integration Tests - streams
+        run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - inmemory
         run: mvn verify -Pintegration-tests -Pacceptance -Pinmemory -am -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql
@@ -51,8 +51,8 @@ jobs:
       #   run: mvn verify -Pintegration-tests -Pacceptance -Pinfinispan -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       # - name: Run Integration Tests - kafkasql
         # run: mvn verify -Pintegration-tests -Pacceptance -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      # - name: Run Legacy Tests - streams
-        # run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Legacy Tests - streams
+        run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Legacy Tests - sql
         run: mvn verify -Pintegration-tests -Pacceptance -Psql -am -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Collect logs

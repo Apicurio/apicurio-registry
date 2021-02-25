@@ -19,7 +19,7 @@ import javax.ws.rs.core.Response;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/cncf/v0.1/schemagroups")
+@Path("/cncf/v0/schemagroups")
 public interface SchemagroupsResource {
   /**
    * Get all schema groups in namespace.

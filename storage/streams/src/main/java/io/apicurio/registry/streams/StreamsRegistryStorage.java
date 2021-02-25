@@ -126,6 +126,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     /* Fake global rules as an artifact */
     public static final String GLOBAL_RULES_ID = "__GLOBAL_RULES__";
+    public static final String GLOBAL_RULES_GROUP_ID = "__GLOBAL_RULES__";
 
     /* Fake groupId for legacy artifacts*/
     public static final String LEGACY_GROUP_ID = "null";
@@ -196,8 +197,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return !value.equals(Str.ArtifactValue.getDefaultInstance());
     }
 
-    private static boolean isGlobalRules(String artifactId) {
-        return GLOBAL_RULES_ID.equals(artifactId);
+    private static boolean isGlobalRules(String groupId, String artifactId) {
+        return GLOBAL_RULES_GROUP_ID.equals(groupId) && GLOBAL_RULES_ID.equals(artifactId);
     }
 
     private Str.ArtifactValue getLastArtifact(String groupId, String artifactId) {
@@ -784,7 +785,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         if (data != null) {
             return data.getRulesList().stream().map(v -> RuleType.fromValue(v.getType().name())).collect(Collectors.toList());
         }
-        if (isGlobalRules(artifactId)) {
+        if (isGlobalRules(groupId, artifactId)) {
             return Collections.emptyList();
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -807,7 +808,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 throw new RuleAlreadyExistsException(rule);
             }
             return submitter.submitRule(Str.ActionType.CREATE, key, rule, config.getConfiguration()).thenApply(o -> null);
-        } else if (isGlobalRules(artifactId)) {
+        } else if (isGlobalRules(groupId, artifactId)) {
             return submitter.submitRule(Str.ActionType.CREATE, key, rule, config.getConfiguration()).thenApply(o -> null);
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -823,7 +824,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             deleteArtifactRulesInternal(key);
-        } else if (!isGlobalRules(artifactId)) {
+        } else if (!isGlobalRules(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
     }
@@ -844,7 +845,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 .findFirst()
                 .map(r -> new RuleConfigurationDto(r.getConfiguration()))
                 .orElseThrow(() -> new RuleNotFoundException(rule));
-        } else if (isGlobalRules(artifactId)) {
+        } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -865,7 +866,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 .findFirst()
                 .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, key, rule, config.getConfiguration()));
-        } else if (isGlobalRules(artifactId)) {
+        } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -886,7 +887,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 .findFirst()
                 .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, key, rule, null));
-        } else if (isGlobalRules(artifactId)) {
+        } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -991,32 +992,32 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
-        return getArtifactRules(GLOBAL_RULES_ID, GLOBAL_RULES_ID);
+        return getArtifactRules(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID);
     }
 
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
-        createArtifactRule(GLOBAL_RULES_ID, GLOBAL_RULES_ID, rule, config);
+        createArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID, rule, config);
     }
 
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
-        deleteArtifactRules(GLOBAL_RULES_ID, GLOBAL_RULES_ID);
+        deleteArtifactRules(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID);
     }
 
     @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        return getArtifactRule(GLOBAL_RULES_ID, GLOBAL_RULES_ID, rule);
+        return getArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID, rule);
     }
 
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-        updateArtifactRule(GLOBAL_RULES_ID, GLOBAL_RULES_ID,  rule, config);
+        updateArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID,  rule, config);
     }
 
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        deleteArtifactRule(GLOBAL_RULES_ID, GLOBAL_RULES_ID, rule);
+        deleteArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID, rule);
     }
 
     @Override

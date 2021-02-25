@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/registry/v1/rules")
+@Path("/apis/registry/v1/rules")
 public interface RulesResource {
   /**
    * Returns information about the named globally configured rule.

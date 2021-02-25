@@ -61,6 +61,97 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     private static final String GROUP = "GroupsResourceTest";
 
     @Test
+    public void testDefaultGroup() throws Exception {
+        String oaiArtifactContent = resourceToString("openapi-empty.json");
+        String jsonArtifactContent = resourceToString("jsonschema-valid.json");
+
+        String nullGroup = "default";
+        String group = "testDefaultGroup";
+
+        // Create artifacts in null (default) group
+        createArtifact(nullGroup, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact(nullGroup, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact(nullGroup, "testDefaultGroup/EmptyAPI/3", ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact(nullGroup, "testDefaultGroup/EmptyAPI/4", ArtifactType.OPENAPI, oaiArtifactContent);
+        createArtifact(nullGroup, "testDefaultGroup/EmptyAPI/5", ArtifactType.OPENAPI, oaiArtifactContent);
+
+        // Create 2 artifacts in other group
+        createArtifact(group, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI, jsonArtifactContent);
+        createArtifact(group, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent);
+
+        // Search each group to ensure the correct # of artifacts.
+        given()
+            .when()
+                .queryParam("group", nullGroup)
+                .get("/registry/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(5));
+        given()
+            .when()
+                .queryParam("group", group)
+                .get("/registry/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(2));
+
+        // Get the artifact content
+        given()
+            .when()
+                .pathParam("groupId", nullGroup)
+                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+        given()
+            .when()
+                .pathParam("groupId", group)
+                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", not(equalTo("3.0.2")))
+                .body("info.title", not(equalTo("Empty API")));
+
+        // Test using v1 API to access artifact in the null group
+        given()
+            .when()
+                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/1")
+                .get("/registry/v1/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Create artifact using V1 API
+        createArtifact("testDefaultGroup/EmptyAPI/6", ArtifactType.OPENAPI, oaiArtifactContent);
+
+        // Test using v1 API to access artifact
+        given()
+            .when()
+                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/6")
+                .get("/registry/v1/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Test using v2 API to access artifact
+        given()
+            .when()
+                .pathParam("groupId", nullGroup)
+                .pathParam("artifactId", "testDefaultGroup/EmptyAPI/6")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+    }
+
+
+    @Test
     public void testMultipleGroups() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String jsonArtifactContent = resourceToString("jsonschema-valid.json");

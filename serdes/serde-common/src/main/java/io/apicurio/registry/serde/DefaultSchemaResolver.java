@@ -139,9 +139,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId, String version) {
-        if (groupId == null) {
-            throw new IllegalStateException("groupId cannot be null");
-        }
         if (artifactId == null) {
             throw new IllegalStateException("artifactId cannot be null");
         }

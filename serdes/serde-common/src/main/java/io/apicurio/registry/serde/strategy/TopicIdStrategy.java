@@ -27,7 +27,7 @@ public class TopicIdStrategy<T> implements ArtifactResolverStrategy<T> {
     @Override
     public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
         return ArtifactReference.builder()
-                .groupId(topic)
+                .groupId(null)
                 .artifactId(String.format("%s-%s", topic, isKey ? "key" : "value"))
                 .build();
     }

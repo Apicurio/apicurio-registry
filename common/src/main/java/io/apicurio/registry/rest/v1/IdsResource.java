@@ -11,7 +11,7 @@ import io.apicurio.registry.rest.v1.beans.ArtifactMetaData;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/registry/v1/ids")
+@Path("/apis/registry/v1/ids")
 public interface IdsResource {
   /**
    * Gets the content for an artifact version in the registry using its globally unique

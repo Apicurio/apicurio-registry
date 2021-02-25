@@ -29,7 +29,7 @@ import io.apicurio.registry.types.RuleType;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/registry/v1/artifacts")
+@Path("/apis/registry/v1/artifacts")
 public interface ArtifactsResource {
   /**
    * Returns a list of IDs of all artifacts in the registry as a flat list.  Typically the

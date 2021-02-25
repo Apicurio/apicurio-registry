@@ -14,7 +14,7 @@ import io.apicurio.registry.rest.v1.beans.VersionSearchResults;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/registry/v1/search")
+@Path("/apis/registry/v1/search")
 public interface SearchResource {
   /**
    * Returns a paginated list of all artifacts that match the provided search criteria.

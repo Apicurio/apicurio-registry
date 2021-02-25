@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests registry via its jax-rs interface.  This test performs more realistic
@@ -136,6 +137,68 @@ public class FullApiTest extends AbstractResourceTestBase {
                 .statusCode(409)
                 .body("error_code", equalTo(409))
                 .body("message", equalTo("Syntax violation for Protobuf artifact."));
+
+    }
+
+    @Test
+    public void testV1CompatibilityPath() throws Exception {
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        given()
+            .baseUri("http://localhost:8081/api")
+            .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/rules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added.
+        TestUtils.retry(() -> {
+            given()
+                .baseUri("http://localhost:8081/api")
+                .when()
+                    .get("/rules/VALIDITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("VALIDITY"))
+                    .body("config", equalTo("FULL"));
+        });
+
+        // Delete all rules
+        given()
+            .baseUri("http://localhost:8081/api")
+            .when()
+                .delete("/rules")
+            .then()
+                .statusCode(204);
+
+        // Get the list of rules (no rules now)
+        TestUtils.retry(() -> {
+            given()
+                .baseUri("http://localhost:8081/api")
+                .when()
+                    .get("/rules")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0]", nullValue());
+        });
+
+        // Get the other (deleted) rule by name (should fail with a 404)
+        given()
+            .baseUri("http://localhost:8081/api")
+            .when()
+                .get("/rules/VALIDITY")
+            .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
 
     }
 

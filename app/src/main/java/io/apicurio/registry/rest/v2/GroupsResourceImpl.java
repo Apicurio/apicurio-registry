@@ -52,6 +52,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -99,6 +100,7 @@ import io.apicurio.registry.utils.ArtifactIdValidator;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
+@RestMetricsResponseFilteredNameBinding
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @RestMetricsApply
 @Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})

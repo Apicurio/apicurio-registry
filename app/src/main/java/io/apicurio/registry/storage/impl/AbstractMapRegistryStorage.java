@@ -250,7 +250,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     private boolean valueIsSearchExact(String search, String value) {
-        return value != null && StringUtils.equalsIgnoreCase(value, search);
+        return (search == null && value == null) || (value != null && StringUtils.equalsIgnoreCase(value, search));
     }
 
     private Optional<ArtifactMetaDataDto> getOptionalArtifactMetadata(ArtifactKey artifactKey) {

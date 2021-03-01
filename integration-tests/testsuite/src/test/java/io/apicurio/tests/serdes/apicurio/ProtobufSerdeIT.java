@@ -69,7 +69,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -91,7 +91,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -110,13 +110,12 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         String topicName = TestUtils.generateSubject();
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        String groupId = TestUtils.generateSubject();
         String artifactId = topicName + "-value";
 
         ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(groupId, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
             .withTopic(topicName)
@@ -154,7 +153,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
             .withTopic(topicName)
@@ -177,7 +176,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -200,7 +199,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -223,7 +222,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
             .withTopic(topicName)
@@ -259,6 +258,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withDataGenerator(schema::generateMessage)
             .withDataValidator(schema::validateMessage)
             .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName)
             .build()
             .test();
 
@@ -273,7 +273,7 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         String schemaContent = resourceToString("serdes/testmessage.proto");
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(schemaContent));
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
@@ -309,12 +309,12 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withDataValidator(schema::validateMessage)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
         assertEquals(1, versions);
 
     }
@@ -338,12 +338,12 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
         assertEquals(1, versions);
     }
 
@@ -366,12 +366,12 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
             })
             .build()
             .test();
 
-        int versions = registryClient.listArtifactVersions(topicName, artifactId, 0, 10).getCount();
+        int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
         assertEquals(1, versions);
     }
 

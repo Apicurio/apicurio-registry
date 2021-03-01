@@ -115,6 +115,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 //        return b.build();
 //    }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProto() throws Exception {
         try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(restClient);
@@ -134,7 +135,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(globalId -> {
                 if (restClient.getContentByGlobalId(globalId) != null) {
-                    ArtifactMetaData artifactMetadata = restClient.getArtifactMetaData(topic, topic);
+                    ArtifactMetaData artifactMetadata = restClient.getArtifactMetaData(null, topic);
                     assertEquals(globalId, artifactMetadata.getGlobalId());
                     return true;
                 }

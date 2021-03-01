@@ -160,9 +160,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
-        if (artifactReference.getGroupId() == null) {
-            throw new RuntimeException("Invalid artifact reference, GroupId is null. Override by configuring a GroupId directly in your serializer using property 'SerdeConfigKeys.EXPLICIT_ARTIFACT_GROUP_ID'.");
-        }
         return artifactReference;
     }
 

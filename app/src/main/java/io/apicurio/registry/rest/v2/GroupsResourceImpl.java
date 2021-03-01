@@ -132,11 +132,11 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(groupId, artifactId);
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
-        StoredArtifactDto artifact = storage.getArtifact(groupId, artifactId);
+        StoredArtifactDto artifact = storage.getArtifact(gidOrNull(groupId), artifactId);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -179,7 +179,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        storage.deleteArtifact(groupId, artifactId);
+        storage.deleteArtifact(gidOrNull(groupId), artifactId);
     }
 
     /**
@@ -190,8 +190,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
-        return V2ApiUtil.dtoToMetaData(groupId, artifactId, dto.getType(), dto);
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
+        return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, dto.getType(), dto);
     }
 
     /**
@@ -207,7 +207,7 @@ public class GroupsResourceImpl implements GroupsResource {
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
-        storage.updateArtifactMetaData(groupId, artifactId, dto);
+        storage.updateArtifactMetaData(gidOrNull(groupId), artifactId, dto);
     }
 
     /**
@@ -230,8 +230,8 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
-        return V2ApiUtil.dtoToVersionMetaData(groupId, artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, canonical, content);
+        return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, dto.getType(), dto);
     }
 
     /**
@@ -242,7 +242,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        return storage.getArtifactRules(groupId, artifactId);
+        return storage.getArtifactRules(gidOrNull(groupId), artifactId);
     }
 
     /**
@@ -255,7 +255,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
-        storage.createArtifactRule(groupId, artifactId, data.getType(), config);
+        storage.createArtifactRule(gidOrNull(groupId), artifactId, data.getType(), config);
     }
 
     /**
@@ -266,7 +266,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        storage.deleteArtifactRules(groupId, artifactId);
+        storage.deleteArtifactRules(gidOrNull(groupId), artifactId);
     }
 
     /**
@@ -278,7 +278,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("artifactId", artifactId);
         requireParameter("rule", rule);
 
-        RuleConfigurationDto dto = storage.getArtifactRule(groupId, artifactId, rule);
+        RuleConfigurationDto dto = storage.getArtifactRule(gidOrNull(groupId), artifactId, rule);
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
         rval.setType(rule);
@@ -295,7 +295,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("rule", rule);
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
-        storage.updateArtifactRule(groupId, artifactId, rule, dto);
+        storage.updateArtifactRule(gidOrNull(groupId), artifactId, rule, dto);
         Rule rval = new Rule();
         rval.setType(rule);
         rval.setConfig(data.getConfig());
@@ -311,7 +311,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("artifactId", artifactId);
         requireParameter("rule", rule);
 
-        storage.deleteArtifactRule(groupId, artifactId, rule);
+        storage.deleteArtifactRule(gidOrNull(groupId), artifactId, rule);
     }
 
     /**
@@ -322,7 +322,7 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("body.state", data.getState());
-        storage.updateArtifactState(groupId, artifactId, data.getState());
+        storage.updateArtifactState(gidOrNull(groupId), artifactId, data.getState());
     }
 
     /**
@@ -343,7 +343,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(groupId, artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
     /**
@@ -357,11 +357,11 @@ public class GroupsResourceImpl implements GroupsResource {
 
         long versionL = Long.valueOf(version);
 
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(groupId, artifactId, versionL);
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, versionL);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new VersionNotFoundException(groupId, artifactId, versionL);
         }
-        StoredArtifactDto artifact = storage.getArtifactVersion(groupId, artifactId, versionL);
+        StoredArtifactDto artifact = storage.getArtifactVersion(gidOrNull(groupId), artifactId, versionL);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -390,8 +390,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("version", version);
 
         long versionL = Long.valueOf(version);
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(groupId, artifactId, versionL);
-        return V2ApiUtil.dtoToVersionMetaData(groupId, artifactId, dto.getType(), dto);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, versionL);
+        return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, dto.getType(), dto);
     }
 
     /**
@@ -410,7 +410,7 @@ public class GroupsResourceImpl implements GroupsResource {
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
-        storage.updateArtifactVersionMetaData(groupId, artifactId, versionL, dto);
+        storage.updateArtifactVersionMetaData(gidOrNull(groupId), artifactId, versionL, dto);
     }
 
     /**
@@ -424,7 +424,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         long versionL = Long.valueOf(version);
 
-        storage.deleteArtifactVersionMetaData(groupId, artifactId, versionL);
+        storage.deleteArtifactVersionMetaData(gidOrNull(groupId), artifactId, versionL);
     }
 
     /**
@@ -439,7 +439,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         Long versionL = Long.valueOf(version);
 
-        storage.updateArtifactState(groupId, artifactId, versionL, data.getState());
+        storage.updateArtifactState(gidOrNull(groupId), artifactId, versionL, data.getState());
     }
 
     /**
@@ -464,7 +464,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<>();
-        filters.add(new SearchFilter(SearchFilterType.group, groupId));
+        filters.add(new SearchFilter(SearchFilterType.group, gidOrNull(groupId)));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
@@ -477,7 +477,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public void deleteArtifactsInGroup(String groupId) {
         requireParameter("groupId", groupId);
 
-        storage.deleteArtifacts(groupId);
+        storage.deleteArtifacts(gidOrNull(groupId));
     }
 
     /**
@@ -515,9 +515,9 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(groupId, artifactId, artifactType, content, RuleApplicationType.CREATE);
+            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            return storage.createArtifact(groupId, artifactId, artifactType, content)
+            return storage.createArtifact(gidOrNull(groupId), artifactId, artifactType, content)
                     .exceptionally(t -> {
                         if (t instanceof CompletionException) {
                             t = t.getCause();
@@ -529,7 +529,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     })
                     .thenCompose(amd -> amd == null ?
                             handleIfExists(groupId, xRegistryArtifactId, ifExists, finalContent, ct, fcanonical) :
-                            CompletableFuture.completedFuture(V2ApiUtil.dtoToMetaData(groupId, finalArtifactId, artifactType, amd))
+                            CompletableFuture.completedFuture(V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd))
                     );
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, ifExists, content, ct, fcanonical);
@@ -552,7 +552,7 @@ public class GroupsResourceImpl implements GroupsResource {
             limit = 20;
         }
 
-        VersionSearchResultsDto resultsDto = storage.searchVersions(groupId, artifactId, offset, limit);
+        VersionSearchResultsDto resultsDto = storage.searchVersions(gidOrNull(groupId), artifactId, offset, limit);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -577,9 +577,9 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(groupId, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(groupId, artifactId, artifactType, content)
-                .thenApply(amd -> V2ApiUtil.dtoToVersionMetaData(groupId, artifactId, artifactType, amd));
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        return storage.updateArtifact(gidOrNull(groupId), artifactId, artifactType, content)
+                .thenApply(amd -> V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd));
     }
 
     /**
@@ -600,7 +600,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param artifactId
      */
     private ArtifactType lookupArtifactType(String groupId, String artifactId) {
-        return storage.getArtifactMetaData(groupId, artifactId).getType();
+        return storage.getArtifactMetaData(gidOrNull(groupId), artifactId).getType();
     }
 
     /**
@@ -691,8 +691,8 @@ public class GroupsResourceImpl implements GroupsResource {
     private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(String groupId, String artifactId,
             ContentHandle content, String contentType, boolean canonical) {
         try {
-            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
-            ArtifactMetaData md = V2ApiUtil.dtoToMetaData(groupId, artifactId, null, mdDto);
+            ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, canonical, content);
+            ArtifactMetaData md = V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, null, mdDto);
             return CompletableFuture.completedFuture(md);
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
@@ -707,9 +707,15 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(groupId, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(groupId, artifactId, artifactType, content)
-            .thenApply(dto -> V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, dto));
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        return storage.updateArtifact(gidOrNull(groupId), artifactId, artifactType, content)
+            .thenApply(dto -> V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto));
     }
 
+    private String gidOrNull(String groupId) {
+        if ("default".equalsIgnoreCase(groupId)) {
+            return null;
+        }
+        return groupId;
+    }
 }

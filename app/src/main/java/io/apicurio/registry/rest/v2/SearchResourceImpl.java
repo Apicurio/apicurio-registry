@@ -88,7 +88,7 @@ public class SearchResourceImpl implements SearchResource {
         if (limit == null) {
             limit = 20;
         }
-        
+
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
 
@@ -100,9 +100,9 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(new SearchFilter(SearchFilterType.description, description));
         }
         if (!StringUtil.isEmpty(group)) {
-            filters.add(new SearchFilter(SearchFilterType.group, group));
+            filters.add(new SearchFilter(SearchFilterType.group, gidOrNull(group)));
         }
-        
+
         if (labels != null && !labels.isEmpty()) {
             labels.forEach(label -> {
                 filters.add(new SearchFilter(SearchFilterType.labels, label));
@@ -111,7 +111,7 @@ public class SearchResourceImpl implements SearchResource {
         if (properties != null && !properties.isEmpty()) {
             // TODO implement filtering by properties!
         }
-        
+
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
         return V2ApiUtil.dtoToSearchResults(results);
     }
@@ -126,4 +126,10 @@ public class SearchResourceImpl implements SearchResource {
         throw new UnsupportedOperationException("Search Artifacts by Content not supported yet.");
     }
 
+    private String gidOrNull(String groupId) {
+        if ("default".equalsIgnoreCase(groupId)) {
+            return null;
+        }
+        return groupId;
+    }
 }

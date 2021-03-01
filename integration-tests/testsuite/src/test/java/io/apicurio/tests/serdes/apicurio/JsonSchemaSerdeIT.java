@@ -66,7 +66,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>()
             .withTopic(topicName)
@@ -87,7 +87,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>()
             .withTopic(topicName)
@@ -141,7 +141,7 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(topicName, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.JSON, schema.getSchemaStream());
 
         new SimpleSerdesTesterBuilder<ValidMessage, Map<String, Object>>()
             .withTopic(topicName)

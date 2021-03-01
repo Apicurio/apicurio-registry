@@ -94,7 +94,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-        createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+        createArtifact(null, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
             .withTopic(topicName)
@@ -108,6 +108,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
+    @Tag(Constants.ACCEPTANCE)
     void testSimpleTopicIdStrategyFindLatest() throws Exception {
         String topicName = TestUtils.generateTopic();
         String artifactId = topicName;
@@ -124,6 +125,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withStrategy(SimpleTopicIdStrategy.class)
             .withDataGenerator(avroSchema::generateRecord)
             .withDataValidator(avroSchema::validateRecord)
+            .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName)
             .build()
             .test();
     }
@@ -192,13 +194,13 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withDataValidator(avroSchema::validateRecord)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
             })
             .build()
             .test();
 
 
-        ArtifactMetaData meta = registryClient.getArtifactMetaData(topicName, artifactId);
+        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
         byte[] rawSchema = IoUtil.toBytes(registryClient.getContentByGlobalId(meta.getGlobalId()));
 
         assertEquals(new String(avroSchema.generateSchemaBytes()), new String(rawSchema));
@@ -507,7 +509,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(topicName, artifactId) != null);
+                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
             })
             .build()
             .test();

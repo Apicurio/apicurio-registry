@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
-<project
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-        xmlns="http://maven.apache.org/POM/4.0.0"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
@@ -35,6 +33,21 @@
                         </fileset>
                     </filesets>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
@@ -112,75 +125,75 @@
         <profile>
             <id>with-proxy</id>
             <activation>
-            <property>
-                <name>proxy-server</name>
-            </property>
+                <property>
+                    <name>proxy-server</name>
+                </property>
             </activation>
             <properties>
                 <yarn-install-args>--network-concurrency=30 --child-concurrency=1 --network-timeout=100000</yarn-install-args>
             </properties>
             <build>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-enforcer-plugin</artifactId>
-                    <executions>
-                        <execution>
-                        <id>require-proxy-properties</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                            <requireProperty>
-                                <property>proxy-user</property>
-                            </requireProperty>
-                            <requireProperty>
-                                <property>proxy-password</property>
-                            </requireProperty>
-                            <requireProperty>
-                                <property>proxy-port</property>
-                            </requireProperty>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>com.github.eirslett</groupId>
-                    <artifactId>frontend-maven-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>set https proxy</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>yarn</goal>
-                            </goals>
-                            <configuration>
-                                <arguments>config set https-proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>set http proxy</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>yarn</goal>
-                            </goals>
-                            <configuration>
-                                <arguments>config set proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>set maxconn</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>yarn</goal>
-                            </goals>
-                            <configuration>
-                                <arguments>config set maxsockets 30</arguments>
-                            </configuration>
-                        </execution>
-                    </executions>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>require-proxy-properties</id>
+                                <goals>
+                                    <goal>enforce</goal>
+                                </goals>
+                                <configuration>
+                                    <rules>
+                                        <requireProperty>
+                                            <property>proxy-user</property>
+                                        </requireProperty>
+                                        <requireProperty>
+                                            <property>proxy-password</property>
+                                        </requireProperty>
+                                        <requireProperty>
+                                            <property>proxy-port</property>
+                                        </requireProperty>
+                                    </rules>
+                                    <fail>true</fail>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>set https proxy</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set https-proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>set http proxy</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>set maxconn</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set maxsockets 30</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -188,9 +201,9 @@
         <profile>
             <id>with-custom-registry</id>
             <activation>
-            <property>
-                <name>custom-registry</name>
-            </property>
+                <property>
+                    <name>custom-registry</name>
+                </property>
             </activation>
             <build>
                 <plugins>
@@ -199,14 +212,14 @@
                         <artifactId>frontend-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                            <id>yarn set registry</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>yarn</goal>
-                            </goals>
-                            <configuration>
-                                <arguments>config set registry ${custom-registry}</arguments>
-                            </configuration>
+                                <id>yarn set registry</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set registry ${custom-registry}</arguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -217,50 +230,50 @@
             <id>with-custom-cafile</id>
             <activation>
                 <property>
-                <name>custom-cafile</name>
+                    <name>custom-cafile</name>
                 </property>
             </activation>
             <build>
                 <plugins>
-                <plugin>
-                    <groupId>com.github.eirslett</groupId>
-                    <artifactId>frontend-maven-plugin</artifactId>
-                    <executions>
-                    <execution>
-                        <id>yarn set cafile</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                        <goal>yarn</goal>
-                        </goals>
-                        <configuration>
-                        <arguments>config set cafile ${custom-cafile}</arguments>
-                        </configuration>
-                    </execution>
-                    </executions>
-                </plugin>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>yarn set cafile</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set cafile ${custom-cafile}</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
         <profile>
             <id>insecure</id>
             <build>
-            <plugins>
-                <plugin>
-                    <groupId>com.github.eirslett</groupId>
-                    <artifactId>frontend-maven-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>yarn set no-strict ssl</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                            <goal>yarn</goal>
-                            </goals>
-                            <configuration>
-                            <arguments>config set strict-ssl false</arguments>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>yarn set no-strict ssl</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>config set strict-ssl false</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

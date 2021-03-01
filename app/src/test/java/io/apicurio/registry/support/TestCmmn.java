@@ -44,7 +44,6 @@ public final class TestCmmn {
         }
 
         @java.lang.Override
-        @SuppressWarnings({"unused"})
         protected java.lang.Object newInstance(
             UnusedPrivateParameter unused) {
             return new UUID();
@@ -120,6 +119,7 @@ public final class TestCmmn {
         /**
          * <code>fixed64 msb = 1;</code>
          */
+        @Override
         public long getMsb() {
             return msb_;
         }
@@ -129,6 +129,7 @@ public final class TestCmmn {
         /**
          * <code>fixed64 lsb = 2;</code>
          */
+        @Override
         public long getLsb() {
             return lsb_;
         }
@@ -193,6 +194,7 @@ public final class TestCmmn {
             return true;
         }
 
+        @SuppressWarnings("unchecked")
         @java.lang.Override
         public int hashCode() {
             if (memoizedHashCode != 0) {
@@ -458,6 +460,7 @@ public final class TestCmmn {
             /**
              * <code>fixed64 msb = 1;</code>
              */
+            @Override
             public long getMsb() {
                 return msb_;
             }
@@ -484,6 +487,7 @@ public final class TestCmmn {
             /**
              * <code>fixed64 lsb = 2;</code>
              */
+            @Override
             public long getLsb() {
                 return lsb_;
             }

@@ -1,0 +1,48 @@
+
+package io.apicurio.registry.rest.v2.beans;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+
+/**
+ * Root Type for RuleViolationCause
+ * <p>
+ * 
+ * 
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({
+    "description",
+    "context"
+})
+@io.quarkus.runtime.annotations.RegisterForReflection
+public class RuleViolationCause {
+
+    @JsonProperty("description")
+    private String description;
+    @JsonProperty("context")
+    private String context;
+
+    @JsonProperty("description")
+    public String getDescription() {
+        return description;
+    }
+
+    @JsonProperty("description")
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @JsonProperty("context")
+    public String getContext() {
+        return context;
+    }
+
+    @JsonProperty("context")
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+}

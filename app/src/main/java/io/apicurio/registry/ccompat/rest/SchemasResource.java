@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -35,9 +36,10 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#schemas">API specification</a> is owned by Confluent.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/ccompat/schemas")
+@Path("/apis/ccompat/v6/schemas")
+@RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SchemasResource {

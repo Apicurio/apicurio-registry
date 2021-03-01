@@ -23,12 +23,12 @@ import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class StoredArtifactMapper implements RowMapper<StoredArtifact> {
+public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
     
     public static final StoredArtifactMapper instance = new StoredArtifactMapper();
     
@@ -42,13 +42,13 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifact> {
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public StoredArtifact map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public StoredArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         Long globalId = rs.getLong("globalId");
         Long version = rs.getLong("version");
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
         
-        return StoredArtifact.builder().content(content).globalId(globalId).version(version).build();
+        return StoredArtifactDto.builder().content(content).globalId(globalId).version(version).build();
     }
 
 }

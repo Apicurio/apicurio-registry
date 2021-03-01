@@ -28,11 +28,13 @@ import io.apicurio.registry.utils.StringUtil;
  * @author eric.wittmann@gmail.com
  */
 public class SqlUtil {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
-    
+
+    private static final String NULL_GROUP_ID = "__$GROUPID$__";
+
     /**
-     * Serializes the given collection of labels to a string for storage in the DB.
+     * Serializes the given collection of labels to a string for artifactStore in the DB.
      * @param labels
      */
     public static String serializeLabels(List<String> labels) {
@@ -50,7 +52,7 @@ public class SqlUtil {
     }
 
     /**
-     * Deserialize the labels from their string form to a List<String> form.
+     * Deserialize the labels from their string form to a <code>List&lt;String&gt;</code> form.
      * @param labelsStr
      */
     @SuppressWarnings("unchecked")
@@ -59,14 +61,14 @@ public class SqlUtil {
             if (StringUtil.isEmpty(labelsStr)) {
                 return null;
             }
-            return (List<String>) mapper.readValue(labelsStr, List.class);
+            return mapper.readValue(labelsStr, List.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
-     * Serializes the given collection of properties to a string for storage in the DB.
+     * Serializes the given collection of properties to a string for artifactStore in the DB.
      * @param properties
      */
     public static String serializeProperties(Map<String, String> properties) {
@@ -93,12 +95,24 @@ public class SqlUtil {
             if (StringUtil.isEmpty(propertiesStr)) {
                 return null;
             }
-            return (Map<String, String>) mapper.readValue(propertiesStr, Map.class);
+            return mapper.readValue(propertiesStr, Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
-    
-    
-    
+
+    public static String normalizeGroupId(String groupId) {
+        if (groupId == null) {
+            return NULL_GROUP_ID;
+        }
+        return groupId;
+    }
+
+    public static String denormalizeGroupId(String groupId) {
+        if (NULL_GROUP_ID.equals(groupId)) {
+            return null;
+        }
+        return groupId;
+    }
+
 }

@@ -32,7 +32,7 @@ import java.util.Set;
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary.findDifferences;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
 

@@ -22,10 +22,12 @@ import {
     FlexModifiers,
     Text,
     TextContent,
-    TextVariants
+    TextVariants, ToolbarItem
 } from '@patternfly/react-core';
 import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {IfFeature} from "../../../../components/common/ifFeature";
+import {Link} from "react-router-dom";
+import "./pageheader.css";
 
 
 /**
@@ -62,9 +64,16 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
                     </TextContent>
                 </FlexItem>
                 <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
+
+                    <IfAuth isAdmin={true}>
+                        <Link className="btn-header-global-rules pf-c-button pf-m-secondary"
+                              data-testid="btn-header-global-rules" to={`/rules`}>Manage global rules</Link>
+                    </IfAuth>
+
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
-                            <Button data-testid="btn-header-upload-artifact" variant="secondary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                            <Button className="btn-header-upload-artifact" data-testid="btn-header-upload-artifact"
+                                    variant="primary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
                         </IfFeature>
                     </IfAuth>
                 </FlexItem>

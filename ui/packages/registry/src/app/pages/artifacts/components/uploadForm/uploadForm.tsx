@@ -60,6 +60,7 @@ export interface UploadArtifactFormProps extends PureComponentProps {
  */
 export interface UploadArtifactFormState extends PureComponentState {
     id: string;
+    group: string;
     type: string;
     typeIsExpanded: boolean;
     content: string;
@@ -67,6 +68,7 @@ export interface UploadArtifactFormState extends PureComponentState {
     contentIsLoading: boolean;
     formValid: boolean;
     idValid: boolean;
+    groupValid: boolean;
     debouncedOnChange: ((data: CreateArtifactData) => void) | null;
 }
 
@@ -82,6 +84,30 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     public render(): React.ReactElement {
         return (
             <Form>
+                <FormGroup
+                    label="Group"
+                    fieldId="group-id"
+                    isRequired={true}
+                >
+                    <TextInput
+                        isRequired={true}
+                        type="text"
+                        id="form-group"
+                        data-testid="form-group"
+                        name="form-group"
+                        aria-describedby="form-group-helper"
+                        value={this.state.group}
+                        placeholder="Artifact group"
+                        onChange={this.onGroupChange}
+                        validated={this.groupValidated()}
+                    />
+                    <FormHelperText
+                        isError={true}
+                        isHidden={this.state.groupValid}
+                    >
+                        Character % and non ASCII characters are not allowed
+                    </FormHelperText>
+                </FormGroup>
                 <FormGroup
                     label="ID"
                     fieldId="form-id"
@@ -160,10 +186,12 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             contentIsLoading: false,
             debouncedOnChange: debounce(this.props.onChange, 200),
             id: "",
+            group: "",
             type: "",
             typeIsExpanded: false,
             formValid: false,
-            idValid: true
+            idValid: true,
+            groupValid: true
         };
     }
 
@@ -185,7 +213,14 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     private onIdChange = (value: any): void => {
         this.setSingleState("id", value, () => {
             this.fireOnChange();
-            this.checkIdValid();
+            this.checkFormValid();
+        });
+    };
+
+    private onGroupChange = (value: any): void => {
+        this.setSingleState("group", value, () => {
+            this.fireOnChange();
+            this.checkFormValid();
         });
     };
 
@@ -219,44 +254,32 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     private isFormValid(data: CreateArtifactData): boolean {
-        return !!data.content && this.isIdValid(data);
+        const hasGroupId: boolean = data.groupId ? true : false;
+        return !!data.content && this.isIdValid(data.id) && hasGroupId && this.isIdValid(data.groupId);
     }
 
-    private checkIdValid(): void {
-        const data: CreateArtifactData = this.currentData();
-        const oldValid: boolean = this.state.idValid;
-        const newValid: boolean = this.isIdValid(data);
-        const validityChanged: boolean = oldValid !== newValid;
-        this.setState({
-            idValid: newValid
-        }, () => {
-            if (validityChanged) {
-                this.fireOnIdValid();
-            }
-        });
-    }
-
-    private isIdValid(data: CreateArtifactData): boolean {
-        if (!data.id) {
+    private isIdValid(id: string|null): boolean {
+        if (!id) {
             //id is optional, server can generate it
             return true;
         } else {
             // character % breaks the ui
-            var isAscii = (str: string) => {
-                for(var i=0;i<str.length;i++){
+            const isAscii = (str: string) => {
+                for (let i = 0; i < str.length; i++){
                     if(str.charCodeAt(i)>127){
                         return false;
                     }
                 }
                 return true;
             }
-            return data.id.indexOf("%") == -1 && isAscii(data.id);
+            return id.indexOf("%") == -1 && isAscii(id);
         }
     }
 
     private currentData(): CreateArtifactData {
         return {
             content: this.state.content,
+            groupId: this.state.group,
             id: this.state.id,
             type: this.state.type
         };
@@ -275,12 +298,6 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         }
     }
 
-    private fireOnIdValid(): void {
-        if (this.props.onValid) {
-            this.props.onValid(this.state.idValid);
-        }
-    }
-
     private typeLabel(type: string): string {
         return artifactTypes.filter( t => {
             return t.id === type;
@@ -289,8 +306,20 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
 
     private idValidated(): any {
         const data: CreateArtifactData = this.currentData();
-        if (this.isIdValid(data)) {
+        if (this.isIdValid(data.id)) {
             if (!data.id) {
+                return "default"
+            }
+            return "success"
+        } else {
+            return "error"
+        }
+    }
+
+    private groupValidated(): any {
+        const data: CreateArtifactData = this.currentData();
+        if (this.isIdValid(data.groupId)) {
+            if (!data.groupId) {
                 return "default"
             }
             return "success"

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+
 /**
  * @author Ales Justin
  */
@@ -45,36 +46,37 @@ public class Submitter<T> {
         return submitFn.apply(value);
     }
 
-    private Str.StorageValue.Builder getRVBuilder(Str.ValueType vt, Str.ActionType actionType, String artifactId, long version) {
+    private Str.StorageValue.Builder getRVBuilder(Str.ValueType vt, Str.ActionType actionType, Str.ArtifactKey key, long version) {
         Str.StorageValue.Builder builder = Str.StorageValue.newBuilder()
                                                            .setVt(vt)
                                                            .setType(actionType)
                                                            .setVersion(version);
 
-        if (artifactId != null) {
-            builder.setArtifactId(artifactId);
+        if (key != null) {
+            builder.setKey(key);
         }
         return builder;
     }
 
-    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, String artifactId, long version, ArtifactType artifactType, byte[] content, String createdBy) {
+    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, Str.ArtifactKey key, long version, ArtifactType artifactType, long contentId, String createdBy, Map<String, String> extractedContents) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
+
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
         }
-        if (content != null) {
-            builder.setContent(ByteString.copyFrom(content));
-        }
+        builder.setContentId(contentId);
 
         if (createdBy != null) {
             builder.putMetadata(CREATED_BY, createdBy);
         }
 
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.ARTIFACT, actionType, artifactId, version).setArtifact(builder);
+        builder.putAllMetadata(extractedContents);
+
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.ARTIFACT, actionType, key, version).setArtifact(builder);
         return submit(rvb.build());
     }
 
-    public CompletableFuture<T> submitMetadata(Str.ActionType actionType, String artifactId, long version, String name, String description, List<String> labels, Map<String, String> properties) {
+    public CompletableFuture<T> submitMetadata(Str.ActionType actionType, Str.ArtifactKey key, long version, String name, String description, List<String> labels, Map<String, String> properties) {
         Str.MetaDataValue.Builder builder = Str.MetaDataValue.newBuilder();
         if (name != null) {
             builder.setName(name);
@@ -91,11 +93,11 @@ public class Submitter<T> {
             builder.putAllProperties(properties);
         }
 
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.METADATA, actionType, artifactId, version).setMetadata(builder);
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.METADATA, actionType, key, version).setMetadata(builder);
         return submit(rvb.build());
     }
 
-    public CompletableFuture<T> submitRule(Str.ActionType actionType, String artifactId, RuleType type, String configuration) {
+    public CompletableFuture<T> submitRule(Str.ActionType actionType, Str.ArtifactKey key, RuleType type, String configuration) {
         Str.RuleValue.Builder builder = Str.RuleValue.newBuilder();
         if (type != null) {
             builder.setType(Str.RuleType.valueOf(type.name()));
@@ -104,7 +106,7 @@ public class Submitter<T> {
             builder.setConfiguration(configuration);
         }
 
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.RULE, actionType, artifactId, -1L).setRule(builder);
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.RULE, actionType, key, -1L).setRule(builder);
         return submit(rvb.build());
     }
 
@@ -114,12 +116,37 @@ public class Submitter<T> {
         return submit(rvb.build());
     }
 
-    public CompletableFuture<T> submitState(String artifactId, Long version, ArtifactState state) {
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.STATE,
-                                                    Str.ActionType.UPDATE,
-                                                    artifactId, version != null ? version : -1L)
-            .setState(Str.ArtifactState.valueOf(state.name()));
+	public CompletableFuture<T> submitState(Str.ArtifactKey key, Long version, ArtifactState state) {
+		Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.STATE,
+				Str.ActionType.UPDATE,
+				key, version != null ? version : -1L)
+				.setState(Str.ArtifactState.valueOf(state.name()));
+		return submit(rvb.build());
+	}
+
+    public CompletableFuture<T> submitLogConfig(Str.ActionType actionType, Str.ArtifactKey key, String logger, String logLevel) {
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.LOGCONFIG, actionType, key, -1L);
+        Str.LogConfigValue.Builder builder = Str.LogConfigValue.newBuilder();
+        if (logger != null) {
+            builder.setLogger(logger);
+        }
+        if (logLevel != null) {
+            builder.setLogLevel(logLevel);
+        }
+        rvb.setLogConfig(builder);
         return submit(rvb.build());
     }
 
+    public CompletableFuture<T> submitContent(Str.ActionType actionType, Str.ArtifactKey key, String contentHash, byte[] content, String canonicalContentHash) {
+
+        Str.ContentValue.Builder builder = Str.ContentValue.newBuilder()
+                .setContentHash(contentHash)
+                .setCanonicalHash(canonicalContentHash)
+                .setContent(ByteString.copyFrom(content));
+
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.CONTENT, actionType, key, -1L)
+                .setContent(builder);
+
+        return submit(rvb.build());
+    }
 }

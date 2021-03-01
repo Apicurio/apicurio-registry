@@ -26,7 +26,7 @@ import org.everit.json.schema.CombinedSchema.ValidationCriterion;
 import java.util.Collection;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString

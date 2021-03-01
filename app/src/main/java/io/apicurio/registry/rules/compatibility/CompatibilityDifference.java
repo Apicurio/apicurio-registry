@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rules.RuleViolation;
 
 /**
- * Represents a single compatibility difference.  These are generated when doing compatibility checking 
+ * Represents a single compatibility difference.  These are generated when doing compatibility checking
  * between two versions of an artifact.  A non-zero collection of these indicates a compatibility violation.
- * 
+ *
  * @author eric.wittmann@gmail.com
  */
 public interface CompatibilityDifference {
@@ -29,6 +29,6 @@ public interface CompatibilityDifference {
     /**
      * Converts the difference into a rule violation cause.
      */
-    public RuleViolationCause asRuleViolationCause();
-    
+    public RuleViolation asRuleViolation();
+
 }

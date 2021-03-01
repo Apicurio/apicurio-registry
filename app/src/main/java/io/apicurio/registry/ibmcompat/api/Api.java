@@ -24,6 +24,7 @@ import io.apicurio.registry.ibmcompat.model.SchemaInfo;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
 import io.apicurio.registry.metrics.RestMetricsApply;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
@@ -60,7 +61,8 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-@Path("/ibmcompat")
+@Path("/apis/ibmcompat/v1")
+@RestMetricsResponseFilteredNameBinding
 @RestMetricsApply
 @Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
 @ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})

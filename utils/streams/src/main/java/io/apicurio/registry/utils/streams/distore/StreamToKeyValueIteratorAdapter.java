@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * An adapter that adapts {@link Stream}&lt;{@link KeyValue}&lt;K, V&gt;&gt to
+ * An adapter that adapts {@link Stream}&lt;{@link KeyValue}&lt;K, V&gt;&gt; to
  * {@link KeyValueIterator}&lt;K, V&gt; and lazily evaluates it when 1st queried.
  * <p>
  * It also contains a static method for converting it the other way.

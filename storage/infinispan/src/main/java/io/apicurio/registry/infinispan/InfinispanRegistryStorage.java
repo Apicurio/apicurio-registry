@@ -16,15 +16,21 @@
 
 package io.apicurio.registry.infinispan;
 
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
-import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
-import io.apicurio.registry.storage.impl.MultiMap;
-import io.apicurio.registry.storage.impl.StorageMap;
-import io.apicurio.registry.storage.impl.TupleId;
-import io.apicurio.registry.utils.ConcurrentUtil;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -37,14 +43,17 @@ import org.infinispan.health.HealthStatus;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.util.function.SerializableBiFunction;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
+import io.apicurio.registry.storage.impl.ArtifactKey;
+import io.apicurio.registry.storage.impl.MultiMap;
+import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.StoredContent;
+import io.apicurio.registry.storage.impl.TupleId;
+import io.apicurio.registry.utils.ConcurrentUtil;
 
 /**
  * @author Ales Justin
@@ -60,10 +69,13 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
     static String KEY = "_ck";
     static String COUNTER_CACHE = "counter-cache";
+    static String CONTENT_CACHE = "content-cache";
+    static String CONTENT_HASH_CACHE = "content-hash-cache";
     static String STORAGE_CACHE = "storage-cache";
     static String ARTIFACT_RULES_CACHE = "artifact-rules-cache";
     static String GLOBAL_CACHE = "global-cache";
     static String GLOBAL_RULES_CACHE = "global-rules-cache";
+    static String LOG_CONFIGURATION_CACHE = "log-configuration-cache";
 
     @Inject
     EmbeddedCacheManager manager;
@@ -86,6 +98,35 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     protected long nextGlobalId() {
         return counter.compute(KEY, (SerializableBiFunction<? super String, ? super Long, ? extends Long>) (k, v) -> (v == null ? 1 : v + 1));
     }
+    
+    @Override
+    protected long nextContentId() {
+        return nextGlobalId();
+    }
+    
+    @Override
+    protected Map<Long, String> createContentHashMap() {
+        manager.defineConfiguration(
+            CONTENT_HASH_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(CONTENT_HASH_CACHE, true);
+    }
+    
+    @Override
+    protected Map<String, StoredContent> createContentMap() {
+        manager.defineConfiguration(
+            CONTENT_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(CONTENT_CACHE, true);
+    }
 
     @Override
     protected StorageMap createStorageMap() {
@@ -96,11 +137,10 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
                 .build()
         );
 
-        Cache<String, Map<Long, Map<String, String>>> cache = manager.getCache(STORAGE_CACHE, true);
+        Cache<ArtifactKey, Map<Long, Map<String, String>>> cache = manager.getCache(STORAGE_CACHE, true);
         return CacheStorageMap.create(cache);
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     protected Map<Long, TupleId> createGlobalMap() {
         manager.defineConfiguration(
@@ -111,6 +151,18 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         );
 
         return manager.getCache(GLOBAL_CACHE, true);
+    }
+
+    @Override
+    protected Map<String, String> createLogConfigurationMap() {
+        manager.defineConfiguration(
+                LOG_CONFIGURATION_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(LOG_CONFIGURATION_CACHE, true);
     }
 
     /**
@@ -131,9 +183,8 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactRulesMap()
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    protected MultiMap<String, String, String> createArtifactRulesMap() {
+    protected MultiMap<ArtifactKey, String, String> createArtifactRulesMap() {
         manager.defineConfiguration(
                 ARTIFACT_RULES_CACHE,
                 new ConfigurationBuilder()
@@ -141,7 +192,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
                         .build()
         );
 
-        Cache<String, MapValue<String, String>> cache = manager.getCache(ARTIFACT_RULES_CACHE, true);
+        Cache<ArtifactKey, MapValue<String, String>> cache = manager.getCache(ARTIFACT_RULES_CACHE, true);
         return new CacheMultiMap<>(cache);
     }
 

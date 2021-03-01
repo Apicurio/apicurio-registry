@@ -19,7 +19,7 @@ package io.apicurio.registry.storage;
 import io.apicurio.registry.types.RegistryException;
 
 /**
- * Base class for all storage exceptions.
+ * Base class for all artifactStore exceptions.
  * @author eric.wittmann@gmail.com
  */
 public abstract class StorageException extends RegistryException {

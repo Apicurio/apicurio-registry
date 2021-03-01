@@ -28,16 +28,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Ales Justin
  */
-public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<String, Long, Str.Data> {
+public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str.ArtifactKey, Long, Str.Data> {
     public static final String NAME = "WaitForDataService";
 
-    private final Map<String, NavigableMap<Long, ResultCF>> waitingResults = new ConcurrentHashMap<>();
+    private final Map<Str.ArtifactKey, NavigableMap<Long, ResultCF>> waitingResults = new ConcurrentHashMap<>();
 
-    private final ReadOnlyKeyValueStore<String, Str.Data> storageKeyValueStore;
+    private final ReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageKeyValueStore;
 
     public WaitForDataService(
-        ReadOnlyKeyValueStore<String, Str.Data> storageKeyValueStore,
-        ForeachActionDispatcher<String, Str.Data> storageDispatcher
+        ReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageKeyValueStore,
+        ForeachActionDispatcher<Str.ArtifactKey, Str.Data> storageDispatcher
     ) {
         this.storageKeyValueStore = Objects.requireNonNull(storageKeyValueStore);
         storageDispatcher.register(this::dataUpdated);
@@ -46,15 +46,15 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
     /**
      * Notification (from transformer)
      */
-    private void dataUpdated(String artifactId, Str.Data data) {
+    private void dataUpdated(Str.ArtifactKey key, Str.Data data) {
         if (data == null) {
             return;
         }
         // fast-path check if there are any registered futures
-        if (waitingResults.containsKey(artifactId)) {
+        if (waitingResults.containsKey(key)) {
             // re-check under lock (performed by CHM on the bucket-level)
             waitingResults.compute(
-                artifactId,
+                    key,
                 (_artifactId, cfMap) -> {
                     if (cfMap == null) {
                         // might have been de-registered after fast-path check above
@@ -80,8 +80,8 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
     }
 
     @Override
-    public Serde<String> keySerde() {
-        return Serdes.String();
+    public Serde<Str.ArtifactKey> keySerde() {
+        return new ArtifactKeySerde();
     }
 
     @Override
@@ -95,24 +95,24 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
     }
 
     @Override
-    public CompletionStage<Str.Data> apply(String artifactId, Long offset) {
+    public CompletionStage<Str.Data> apply(Str.ArtifactKey key, Long offset) {
         // 1st register the future
         ResultCF cf = new ResultCF(offset);
-        register(artifactId, cf);
+        register(key, cf);
         // 2nd check the store if it contains data for an artifactId
         try {
-            dataUpdated(artifactId, storageKeyValueStore.get(artifactId));
+            dataUpdated(key, storageKeyValueStore.get(key));
         } catch (Throwable e) {
             // exception looking up the store is propagated to cf...
-            deregister(artifactId, cf);
+            deregister(key, cf);
             cf.completeExceptionally(e);
         }
         return cf;
     }
 
-    private void register(String artifactId, ResultCF cf) {
+    private void register(Str.ArtifactKey key, ResultCF cf) {
         waitingResults.compute(
-            artifactId,
+                key,
             (_artifactId, cfMap) -> {
                 if (cfMap == null) {
                     cfMap = new TreeMap<>();
@@ -123,9 +123,9 @@ public class WaitForDataService implements AsyncBiFunctionService.WithSerdes<Str
         );
     }
 
-    private void deregister(String artifactId, ResultCF cf) {
+    private void deregister(Str.ArtifactKey key, ResultCF cf) {
         waitingResults.compute(
-            artifactId,
+                key,
             (_artifactId, cfMap) -> {
                 if (cfMap == null) {
                     return null;

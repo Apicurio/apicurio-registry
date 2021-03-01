@@ -26,22 +26,14 @@ jobs:
       - name: Checkout Code with Ref '${{ github.ref }}' 
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: '11'
           architecture: x64
 
-      - name: Cache Dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -pl !tests
+        run: mvn clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql #-Pinfinispan 
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -84,19 +76,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: '11'
           architecture: x64
-
-      - name: Cache Dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       - name: Build Converters Distro (used in testsuite)
         run: mvn install -pl distro/connect-converter -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress

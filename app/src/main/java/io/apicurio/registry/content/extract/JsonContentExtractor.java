@@ -16,14 +16,15 @@
 
 package io.apicurio.registry.content.extract;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.content.ContentHandle;
 
 /**
  * Performs meta-data extraction for JSON Schema content.
@@ -39,20 +40,20 @@ public class JsonContentExtractor implements ContentExtractor {
     private JsonContentExtractor() {
     }
 
-    public EditableMetaData extract(ContentHandle content) {
+    public ExtractedMetaData extract(ContentHandle content) {
         try {
             JsonNode jsonSchema = mapper.readTree(content.bytes());
             JsonNode title = jsonSchema.get("title");
             JsonNode desc = jsonSchema.get("description");
             
-            EditableMetaData metaData = null;
+            ExtractedMetaData metaData = null;
             if (title != null && !title.isNull()) {
-                metaData = new EditableMetaData();
+                metaData = new ExtractedMetaData();
                 metaData.setName(title.asText());
             }
             if (desc != null && !desc.isNull()) {
                 if (metaData == null) {
-                    metaData = new EditableMetaData();
+                    metaData = new ExtractedMetaData();
                 }
                 metaData.setDescription(desc.asText());
             }

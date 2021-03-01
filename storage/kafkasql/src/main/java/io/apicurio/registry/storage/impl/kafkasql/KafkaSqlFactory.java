@@ -146,7 +146,7 @@ public class KafkaSqlFactory {
             public Properties adminProperties() {
                 return adminProperties;
             }
-            
+
         };
         return config;
     }
@@ -161,7 +161,7 @@ public class KafkaSqlFactory {
 
         // Configure kafka settings
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topic);
+        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
@@ -192,5 +192,5 @@ public class KafkaSqlFactory {
         KafkaConsumer<MessageKey, MessageValue> consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
         return consumer;
     }
-    
+
 }

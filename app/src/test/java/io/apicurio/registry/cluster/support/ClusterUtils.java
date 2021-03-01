@@ -27,7 +27,7 @@ public class ClusterUtils {
         String ci = properties.getProperty("initializer");
         if (ci != null) {
             ClassLoader classLoader = ClusterUtils.class.getClassLoader();
-            initializer = (ClusterInitializer) classLoader.loadClass(ci).newInstance();
+            initializer = (ClusterInitializer) classLoader.loadClass(ci).getConstructor().newInstance();
             configMap = initializer.startCluster();
         }
 

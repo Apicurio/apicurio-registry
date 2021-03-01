@@ -25,6 +25,8 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
@@ -32,6 +34,8 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.types.RegistryException;
@@ -53,7 +57,7 @@ public class KafkaSqlSink {
 
     @Inject
     KafkaSqlConfiguration configuration;
-    
+
     @Inject
     KafkaSqlSubmitter submitter;
 
@@ -64,11 +68,11 @@ public class KafkaSqlSink {
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
      * each message much be consumed and applied to the in-memory SQL data store.
-     * 
+     *
      * This method extracts the UUID from the message headers, delegates the message processing
      * to <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally
      * it will report the result to any local threads that may be waiting (via the coordinator).
-     * 
+     *
      * @param record
      */
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
@@ -78,13 +82,13 @@ public class KafkaSqlSink {
             return;
         }
 
-        // If the value is null, then this is a tombstone (or unrecognized) message and should not 
+        // If the value is null, then this is a tombstone (or unrecognized) message and should not
         // be processed.
         if (record.value() == null) {
             log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
             return;
         }
-        
+
         UUID requestId = extractUuid(record);
         log.debug("Processing Kafka message with UUID: {}", requestId.toString());
 
@@ -132,12 +136,14 @@ public class KafkaSqlSink {
             Long globalId = toGlobalId(offset, partition);
             return globalId;
         };
-        
+
         String tenantId = key.getTenantId();
         tenantContext.tenantId(tenantId);
         try {
             MessageType messageType = key.getType();
             switch (messageType) {
+                case Group:
+                    return processGroupMessage((GroupKey) key, (GroupValue) value);
                 case Artifact:
                     return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
                 case ArtifactRule:
@@ -147,7 +153,9 @@ public class KafkaSqlSink {
                 case Content:
                     return processContent((ContentKey) key, (ContentValue) value);
                 case GlobalRule:
-                    return processGlobalRuleVersion((GlobalRuleKey) key, (GlobalRuleValue) value);
+                    return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
+                case LogConfig:
+                    return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
                 default:
                     log.warn("Unrecognized message type: %s", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -158,24 +166,40 @@ public class KafkaSqlSink {
     }
 
     /**
+     * Process a Kafka message of type "group".  This includes creating, updating, and deleting groups.
+     * @param key
+     * @param value
+     */
+    private Object processGroupMessage(GroupKey key, GroupValue value) {
+        switch (value.getAction()) {
+            case Delete:
+                sqlStore.deleteArtifacts(key.getGroupId());
+                return null;
+            default:
+                log.warn("Unsupported group message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported group message action: " + value.getAction());
+        }
+    }
+
+    /**
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
      * @param key
      * @param value
-     * @param globalIdGenerator 
+     * @param globalIdGenerator
      */
     private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) throws RegistryStorageException {
         try {
             switch (value.getAction()) {
                 case Create:
-                    return sqlStore.createArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                    return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
                 case Update:
-                    return sqlStore.updateArtifactWithMetadata(key.getArtifactId(), value.getArtifactType(),
+                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
                 case Delete:
-                    return sqlStore.deleteArtifact(key.getArtifactId());
+                    return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
                 case Clear:
                 default:
                     log.warn("Unsupported artifact message action: %s", key.getType().name());
@@ -198,14 +222,14 @@ public class KafkaSqlSink {
     private Object processArtifactRuleMessage(ArtifactRuleKey key, ArtifactRuleValue value) {
         switch (value.getAction()) {
             case Create:
-                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what 
+                // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
-                return sqlStore.createArtifactRuleAsync(key.getArtifactId(), key.getRuleType(), value.getConfig());
+                return sqlStore.createArtifactRuleAsync(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
             case Update:
-                sqlStore.updateArtifactRule(key.getArtifactId(), key.getRuleType(), value.getConfig());
+                sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;
             case Delete:
-                sqlStore.deleteArtifactRule(key.getArtifactId(), key.getRuleType());
+                sqlStore.deleteArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType());
                 return null;
             case Clear:
             default:
@@ -216,24 +240,24 @@ public class KafkaSqlSink {
 
     /**
      * Process a Kafka message of type "artifact version".  This includes:
-     * 
+     *
      *  - Updating version meta-data and state
      *  - Deleting version meta-data and state
      *  - Deleting an artifact version
-     * 
+     *
      * @param key
      * @param value
      */
     private Object processArtifactVersion(ArtifactVersionKey key, ArtifactVersionValue value) {
         switch (value.getAction()) {
             case Update:
-                sqlStore.updateArtifactVersionMetaDataAndState(key.getArtifactId(), key.getVersion(), value.getMetaData(), value.getState());
+                sqlStore.updateArtifactVersionMetaDataAndState(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData(), value.getState());
                 return null;
             case Delete:
-                sqlStore.deleteArtifactVersion(key.getArtifactId(), key.getVersion());
+                sqlStore.deleteArtifactVersion(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
             case Clear:
-                sqlStore.deleteArtifactVersionMetaData(key.getArtifactId(), key.getVersion());
+                sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
             case Create:
             default:
@@ -268,11 +292,11 @@ public class KafkaSqlSink {
     /**
      * Process a Kafka message of type "global rule".  This includes creating, updating, and deleting
      * global rules.
-     * 
+     *
      * @param key
      * @param value
      */
-    private Object processGlobalRuleVersion(GlobalRuleKey key, GlobalRuleValue value) {
+    private Object processGlobalRule(GlobalRuleKey key, GlobalRuleValue value) {
         switch (value.getAction()) {
             case Create:
                 sqlStore.createGlobalRule(key.getRuleType(), value.getConfig());
@@ -287,6 +311,26 @@ public class KafkaSqlSink {
             default:
                 log.warn("Unsupported global rule message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "log config".  This includes updating and deleting
+     * log configurations.
+     * @param key
+     * @param value
+     */
+    private Object processLogConfig(LogConfigKey key, LogConfigValue value) {
+        switch (value.getAction()) {
+            case Update:
+                sqlStore.setLogConfiguration(value.getConfig());
+                return null;
+            case Delete:
+                sqlStore.removeLogConfiguration(value.getConfig().getLogger());
+                return null;
+            default:
+                log.warn("Unsupported log config message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported log config message action: " + value.getAction());
         }
     }
 

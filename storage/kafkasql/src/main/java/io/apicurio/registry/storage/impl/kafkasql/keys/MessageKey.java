@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
- * When the KSQL storage publishes a message to its Kafka topic, the message key will be a class that 
+ * When the KSQL artifactStore publishes a message to its Kafka topic, the message key will be a class that 
  * implements this interface.
  * @author eric.wittmann@gmail.com
  */

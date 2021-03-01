@@ -23,11 +23,12 @@ import java.util.Objects;
 
 /**
  * Contains all of the information needed by a rule executor, including the rule-specific
- * configuration, current & updated content, and any other meta-data needed.
+ * configuration, current and updated content, and any other meta-data needed.
  *
  * @author Ales Justin
  */
 public class RuleContext {
+    private final String groupId;
     private final String artifactId;
     private final ArtifactType artifactType;
     private final String configuration;
@@ -36,21 +37,30 @@ public class RuleContext {
 
     /**
      * Constructor.
+     * @param groupId
      * @param artifactId
      * @param artifactType
      * @param configuration
      * @param currentContent
      * @param updatedContent
      */
-    public RuleContext(String artifactId, ArtifactType artifactType, String configuration,
+    public RuleContext(String groupId, String artifactId, ArtifactType artifactType, String configuration,
                        ContentHandle currentContent, ContentHandle updatedContent) {
+        this.groupId = groupId;
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
         this.currentContent = currentContent; // Current Content will be null when creating an artifact.
         this.updatedContent = Objects.requireNonNull(updatedContent);
     }
-    
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
     /**
      * @return the artifactId
      */
@@ -78,7 +88,7 @@ public class RuleContext {
     public ContentHandle getCurrentContent() {
         return currentContent;
     }
-    
+
     /**
      * @return the updatedContent
      */

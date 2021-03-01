@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rules.RuleViolation;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -24,7 +24,7 @@ import io.apicurio.registry.rest.beans.RuleViolationCause;
 public class GenericCompatibilityDifference implements CompatibilityDifference {
 
     private final String message;
-    
+
     /**
      * Constructor.
      * @param e
@@ -40,16 +40,16 @@ public class GenericCompatibilityDifference implements CompatibilityDifference {
     public GenericCompatibilityDifference(String message) {
         this.message = message;
     }
-    
+
     /**
-     * @see io.apicurio.registry.rules.compatibility.CompatibilityDifference#asRuleViolationCause()
+     * @see io.apicurio.registry.rules.compatibility.CompatibilityDifference#asRuleViolation()
      */
     @Override
-    public RuleViolationCause asRuleViolationCause() {
-        RuleViolationCause cause = new RuleViolationCause();
-        cause.setDescription(message);
-        cause.setContext("/");
-        return cause;
+    public RuleViolation asRuleViolation() {
+        RuleViolation violation = new RuleViolation();
+        violation.setDescription(message);
+        violation.setContext("/");
+        return violation;
     }
 
 }

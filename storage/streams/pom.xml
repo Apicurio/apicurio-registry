@@ -68,17 +68,22 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-rest-client</artifactId>
+            <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-serde</artifactId>
+            <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-converter</artifactId>
+            <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

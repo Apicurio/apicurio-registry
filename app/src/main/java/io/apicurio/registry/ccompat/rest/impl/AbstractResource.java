@@ -24,7 +24,7 @@ import javax.inject.Inject;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public abstract class AbstractResource {
 

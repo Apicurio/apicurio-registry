@@ -8,9 +8,9 @@ import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
 /**
- * Fail readiness check if the duration of processing a storage operation is too high.
+ * Fail readiness check if the duration of processing a artifactStore operation is too high.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptor
 @PersistenceTimeoutReadinessApply

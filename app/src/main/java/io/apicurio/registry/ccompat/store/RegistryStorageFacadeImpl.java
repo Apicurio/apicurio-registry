@@ -27,15 +27,15 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
@@ -75,7 +75,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
         final String artifactId = storage.getArtifactMetaData(globalId).getId();
 
-        return storage.getArtifactVersions(artifactId)
+        return storage.getArtifactVersions(null, artifactId)
                 .stream()
                 .map(version -> FacadeConverter.convert(artifactId, version))
                 .collect(Collectors.toList());
@@ -83,7 +83,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.deleteArtifact(subject)
+        return storage.deleteArtifact(null, subject)
                 .stream()
                 .map(FacadeConverter::convertUnsigned)
                 .collect(Collectors.toList());
@@ -92,23 +92,23 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
         return FacadeConverter.convert(storage.getArtifactVersion(globalId));
-        // TODO StoredArtifact should contain artifactId IF we are not treating globalId separately
+        // TODO StoredArtifactDto should contain artifactId IF we are not treating globalId separately
     }
 
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return parseVersionString(subject, versionString,
                 version -> {
-                    if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(subject, version).getState())) {
-                        throw new VersionNotFoundException(subject, version);
+                    if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
+                        throw new VersionNotFoundException(null, subject, version);
                     }
-                    return FacadeConverter.convert(subject, storage.getArtifactVersion(subject, version));
+                    return FacadeConverter.convert(subject, storage.getArtifactVersion(null, subject, version));
                 });
     }
 
     @Override
     public List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersions(subject)
+        return storage.getArtifactVersions(null, subject)
                 .stream()
                 .map(FacadeConverter::convertUnsigned)
                 .collect(Collectors.toList());
@@ -117,8 +117,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
         // Don't canonicalize the content when getting it - Confluent does not.
-        ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(subject, false, ContentHandle.create(schema.getSchema()));
-        StoredArtifact storedArtifact = storage.getArtifactVersion(subject, amd.getVersion());
+        ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()));
+        StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, amd.getVersion());
         return FacadeConverter.convert(subject, storedArtifact);
     }
 
@@ -129,7 +129,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             ContentHandle content = ContentHandle.create(schema);
             // Don't canonicalize the content when getting it - Confluent does not.
-            ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(subject, false, content);
+            ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
             return CompletableFuture.completedFuture(dto.getGlobalId());
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
@@ -145,7 +145,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return FacadeConverter.convertUnsigned(parseVersionString(subject, versionString, version -> {
-            storage.deleteArtifactVersion(subject, version);
+            storage.deleteArtifactVersion(null, subject, version);
             return version;
         }));
     }
@@ -153,9 +153,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public void createOrUpdateArtifactRule(String subject, RuleType type, RuleConfigurationDto dto) {
         if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY)) {
-            storage.createArtifactRule(subject, RuleType.COMPATIBILITY, dto);
+            storage.createArtifactRule(null, subject, RuleType.COMPATIBILITY, dto);
         } else {
-            storage.updateArtifactRule(subject, RuleType.COMPATIBILITY, dto);
+            storage.updateArtifactRule(null, subject, RuleType.COMPATIBILITY, dto);
         }
     }
 
@@ -176,8 +176,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
             try {
                 final ArtifactVersionMetaDataDto artifact = storage
-                        .getArtifactVersionMetaData(subject, parsedVersion);
-                rulesService.applyRules(subject, parsedVersion, artifact.getType(),
+                        .getArtifactVersionMetaData(null, subject, parsedVersion);
+                rulesService.applyRules(null, subject, parsedVersion, artifact.getType(),
                         ContentHandle.create(request.getSchema()));
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
@@ -190,11 +190,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         CompletionStage<ArtifactMetaDataDto> res;
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(subject, artifactType, ContentHandle.create(schema));
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                res = storage.createArtifact(null, subject, artifactType, ContentHandle.create(schema));
             } else {
-                rulesService.applyRules(subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
-                res = storage.updateArtifact(subject, artifactType, ContentHandle.create(schema));
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
+                res = storage.updateArtifact(null, subject, artifactType, ContentHandle.create(schema));
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -217,7 +217,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public <T> T parseVersionString(String subject, String versionString, Function<Long, T> then) {
         long version;
         if ("latest".equals(versionString)) {
-            SortedSet<Long> versions = storage.getArtifactVersions(subject);
+            SortedSet<Long> versions = storage.getArtifactVersions(null, subject);
             version = versions.last();
         } else {
             try {
@@ -241,18 +241,18 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public void deleteArtifactRule(String subject, RuleType ruleType) {
-        storage.deleteArtifactRule(subject, ruleType);
+        storage.deleteArtifactRule(null, subject, ruleType);
     }
 
     @Override
     public RuleConfigurationDto getArtifactRule(String subject, RuleType ruleType) {
-        return storage.getArtifactRule(subject, ruleType);
+        return storage.getArtifactRule(null, subject, ruleType);
     }
 
 
     private boolean doesArtifactExist(String artifactId) {
         try {
-            storage.getArtifact(artifactId);
+            storage.getArtifact(null, artifactId);
             return true;
         } catch (ArtifactNotFoundException ignored) {
             return false;
@@ -261,7 +261,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     private boolean doesArtifactRuleExist(String artifactId, RuleType type) {
         try {
-            storage.getArtifactRule(artifactId, type);
+            storage.getArtifactRule(null, artifactId, type);
             return true;
         } catch (RuleNotFoundException ignored) {
             return false;

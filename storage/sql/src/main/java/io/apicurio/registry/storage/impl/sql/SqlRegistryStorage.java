@@ -57,7 +57,7 @@ public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
 
     @PostConstruct
     void onConstruct() {
-        log.info("Using SQL storage.");
+        log.info("Using SQL artifactStore.");
     }
 
 }

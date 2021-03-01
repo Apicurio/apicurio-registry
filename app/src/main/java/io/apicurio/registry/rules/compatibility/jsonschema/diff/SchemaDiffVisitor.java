@@ -56,7 +56,7 @@ import static java.util.Objects.requireNonNull;
 import static org.everit.json.schema.CombinedSchema.ALL_CRITERION;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

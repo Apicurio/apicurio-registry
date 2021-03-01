@@ -17,7 +17,6 @@
 package io.apicurio.registry.content.extract;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
 
 /**
  * @author Ales Justin
@@ -28,7 +27,7 @@ public class NoopContentExtractor implements ContentExtractor {
     private NoopContentExtractor() {
     }
 
-    public EditableMetaData extract(ContentHandle content) {
+    public ExtractedMetaData extract(ContentHandle content) {
         return null;
     }
 }

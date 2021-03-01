@@ -17,6 +17,7 @@
 package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.ccompat.dto.Schema;
 
 import java.util.List;
@@ -37,9 +38,10 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/ccompat/subjects")
+@Path("/apis/ccompat/v6/subjects")
+@RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SubjectsResource {

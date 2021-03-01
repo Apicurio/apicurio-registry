@@ -48,13 +48,6 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
             <Toolbar className="header-toolbar">
                 <ToolbarGroup>
                     <ToolbarItem>
-                        <IfAuth isAdmin={true}>
-                            <Link data-testid="masthead-lnk-settings" className="header-icon" to={`/rules`}>
-                                <CogIcon/>
-                            </Link>
-                        </IfAuth>
-                    </ToolbarItem>
-                    <ToolbarItem>
                         <IfAuth enabled={true}>
                             <AvatarDropdown />
                         </IfAuth>

@@ -2,6 +2,7 @@ package io.apicurio.registry.streams;
 
 import com.google.common.collect.ImmutableMap;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
 import io.apicurio.registry.types.Current;
@@ -89,20 +90,20 @@ public class StreamsRegistryConfiguration {
 
     @Produces
     @ApplicationScoped
-    public ProducerActions<String, Str.StorageValue> storageProducer(
+    public ProducerActions<Str.ArtifactKey, Str.StorageValue> storageProducer(
         @RegistryProperties(
                 value = {"registry.streams.common", "registry.streams.storage-producer"},
                 empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
         return new AsyncProducer<>(
-            properties,
-            Serdes.String().serializer(),
-            ProtoSerde.parsedWith(Str.StorageValue.parser())
+                properties,
+                new ArtifactKeySerde().serializer(),
+                ProtoSerde.parsedWith(Str.StorageValue.parser())
         );
     }
 
-    public void stopStorageProducer(@Disposes ProducerActions<String, Str.StorageValue> producer) throws Exception {
+    public void stopStorageProducer(@Disposes ProducerActions<Str.ArtifactKey, Str.StorageValue> producer) throws Exception {
         producer.close();
     }
 
@@ -125,7 +126,7 @@ public class StreamsRegistryConfiguration {
     public KafkaStreams storageStreams(
         StreamsProperties properties,
         KafkaClientSupplier kafkaClientSupplier, // this injection is here to create a dependency on previous auto-create topics code
-        ForeachAction<? super String, ? super Str.Data> dataDispatcher,
+        ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dataDispatcher,
         ArtifactTypeUtilProviderFactory factory
     ) {
         Topology topology = new StreamsTopologyProvider(properties, dataDispatcher, factory).get();
@@ -155,30 +156,30 @@ public class StreamsRegistryConfiguration {
 
     @Produces
     @ApplicationScoped
-    public FilterPredicate<String, Str.Data> filterPredicate() {
+    public FilterPredicate<Str.ArtifactKey, Str.Data> filterPredicate() {
         return StreamsRegistryStorage.createFilterPredicate();
     }
 
     @Produces
     @ApplicationScoped
-    public ExtReadOnlyKeyValueStore<String, Str.Data> storageKeyValueStore(
+    public ExtReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageKeyValueStore(
         KafkaStreams streams,
         HostInfo storageLocalHost,
         StreamsProperties properties,
-        FilterPredicate<String, Str.Data> filterPredicate
+        FilterPredicate<Str.ArtifactKey, Str.Data> filterPredicate
     ) {
         return new DistributedReadOnlyKeyValueStore<>(
             streams,
             storageLocalHost,
             properties.getStorageStoreName(),
-            Serdes.String(), ProtoSerde.parsedWith(Str.Data.parser()),
+                new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.Data.parser()),
             new DefaultGrpcChannelProvider(),
             true,
             filterPredicate
         );
     }
 
-    public void destroyStorageStore(@Observes ShutdownEvent event, ExtReadOnlyKeyValueStore<String, Str.Data> store) {
+    public void destroyStorageStore(@Observes ShutdownEvent event, ExtReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> store) {
         close(store);
     }
 
@@ -196,7 +197,7 @@ public class StreamsRegistryConfiguration {
             Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()),
             new DefaultGrpcChannelProvider(),
             true,
-            (filter, over, id, tuple) -> true
+            (filter, id, tuple) -> true
         );
     }
 
@@ -206,22 +207,22 @@ public class StreamsRegistryConfiguration {
 
     @Produces
     @Singleton
-    public ForeachActionDispatcher<String, Str.Data> dataDispatcher() {
+    public ForeachActionDispatcher<Str.ArtifactKey, Str.Data> dataDispatcher() {
         return new ForeachActionDispatcher<>();
     }
 
     @Produces
     @Singleton
     public WaitForDataService waitForDataServiceImpl(
-        ReadOnlyKeyValueStore<String, Str.Data> storageKeyValueStore,
-        ForeachActionDispatcher<String, Str.Data> storageDispatcher
+        ReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageKeyValueStore,
+        ForeachActionDispatcher<Str.ArtifactKey, Str.Data> storageDispatcher
     ) {
         return new WaitForDataService(storageKeyValueStore, storageDispatcher);
     }
 
     @Produces
     @Singleton
-    public LocalService<AsyncBiFunctionService.WithSerdes<String, Long, Str.Data>> localWaitForDataService(
+    public LocalService<AsyncBiFunctionService.WithSerdes<Str.ArtifactKey, Long, Str.Data>> localWaitForDataService(
         WaitForDataService localService
     ) {
         return new LocalService<>(
@@ -233,11 +234,11 @@ public class StreamsRegistryConfiguration {
     @Produces
     @ApplicationScoped
     @Current
-    public AsyncBiFunctionService<String, Long, Str.Data> waitForDataUpdateService(
+    public AsyncBiFunctionService<Str.ArtifactKey, Long, Str.Data> waitForDataUpdateService(
         StreamsProperties properties,
         KafkaStreams streams,
         HostInfo storageLocalHost,
-        LocalService<AsyncBiFunctionService.WithSerdes<String, Long, Str.Data>> localWaitForDataUpdateService
+        LocalService<AsyncBiFunctionService.WithSerdes<Str.ArtifactKey, Long, Str.Data>> localWaitForDataUpdateService
     ) {
         return new DistributedAsyncBiFunctionService<>(
             streams,
@@ -248,7 +249,7 @@ public class StreamsRegistryConfiguration {
         );
     }
 
-    public void destroyWaitForDataUpdateService(@Observes ShutdownEvent event, @Current AsyncBiFunctionService<String, Long, Str.Data> service) {
+    public void destroyWaitForDataUpdateService(@Observes ShutdownEvent event, @Current AsyncBiFunctionService<Str.ArtifactKey, Long, Str.Data> service) {
         close(service);
     }
 
@@ -363,7 +364,7 @@ public class StreamsRegistryConfiguration {
     public KeyValueStoreGrpc.KeyValueStoreImplBase streamsKeyValueStoreGrpcImpl(
         KafkaStreams streams,
         StreamsProperties props,
-        FilterPredicate<String, Str.Data> filterPredicate
+        FilterPredicate<Str.ArtifactKey, Str.Data> filterPredicate
     ) {
         return new KeyValueStoreGrpcImplLocalDispatcher(
             streams,
@@ -371,7 +372,7 @@ public class StreamsRegistryConfiguration {
                 .newRegistry()
                 .register(
                     props.getStorageStoreName(),
-                    Serdes.String(), ProtoSerde.parsedWith(Str.Data.parser())
+                    new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.Data.parser())
                 )
                 .register(
                     props.getGlobalIdStoreName(),
@@ -384,7 +385,7 @@ public class StreamsRegistryConfiguration {
     @Produces
     @Singleton
     public AsyncBiFunctionServiceGrpc.AsyncBiFunctionServiceImplBase storageAsyncBiFunctionServiceGrpcImpl(
-        LocalService<AsyncBiFunctionService.WithSerdes<String, Long, Str.Data>> localWaitForDataService,
+        LocalService<AsyncBiFunctionService.WithSerdes<Str.ArtifactKey, Long, Str.Data>> localWaitForDataService,
         LocalService<AsyncBiFunctionService.WithSerdes<Void, Void, KafkaStreams.State>> localStateService
     ) {
         return new AsyncBiFunctionServiceGrpcLocalDispatcher(

@@ -24,23 +24,27 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class ContentKey extends AbstractMessageKey {
 
     @JsonIgnore
+    private transient String groupId; // We use the groupId for partitioning only.
+    @JsonIgnore
     private transient String artifactId; // We use the artifactId for partitioning only.
     private String contentHash;
 
     /**
      * Creator method.
      * @param tenantId
+     * @param groupId
      * @param artifactId
      * @param contentHash
      */
-    public static final ContentKey create(String tenantId, String artifactId, String contentHash) {
+    public static final ContentKey create(String tenantId, String groupId, String artifactId, String contentHash) {
         ContentKey key = new ContentKey();
         key.setTenantId(tenantId);
+        key.setGroupId(groupId);
         key.setArtifactId(artifactId);
         key.setContentHash(contentHash);
         return key;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey#getType()
      */
@@ -54,7 +58,21 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + artifactId;
+        return getTenantId() + "/" + groupId + "/" + artifactId;
+    }
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * @param groupId the groupId to set
+     */
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**

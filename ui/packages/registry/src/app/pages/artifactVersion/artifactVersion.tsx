@@ -30,7 +30,13 @@ import {
     Tabs
 } from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, VersionMetaData} from "@apicurio/registry-models";
+import {
+    ArtifactMetaData,
+    ArtifactTypes,
+    ContentTypes,
+    Rule,
+    SearchedVersion
+} from "@apicurio/registry-models";
 import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
 import {CreateVersionData, Services, EditableMetaData} from "@apicurio/registry-services";
 import {ArtifactVersionPageHeader} from "./components/pageheader";
@@ -62,7 +68,7 @@ export interface ArtifactVersionPageState extends PageState {
     isEditModalOpen: boolean;
     rules: Rule[] | null;
     uploadFormData: string | null;
-    versions: VersionMetaData[] | null;
+    versions: SearchedVersion[] | null;
     invalidContentError: any | null;
 }
 
@@ -113,19 +119,34 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             tabs.splice(1, 1);
         }
 
+        let groupId: string = this.getPathParam("groupId");
+        let hasGroup: boolean = groupId != "_";
+        let breadcrumbs = (
+            <Breadcrumb>
+                <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
+                <BreadcrumbItem><Link to={`/artifacts?group=${ encodeURIComponent(groupId) }`}
+                                      data-testid="breadcrumb-lnk-group">{ groupId }</Link></BreadcrumbItem>
+                <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
+            </Breadcrumb>
+        );
+        if (!hasGroup) {
+            breadcrumbs = (
+                <Breadcrumb>
+                    <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
+                    <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
+                </Breadcrumb>
+            );
+        }
+
         return (
             <React.Fragment>
-                <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light}>
-                    <Breadcrumb>
-                        <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
-                        <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
-                    </Breadcrumb>
-                </PageSection>
+                <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactVersionPageHeader versions={this.versions()}
                                                version={this.version()}
                                                onUploadVersion={this.onUploadVersion}
                                                onDeleteArtifact={this.onDeleteArtifact}
+                                               groupId={groupId}
                                                artifactId={this.artifactId()} />
                 </PageSection>
                 {
@@ -208,11 +229,15 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     // @ts-ignore
     protected createLoaders(): Promise[] | null {
+        let groupId: string|null = this.getPathParam("groupId");
+        if (groupId == "_") {
+            groupId = null;
+        }
         const artifactId: string = this.getPathParam("artifactId");
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
         return [
-            Services.getArtifactsService().getArtifactMetaData(artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
-            Services.getArtifactsService().getArtifactContent(artifactId, this.version())
+            Services.getGroupsService().getArtifactMetaData(groupId, artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
+            Services.getGroupsService().getArtifactContent(groupId, artifactId, this.version())
                 .then(content => this.setSingleState("artifactContent", content))
                 .catch(e => {
                     Services.getLoggerService().warn("Failed to get artifact content: ", e);
@@ -223,8 +248,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     }
                 }
             ),
-            Services.getArtifactsService().getArtifactRules(artifactId).then(rules => this.setSingleState("rules", rules)),
-            Services.getArtifactsService().getArtifactVersions(artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
+            Services.getGroupsService().getArtifactRules(groupId, artifactId).then(rules => this.setSingleState("rules", rules)),
+            Services.getGroupsService().getArtifactVersions(groupId, artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
         ];
     }
 
@@ -262,7 +287,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        Services.getArtifactsService().createArtifactRule(this.artifactId(), ruleType, config).catch(error => {
+        Services.getGroupsService().createArtifactRule(this.groupId(), this.artifactId(), ruleType, config).catch(error => {
             this.handleServerError(error, `Error enabling "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", [...this.rules(), {config, type: ruleType}]);
@@ -270,7 +295,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private doDisableRule = (ruleType: string): void => {
         Services.getLoggerService().debug("[ArtifactVersionPage] Disabling rule:", ruleType);
-        Services.getArtifactsService().deleteArtifactRule(this.artifactId(), ruleType).catch(error => {
+        Services.getGroupsService().deleteArtifactRule(this.groupId(), this.artifactId(), ruleType).catch(error => {
             this.handleServerError(error, `Error disabling "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", this.rules().filter(r => r.type !== ruleType));
@@ -278,7 +303,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private doConfigureRule = (ruleType: string, config: string): void => {
         Services.getLoggerService().debug("[ArtifactVersionPage] Configuring rule:", ruleType, config);
-        Services.getArtifactsService().updateArtifactRule(this.artifactId(), ruleType, config).catch(error => {
+        Services.getGroupsService().updateArtifactRule(this.groupId(), this.artifactId(), ruleType, config).catch(error => {
             this.handleServerError(error, `Error configuring "${ ruleType }" artifact rule.`);
         });
         this.setSingleState("rules", this.rules().map(r => {
@@ -320,12 +345,16 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         Services.getDownloaderService().downloadToFS(content, contentType, fname);
     };
 
-    private versions(): VersionMetaData[] {
+    private versions(): SearchedVersion[] {
         return this.state.versions ? this.state.versions : [];
     }
 
     private artifactId(): string {
         return this.state.artifact ? this.state.artifact.id : "";
+    }
+
+    private groupId(): string|null {
+        return this.state.artifact ? this.state.artifact.groupId : null;
     }
 
     private artifactType(): string {
@@ -375,13 +404,13 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     private doUploadArtifactVersion = (): void => {
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
-            const artifactId: string = this.artifactId();
             const data: CreateVersionData = {
                 content: this.state.uploadFormData,
                 type: this.artifactType()
             };
-            Services.getArtifactsService().createArtifactVersion(artifactId, data).then(versionMetaData => {
-                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
+            Services.getGroupsService().createArtifactVersion(this.groupId(), this.artifactId(), data).then(versionMetaData => {
+                const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "_";
+                const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
                 Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(artifactVersionLocation)();
             }).catch( error => {
@@ -396,7 +425,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private doDeleteArtifact = (): void => {
         this.onDeleteModalClose();
-        Services.getArtifactsService().deleteArtifact(this.artifactId()).then( () => {
+        Services.getGroupsService().deleteArtifact(this.groupId(), this.artifactId()).then( () => {
             this.navigateTo("/artifacts")();
         });
     };
@@ -410,13 +439,16 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     };
 
     private doEditMetaData = (metaData: EditableMetaData): void => {
-        Services.getArtifactsService().updateArtifactMetaData(this.artifactId(), this.version(), metaData);
-        if (this.state.artifact) {
-            this.setSingleState("artifact", {
-                ...this.state.artifact,
-                ...metaData
-            });
-        }
+        Services.getGroupsService().updateArtifactMetaData(this.groupId(), this.artifactId(), this.version(), metaData).then( () => {
+            if (this.state.artifact) {
+                this.setSingleState("artifact", {
+                    ...this.state.artifact,
+                    ...metaData
+                });
+            }
+        }).catch( error => {
+            this.handleServerError(error, "Error editing artifact meta-data.");
+        });
         this.onEditModalClose();
     };
 

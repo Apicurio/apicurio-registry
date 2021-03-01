@@ -25,7 +25,6 @@ import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.common.Info;
 import io.apicurio.datamodels.core.visitors.TraverserDirection;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
 
 /**
  * Performs meta-data extraction for OpenAPI content.
@@ -39,15 +38,15 @@ public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
     private OpenApiOrAsyncApiContentExtractor() {
     }
 
-    public EditableMetaData extract(ContentHandle content) {
+    public ExtractedMetaData extract(ContentHandle content) {
         try {
             Document openApi = Library.readDocumentFromJSONString(content.content());
             MetaDataVisitor viz = new MetaDataVisitor();
             Library.visitTree(openApi, viz, TraverserDirection.down);
             
-            EditableMetaData metaData = null;
+            ExtractedMetaData metaData = null;
             if (viz.name != null || viz.description != null) {
-                metaData = new EditableMetaData();
+                metaData = new ExtractedMetaData();
             }
             if (viz.name != null) {
                 metaData.setName(viz.name);

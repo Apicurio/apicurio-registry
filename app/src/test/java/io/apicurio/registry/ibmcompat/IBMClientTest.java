@@ -25,7 +25,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 public class IBMClientTest extends AbstractResourceTestBase {
 
     private SchemaRegistryRestAPIClient buildClient() throws Exception {
-        return new SchemaRegistryRestAPIClient("http://localhost:8081/api/ibmcompat", "<API_KEY>", true);
+        return new SchemaRegistryRestAPIClient("http://localhost:8081/apis/ibmcompat/v1", "<API_KEY>", true);
     }
 
 //    @Test
@@ -35,6 +35,7 @@ public class IBMClientTest extends AbstractResourceTestBase {
         String id = generateArtifactId();
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
 
+        @SuppressWarnings("rawtypes")
         SchemaRegistryRestAPIClient.Tuple tuple = client.create(id, content, true);
         Assertions.assertNotNull(tuple);
         Assertions.assertEquals(200, tuple.status);

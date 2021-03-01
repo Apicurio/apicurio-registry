@@ -22,19 +22,20 @@ import {
     DataListAction,
     DataListCell,
     DataListItemCells,
-    DataListItemRow,
-    Label
+    DataListItemRow
 } from '@patternfly/react-core';
 import {SearchedArtifact} from "@apicurio/registry-models";
 import {Link} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {ArtifactName} from "./artifactName";
+import {ArtifactGroup} from "./artifactGroup";
 
 /**
  * Properties
  */
 export interface ArtifactListProps extends PureComponentProps {
     artifacts: SearchedArtifact[];
+    onGroupClick: (groupId: string) => void;
 }
 
 /**
@@ -67,7 +68,8 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                         </DataListCell>,
                                         <DataListCell key="main content" className="content-cell">
                                             <div className="artifact-title">
-                                                <ArtifactName id={artifact.id} name={artifact.name} />
+                                                <ArtifactGroup groupId={artifact.groupId} onClick={this.props.onGroupClick} />
+                                                <ArtifactName groupId={artifact.groupId} id={artifact.id} name={artifact.name} />
                                                 {
                                                     this.statuses(artifact).map( status =>
                                                         <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>
@@ -85,13 +87,6 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
                                         </DataListCell>
                                     ]}
                                 />
-                                <DataListAction
-                                    id="artifact-actions"
-                                    aria-labelledby="artifact-actions"
-                                    aria-label="Actions"
-                                >
-                                    <Link className="pf-c-button pf-m-secondary" data-testid={`artifacts-lnk-view-${idx}`} to={this.artifactLink(artifact)}>View artifact</Link>
-                                </DataListAction>
                             </DataListItemRow>
                     )
                 }
@@ -129,4 +124,5 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         }
         return `An artifact of type ${artifact.type} with no description.`;
     }
+
 }

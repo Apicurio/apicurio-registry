@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -25,7 +23,6 @@ import java.io.InputStream;
  * @author Ales Justin
  */
 public abstract class CUJsonCommand<T> extends CUCommand {
-    private static final ObjectMapper mapper = new ObjectMapper();
     private Class<T> jsonType;
 
     public CUJsonCommand(Class<T> jsonType) {
@@ -37,6 +34,6 @@ public abstract class CUJsonCommand<T> extends CUCommand {
     @Override
     protected Object run(InputStream data) throws IOException {
         T json = mapper.readValue(data, jsonType);
-        return execute(json);
+        return mapper.writeValueAsString(execute(json));
     }
 }

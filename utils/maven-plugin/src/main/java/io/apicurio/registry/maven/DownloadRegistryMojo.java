@@ -17,20 +17,14 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactExtensionType;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-
-import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
+
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 
 /**
  * Download artifacts.
@@ -44,91 +38,86 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
      * Set of artifact ids to download.
      */
     @Parameter(required = true)
-    Set<String> ids = new LinkedHashSet<>();
+    List<DownloadArtifact> artifacts;
 
     /**
-     * Map of <artifact-id, artifact-version>.
-     * If such mapping exists, particular version will be downloaded,
-     * instead of default latest one.
+     * Validate the configuration.
      */
-    @Parameter
-    Map<String, Integer> versions = new LinkedHashMap<>();
+    protected void validate() throws MojoExecutionException {
+        if (artifacts == null || artifacts.isEmpty()) {
+            getLog().warn("No artifacts are configured for download.");
+        } else {
+            int idx = 0;
+            int errorCount = 0;
+            for (DownloadArtifact artifact : artifacts) {
+                if (artifact.getGroupId() == null) {
+                    getLog().error(String.format("GroupId is required when downloading an artifact.  Missing from artifacts[%d].", idx));
+                    errorCount++;
+                }
+                if (artifact.getArtifactId() == null) {
+                    getLog().error(String.format("ArtifactId is required when downloading an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                }
+                if (artifact.getFile() == null) {
+                    getLog().error(String.format("File is required when downloading an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                } else {
+                    if (artifact.getFile().exists()) {
+                        if (artifact.getOverwrite() == null || artifact.getOverwrite() == false) {
+                            getLog().error(String.format("File being written already exists.  Use <overwrite>true</overwrite> to replace the destination file: %s", artifact.getFile().getPath()));
+                            errorCount++;
+                        }
+                    }
+                }
 
-    /**
-     * Overwrite artifact file extension to use when writing the artifact to the filesystem.
-     */
-    @Parameter
-    String artifactExtension;
+                idx++;
+            }
 
-    /**
-     * Map of <artifact-id, artifact extension>,
-     * aka mapping of explicit artifact extension,
-     * if no such extension exists, default one is used.
-     */
-    @Parameter
-    Map<String, String> artifactExtensions = new LinkedHashMap<>();
-
-    /**
-     * Output directory, where artifacts get written.
-     */
-    @Parameter(required = true)
-    File outputDirectory;
-
-    @Parameter
-    boolean replaceExisting = true;
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Invalid configuration of the Download Artifact(s) mojo. See the output log for details.");
+            }
+        }
+    }
 
     @Override
     protected void executeInternal() throws MojoExecutionException {
-        try {
-            getLog().debug(String.format("Checking if '%s' exists and is not a directory.", outputDirectory));
-            if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
-                throw new IllegalStateException("outputDirectory must be a directory");
-            }
-            getLog().debug(String.format("Checking if outputDirectory('%s') exists.", outputDirectory));
-            if (!outputDirectory.isDirectory()) {
-                getLog().debug(String.format("Creating outputDirectory('%s').", outputDirectory));
-                if (!outputDirectory.mkdirs()) {
-                    throw new IllegalStateException("Could not create output directory " + outputDirectory);
+        validate();
+
+        int errorCount = 0;
+        if (artifacts != null) {
+            for (DownloadArtifact artifact : artifacts) {
+                String groupId = artifact.getGroupId();
+                String artifactId = artifact.getArtifactId();
+                String version = artifact.getVersion();
+                boolean replaceExisting = artifact.getOverwrite() == null ? false : artifact.getOverwrite();
+
+                getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId, version));
+
+                try (InputStream content = version == null ?
+                            getClient().getLatestArtifact(groupId, artifactId) :
+                            getClient().getArtifactVersion(groupId, artifactId, version)) {
+
+                    if (!artifact.getFile().getParentFile().exists()) {
+                        artifact.getFile().getParentFile().mkdirs();
+                    }
+
+                    if (replaceExisting) {
+                        Files.copy(content, artifact.getFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    } else {
+                        Files.copy(content, artifact.getFile().toPath());
+                    }
+                } catch (Exception e) {
+                    errorCount++;
+                    getLog().error(String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId), e);
                 }
+
+                getLog().info(String.format("Downloaded artifact [%s] / [%s] to %s.", groupId, artifactId, artifact.getFile()));
             }
-        } catch (Exception ex) {
-            throw new MojoExecutionException("Exception thrown while creating outputDirectory", ex);
         }
 
-        for (String id : ids) {
-            String ext = artifactExtensions.getOrDefault(id, artifactExtension);
-            // Explicit file extension is not defined, getting it from the metadata
-            if (ext == null || ext.equals("")) {
-                try {
-                    ArtifactMetaData artifactMetaData = getClient().getArtifactMetaData(id);
-                    ext = ".".concat(ArtifactExtensionType.fromArtifactType(artifactMetaData.getType()).toString());
-                } catch (Exception ex) {
-                    throw new MojoExecutionException(
-                            String.format("Exception thrown while getting artifact [%s] metadata", id),
-                            ex
-                    );
-                }
-            }
-            String fileName = String.format("%s%s", id, ext);
-            File outputFile = new File(outputDirectory, fileName);
-
-            getLog().info(String.format("Downloading artifact for id [%s] to %s.", id, outputFile));
-
-            Integer version = versions.get(id);
-            try (InputStream stream = (version != null) ?
-                    getClient().getArtifactVersion(id, version) :
-                    getClient().getLatestArtifact(id)) {
-                if (replaceExisting) {
-                    Files.copy(stream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                } else {
-                    Files.copy(stream, outputFile.toPath());
-                }
-            } catch (Exception ex) {
-                throw new MojoExecutionException(
-                        String.format("Exception thrown while downloading artifact [%s] to %s", id, outputFile),
-                        ex
-                );
-            }
+        if (errorCount > 0) {
+            throw new MojoExecutionException("Errors while downloading artifacts ...");
         }
+
     }
 }

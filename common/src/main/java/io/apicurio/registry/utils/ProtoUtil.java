@@ -74,6 +74,7 @@ public class ProtoUtil {
         return printer.print(msg);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T fromJson(Message.Builder builder, String json, boolean ignoreUnknownFields) throws InvalidProtocolBufferException {
         JsonFormat.Parser parser = JsonFormat.parser();
         if (ignoreUnknownFields) {

@@ -32,6 +32,9 @@ public class MessageTypeToValueClass {
     static {
         for (MessageType type : types) {
             switch (type) {
+                case Group:
+                    index.put(type, GroupValue.class);
+                    break;
                 case Artifact:
                     index.put(type, ArtifactValue.class);
                     break;
@@ -44,23 +47,25 @@ public class MessageTypeToValueClass {
                 case GlobalRule:
                     index.put(type, GlobalRuleValue.class);
                     break;
+                case LogConfig:
+                    index.put(type, LogConfigValue.class);
+                    break;
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionValue.class);
                     break;
                 default:
-                    break;
-                
+                    throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }
         }
     }
-    
+
     public static final Class<? extends MessageValue> typeToValue(MessageType type) {
         return index.get(type);
     }
-    
+
     public static final Class<? extends MessageValue> ordToValue(byte typeOrdinal) {
         MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToValue(type);
     }
-    
+
 }

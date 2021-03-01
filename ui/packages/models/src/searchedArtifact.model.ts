@@ -19,6 +19,7 @@
 // tslint:disable-next-line:interface-name
 export interface SearchedArtifact {
 
+    groupId: string|null;
     id: string;
     type: string;
     state: string;

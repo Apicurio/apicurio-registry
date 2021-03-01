@@ -24,9 +24,9 @@ import org.jdbi.v3.core.Handle;
 public interface IDbUpgrader {
 
     /**
-     * Called by the {@link JdbcStorage} class when upgrading the database.
+     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
      * @param dbHandle
      */
     public void upgrade(Handle dbHandle) throws Exception;
-    
+
 }

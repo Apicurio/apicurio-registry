@@ -16,17 +16,17 @@
 
 package io.apicurio.registry.rules.validity;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.core.models.Document;
 import io.apicurio.datamodels.core.models.ValidationProblem;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A content validator implementation for the OpenAPI and AsyncAPI content types.
@@ -47,11 +47,11 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
                 throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.", RuleType.VALIDITY, level.name(), e);
             }
         }
-        
+
         if (level == ValidityLevel.FULL) {
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
-                Set<RuleViolationCause> causes = problems.stream().map(problem -> new RuleViolationCause(problem.message, problem.nodePath.toString())).collect(Collectors.toSet());
+                Set<RuleViolation> causes = problems.stream().map(problem -> new RuleViolation(problem.message, problem.nodePath.toString())).collect(Collectors.toSet());
                 throw new RuleViolationException(
                         "The " + getDataModelType() + " artifact is not semantically valid. " + problems.size() + " problems found.",
                         RuleType.VALIDITY,
@@ -60,7 +60,7 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
             }
         }
     }
-    
+
     /**
      * Returns the type of data model being validated.  Subclasses must implement.
      */

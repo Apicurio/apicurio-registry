@@ -4,6 +4,7 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -24,10 +25,11 @@ public class ExtReadOnlyKeyValueStoreImpl<K, V> implements ExtReadOnlyKeyValueSt
     }
 
     @Override
-    public Stream<KeyValue<K, V>> filter(String filter, String over) {
+    public Stream<KeyValue<K, V>> filter(Map<String, String> filtersMap) {
         return StreamToKeyValueIteratorAdapter.toStream(all())
-            .filter(kv -> filterPredicate.test(filter, over, kv.key, kv.value));
+                .filter(kv -> filterPredicate.test(filtersMap, kv.key, kv.value));
     }
+
 
     @Override
     public V get(K key) {

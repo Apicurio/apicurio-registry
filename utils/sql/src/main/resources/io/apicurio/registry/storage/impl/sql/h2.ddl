@@ -9,15 +9,15 @@ INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 CREATE TABLE globalrules (tenantId VARCHAR(128) NOT NULL, type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (tenantId, type);
 
-CREATE TABLE artifacts (tenantId VARCHAR(128) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, latest BIGINT);
-ALTER TABLE artifacts ADD PRIMARY KEY (tenantId, artifactId);
+CREATE TABLE artifacts (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, latest BIGINT);
+ALTER TABLE artifacts ADD PRIMARY KEY (tenantId, groupId, artifactId);
 CREATE HASH INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE HASH INDEX IDX_artifacts_1 ON artifacts(createdBy);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 
-CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
-ALTER TABLE rules ADD PRIMARY KEY (tenantId, artifactId, type);
-ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, artifactId) REFERENCES artifacts(tenantId, artifactId);
+CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
+ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
+ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 
 CREATE TABLE content (contentId BIGINT AUTO_INCREMENT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BLOB NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
@@ -27,10 +27,10 @@ CREATE HASH INDEX IDX_content_2 ON content(contentHash);
 
 CREATE SEQUENCE globalidsequence;
 
-CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
-ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (tenantId, artifactId, version);
-ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (tenantId, artifactId) REFERENCES artifacts(tenantId, artifactId);
+ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (tenantId, groupId, artifactId, version);
+ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content(contentId);
 CREATE INDEX IDX_versions_1 ON versions(version);
 CREATE HASH INDEX IDX_versions_2 ON versions(state);
@@ -48,3 +48,6 @@ CREATE INDEX IDX_props_2 ON properties(pvalue);
 CREATE TABLE labels (globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
 ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
 CREATE INDEX IDX_labels_1 ON labels(label);
+
+CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
+ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);

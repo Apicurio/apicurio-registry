@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.rest.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
 import picocli.CommandLine;
 
 /**
@@ -32,9 +32,9 @@ public class UpdateStateCommand<T> extends CUJsonCommand<UpdateState> {
     @Override
     Object execute(UpdateState json) {
         if (version != null) {
-            getClient().updateArtifactVersionState(artifactId, version, json);
+            getClient().updateArtifactVersionState(groupId, artifactId, version, json);
         } else {
-            getClient().updateArtifactState(artifactId, json);
+            getClient().updateArtifactState(groupId, artifactId, json);
         }
         return json;
     }

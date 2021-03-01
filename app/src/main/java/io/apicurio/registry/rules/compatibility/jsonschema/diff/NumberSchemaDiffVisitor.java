@@ -49,7 +49,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffNumberOriginalMultipleOfUpdated;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
@@ -80,7 +80,7 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
             originalRequiresInteger = originalRequiresInteger || multipleOf.compareTo(one) == 0;
         }
 
-        diffBooleanTransition(ctx.sub("requiresInteger"), originalRequiresInteger, requiresInteger, false,
+        diffBooleanTransition(ctx.sub("type"), originalRequiresInteger, requiresInteger, false,
             NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE,
             NUMBER_TYPE_INTEGER_REQUIRED_TRUE_TO_FALSE,
             NUMBER_TYPE_INTEGER_REQUIRED_UNCHANGED);

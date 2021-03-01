@@ -137,9 +137,10 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
     @Test
     void createInvalidSchemaDefinition() {
+        //FIXME this should properly test an invalid schema definition like the ConfluentCompatApiTest.testCompatibilityInvalidSchema is doing
         String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
 
-        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 422);
+        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
 
         assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
     }

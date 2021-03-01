@@ -135,6 +135,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
     @Test
     void createInvalidSchemaDefinition() {
+        //FIXME this should properly test an invalid schema definition like the ConfluentCompatApiTest.testCompatibilityInvalidSchema is doing
         String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
 
         Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);

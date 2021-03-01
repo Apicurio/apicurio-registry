@@ -54,6 +54,7 @@
                         </goals>
                         <configuration>
                             <finalName>apicurio-kafka-connect-converter-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                             <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
                             <descriptors>
                                 <descriptor>src/assembly/${assembly.descriptor}.xml</descriptor>

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client.request.provider;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 
@@ -36,7 +37,7 @@ public class SearchRequestsProvider {
         return new Request.RequestBuilder<ArtifactSearchResults>()
                 .operation(POST)
                 .path(SEARCH_ARTIFACTS)
-                .responseClass(ArtifactSearchResults.class)
+                .responseType(new TypeReference<ArtifactSearchResults>(){})
                 .queryParams(queryParams)
                 .data(data)
                 .build();
@@ -46,7 +47,7 @@ public class SearchRequestsProvider {
         return new Request.RequestBuilder<ArtifactSearchResults>()
                 .operation(GET)
                 .path(SEARCH_ARTIFACTS)
-                .responseClass(ArtifactSearchResults.class)
+                .responseType(new TypeReference<ArtifactSearchResults>(){})
                 .queryParams(queryParams)
                 .build();
     }

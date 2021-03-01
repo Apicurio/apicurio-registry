@@ -1,7 +1,6 @@
 package io.apicurio.registry.utils.streams.distore;
 
 import com.google.protobuf.ByteString;
-import io.apicurio.registry.utils.ProtoUtil;
 import io.apicurio.registry.utils.streams.distore.proto.FilterReq;
 import io.apicurio.registry.utils.streams.distore.proto.Key;
 import io.apicurio.registry.utils.streams.distore.proto.KeyFromKeyToReq;
@@ -80,10 +79,7 @@ public class KeyValueStoreGrpcImplLocalDispatcher extends KeyValueStoreGrpc.KeyV
     public void filter(FilterReq request, StreamObserver<io.apicurio.registry.utils.streams.distore.proto.KeyValue> responseObserver) {
         boolean ok = false;
         try (
-                Stream stream = keyValueStore(request.getStoreName()).filter(
-                        ProtoUtil.emptyAsNull(request.getFilter()),
-                        request.getOver()
-                )
+                Stream stream = keyValueStore(request.getStoreName()).filter(request.getFiltersMap())
         ) {
             drainToKeyValue(request.getStoreName(), stream, responseObserver);
             ok = true;

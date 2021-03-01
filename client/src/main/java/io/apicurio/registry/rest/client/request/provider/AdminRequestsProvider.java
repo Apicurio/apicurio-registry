@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.client.request.provider;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
@@ -50,7 +51,7 @@ public class AdminRequestsProvider {
                 .operation(Operation.DELETE)
                 .path(Routes.LOG_PATH)
                 .pathParams(List.of(logger))
-                .responseClass(NamedLogConfiguration.class)
+                .responseType(new TypeReference<NamedLogConfiguration>(){})
                 .build();
     }
 
@@ -61,7 +62,7 @@ public class AdminRequestsProvider {
                     .operation(PUT)
                     .path(LOG_PATH)
                     .pathParams(List.of(logger))
-                    .responseClass(NamedLogConfiguration.class)
+                    .responseType(new TypeReference<NamedLogConfiguration>(){})
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                     .build();
         } catch (JsonProcessingException e) {
@@ -75,16 +76,16 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(LOG_PATH)
                 .pathParams(List.of(logger))
-                .responseClass(NamedLogConfiguration.class)
+                .responseType(new TypeReference<NamedLogConfiguration>(){})
                 .build();
     }
 
     @SuppressWarnings("rawtypes")
-    public static Request<List> listLogConfigurations() {
-        return new Request.RequestBuilder<List>()
+    public static Request<List<NamedLogConfiguration>> listLogConfigurations() {
+        return new Request.RequestBuilder<List<NamedLogConfiguration>>()
                 .operation(GET)
                 .path(LOGS_BASE_PATH)
-                .responseClass(List.class)
+                .responseType(new TypeReference<List<NamedLogConfiguration>>(){})
                 .build();
     }
 
@@ -93,7 +94,7 @@ public class AdminRequestsProvider {
                 .operation(DELETE)
                 .path(RULE_PATH)
                 .pathParams(List.of(rule.value()))
-                .responseClass(Void.class)
+                .responseType(new TypeReference<Void>(){})
                 .build();
     }
 
@@ -103,7 +104,7 @@ public class AdminRequestsProvider {
                     .operation(PUT)
                     .path(RULE_PATH)
                     .pathParams(List.of(rule.value()))
-                    .responseClass(Rule.class)
+                    .responseType(new TypeReference<Rule>(){})
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                     .build();
         } catch (JsonProcessingException e) {
@@ -116,7 +117,7 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(RULE_PATH)
                 .pathParams(List.of(rule.value()))
-                .responseClass(Rule.class)
+                .responseType(new TypeReference<Rule>(){})
                 .build();
     }
 
@@ -124,7 +125,7 @@ public class AdminRequestsProvider {
         return new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(RULES_BASE_PATH)
-                .responseClass(Void.class)
+                .responseType(new TypeReference<Void>(){})
                 .build();
     }
 
@@ -134,7 +135,7 @@ public class AdminRequestsProvider {
                     .operation(POST)
                     .path(RULES_BASE_PATH)
                     .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseClass(Void.class)
+                    .responseType(new TypeReference<Void>(){})
                     .build();
         } catch (JsonProcessingException e) {
             throw ErrorHandler.parseInputSerializingError(e);
@@ -142,11 +143,11 @@ public class AdminRequestsProvider {
     }
 
     @SuppressWarnings("rawtypes")
-    public static Request<List> listGlobalRules() {
-        return new Request.RequestBuilder<List>()
+    public static Request<List<RuleType>> listGlobalRules() {
+        return new Request.RequestBuilder<List<RuleType>>()
                 .operation(GET)
                 .path(RULES_BASE_PATH)
-                .responseClass(List.class)
+                .responseType(new TypeReference<List<RuleType>>(){})
                 .build();
     }
 }

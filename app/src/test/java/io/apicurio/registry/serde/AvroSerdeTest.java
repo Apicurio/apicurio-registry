@@ -55,6 +55,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -292,20 +293,16 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
 
+        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
+                AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
 
-        //TODO discuss
-        //FIXME because of artifacts created via confluent api don't have a groupId, our serdes no longer can find the artifact
-        // one solution could be to provide an SchemaResolver implementation that uses the confluent api
-//        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
-//                AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
-//
-//            serializer2.asLegacyId();
-//            serializer2.configure(Collections.emptyMap(), false);
-//            byte[] bytes = serializer2.serialize(subject, record);
-//
-//            GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
-//            Assertions.assertEquals("somebar", ir.get("bar").toString());
-//        }
+            serializer2.asLegacyId();
+            serializer2.configure(Collections.emptyMap(), false);
+            byte[] bytes = serializer2.serialize(subject, record);
+
+            GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
     }
 
 }

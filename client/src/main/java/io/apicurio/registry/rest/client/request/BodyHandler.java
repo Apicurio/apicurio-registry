@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client.request;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,10 +31,10 @@ import java.util.function.Supplier;
  */
 public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
 
-    private final Class<W> wClass;
+    private final TypeReference<W> wClass;
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public BodyHandler(Class<W> wClass) {
+    public BodyHandler(TypeReference<W> wClass) {
         this.wClass = wClass;
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
@@ -43,7 +44,7 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
         return asJSON(wClass, responseInfo);
     }
 
-    public static <W> HttpResponse.BodySubscriber<Supplier<W>> asJSON(Class<W> targetType, HttpResponse.ResponseInfo responseInfo) {
+    public static <W> HttpResponse.BodySubscriber<Supplier<W>> asJSON(TypeReference<W> targetType, HttpResponse.ResponseInfo responseInfo) {
         HttpResponse.BodySubscriber<InputStream> upstream = HttpResponse.BodySubscribers.ofInputStream();
         return HttpResponse.BodySubscribers.mapping(
                 upstream,
@@ -51,21 +52,21 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <W> Supplier<W> toSupplierOfType(InputStream body, Class<W> targetType, HttpResponse.ResponseInfo responseInfo) {
+    public static <W> Supplier<W> toSupplierOfType(InputStream body, TypeReference<W> targetType, HttpResponse.ResponseInfo responseInfo) {
         return () -> {
             try {
                 if (isFailure(responseInfo)) {
                     throw ErrorHandler.handleErrorResponse(body, responseInfo);
                 } else {
                     //TODO think of a better solution to this
-                    switch (targetType.getSimpleName()) {
-                        case "InputStream":
-                            return (W) body;
-                        case "Void":
-                            //Intended null return
-                            return null;
-                        default:
-                            return mapper.readValue(body, targetType);
+                    final String typeName = targetType.getType().getTypeName();
+                    if (typeName.contains("InputStream")) {
+                        return (W) body;
+                    } else if (typeName.contains("Void")) {
+                        //Intended null return
+                        return null;
+                    } else {
+                        return mapper.readValue(body, targetType);
                     }
                 }
             } catch (IOException e) {

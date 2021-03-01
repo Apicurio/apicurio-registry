@@ -134,7 +134,7 @@ public class ClusterIT {
             try {
                 TestUtils.retry(() -> {
                     List<RuleType> grts = client2.listGlobalRules();
-                    Assertions.assertTrue(grts.contains(globalRule.getType().name()));
+                    Assertions.assertTrue(grts.contains(globalRule.getType()));
                 });
             } finally {
                 client1.deleteGlobalRule(RuleType.COMPATIBILITY);

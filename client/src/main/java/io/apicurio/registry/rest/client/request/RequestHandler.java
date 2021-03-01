@@ -197,7 +197,7 @@ public class RequestHandler {
                     throw new IllegalStateException("Operation not allowed");
             }
 
-            return client.send(requestBuilder.build(), new BodyHandler<>(request.getResponseClass()))
+            return client.send(requestBuilder.build(), new BodyHandler<>(request.getResponseType()))
                     .body()
                     .get();
 

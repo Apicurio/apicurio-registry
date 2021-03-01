@@ -723,6 +723,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             final List<RuleType> globalRules = clientV2.listGlobalRules();
             assertEquals(2, globalRules.size());
+            assertTrue(globalRules.contains(RuleType.COMPATIBILITY));
+            assertTrue(globalRules.contains(RuleType.VALIDITY));
         });
         clientV2.deleteAllGlobalRules();
         TestUtils.retry(() -> {
@@ -797,6 +799,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
         assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
         assertEquals(logger, logConfiguration.getName());
+
+        final List<NamedLogConfiguration> logConfigurations = clientV2.listLogConfigurations();
+        assertEquals(1, logConfigurations.size());
+
         clientV2.removeLogConfiguration(logger);
     }
 

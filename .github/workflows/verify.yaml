@@ -33,7 +33,7 @@ jobs:
           architecture: x64
 
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql
+        run: mvn clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

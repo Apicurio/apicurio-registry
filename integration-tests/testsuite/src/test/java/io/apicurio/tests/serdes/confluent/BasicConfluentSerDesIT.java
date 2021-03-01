@@ -24,6 +24,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
@@ -69,6 +73,55 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
             .withSerializer(KafkaAvroSerializer.class)
             .withDeserializer(KafkaAvroDeserializer.class)
             .withStrategy(TopicNameStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .withDataValidator(avroSchema::validateRecord)
+            .build()
+            .test();
+    }
+
+    @Test
+    void testAvroConfluentApicurio() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withDeserializer(AvroKafkaDeserializer.class)
+            .withConsumerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withStrategy(TopicNameStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .withDataValidator(avroSchema::validateRecord)
+            .build()
+            .test();
+    }
+
+    @Test
+    void testAvroApicurioConfluent() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
+
+        createArtifact(null, subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(AvroKafkaSerializer.class)
+
+            //very important
+            .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+
+            .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withDeserializer(KafkaAvroDeserializer.class)
+            .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)
             .withDataGenerator(avroSchema::generateRecord)
             .withDataValidator(avroSchema::validateRecord)
             .build()
@@ -208,6 +261,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 //        KafkaClients.consumeAvroApicurioMessages(topicName2, 10).get(5, TimeUnit.SECONDS);
 //        KafkaClients.consumeAvroApicurioMessages(topicName3, 10).get(5, TimeUnit.SECONDS);
 //    }
-//
+
 }
 

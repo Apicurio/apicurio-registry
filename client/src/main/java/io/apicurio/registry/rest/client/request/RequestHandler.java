@@ -90,7 +90,6 @@ public class RequestHandler {
         clientBuilder.version(Version.HTTP_1_1);
         addHeaders(configs);
         clientBuilder = addSSL(clientBuilder, configs);
-        clientBuilder.version(HttpClient.Version.HTTP_1_1);
         return clientBuilder;
     }
 

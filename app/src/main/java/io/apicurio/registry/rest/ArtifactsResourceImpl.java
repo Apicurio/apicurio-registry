@@ -45,6 +45,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.storage.VersionContentAlreadyExists;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -440,9 +441,16 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(artifactId, artifactType, content, RuleApplicationType.UPDATE);
         final ContentHandle finalContent = content;
-        return storage.updateArtifact(artifactId, artifactType, content)
-                .thenCompose(amdd -> indexArtifact(artifactId, finalContent, DtoUtil.dtoToMetaData(artifactId, artifactType, amdd)))
-                .thenApply(amd -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
+        try {
+            //This will throw an exception if there isn't already an identical schema
+            storage.getArtifactVersionMetaData(artifactId, false, content);
+            throw new VersionContentAlreadyExists(artifactId, content.content());
+        }
+        catch (ArtifactNotFoundException e) {
+            return storage.updateArtifact(artifactId, artifactType, content)
+                    .thenCompose(amdd -> indexArtifact(artifactId, finalContent, DtoUtil.dtoToMetaData(artifactId, artifactType, amdd)))
+                    .thenApply(amd -> DtoUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
+        }
     }
 
     /**

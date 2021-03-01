@@ -21,8 +21,8 @@ import org.apache.kafka.common.serialization.Serializer;
 
 public class ArtifactKeySerializer implements Serializer<Str.ArtifactKey> {
 
-	@Override
-	public byte[] serialize(String topic, Str.ArtifactKey data) {
-		return data.toByteArray();
-	}
+    @Override
+    public byte[] serialize(String topic, Str.ArtifactKey data) {
+        return data.toByteArray();
+    }
 }

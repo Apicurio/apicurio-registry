@@ -22,14 +22,14 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 public class ArtifactKeyDeserializer implements Deserializer<Str.ArtifactKey> {
 
-	@Override
-	public Str.ArtifactKey deserialize(String topic, byte[] data) {
-		try {
-			return Str.ArtifactKey.parseFrom(data);
-		} catch (InvalidProtocolBufferException e) {
-			//FIXME remove
-			e.printStackTrace();
-		}
-		return null;
-	}
+    @Override
+    public Str.ArtifactKey deserialize(String topic, byte[] data) {
+        try {
+            return Str.ArtifactKey.parseFrom(data);
+        } catch (InvalidProtocolBufferException e) {
+            //FIXME remove
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

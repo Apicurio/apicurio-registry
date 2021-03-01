@@ -24,13 +24,13 @@ import org.apache.kafka.common.serialization.Serializer;
 public class ArtifactKeySerde implements Serde<Str.ArtifactKey> {
 
 
-	@Override
-	public Serializer<Str.ArtifactKey> serializer() {
-		return new ArtifactKeySerializer();
-	}
+    @Override
+    public Serializer<Str.ArtifactKey> serializer() {
+        return new ArtifactKeySerializer();
+    }
 
-	@Override
-	public Deserializer<Str.ArtifactKey> deserializer() {
-		return new ArtifactKeyDeserializer();
-	}
+    @Override
+    public Deserializer<Str.ArtifactKey> deserializer() {
+        return new ArtifactKeyDeserializer();
+    }
 }

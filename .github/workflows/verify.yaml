@@ -26,10 +26,10 @@ jobs:
       - name: Checkout Code with Ref '${{ github.ref }}' 
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: '11'
           architecture: x64
 
       - name: Cache Dependencies
@@ -84,10 +84,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: '11'
           architecture: x64
 
       - name: Cache Dependencies

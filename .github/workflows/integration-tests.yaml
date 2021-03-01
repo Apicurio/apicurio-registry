@@ -41,6 +41,8 @@ jobs:
             ${{ runner.os }}-maven-
       - name: Build All Variants
         run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests
+      - name: Build integration-tests-common
+        run: mvn install -Pintegration-tests -pl integration-tests/integration-tests-common
       - name: Run Integration Tests - streams
         run: mvn verify -Pintegration-tests -Pacceptance -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql

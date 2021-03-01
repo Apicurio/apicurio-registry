@@ -214,7 +214,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("rule", ruleType.value())
                     .pathParam("artifactId", artifactId)
-                    .get("/artifacts/{artifactId}/rules/{rule}")
+                    .get("/registry/v1/artifacts/{artifactId}/rules/{rule}")
                     .then()
                     .statusCode(200);
         });

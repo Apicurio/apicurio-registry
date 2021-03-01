@@ -203,7 +203,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(VALID_AVRO_SCHEMA)
-                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -214,7 +214,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .put("/ccompat/config/{subject}", SUBJECT)
+                .put("/ccompat/v6/config/{subject}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -227,7 +227,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .body(SCHEMA_INVALID_WRAPPED)
-                    .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                    .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                     .then()
                     .statusCode(422);
         });

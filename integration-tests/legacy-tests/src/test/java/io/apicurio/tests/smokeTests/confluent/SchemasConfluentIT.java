@@ -139,7 +139,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     void createInvalidSchemaDefinition() {
         String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
 
-        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
+        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 422);
 
         assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
     }

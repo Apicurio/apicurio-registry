@@ -32,6 +32,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
@@ -197,6 +198,24 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for a global rule to be created.
+     * @param ruleType
+     * @throws Exception
+     */
+    protected void waitForArtifactRule(String artifactId, RuleType ruleType) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("rule", ruleType.value())
+                    .pathParam("artifactId", artifactId)
+                    .get("/artifacts/{artifactId}/rules/{rule}")
+                    .then()
                     .statusCode(200);
         });
     }

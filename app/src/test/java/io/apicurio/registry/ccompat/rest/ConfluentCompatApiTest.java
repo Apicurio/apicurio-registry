@@ -21,6 +21,7 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
@@ -65,6 +66,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
+    private static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"";
+
+    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
     /**
      * Endpoint: /subjects/(string: subject)/versions
      */
@@ -145,7 +149,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testCompatibilityCheck() throws Exception {
-        final String SUBJECT = "subject2";
+        final String SUBJECT = "testCompatibilityCheck";
         // Prepare
         given()
             .when()
@@ -183,6 +187,49 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                     .body("is_compatible", equalTo(false));
+        });
+    }
+
+    /**
+     * Endpoint: /compatibility/subjects/{subject}/versions/{version}
+     */
+    @Test
+    public void testCompatibilityInvalidSchema() throws Exception {
+
+        final String SUBJECT = "testCompatibilityInvalidSchema";
+
+        // Prepare
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(VALID_AVRO_SCHEMA)
+                .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body(anything());
+
+        this.waitForArtifact(SUBJECT);
+
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CONFIG_BACKWARD)
+                .put("/ccompat/config/{subject}", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body(anything());
+
+        this.waitForArtifactRule(SUBJECT, RuleType.COMPATIBILITY);
+
+        // POST
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_INVALID_WRAPPED)
+                    .post("/ccompat/subjects/{subject}/versions", SUBJECT)
+                    .then()
+                    .statusCode(422);
         });
     }
 

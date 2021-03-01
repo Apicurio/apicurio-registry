@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client.request;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.client.request.provider.Operation;
 
 import java.io.InputStream;
@@ -31,16 +32,16 @@ public class Request<T> {
     private final String requestPath;
     private final Map<String, String> headers;
     private final Map<String, List<String>> queryParams;
-    private final Class<T> responseClass;
+    private final TypeReference<T> responseType;
     private final InputStream data;
     private final List<String> pathParams;
 
-    private Request(Operation operation, String requestPath, Map<String, String> headers, Map<String, List<String>> queryParams, Class<T> responseClass, InputStream data, List<String> pathParams) {
+    private Request(Operation operation, String requestPath, Map<String, String> headers, Map<String, List<String>> queryParams, TypeReference<T> responseType, InputStream data, List<String> pathParams) {
         this.operation = operation;
         this.requestPath = requestPath;
         this.headers = headers;
         this.queryParams = queryParams;
-        this.responseClass = responseClass;
+        this.responseType = responseType;
         this.data = data;
         this.pathParams = pathParams;
     }
@@ -61,8 +62,8 @@ public class Request<T> {
         return queryParams;
     }
 
-    public Class<T> getResponseClass() {
-        return responseClass;
+    public TypeReference<T> getResponseType() {
+        return responseType;
     }
 
     public InputStream getData() {
@@ -78,7 +79,7 @@ public class Request<T> {
         private String path;
         private Map<String, String> headers = Collections.emptyMap();
         private Map<String, List<String>> queryParams = Collections.emptyMap();
-        private Class<T> responseClass;
+        private TypeReference<T> typeReference;
         private InputStream data;
         private List<String> pathParams = Collections.emptyList();
 
@@ -102,8 +103,8 @@ public class Request<T> {
             return this;
         }
 
-        public RequestBuilder<T> responseClass(Class<T> responseClass) {
-            this.responseClass = responseClass;
+        public RequestBuilder<T> responseType(TypeReference<T> typeReference) {
+            this.typeReference = typeReference;
             return this;
         }
 
@@ -118,7 +119,7 @@ public class Request<T> {
         }
 
         public Request<T> build() {
-            return new Request<>(operation, path, headers, queryParams, responseClass, data, pathParams);
+            return new Request<>(operation, path, headers, queryParams, typeReference, data, pathParams);
         }
     }
 }

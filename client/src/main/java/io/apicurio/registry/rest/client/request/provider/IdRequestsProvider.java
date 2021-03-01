@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.client.request.provider;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.client.request.Request;
 
 import java.io.InputStream;
@@ -38,7 +39,7 @@ public class IdRequestsProvider {
                 .path(IDS_CONTENT_HASH)
                 .pathParams(List.of(String.valueOf(contentHash)))
                 .queryParams(queryParams)
-                .responseClass(InputStream.class)
+                .responseType(new TypeReference<InputStream>(){})
                 .build();
     }
 
@@ -47,7 +48,7 @@ public class IdRequestsProvider {
                 .operation(GET)
                 .path(IDS_GLOBAL_ID)
                 .pathParams(List.of(String.valueOf(globalId)))
-                .responseClass(InputStream.class)
+                .responseType(new TypeReference<InputStream>(){})
                 .build();
     }
 
@@ -56,7 +57,7 @@ public class IdRequestsProvider {
                 .operation(GET)
                 .path(IDS_CONTENT_ID)
                 .pathParams(List.of(String.valueOf(contentId)))
-                .responseClass(InputStream.class)
+                .responseType(new TypeReference<InputStream>(){})
                 .build();
     }
 }

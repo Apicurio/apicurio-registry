@@ -3,6 +3,7 @@ package io.apicurio.registry.utils.streams.distore;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -20,9 +21,8 @@ public interface ExtReadOnlyKeyValueStore<K, V> extends ReadOnlyKeyValueStore<K,
     /**
      * Get filtered stream.
      *
-     * @param filter the string filter
-     * @param over   the search over enum name
+     * @param filters to be used the string filter
      * @return filtered and limited stream
      */
-    Stream<KeyValue<K, V>> filter(String filter, String over);
+    Stream<KeyValue<K, V>> filter(Map<String, String> filters);
 }

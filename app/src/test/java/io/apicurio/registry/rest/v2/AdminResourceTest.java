@@ -384,7 +384,9 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     void testLoggersCRUD() throws Exception {
         String defaultLogLevel = Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName();
-        verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+        TestUtils.retry(() -> {
+            verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+        });
 
         Consumer<LogLevel> setLog = (level) -> {
             LogConfiguration lc = new LogConfiguration();

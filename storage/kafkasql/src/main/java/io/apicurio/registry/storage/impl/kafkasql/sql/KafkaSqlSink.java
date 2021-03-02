@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -16,6 +17,7 @@ import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
@@ -171,9 +173,31 @@ public class KafkaSqlSink {
      * @param value
      */
     private Object processGroupMessage(GroupKey key, GroupValue value) {
+        Supplier<GroupMetaDataDto> buildGroup = () -> {
+            return GroupMetaDataDto.builder()
+                    .groupId(key.getGroupId())
+                    .description(value.getDescription())
+                    .artifactsType(value.getArtifactsType())
+                    .createdBy(value.getCreatedBy())
+                    .createdOn(value.getCreatedOn())
+                    .modifiedBy(value.getModifiedBy())
+                    .modifiedOn(value.getModifiedOn())
+                    .properties(value.getProperties())
+                    .build();
+        };
         switch (value.getAction()) {
+            case Create:
+                sqlStore.createGroup(buildGroup.get());
+                return null;
+            case Update:
+                sqlStore.updateGroupMetaData(buildGroup.get());
+                return null;
             case Delete:
-                sqlStore.deleteArtifacts(key.getGroupId());
+                if (value.isOnlyArtifacts()) {
+                    sqlStore.deleteArtifacts(key.getGroupId());
+                } else {
+                    sqlStore.deleteGroup(key.getGroupId());
+                }
                 return null;
             default:
                 log.warn("Unsupported group message action: %s", key.getType().name());

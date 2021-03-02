@@ -1053,6 +1053,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (prev == null) {
             throw new GroupNotFoundException(groupId);
         }
+        deleteArtifacts(groupId);
     }
 
     /**

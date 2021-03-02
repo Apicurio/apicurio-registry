@@ -16,21 +16,53 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
+import java.util.Map;
+
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class GroupValue extends AbstractMessageValue {
 
+    private String description;
+    private ArtifactType artifactsType;
+    private String createdBy;
+    private long createdOn;
+    private String modifiedBy;
+    private long modifiedOn;
+    private Map<String, String> properties;
+
+    private boolean onlyArtifacts;
 
     /**
      * Creator method.
      * @param action
      */
-    public static final GroupValue create(ActionType action) {
+    public static final GroupValue create(ActionType action, boolean onlyArtifacts) {
         GroupValue key = new GroupValue();
         key.setAction(action);
+        key.setOnlyArtifacts(onlyArtifacts);
+        return key;
+    }
+
+    /**
+     * Creator method.
+     * @param action
+     * @param group metadata
+     */
+    public static final GroupValue create(ActionType action, GroupMetaDataDto meta) {
+        GroupValue key = new GroupValue();
+        key.setAction(action);
+        key.setDescription(meta.getDescription());
+        key.setArtifactsType(meta.getArtifactsType());
+        key.setCreatedBy(meta.getCreatedBy());
+        key.setCreatedOn(meta.getCreatedOn());
+        key.setModifiedBy(meta.getModifiedBy());
+        key.setModifiedOn(meta.getModifiedOn());
+        key.setProperties(meta.getProperties());
         return key;
     }
 
@@ -40,6 +72,118 @@ public class GroupValue extends AbstractMessageValue {
     @Override
     public MessageType getType() {
         return MessageType.Group;
+    }
+
+    /**
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * @param description the description to set
+     */
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    /**
+     * @return the artifactsType
+     */
+    public ArtifactType getArtifactsType() {
+        return artifactsType;
+    }
+
+    /**
+     * @param artifactsType the artifactsType to set
+     */
+    public void setArtifactsType(ArtifactType artifactsType) {
+        this.artifactsType = artifactsType;
+    }
+
+    /**
+     * @return the createdBy
+     */
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    /**
+     * @param createdBy the createdBy to set
+     */
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    /**
+     * @return the createdOn
+     */
+    public long getCreatedOn() {
+        return createdOn;
+    }
+
+    /**
+     * @param createdOn the createdOn to set
+     */
+    public void setCreatedOn(long createdOn) {
+        this.createdOn = createdOn;
+    }
+
+    /**
+     * @return the modifiedBy
+     */
+    public String getModifiedBy() {
+        return modifiedBy;
+    }
+
+    /**
+     * @param modifiedBy the modifiedBy to set
+     */
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
+    }
+
+    /**
+     * @return the modifiedOn
+     */
+    public long getModifiedOn() {
+        return modifiedOn;
+    }
+
+    /**
+     * @param modifiedOn the modifiedOn to set
+     */
+    public void setModifiedOn(long modifiedOn) {
+        this.modifiedOn = modifiedOn;
+    }
+
+    /**
+     * @return the properties
+     */
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param properties the properties to set
+     */
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
+    }
+
+    /**
+     * @return the onlyArtifacts
+     */
+    public boolean isOnlyArtifacts() {
+        return onlyArtifacts;
+    }
+
+    /**
+     * @param onlyArtifacts the onlyArtifacts to set
+     */
+    public void setOnlyArtifacts(boolean onlyArtifacts) {
+        this.onlyArtifacts = onlyArtifacts;
     }
 
 }

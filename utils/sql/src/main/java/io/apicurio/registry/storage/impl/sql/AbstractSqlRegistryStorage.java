@@ -1960,6 +1960,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
+            deleteArtifacts(groupId);
             return null;
         });
     }

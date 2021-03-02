@@ -21,9 +21,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.hasItems;
 
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -33,6 +36,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.WebApplicationException;
 
 import static io.apicurio.tests.common.Constants.SMOKE;
 
@@ -157,30 +162,30 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
     //TODO decide what to do to make artifacts created via confluent api available in v2 api, define a default group used for v1 api and confluent api?
 
-//    @Test
-//    void createInvalidSchemaDefinition() throws TimeoutException {
-//        String subjectName = TestUtils.generateArtifactId();
-//
-//        ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
-//
-//        String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
-//
-//        Rule rule = new Rule();
-//        rule.setType(RuleType.COMPATIBILITY);
-//        rule.setConfig("BACKWARD");
-//        registryClient.createArtifactRule("null", subjectName, rule);
-//
-//        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                Rule r = registryClient.getArtifactRuleConfig("null", subjectName, RuleType.COMPATIBILITY);
-//                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
-//            } catch (WebApplicationException e) {
-//                return false;
-//            }
-//        });
-//        ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
-//  }
-//
+    @Test
+    void createInvalidSchemaDefinition() throws TimeoutException {
+        String subjectName = TestUtils.generateArtifactId();
+
+        ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
+
+        String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
+
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        registryClient.createArtifactRule("default", subjectName, rule);
+
+        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                Rule r = registryClient.getArtifactRuleConfig("default", subjectName, RuleType.COMPATIBILITY);
+                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+        ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
+  }
+
 //    @Test
 //    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
 //        String name = "schemaname";

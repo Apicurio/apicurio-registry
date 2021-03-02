@@ -89,7 +89,9 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
+import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
@@ -150,6 +152,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Inject
     SecurityIdentity securityIdentity;
 
+    private boolean bootstrapped = false;
     private boolean stopped = true;
 
     void onConstruct(@Observes StartupEvent ev) {
@@ -162,6 +165,22 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         // Start the Kafka Consumer thread
         startConsumerThread(consumer);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#isReady()
+     */
+    @Override
+    public boolean isReady() {
+        return bootstrapped;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#isAlive()
+     */
+    @Override
+    public boolean isAlive() {
+        return bootstrapped && !stopped;
     }
 
     @PreDestroy
@@ -193,6 +212,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: " + configuration.bootstrapServers());
+
+        final String bootstrapId = UUID.randomUUID().toString();
+        submitter.submitBootstrap(bootstrapId);
+        final long bootstrapStart = System.currentTimeMillis();
+
         Runnable runner = () -> {
             log.info("KSQL consumer thread startup lag: {}", configuration.startupLag());
 
@@ -212,6 +236,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
                         records.forEach(record -> {
+
+                            // If the key is null, we couldn't deserialize the message
+                            if (record.key() == null) {
+                                log.info("Discarded an unreadable/unrecognized message.");
+                                return;
+                            }
+
+                            // If the key is a Bootstrap key, then we have processed all messages and can set boostrapped to 'true'
+                            if (record.key().getType() == MessageType.Bootstrap) {
+                                BootstrapKey bkey = (BootstrapKey) record.key();
+                                if (bkey.getBootstrapId().equals(bootstrapId)) {
+                                    this.bootstrapped = true;
+                                    log.info("KafkaSQL storage bootstrapped in " + (System.currentTimeMillis() - bootstrapStart) + "ms.");
+                                }
+                                return;
+                            }
+
+                            // If the value is null, then this is a tombstone (or unrecognized) message and should not
+                            // be processed.
+                            if (record.value() == null) {
+                                log.info("Discarded a (presumed) tombstone message with key: {}", record.key());
+                                return;
+                            }
+
                             // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
                             kafkaSqlSink.processMessage(record);
                         });

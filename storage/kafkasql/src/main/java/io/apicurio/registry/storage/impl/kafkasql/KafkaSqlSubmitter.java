@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
@@ -194,6 +195,10 @@ public class KafkaSqlSubmitter {
     }
     public void submitArtifactRuleTombstone(String tenantId, String groupId, String artifactId, RuleType rule) {
         ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
+        send(key, null);
+    }
+    public void submitBootstrap(String bootstrapId) {
+        BootstrapKey key = BootstrapKey.create(bootstrapId);
         send(key, null);
     }
 

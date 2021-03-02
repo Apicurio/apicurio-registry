@@ -360,4 +360,29 @@ public interface SqlStatements {
      */
     public String selectAllLogConfigurations();
 
+    /**
+     * A statement used to insert a row into the groups table.
+     */
+    public String insertGroup();
+
+    /**
+     * A statement used to update information about a group.
+     */
+    public String updateGroup();
+
+    /**
+     * A statement used to delete a row from the groups table.
+     */
+    public String deleteGroup();
+
+    /**
+     * A statement used to select all rows from groups table.
+     */
+    public String selectGroups();
+
+    /**
+     * A statement used to select a single group in groups table by groupId.
+     */
+    public String selectGroupByGroupId();
+
 }

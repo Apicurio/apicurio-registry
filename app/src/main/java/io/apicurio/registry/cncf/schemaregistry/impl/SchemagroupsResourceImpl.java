@@ -27,6 +27,7 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * @author Fabian Martinez
@@ -104,6 +106,9 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Context
     HttpServletRequest request;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
     @Override
     public List<String> getGroups() {
         return storage.getGroupIds(GET_GROUPS_LIMIT);
@@ -118,16 +123,28 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     public void createGroup(String groupId, SchemaGroup data) {
         //createdOn and modifiedOn are set by the storage
-        GroupMetaDataDto group = GroupMetaDataDto.builder()
+        GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
                 .groupId(groupId)
                 .description(data.getDescription())
                 .artifactsType(data.getFormat() != null ? ArtifactType.fromValue(data.getFormat()) : null)
-                .properties(data.getGroupProperties())
-                .build();
+                .properties(data.getGroupProperties());
+
+        String user = securityIdentity.getPrincipal().getName();
+
         try {
-            storage.createGroup(group);
+            group.createdBy(user)
+                .createdOn(new Date().getTime());
+
+            storage.createGroup(group.build());
         } catch (GroupAlreadyExistsException e) {
-            storage.updateGroupMetaData(group);
+            GroupMetaDataDto existing = storage.getGroupMetaData(groupId);
+
+            group.createdBy(existing.getCreatedBy())
+                .createdOn(existing.getCreatedOn())
+                .modifiedBy(user)
+                .modifiedOn(new Date().getTime());
+
+            storage.updateGroupMetaData(group.build());
         }
     }
 

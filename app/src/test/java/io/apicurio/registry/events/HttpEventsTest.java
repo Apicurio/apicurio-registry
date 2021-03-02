@@ -12,6 +12,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.Disabled;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
@@ -25,6 +26,7 @@ import io.vertx.core.http.HttpServerOptions;
 
 @QuarkusTest
 @TestProfile(HttpEventsProfile.class)
+@Disabled
 public class HttpEventsTest extends AbstractResourceTestBase {
 
     @Test

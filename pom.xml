@@ -77,6 +77,16 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <name>Fabian Martinez</name>
+            <id>famartinrh</id>
+            <email>famartin@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
     </developers>
 
     <modules>

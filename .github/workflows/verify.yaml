@@ -32,8 +32,11 @@ jobs:
           version: '11'
           architecture: x64
 
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql #-Pinfinispan
+        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql #-Pinfinispan
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

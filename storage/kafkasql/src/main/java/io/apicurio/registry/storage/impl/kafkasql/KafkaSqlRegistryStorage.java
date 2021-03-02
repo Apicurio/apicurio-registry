@@ -69,6 +69,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -78,6 +80,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -315,7 +318,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.Delete, true));
         coordinator.waitForResponse(reqId);
 
         // TODO could possibly add tombstone messages for *all* artifacts that were deleted (version meta-data and artifact rules)
@@ -778,6 +781,49 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
         return metaData;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.Create, group));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.Update, group));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.Delete, false));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        return sqlStore.getGroupIds(limit);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        return sqlStore.getGroupMetaData(groupId);
     }
 
 }

@@ -59,6 +59,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -69,6 +71,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -82,6 +85,7 @@ import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
@@ -1888,6 +1892,119 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .map(LogConfigurationMapper.instance)
                     .list();
         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+        try {
+            this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.insertGroup();
+                handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, group.getGroupId())
+                      .bind(2, group.getDescription())
+                      .bind(3, group.getArtifactsType() == null ? null : group.getArtifactsType().value())
+                      .bind(4, group.getCreatedBy())
+                      .bind(5, group.getCreatedOn())
+                      .bind(6, group.getModifiedBy())
+                      .bind(7, group.getModifiedOn())
+                      .bind(8, SqlUtil.serializeProperties(group.getProperties()))
+                      .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new GroupAlreadyExistsException(group.getGroupId());
+            }
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        withHandle(handle -> {
+            String sql = sqlStatements.updateGroup();
+            int rows = handle.createUpdate(sql)
+                  .bind(0, group.getDescription())
+                  .bind(1, group.getArtifactsType() == null ? null : group.getArtifactsType().value())
+                  .bind(2, group.getModifiedBy())
+                  .bind(3, group.getModifiedOn())
+                  .bind(4, SqlUtil.serializeProperties(group.getProperties()))
+                  .bind(5, tenantContext.tenantId())
+                  .bind(6, group.getGroupId())
+                  .execute();
+            if (rows == 0) {
+                throw new GroupNotFoundException(group.getGroupId());
+            }
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        withHandle(handle -> {
+            String sql = sqlStatements.deleteGroup();
+            int rows = handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, groupId)
+                    .execute();
+            if (rows == 0) {
+                throw new GroupNotFoundException(groupId);
+            }
+            deleteArtifacts(groupId);
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        return withHandle(handle -> {
+            String sql = sqlStatements.selectGroups();
+            List<String> groups = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, limit)
+                    .map(new RowMapper<String>() {
+                        @Override
+                        public String map(ResultSet rs, StatementContext ctx) throws SQLException {
+                            return rs.getString("groupId");
+                        }
+                    })
+                    .list();
+            return groups;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        try {
+            return this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.selectGroupByGroupId();
+                return handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(0, groupId)
+                        .map(GroupMetaDataDtoMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new GroupNotFoundException(groupId);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {

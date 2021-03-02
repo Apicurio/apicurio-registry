@@ -58,6 +58,7 @@ import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
@@ -114,6 +115,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

@@ -19,6 +19,7 @@ package io.apicurio.registry.utils.kafka;
 
 import com.google.protobuf.ByteString;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.storage.proto.Str.GroupMetaDataValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -147,6 +148,12 @@ public class Submitter<T> {
         Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.CONTENT, actionType, key, -1L)
                 .setContent(builder);
 
+        return submit(rvb.build());
+    }
+
+    public CompletableFuture<T> submitGroup(Str.ActionType actionType, Str.ArtifactKey key, GroupMetaDataValue group) {
+        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.GROUP, actionType, key, -1L);
+        rvb.setGroup(group);
         return submit(rvb.build());
     }
 }

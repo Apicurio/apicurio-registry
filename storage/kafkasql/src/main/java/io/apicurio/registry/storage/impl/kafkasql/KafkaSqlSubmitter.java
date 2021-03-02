@@ -30,6 +30,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
@@ -102,9 +103,14 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Group
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action) {
+    public CompletableFuture<UUID> submitGroup(String tenantId, ActionType action, GroupMetaDataDto meta) {
+        GroupKey key = GroupKey.create(tenantId, meta.getGroupId());
+        GroupValue value = GroupValue.create(action, meta);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action, boolean onlyArtifacts) {
         GroupKey key = GroupKey.create(tenantId, groupId);
-        GroupValue value = GroupValue.create(action);
+        GroupValue value = GroupValue.create(action, onlyArtifacts);
         return send(key, value);
     }
 

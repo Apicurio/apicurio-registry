@@ -26,6 +26,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -36,6 +38,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -294,6 +297,46 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
         return storage.listLogConfigurations();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+        storage.createGroup(group);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        storage.updateGroupMetaData(group);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        storage.deleteGroup(groupId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        return storage.getGroupIds(limit);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        return storage.getGroupMetaData(groupId);
     }
 
 }

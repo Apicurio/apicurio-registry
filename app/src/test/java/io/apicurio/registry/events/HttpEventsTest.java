@@ -28,7 +28,7 @@ import io.vertx.core.http.HttpServerOptions;
 public class HttpEventsTest extends AbstractResourceTestBase {
 
     @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    @Timeout(value = 65, unit = TimeUnit.SECONDS)
     public void testHttpEvents() throws TimeoutException {
 
         HttpServer server = null;
@@ -59,7 +59,7 @@ public class HttpEventsTest extends AbstractResourceTestBase {
                 }
             });
 
-            TestUtils.waitFor("Events to be produced", 200, 28 * 1000, () -> {
+            TestUtils.waitFor("Events to be produced", 200, 60 * 1000, () -> {
                 return events.size() == 2;
             });
 

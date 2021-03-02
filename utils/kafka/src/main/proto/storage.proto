@@ -63,6 +63,17 @@ message LogConfigValue {
     string logLevel = 2;
 }
 
+message GroupMetaDataValue {
+    string groupId = 1;
+    string description = 2;
+    int32 artifactsType = 3;
+    string createdBy = 4;
+    int64 createdOn = 5;
+    string modifiedBy = 6;
+    int64 modifiedOn = 7;
+    map<string, string> properties = 8;
+}
+
 enum ValueType {
     __INVALID = 0;
     // crud
@@ -73,6 +84,7 @@ enum ValueType {
     STATE = 5;
     LOGCONFIG = 6;
     CONTENT = 7;
+    GROUP = 8;
 }
 
 message StorageValue {
@@ -88,6 +100,7 @@ message StorageValue {
         ArtifactState state = 9;
         LogConfigValue logConfig = 10;
         ContentValue content = 11;
+        GroupMetaDataValue group = 12;
     }
 }
 
@@ -98,6 +111,7 @@ message Data {
     repeated RuleValue rules = 4;
     repeated LogConfigValue logConfigs = 5;
     repeated ContentValue contents = 6;
+    repeated GroupMetaDataValue groups = 7;
 }
 
 message TupleValue {

@@ -30,6 +30,9 @@ public class MessageTypeToKeyClass {
     static {
         for (MessageType type : types) {
             switch (type) {
+                case Bootstrap:
+                    index.put(type, BootstrapKey.class);
+                    break;
                 case Group:
                     index.put(type, GroupKey.class);
                     break;

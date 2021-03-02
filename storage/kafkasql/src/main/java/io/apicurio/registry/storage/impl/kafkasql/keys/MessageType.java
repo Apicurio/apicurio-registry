@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public enum MessageType {
 
-    GlobalRule(1), Content(2), Artifact(3), ArtifactRule(4), ArtifactVersion(5), Group(6), LogConfig(7);
+    Bootstrap(0), GlobalRule(1), Content(2), Artifact(3), ArtifactRule(4), ArtifactVersion(5), Group(6), LogConfig(7);
 
     private final byte ord;
 

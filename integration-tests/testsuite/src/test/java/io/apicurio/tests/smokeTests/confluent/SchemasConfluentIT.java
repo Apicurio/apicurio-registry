@@ -24,11 +24,9 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.restassured.response.Response;
 
 import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.Tag;
@@ -134,16 +132,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void createInvalidSchemaDefinition() {
-        //FIXME this should properly test an invalid schema definition like the ConfluentCompatApiTest.testCompatibilityInvalidSchema is doing
-        String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
-
-        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
-
-        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
-    }
-
-    @Test
     void createSchemaSpecifyVersion() throws Exception {
         String artifactId = TestUtils.generateArtifactId();
 
@@ -168,6 +156,31 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     //TODO decide what to do to make artifacts created via confluent api available in v2 api, define a default group used for v1 api and confluent api?
+
+//    @Test
+//    void createInvalidSchemaDefinition() throws TimeoutException {
+//        String subjectName = TestUtils.generateArtifactId();
+//
+//        ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
+//
+//        String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
+//
+//        Rule rule = new Rule();
+//        rule.setType(RuleType.COMPATIBILITY);
+//        rule.setConfig("BACKWARD");
+//        registryClient.createArtifactRule("null", subjectName, rule);
+//
+//        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+//            try {
+//                Rule r = registryClient.getArtifactRuleConfig("null", subjectName, RuleType.COMPATIBILITY);
+//                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
+//            } catch (WebApplicationException e) {
+//                return false;
+//            }
+//        });
+//        ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
+//  }
+//
 //    @Test
 //    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
 //        String name = "schemaname";

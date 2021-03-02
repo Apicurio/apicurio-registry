@@ -136,13 +136,28 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
     }
 
     @Test
-    void createInvalidSchemaDefinition() {
-        //FIXME this should properly test an invalid schema definition like the ConfluentCompatApiTest.testCompatibilityInvalidSchema is doing
-        String invalidSchemaDefinition = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
+    void createInvalidSchemaDefinition() throws RestClientException, IOException, TimeoutException {
+        String subjectName = TestUtils.generateArtifactId();
 
-        Response response = ConfluentSubjectsUtils.createSchema(invalidSchemaDefinition, "name-of-schema-example", 400);
+        ConfluentSubjectsUtils.createSchema("{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"", subjectName, 200);
 
-        assertThat("Unrecognized field &quot;type&quot; (class io.apicurio.registry.ccompat.dto.SchemaInfo), not marked as ignorable", is(response.body().print()));
+        String invalidSchema = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
+
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        registryClient.createArtifactRule(subjectName, rule);
+
+        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                Rule r = registryClient.getArtifactRuleConfig(subjectName, RuleType.COMPATIBILITY);
+                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("BACKWARD");
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+
+        ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
     }
 
     @Test

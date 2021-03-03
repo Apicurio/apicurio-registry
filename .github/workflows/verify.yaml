@@ -36,7 +36,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build All Variants
-        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql -Pinfinispan -Pmultitenancy
+        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql -Pinfinispan -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=20 -Dmaven.wagon.http.retryHandler.count=25
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

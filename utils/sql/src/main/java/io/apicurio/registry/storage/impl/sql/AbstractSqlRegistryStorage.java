@@ -77,6 +77,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
@@ -894,12 +895,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             StringBuilder orderByQuery = new StringBuilder();
             StringBuilder limitOffset = new StringBuilder();
 
+            boolean joinContentTable = hasContentFilter(filters);
+
             // Formulate the SELECT clause for the artifacts query
             select.append(
                     "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
                     +      "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                     + "FROM artifacts a "
                     + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
+            if (joinContentTable) {
+                select.append("JOIN content c ON v.contentId = c.contentId ");
+            }
 
             where.append("WHERE a.tenantId = ?");
             binders.add((query, idx) -> {
@@ -963,6 +969,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                             query.bind(idx, normalizeGroupId(filter.getValue()));
                         });
                         break;
+                    case contentHash:
+                        where.append("(c.contentHash = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getValue());
+                        });
+                        break;
+                    case canonicalHash:
+                        where.append("(c.canonicalHash = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getValue());
+                        });
+                        break;
                     case properties:
                         // TODO implement filtering by properties!
                         throw new RuntimeException("Searching over properties is not yet implemented.");
@@ -984,6 +1002,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
             // Query for the total row count
             String countSelect = "SELECT count(a.artifactId) FROM artifacts a JOIN versions v ON a.latest = v.globalId ";
+            if (joinContentTable) {
+                countSelect += "JOIN content c ON v.contentId = c.contentId ";
+            }
             Query countQuery = handle.createQuery(countSelect + where.toString());
 
             // Bind all query parameters
@@ -2070,6 +2091,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             metaData = new EditableArtifactMetaDataDto();
         }
         return metaData;
+    }
+
+    private static boolean hasContentFilter(Set<SearchFilter> filters) {
+        for (SearchFilter searchFilter : filters) {
+            if (searchFilter.getType() == SearchFilterType.contentHash || searchFilter.getType() == SearchFilterType.canonicalHash) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

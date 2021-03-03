@@ -65,6 +65,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -736,6 +737,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Delete));
         coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        return sqlStore.getTenantMetadata(tenantId);
     }
 
 

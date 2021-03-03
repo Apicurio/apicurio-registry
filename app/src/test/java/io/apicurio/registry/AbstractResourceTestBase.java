@@ -380,4 +380,3 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         response.body("state", equalTo(state.name()));
     }
 }
-

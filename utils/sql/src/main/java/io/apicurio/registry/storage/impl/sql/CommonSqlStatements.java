@@ -552,6 +552,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectTenantMetadataByTenantId()
+     */
+    @Override
+    public String selectTenantMetadataByTenantId() {
+        return "SELECT t.* FROM tenants t WHERE t.tenantId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
      */
     @Override

@@ -17,6 +17,8 @@ package io.apicurio.tests.common;
 
 public interface RegistryTestProcess extends AutoCloseable {
 
+    public boolean isContainer();
+
     public String getName();
 
     public String getStdOut();

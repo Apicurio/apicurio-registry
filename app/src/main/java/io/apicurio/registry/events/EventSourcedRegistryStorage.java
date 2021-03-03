@@ -22,6 +22,7 @@ import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
@@ -277,6 +278,11 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         storage.deleteGlobalRule(rule);
+    }
+
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        return storage.getTenantMetadata(tenantId);
     }
 
     @Override

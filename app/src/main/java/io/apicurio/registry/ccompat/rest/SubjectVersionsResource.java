@@ -120,8 +120,8 @@ public interface SubjectVersionsResource {
             @PathParam("subject") String subject,
             @NotNull SchemaInfo request) throws Exception;
 
-    
-    // ----- Path: /subjects/{subject}/versions/{version} ----- 
+
+    // ----- Path: /subjects/{subject}/versions/{version} -----
 
 
     /**

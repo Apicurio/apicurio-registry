@@ -130,4 +130,9 @@ public class KafkaFacade implements RegistryTestProcess {
         return kafkaContainer.getLogs(OutputType.STDERR);
     }
 
+    @Override
+    public boolean isContainer() {
+        return true;
+    }
+
 }

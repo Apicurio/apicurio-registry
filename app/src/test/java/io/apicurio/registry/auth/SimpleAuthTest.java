@@ -38,6 +38,9 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+/**
+ * @author Fabian Martinez
+ */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 public class SimpleAuthTest extends AbstractResourceTestBase {

@@ -18,10 +18,6 @@ package io.apicurio.tests.common.utils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
-
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryStorageType;
 
 public class RegistryUtils {
@@ -31,20 +27,16 @@ public class RegistryUtils {
                 .map(RegistryStorageType::valueOf)
                 .orElse(null);
 
+    public static final String TEST_PROFILE =
+            Optional.ofNullable(System.getProperty("groups"))
+                .orElse(null);
+
     private RegistryUtils() {
         //utils class
     }
 
     public static Path getLogsPath(Class<?> testClass, String testName) {
         return Paths.get("target/logs/", REGISTRY_STORAGE.name(), testClass.getName(), testName);
-    }
-
-    public static void waitForRegistry() throws TimeoutException {
-        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
-
-        TestUtils.waitFor("Registry reports is ready",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
     }
 
 }

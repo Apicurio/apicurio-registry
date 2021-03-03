@@ -33,8 +33,8 @@ jobs:
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-            version: '11'
-            architecture: x64
+          version: '11'
+          architecture: x64
 
       - name: Set up settings.xml
         run: |
@@ -258,8 +258,8 @@ jobs:
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-            version: '11'
-            architecture: x64
+          version: '11'
+          architecture: x64
 
       - name: Checkout Code
         uses: actions/checkout@v2

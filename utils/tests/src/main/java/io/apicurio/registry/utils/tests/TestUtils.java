@@ -141,7 +141,7 @@ public class TestUtils {
      * @return true if registry readiness endpoint replies sucessfully
      */
     public static boolean isReady(boolean logResponse) {
-        return isReady(getRegistryBaseUrl(), logResponse, "Apicurio Registry");
+        return isReady(getRegistryBaseUrl(), "/health/ready", logResponse, "Apicurio Registry");
     }
 
     /**
@@ -152,9 +152,9 @@ public class TestUtils {
      * @param component
      * @return true if the readiness endpoint replies successfully
      */
-    public static boolean isReady(String baseUrl, boolean logResponse, String component) {
+    public static boolean isReady(String baseUrl, String healthUrl, boolean logResponse, String component) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat("/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat(healthUrl)));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info(component + " is ready");

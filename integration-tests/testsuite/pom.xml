@@ -42,7 +42,15 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-common</artifactId>
+            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.slf4j</groupId>
+                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                </exclusion>
+            </exclusions>
+
         </dependency>
 
         <!-- Third Party Libraries -->
@@ -221,7 +229,7 @@
             <id>all</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke | serdes | acceptance | ui</groups>
+                <groups>( smoke | serdes | acceptance | ui ) &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -229,7 +237,7 @@
             <id>smoke</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>smoke</groups>
+                <groups>smoke &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -237,7 +245,7 @@
             <id>serdes</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>serdes</groups>
+                <groups>serdes &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -245,7 +253,7 @@
             <id>ui</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>ui</groups>
+                <groups>ui &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -253,7 +261,15 @@
             <id>acceptance</id>
             <properties>
                 <skipTests>false</skipTests>
-                <groups>acceptance</groups>
+                <groups>acceptance &amp; !multitenancy</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>multitenancy</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>multitenancy</groups>
             </properties>
         </profile>
 

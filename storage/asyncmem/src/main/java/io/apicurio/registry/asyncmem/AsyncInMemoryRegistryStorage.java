@@ -21,6 +21,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -542,6 +543,14 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
                 super.deleteGlobalRules();
             });
         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 
     private boolean hasGlobalRule(RuleType rule) {

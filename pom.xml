@@ -333,6 +333,16 @@
                 <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- Quarkus Dependencies -->
             <dependency>
@@ -608,7 +618,6 @@
                 <groupId>com.github.dasniko</groupId>
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
-                <scope>test</scope>
             </dependency>
 
         </dependencies>
@@ -842,6 +851,15 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>multitenancy</id>
+            <modules>
+                <module>storage/sql</module>
+                <module>multitenancy/tenant-manager-datamodel</module>
+                <module>multitenancy/tenant-manager-client</module>
+                <module>multitenancy/tenant-manager-api</module>
+            </modules>
+        </profile>
         <profile>
             <id>infinispan</id>
             <modules>

@@ -53,7 +53,7 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
             LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryV1ApiUrl());
         }
         try {
-            RegistryUtils.waitForRegistry();
+            registry.waitForRegistryReady();
         } catch (TimeoutException e) {
             if (!TestUtils.isExternalRegistry()) {
                 try {

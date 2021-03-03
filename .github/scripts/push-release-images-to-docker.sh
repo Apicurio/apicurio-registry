@@ -21,6 +21,8 @@ case $BRANCH_NAME in
        docker push apicurio/apicurio-registry-sql:${VERSION}
        docker push apicurio/apicurio-registry-streams:latest-release
        docker push apicurio/apicurio-registry-streams:${VERSION}
+       docker push apicurio/apicurio-registry-tenant-manager-api:latest-release
+       docker push apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;
 
     *)
@@ -37,6 +39,8 @@ case $BRANCH_NAME in
        docker push apicurio/apicurio-registry-sql:${VERSION}
        docker push apicurio/apicurio-registry-streams:${BRANCH_NAME}-release
        docker push apicurio/apicurio-registry-streams:${VERSION}
+       docker push apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-release
+       docker push apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;
 esac
         

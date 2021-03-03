@@ -23,6 +23,7 @@ import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -1069,6 +1070,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
+        throw new UnsupportedOperationException("Multitenancy not supported");
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
@@ -1132,8 +1138,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             throw new GroupNotFoundException(groupId);
         }
     }
-
-
 
     @AllArgsConstructor
     @Getter

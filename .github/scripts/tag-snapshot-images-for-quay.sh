@@ -18,6 +18,7 @@ case $BRANCH_NAME in
        docker image tag apicurio/apicurio-registry-kafkasql:latest-snapshot quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
        docker image tag apicurio/apicurio-registry-sql:latest-snapshot quay.io/apicurio/apicurio-registry-sql:latest-snapshot
        docker image tag apicurio/apicurio-registry-streams:latest-snapshot quay.io/apicurio/apicurio-registry-streams:latest-snapshot
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:latest-snapshot quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-snapshot
        ;;
 
    *)
@@ -28,6 +29,7 @@ case $BRANCH_NAME in
        docker image tag apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-snapshot
        docker image tag apicurio/apicurio-registry-sql:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-sql:${BRANCH_NAME}-snapshot
        docker image tag apicurio/apicurio-registry-streams:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-streams:${BRANCH_NAME}-snapshot
+       docker image tag apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-snapshot
        ;;
 
 esac

@@ -55,6 +55,9 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.metadata.TenantMetadataDto;
+import io.apicurio.registry.mt.metadata.TenantMetadataDtoMapper;
+import io.apicurio.registry.mt.metadata.TenantNotFoundException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -1815,6 +1818,27 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             });
         } catch (RuleNotFoundException e) {
             throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
+     */
+    @Override
+    public TenantMetadataDto getTenantMetadata(String tenantId) {
+        log.debug("Selecting tenant metadata by tenantId: {}", tenantId);
+        try {
+            return this.jdbi.withHandle( handle -> {
+                String sql = sqlStatements.selectTenantMetadataByTenantId();
+                return handle.createQuery(sql)
+                        .bind(0, tenantId)
+                        .map(TenantMetadataDtoMapper.instance)
+                        .one();
+            });
+        } catch (IllegalStateException e) {
+            throw new TenantNotFoundException("No tenant found for tenantId " + tenantId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }

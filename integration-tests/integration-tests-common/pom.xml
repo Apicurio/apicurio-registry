@@ -116,6 +116,15 @@
             <artifactId>rest-assured</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-admin-client</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

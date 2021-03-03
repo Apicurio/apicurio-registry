@@ -42,7 +42,8 @@ public class ContentFn implements SerializableFunction<String, StoredContent> {
 
     private transient StorageHandle handle;
 
-    public ContentFn(String contentHash, ArtifactType artifactType, byte[] bytes) {
+    public ContentFn(StorageHandle handle, String contentHash, ArtifactType artifactType, byte[] bytes) {
+        this.handle = handle;
         this.contentHash = contentHash;
         this.artifactType = artifactType;
         this.bytes = bytes;

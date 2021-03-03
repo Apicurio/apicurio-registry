@@ -28,5 +28,6 @@ export class ArtifactTypes {
     public static WSDL: string = "WSDL";
     public static XSD: string = "XSD";
     public static XML: string = "XML";
+	public static CSV: string = "CSV";
 
 }

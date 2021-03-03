@@ -38,6 +38,7 @@ import {ArtifactTypes} from "@apicurio/registry-models";
 const artifactTypes: any[] = [
     { id: ArtifactTypes.AVRO, label: "Avro Schema" },
     { id: ArtifactTypes.PROTOBUF, label: "Protocol Buffer Schema" },
+    { id: ArtifactTypes.CSV, label: "CSV Schema" },
     { id: ArtifactTypes.JSON, label: "JSON Schema" },
     { id: ArtifactTypes.OPENAPI, label: "OpenAPI" },
     { id: ArtifactTypes.ASYNCAPI, label: "AsyncAPI" },

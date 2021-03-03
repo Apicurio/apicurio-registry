@@ -118,6 +118,26 @@
             <artifactId>connect-json</artifactId>
         </dependency>
         
+        <!-- CSV -->
+        <dependency>
+		    <groupId>uk.gov.nationalarchives</groupId>
+		    <artifactId>csv-validator-java-api</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>uk.gov.nationalarchives</groupId>
+		    <artifactId>csv-validator-parent</artifactId>
+		    <type>pom</type>
+		</dependency>
+		<dependency>
+		    <groupId>uk.gov.nationalarchives</groupId>
+		    <artifactId>csv-validator</artifactId>
+		    <type>pom</type>
+		</dependency>
+		<dependency>
+		    <groupId>uk.gov.nationalarchives</groupId>
+		    <artifactId>csv-validator-core</artifactId>
+		</dependency>
+        
         <!-- GraphQL -->
         <dependency>
             <groupId>com.graphql-java</groupId>

@@ -85,49 +85,42 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         return (
             <Form>
                 <FormGroup
-                    label="Group"
-                    fieldId="group-id"
-                    isRequired={true}
-                >
-                    <TextInput
-                        isRequired={true}
-                        type="text"
-                        id="form-group"
-                        data-testid="form-group"
-                        name="form-group"
-                        aria-describedby="form-group-helper"
-                        value={this.state.group}
-                        placeholder="Artifact group"
-                        onChange={this.onGroupChange}
-                        validated={this.groupValidated()}
-                    />
-                    <FormHelperText
-                        isError={true}
-                        isHidden={this.state.groupValid}
-                    >
-                        Character % and non ASCII characters are not allowed
-                    </FormHelperText>
-                </FormGroup>
-                <FormGroup
-                    label="ID"
+                    label="Group & ID"
                     fieldId="form-id"
-                    helperText="(Optional) Leave the artifact ID empty to let the server auto-generate one."
+                    helperText="(Optional) Group and Artifact ID are optional.  If Artifact ID is left blank, the server will generate one for you."
                 >
-                    <TextInput
-                        isRequired={true}
-                        type="text"
-                        id="form-id"
-                        data-testid="form-id"
-                        name="form-id"
-                        aria-describedby="form-id-helper"
-                        value={this.state.id}
-                        placeholder="ID of the artifact"
-                        onChange={this.onIdChange}
-                        validated={this.idValidated()}
-                    />
+                    <div className="group-and-id">
+                        <TextInput
+                            className="group"
+                            isRequired={false}
+                            type="text"
+                            id="form-group"
+                            data-testid="form-group"
+                            name="form-group"
+                            aria-describedby="form-group-helper"
+                            value={this.state.group}
+                            placeholder="Group"
+                            onChange={this.onGroupChange}
+                            validated={this.groupValidated()}
+                        />
+                        <span className="separator">/</span>
+                        <TextInput
+                            className="artifact-id"
+                            isRequired={false}
+                            type="text"
+                            id="form-id"
+                            data-testid="form-id"
+                            name="form-id"
+                            aria-describedby="form-id-helper"
+                            value={this.state.id}
+                            placeholder="ID of the artifact"
+                            onChange={this.onIdChange}
+                            validated={this.idValidated()}
+                        />
+                    </div>
                     <FormHelperText
                         isError={true}
-                        isHidden={this.state.idValid}
+                        isHidden={this.state.idValid && this.state.groupValid}
                     >
                         Character % and non ASCII characters are not allowed
                     </FormHelperText>
@@ -211,14 +204,20 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     };
 
     private onIdChange = (value: any): void => {
-        this.setSingleState("id", value, () => {
+        this.setMultiState({
+            id: value,
+            idValid: this.isIdValid(value)
+        }, () => {
             this.fireOnChange();
             this.checkFormValid();
         });
     };
 
     private onGroupChange = (value: any): void => {
-        this.setSingleState("group", value, () => {
+        this.setMultiState({
+            group: value,
+            groupValid: this.isIdValid(value)
+        }, () => {
             this.fireOnChange();
             this.checkFormValid();
         });
@@ -254,8 +253,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     private isFormValid(data: CreateArtifactData): boolean {
-        const hasGroupId: boolean = data.groupId ? true : false;
-        return !!data.content && this.isIdValid(data.id) && hasGroupId && this.isIdValid(data.groupId);
+        return !!data.content && this.isIdValid(data.id) && this.isIdValid(data.groupId);
     }
 
     private isIdValid(id: string|null): boolean {

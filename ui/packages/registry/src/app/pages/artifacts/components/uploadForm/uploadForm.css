@@ -1,0 +1,17 @@
+.group-and-id {
+    display: flex;
+    flex-direction: row;
+}
+
+.group-and-id .separator {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.group-and-id .group {
+    flex-basis: 325px;
+}
+
+.group-and-id .artifact-id {
+
+}

@@ -16,7 +16,8 @@
  */
 
 export interface FeaturesConfig {
-    readOnly?: boolean
+    readOnly?: boolean;
+    breadcrumbs?: boolean;
 }
 
 export interface ArtifactsConfig {

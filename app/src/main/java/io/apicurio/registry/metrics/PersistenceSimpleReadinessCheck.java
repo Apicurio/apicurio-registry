@@ -11,7 +11,7 @@ import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Readiness

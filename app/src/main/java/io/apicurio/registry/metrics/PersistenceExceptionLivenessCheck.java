@@ -12,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Fail liveness check if the number of exceptions thrown by storage is too high.
+ * Fail liveness check if the number of exceptions thrown by artifactStore is too high.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Liveness
@@ -24,7 +24,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
     private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessCheck.class);
 
     /**
-     * Maximum number of exceptions raised by storage implementation,
+     * Maximum number of exceptions raised by artifactStore implementation,
      * as captured by this interceptor,
      * before the liveness check fails.
      */

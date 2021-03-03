@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import io.apicurio.registry.rest.beans.RuleViolationCause;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import lombok.Getter;
@@ -31,17 +30,17 @@ import lombok.Getter;
  * @author Ales Justin
  */
 public class RuleViolationException extends RegistryException {
-    
+
     private static final long serialVersionUID = 8437151164241883773L;
-    
+
     @Getter
     private final RuleType ruleType;
-    
+
     @Getter
     private final Optional<String> ruleConfiguration;
 
     @Getter
-    private final Set<RuleViolationCause> causes;
+    private final Set<RuleViolation> causes;
 
     /**
      * Constructor.
@@ -64,7 +63,7 @@ public class RuleViolationException extends RegistryException {
      * @param ruleConfiguration
      * @param causes
      */
-    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolationCause> causes) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolation> causes) {
         super(message);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
@@ -80,7 +79,7 @@ public class RuleViolationException extends RegistryException {
      * @param cause
      */
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
-            Set<RuleViolationCause> causes, Throwable cause) {
+            Set<RuleViolation> causes, Throwable cause) {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);

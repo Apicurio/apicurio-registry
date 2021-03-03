@@ -21,18 +21,21 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
  */
 public class ArtifactVersionKey extends AbstractMessageKey {
 
+    private String groupId;
     private String artifactId;
-    private Integer version;
+    private Long version;
 
     /**
      * Creator method.
      * @param tenantId
+     * @param groupId
      * @param artifactId
      * @param version
      */
-    public static final ArtifactVersionKey create(String tenantId, String artifactId, Integer version) {
+    public static final ArtifactVersionKey create(String tenantId, String groupId, String artifactId, Long version) {
         ArtifactVersionKey key = new ArtifactVersionKey();
         key.setTenantId(tenantId);
+        key.setGroupId(groupId);
         key.setArtifactId(artifactId);
         key.setVersion(version);
         return key;
@@ -51,7 +54,21 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + artifactId;
+        return getTenantId() + "/" + groupId + "/" + artifactId;
+    }
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * @param groupId the groupId to set
+     */
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -71,23 +88,24 @@ public class ArtifactVersionKey extends AbstractMessageKey {
     /**
      * @return the version
      */
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     * @see java.lang.Object#toString()
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[artifactId=" + getArtifactId() + ", version=" + getVersion() + "]";
+        return "ArtifactVersionKey [groupId=" + groupId + ", artifactId=" + artifactId + ", version="
+                + version + "]";
     }
 
 }

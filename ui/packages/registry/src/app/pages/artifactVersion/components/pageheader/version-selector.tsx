@@ -19,7 +19,7 @@ import React from "react";
 import "./version-selector.css";
 import {Button, ButtonVariant, Dropdown, DropdownToggle, InputGroup, TextInput} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {VersionMetaData} from "@apicurio/registry-models";
+import {SearchedVersion, VersionMetaData} from "@apicurio/registry-models";
 import {SearchIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
 import {Link} from "react-router-dom";
@@ -30,9 +30,10 @@ import {Services} from "@apicurio/registry-services";
  * Properties
  */
 export interface VersionSelectorProps extends PureComponentProps {
+    groupId: string;
     artifactId: string;
     version: string;
-    versions: VersionMetaData[];
+    versions: SearchedVersion[];
 }
 
 /**
@@ -77,7 +78,7 @@ export class VersionSelector extends PureComponent<VersionSelectorProps, Version
                 <div className="version-list">
                     <Link key="latest"
                           data-testid="versions-lnk-latest"
-                          to={`/artifacts/${encodeURIComponent(this.props.artifactId)}/versions/latest`}
+                          to={`/artifacts/${encodeURIComponent(this.props.groupId)}/${encodeURIComponent(this.props.artifactId)}/versions/latest`}
                           className="version-item latest">
                         <span className="name">latest</span>
                         <span className="date" />
@@ -86,7 +87,7 @@ export class VersionSelector extends PureComponent<VersionSelectorProps, Version
                         this.props.versions.map((v, idx) =>
                             <Link key={v.version}
                                   data-testid={`versions-lnk-${idx}`}
-                                  to={`/artifacts/${encodeURIComponent(this.props.artifactId)}/versions/${v.version}`}
+                                  to={`/artifacts/${encodeURIComponent(this.props.groupId)}/${encodeURIComponent(this.props.artifactId)}/versions/${v.version}`}
                                   className="version-item">
                                 <span className="name">{ v.version }</span>
                                 <span className="date"><Moment date={v.createdOn} fromNow={true} /></span>

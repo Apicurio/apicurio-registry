@@ -16,10 +16,9 @@
 
 package io.apicurio.registry.content.extract;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-
 import static io.apicurio.registry.utils.StringUtil.isEmpty;
+
+import io.apicurio.registry.content.ContentHandle;
 
 /**
  * @author Ales Justin
@@ -32,7 +31,7 @@ public interface ContentExtractor {
      * @param content the content
      * @return extracted metadata or null if none
      */
-    EditableMetaData extract(ContentHandle content);
+    ExtractedMetaData extract(ContentHandle content);
 
     /**
      * Did we actually extracted something from the content.
@@ -40,7 +39,7 @@ public interface ContentExtractor {
      * @param metaData the extracted metadata
      * @return true if extracted, false otherwise
      */
-    default boolean isExtracted(EditableMetaData metaData) {
+    default boolean isExtracted(ExtractedMetaData metaData) {
         if (metaData == null) {
             return false;
         }

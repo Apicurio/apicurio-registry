@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
+export * from "./admin";
 export * from "./artifacts";
 export * from "./baseService";
 export * from "./config";
 export * from "./downloader";
-export * from "./globals";
+export * from "./groups";
 export * from "./logger";
 export * from "./services";

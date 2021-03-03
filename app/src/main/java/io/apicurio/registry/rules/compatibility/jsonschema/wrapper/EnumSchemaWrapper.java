@@ -25,7 +25,7 @@ import org.everit.json.schema.EnumSchema;
 import java.util.Set;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString

@@ -29,13 +29,16 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
@@ -43,6 +46,8 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -55,13 +60,13 @@ import io.apicurio.registry.utils.kafka.ProducerActions;
 @ApplicationScoped
 @Logged
 public class KafkaSqlSubmitter {
-    
+
     @Inject
     KafkaSqlConfiguration configuration;
 
     @Inject
     KafkaSqlCoordinator coordinator;
-    
+
     @Inject
     ProducerActions<MessageKey, MessageValue> producer;
 
@@ -83,60 +88,70 @@ public class KafkaSqlSubmitter {
         return producer.apply(record).thenApply(rm -> requestId);
     }
 
-    
+
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(String tenantId, String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
-        ContentKey key = ContentKey.create(tenantId, artifactId, contentHash);
+    public CompletableFuture<UUID> submitContent(String tenantId, String groupId, String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
+        ContentKey key = ContentKey.create(tenantId, groupId, artifactId, contentHash);
         ContentValue value = ContentValue.create(ActionType.Create, artifactType, content);
         return send(key, value);
     }
 
-    
+
+    /* ******************************************************************************************
+     * Group
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action) {
+        GroupKey key = GroupKey.create(tenantId, groupId);
+        GroupValue value = GroupValue.create(action);
+        return send(key, value);
+    }
+
+
     /* ******************************************************************************************
      * Artifact
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String artifactId, ActionType action,
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
-        ArtifactKey key = ArtifactKey.create(tenantId, artifactId);
+        ArtifactKey key = ArtifactKey.create(tenantId, groupId, artifactId);
         ArtifactValue value = ArtifactValue.create(action, artifactType, contentHash, createdBy, createdOn, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String artifactId, ActionType action) {
-        return this.submitArtifact(tenantId, artifactId, action,  null, null, null, null, null);
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action) {
+        return this.submitArtifact(tenantId, groupId, artifactId, action,  null, null, null, null, null);
     }
 
-    
+
     /* ******************************************************************************************
      * Version
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String artifactId, int version, ActionType action, ArtifactState state, 
+    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String groupId, String artifactId, long version, ActionType action, ArtifactState state,
             EditableArtifactMetaDataDto metaData) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, artifactId, version);
+        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
         ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitVersion(String tenantId, String artifactId, int version, ActionType action) {
-        return submitArtifactVersion(tenantId, artifactId, version, action, null, null);
+    public CompletableFuture<UUID> submitVersion(String tenantId, String groupId, String artifactId, long version, ActionType action) {
+        return submitArtifactVersion(tenantId, groupId, artifactId, version, action, null, null);
     }
 
-    
+
     /* ******************************************************************************************
      * Artifact Rule
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String artifactId, RuleType rule, ActionType action,
+    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String groupId, String artifactId, RuleType rule, ActionType action,
             RuleConfigurationDto config) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
+        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
         ArtifactRuleValue value = ArtifactRuleValue.create(action, config);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String artifactId, RuleType rule, ActionType action) {
-        return submitArtifactRule(tenantId, artifactId, rule, action, null);
+    public CompletableFuture<UUID> submitArtifactRule(String tenantId, String groupId, String artifactId, RuleType rule, ActionType action) {
+        return submitArtifactRule(tenantId, groupId, artifactId, rule, action, null);
     }
 
-    
+
     /* ******************************************************************************************
      * Global Rule
      * ****************************************************************************************** */
@@ -149,18 +164,31 @@ public class KafkaSqlSubmitter {
         return submitGlobalRule(tenantId, rule, action, null);
     }
 
-    
-    
+
+    /* ******************************************************************************************
+     * Log Configuration
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action, LogConfigurationDto config) {
+        LogConfigKey key = LogConfigKey.create(tenantId);
+        LogConfigValue value = LogConfigValue.create(action, config);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action) {
+        return submitLogConfig(tenantId, action, null);
+    }
+
+
+
     /* ******************************************************************************************
      * Tombstones
      * ****************************************************************************************** */
-    public void submitArtifactVersionTombstone(String tenantId, String artifactId, int version) {
-        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, artifactId, version);
+    public void submitArtifactVersionTombstone(String tenantId, String groupId, String artifactId, long version) {
+        ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
         send(key, null);
     }
-    public void submitArtifactRuleTombstone(String tenantId, String artifactId, RuleType rule) {
-        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, artifactId, rule);
+    public void submitArtifactRuleTombstone(String tenantId, String groupId, String artifactId, RuleType rule) {
+        ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
         send(key, null);
     }
-    
+
 }

@@ -20,12 +20,12 @@ import io.apicurio.registry.types.ArtifactState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.storage.impl.MetaDataKeys.STATE;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import static io.apicurio.registry.storage.MetaDataKeys.STATE;
 
 /**
  * @author Ales Justin
@@ -57,16 +57,16 @@ public class ArtifactStateExt {
         return ArtifactState.valueOf(getStateRaw(context));
     }
 
-    public static void validateState(EnumSet<ArtifactState> states, ArtifactState state, String identifier, Number version) {
+    public static void validateState(EnumSet<ArtifactState> states, ArtifactState state, String groupId, String artifactId, Number version) {
         if (states != null && states.contains(state) == false) {
-            throw new InvalidArtifactStateException(identifier, version, state);
+            throw new InvalidArtifactStateException(groupId, artifactId, version, state);
         }
-        ArtifactStateExt.logIfDeprecated(identifier, state, version);
+        ArtifactStateExt.logIfDeprecated(groupId, artifactId, version, state);
     }
 
-    public static void logIfDeprecated(Object identifier, ArtifactState state, Object version) {
+    public static void logIfDeprecated(String groupId, Object artifactId, Object version, ArtifactState state) {
         if (state == ArtifactState.DEPRECATED) {
-            log.warn("Artifact {} [{}] is deprecated", identifier, version);
+            log.warn("Artifact {} [{}] in group ({}) is deprecated", artifactId, version, groupId);
         }
     }
 

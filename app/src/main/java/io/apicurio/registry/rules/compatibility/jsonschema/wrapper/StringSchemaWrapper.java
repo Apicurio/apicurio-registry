@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString

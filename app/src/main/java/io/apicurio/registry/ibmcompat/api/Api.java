@@ -61,7 +61,7 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
-@Path("/api/ibmcompat")
+@Path("/apis/ibmcompat/v1")
 @RestMetricsResponseFilteredNameBinding
 @RestMetricsApply
 @Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})

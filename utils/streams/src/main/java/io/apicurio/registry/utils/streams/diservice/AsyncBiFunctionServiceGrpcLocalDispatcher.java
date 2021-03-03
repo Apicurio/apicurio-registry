@@ -18,6 +18,7 @@ public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionSe
         this.localServiceRegistry = new LocalService.Registry<>(localAsyncBiFunctionServices);
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public void apply(BiFunctionReq request, StreamObserver<BiFunctionRes> responseObserver) {
         String serviceName = request.getServiceName();

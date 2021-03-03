@@ -21,7 +21,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 /**
  * Interceptor that tracks metrics across all REST resources.
  *
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptor
 @RestMetricsApply

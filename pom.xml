@@ -88,16 +88,16 @@
         <module>utils/kafka</module>
         <module>utils/streams</module>
         <module>utils/maven-plugin</module>
-        <module>utils/serde</module>
         <module>utils/sql</module>
         <module>utils/tools</module>
         <module>utils/tests</module>
-        <module>search/client</module>
-        <module>search/connector</module>
+        <module>serdes/serde-common</module>
+        <module>serdes/avro-serde</module>
+        <module>serdes/protobuf-serde</module>
+        <module>serdes/jsonschema-serde</module>
         <module>distro</module>
         <module>docs</module>
-        <module>tests</module>
-        <module>rest-client</module>
+        <module>client</module>
     </modules>
 
     <properties>
@@ -106,8 +106,8 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
         <docker.tag.name>latest-release</docker.tag.name>
         <tar.long.file.mode>gnu</tar.long.file.mode>
@@ -117,27 +117,27 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.10.5.Final</quarkus.version>
+        <quarkus.version>1.11.3.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.0.8</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.1</avro.version>
-        <json-schema-validator.version>1.0.46</json-schema-validator.version>
+        <json-schema-validator.version>1.0.49</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.14.0</protobuf.version>
+        <protobuf.version>3.15.3</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Storage types -->
-        <infinispan.version>12.0.0.Dev07</infinispan.version>
+        <infinispan.version>12.0.1.Final</infinispan.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>
 
         <!-- gRPC -->
-        <grpc.version>1.35.0</grpc.version>
+        <grpc.version>1.36.0</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>6.0.1</confluent.version>
@@ -146,18 +146,19 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.6</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.9</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>16.1</graphql.version>
+        <graphql.version>16.2</graphql.version>
 
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
-        <org.everit.json.schema.version>1.12.1</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.12.1</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.16</lombok.version>
+        <lombok.version>1.18.18</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <jdbi.version>3.18.0</jdbi.version>
@@ -174,12 +175,12 @@
         <cdi-api.version>2.0</cdi-api.version>
         
         <!-- Gatling -->
-        <version.gatling>3.5.0</version.gatling>
-        <version.gatling.plugin>3.1.1</version.gatling.plugin>
+        <version.gatling>3.5.1</version.gatling>
+        <version.gatling.plugin>3.1.2</version.gatling.plugin>
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.4</scala.version>
+        <scala.version>2.13.5</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
@@ -189,24 +190,24 @@
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.0</version.jar.plugin>
-        <version.checkstyle.plugin>3.1.1</version.checkstyle.plugin>
+        <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.1.2</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.2</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.39</version.puppycrawl>
+        <version.puppycrawl>8.41</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
-        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
+        <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.15.1</test-containers.version>
-        <keycloak.testcontainers.version>1.5.0</keycloak.testcontainers.version>
+        <test-containers.version>1.15.2</test-containers.version>
+        <keycloak.testcontainers.version>1.6.0</keycloak.testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -229,12 +230,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-rest-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-search-client</artifactId>
+                <artifactId>apicurio-registry-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -261,11 +257,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-serde</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-converter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -289,6 +280,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-integration-tests-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-asyncmem</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -305,6 +301,26 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serde-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -478,6 +494,11 @@
                 <artifactId>jackson-datatype-json-org</artifactId>
                 <version>${jackson-datatype-json-org.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson-dataformat-yaml.version}</version>
+            </dependency>
 
             <!-- Search -->
             <dependency>
@@ -587,12 +608,6 @@
                 <groupId>com.github.dasniko</groupId>
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.dasniko</groupId>
-                <artifactId>testcontainers-keycloak</artifactId>
-                <version>${keycloak.testcontainers.version}</version>
-                <scope>test</scope>
             </dependency>
 
         </dependencies>
@@ -751,7 +766,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${maven.compiler.target}</source>
+                    <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                     <showDeprecation>false</showDeprecation>
                     <showWarnings>false</showWarnings>
@@ -790,7 +805,7 @@
                     </additionalDependencies>
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
-                    <source>8</source>
+                    <source>${maven.compiler.source}</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -879,6 +894,35 @@
             <modules>
                 <module>perftest</module>
             </modules>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>integration-tests/integration-tests-common</module>
+                <module>integration-tests/legacy-tests</module>
+                <module>integration-tests/testsuite</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>skip-auth-test</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+             <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*SimpleAuthTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>            
         </profile>
         <profile>
             <id>release</id>

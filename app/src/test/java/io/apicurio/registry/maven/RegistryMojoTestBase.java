@@ -34,7 +34,7 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createTempDirectory() throws IOException {
-        this.tempDirectory = File.createTempFile(getClass().getSimpleName(), "tmp");
+        this.tempDirectory = File.createTempFile(getClass().getSimpleName(), ".tmp");
         this.tempDirectory.delete();
         this.tempDirectory.mkdirs();
     }
@@ -50,6 +50,7 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
     protected void writeContent(File outputPath, byte[] content) throws IOException {
         try (OutputStream writer = new FileOutputStream(outputPath)) {
             writer.write(content);
+            writer.flush();
         }
     }
 }

@@ -30,6 +30,9 @@ public class MessageTypeToKeyClass {
     static {
         for (MessageType type : types) {
             switch (type) {
+                case Group:
+                    index.put(type, GroupKey.class);
+                    break;
                 case Artifact:
                     index.put(type, ArtifactKey.class);
                     break;
@@ -42,23 +45,25 @@ public class MessageTypeToKeyClass {
                 case GlobalRule:
                     index.put(type, GlobalRuleKey.class);
                     break;
+                case LogConfig:
+                    index.put(type, LogConfigKey.class);
+                    break;
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionKey.class);
                     break;
                 default:
-                    break;
-                
+                    throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }
         }
     }
-    
+
     public static final Class<? extends MessageKey> typeToKey(MessageType type) {
         return index.get(type);
     }
-    
+
     public static final Class<? extends MessageKey> ordToKeyClass(byte typeOrdinal) {
         MessageType type = MessageType.fromOrd(typeOrdinal);
         return typeToKey(type);
     }
-    
+
 }

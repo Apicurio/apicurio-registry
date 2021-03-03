@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,36 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.apicurio.registry.auth;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
-import java.util.List;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.client.exception.ForbiddenException;
-import io.apicurio.registry.client.exception.NotAuthorizedException;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Fabian Martinez
@@ -50,8 +44,6 @@ import io.quarkus.test.junit.TestProfile;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 public class SimpleAuthTest extends AbstractResourceTestBase {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleAuthTest.class);
 
     @ConfigProperty(name = "registry.keycloak.url")
     String authServerUrl;
@@ -68,108 +60,76 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     String clientSecret = "test1";
 
-    @Override
-    @BeforeAll
-    protected void beforeAll() throws Exception {
-        System.out.println("Auth is " + authEnabled);
-        registryUrl = "http://localhost:8081/api";
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+    final String groupId = "authTestGroupId";
+
+    private RegistryClient createClient(Auth auth) {
+        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
-    @AfterEach
-    void cleanArtifacts() throws Exception {
+    /**
+     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
+     */
+    @Override
+    protected RegistryClient createRestClientV2() {
+        System.out.println("Auth is " + authEnabled);
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-        List<String> artifacts = client.listArtifacts();
-        for (String artifactId : artifacts) {
-            try {
-                client.deleteArtifact(artifactId);
-            } catch (AssertionError e) {
-                //because of async storage artifact may be already deleted but listed anyway
-                LOGGER.info(e.getMessage());
-            } catch (Exception e) {
-                LOGGER.error("", e);
-            }
-        }
+        return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-
         Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test55");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
+        RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.listArtifacts();
+            client.listArtifactsInGroup(groupId);
         });
-
     }
 
     @Test
     public void testReadOnly() throws Exception {
-
         Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test1");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
-        client.listArtifacts();
-
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
-            client.getArtifactByGlobalId(2);
-        });
-
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
-            client.getLatestArtifact("abc");
-        });
-
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-        });
-
+        RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
+        client.listArtifactsInGroup(groupId);
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        });
         {
             Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
-            RegistryRestClient devClient = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), devAuth);
-            ArtifactMetaData meta = devClient.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> devClient.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
+            RegistryClient devClient = createClient(devAuth);
+            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
-
-        assertNotNull(client.getLatestArtifact(artifactId));
-
+        assertNotNull(client.getLatestArtifact(groupId, artifactId));
     }
 
     @Test
     public void testDevRole() throws Exception {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
+        RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifacts();
+            client.listArtifactsInGroup(groupId);
 
-            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
 
-            assertNotNull(client.getLatestArtifact(meta.getId()));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.createArtifactRule(meta.getId(), ruleConfig);
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
 
             Assertions.assertThrows(ForbiddenException.class, () -> {
                 client.createGlobalRule(ruleConfig);
             });
         } finally {
-            client.deleteArtifact(artifactId);
+            client.deleteArtifact(groupId, artifactId);
         }
-
-
-
     }
 
     @Test
@@ -177,27 +137,22 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
 
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+        RegistryClient client = createClient(auth);
 
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifacts();
-
-            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
-
-            assertNotNull(client.getLatestArtifact(meta.getId()));
-
+            client.listArtifactsInGroup(groupId);
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.createArtifactRule(meta.getId(), ruleConfig);
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
 
             client.createGlobalRule(ruleConfig);
         } finally {
-            client.deleteArtifact(artifactId);
+            client.deleteArtifact(groupId, artifactId);
         }
-
     }
-
 }

@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.sql;
 import java.util.List;
 
 /**
- * Returns SQL statements used by the JDB storage implementation.  There are different
+ * Returns SQL statements used by the JDB artifactStore implementation.  There are different
  * implementations of this interface depending on the database being used.
  * @author eric.wittmann@gmail.com
  */
@@ -123,12 +123,12 @@ public interface SqlStatements {
     /**
      * A statement used to select a single row in the versions by artifactId and content hash.
      */
-    public String selectArtifactMetaDataByContentHash();
+    public String selectArtifactVersionMetaDataByContentHash();
 
     /**
      * A statement used to select a single row in the versions by artifactId and canonical content hash.
      */
-    public String selectArtifactMetaDataByCanonicalHash();
+    public String selectArtifactVersionMetaDataByCanonicalHash();
 
     /**
      * A statement to select the content of an artifact version from the versions table by globalId.
@@ -211,9 +211,9 @@ public interface SqlStatements {
     public String deleteArtifactRules();
 
     /**
-     * A statement to update the meta-data for the most recent (latest) version of an artifact.
+     * A statement to delete all rules for all artifacts in a groupId.
      */
-    public String updateArtifactMetaDataLatestVersion();
+    public String deleteArtifactRulesByGroupId();
 
     /**
      * A statement to update the meta-data of a specific artifact version.
@@ -224,14 +224,31 @@ public interface SqlStatements {
      * A statement to delete all labels for all versions for a single artifact.
      */
     public String deleteLabels();
+
+    /**
+     * A statement to delete all labels for a single artifact version by globalId
+     */
     public String deleteLabelsByGlobalId();
 
-    
+    /**
+     * A statement to delete all labels for all versions for all artifacts in a groupId.
+     */
+    public String deleteLabelsByGroupId();
+
     /**
      * A statement to delete all properties for all versions for a single artifact.
      */
     public String deleteProperties();
+
+    /**
+     * A statement to delete all properties for a single artifact version by globalId
+     */
     public String deletePropertiesByGlobalId();
+
+    /**
+     * A statement to delete all properties for all versions for all artifacts in a groupId.
+     */
+    public String deletePropertiesByGroupId();
 
     /**
      * A statement to delete all versions for a single artifact.
@@ -239,9 +256,19 @@ public interface SqlStatements {
     public String deleteVersions();
 
     /**
+     * A statement to delete all versions for all artifacts in a groupId.
+     */
+    public String deleteVersionsByGroupId();
+
+    /**
      * A statement to delete a single row from the artifacts table by artifactId.
      */
     public String deleteArtifact();
+
+    /**
+     * A statement to delete a all artifacts from the artifacts table by groupId.
+     */
+    public String deleteArtifactsByGroupId();
 
     /**
      * A statement to get all artifacts IDs.
@@ -312,4 +339,30 @@ public interface SqlStatements {
      * A statement to select tenants metadata by tenantId
      */
     public String selectTenantMetadataByTenantId();
+
+    /**
+     * A statement to select the bytes of a content row by contentHash
+     */
+    public String selectContentByContentHash();
+
+    /**
+     * A statement to select the log configuration for a given logger name
+     */
+    public String selectLogConfigurationByLogger();
+
+    /**
+     * A statement to "upsert" a row in the "logconfiguration" table
+     */
+    public String upsertLogConfiguration();
+
+    /**
+     * A statement to delete a row in the "logconfiguration" table
+     */
+    public String deleteLogConfiguration();
+
+    /**
+     * A statement to select all rows in the "logconfiguration" table
+     */
+    public String selectAllLogConfigurations();
+
 }

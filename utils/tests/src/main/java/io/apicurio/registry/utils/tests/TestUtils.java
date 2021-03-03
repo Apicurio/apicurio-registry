@@ -30,9 +30,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-
-import io.apicurio.registry.client.exception.RestClientException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -41,8 +40,6 @@ import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
@@ -80,7 +77,15 @@ public class TestUtils {
     }
 
     public static String getRegistryApiUrl() {
-        return getRegistryBaseUrl().concat("/api");
+        return getRegistryBaseUrl().concat("/apis");
+    }
+
+    public static String getRegistryV1ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v1");
+    }
+
+    public static String getRegistryV2ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v2");
     }
 
     public static String getRegistryBaseUrl() {
@@ -136,7 +141,7 @@ public class TestUtils {
      * @return true if registry readiness endpoint replies sucessfully
      */
     public static boolean isReady(boolean logResponse) {
-        return isReady(getRegistryBaseUrl(), logResponse, "Apicurio Registry");
+        return isReady(getRegistryBaseUrl(), "/health/ready", logResponse, "Apicurio Registry");
     }
 
     /**
@@ -147,9 +152,9 @@ public class TestUtils {
      * @param component
      * @return true if the readiness endpoint replies successfully
      */
-    public static boolean isReady(String baseUrl, boolean logResponse, String component) {
+    public static boolean isReady(String baseUrl, String healthUrl, boolean logResponse, String component) {
         try {
-            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat("/health/ready")));
+            CloseableHttpResponse res = HttpClients.createMinimal().execute(new HttpGet(baseUrl.concat(healthUrl)));
             boolean ok = res.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
             if (ok) {
                 log.info(component + " is ready");
@@ -247,6 +252,10 @@ public class TestUtils {
         return UUID.randomUUID().toString();
     }
 
+    public static String generateGroupId() {
+        return UUID.randomUUID().toString();
+    }
+
     @FunctionalInterface
     public interface RunnableExc {
         void run() throws Exception;
@@ -296,51 +305,51 @@ public class TestUtils {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
-            assertClientError(expectedErrorName, expectedCode, runnable, false);
+            assertClientError(expectedErrorName, expectedCode, runnable, false, errorCodeExtractor);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static void assertClientError(String expectedErrorName, int expectedCode, Runnable runnable, boolean retry) throws Exception {
+    public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         if (retry) {
-            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor));
         } else {
-            internalAssertClientError(expectedErrorName, expectedCode, runnable);
+            internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         }
     }
 
-    private static void internalAssertClientError(String expectedErrorName, int expectedCode, Runnable runnable) {
+    private static void internalAssertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
         try {
             runnable.run();
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
         } catch (Exception e) {
             Assertions.assertEquals(expectedErrorName, e.getClass().getSimpleName(), () -> "e: " + e);
-            Assertions.assertEquals(expectedCode, ((RestClientException) e).getError().getErrorCode());
+            Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(e));
         }
     }
 
     // some impl details ...
 
-    public static void waitForSchema(RegistryRestClient service, byte[] bytes) throws Exception {
-        waitForSchema(service, bytes, ByteBuffer::getLong);
+    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes) throws Exception {
+        waitForSchema(schemaFinder, bytes, ByteBuffer::getLong);
     }
 
-    public static void waitForSchema(RegistryRestClient service, byte[] bytes, Function<ByteBuffer, Long> fn) throws Exception {
-        waitForSchemaCustom(service, bytes, input -> {
+    public static void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes, Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
+        waitForSchemaCustom(schemaFinder, bytes, input -> {
             ByteBuffer buffer = ByteBuffer.wrap(input);
             buffer.get(); // magic byte
-            return fn.apply(buffer);
+            return globalIdExtractor.apply(buffer);
         });
     }
 
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
-    public static void waitForSchemaCustom(RegistryRestClient service, byte[] bytes, Function<byte[], Long> fn) throws Exception {
-        long id = fn.apply(bytes);
-        ArtifactMetaData amd = retry(() -> service.getArtifactMetaDataByGlobalId(id));
-        Assertions.assertNotNull(amd); // wait for global id to populate
+    public static void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes, Function<byte[], Long> globalIdExtractor) throws Exception {
+        long id = globalIdExtractor.apply(bytes);
+        boolean schemaExists = retry(() -> schemaFinder.test(id));
+        Assertions.assertTrue(schemaExists); // wait for global id to populate
     }
 
 }

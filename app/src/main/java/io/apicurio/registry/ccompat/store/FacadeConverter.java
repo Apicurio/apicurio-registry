@@ -19,7 +19,7 @@ package io.apicurio.registry.ccompat.store;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.storage.StoredArtifact;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 
 public class FacadeConverter {
 
@@ -30,7 +30,7 @@ public class FacadeConverter {
         return (int) value;
     }
 
-    public static Schema convert(String subject, StoredArtifact storedArtifact) {
+    public static Schema convert(String subject, StoredArtifactDto storedArtifact) {
         return new Schema(
                 convertUnsigned(storedArtifact.getGlobalId()),
                 subject,
@@ -39,7 +39,7 @@ public class FacadeConverter {
         );
     }
 
-    public static SchemaContent convert(StoredArtifact artifactVersion) {
+    public static SchemaContent convert(StoredArtifactDto artifactVersion) {
         return new SchemaContent(artifactVersion.getContent().content());
     }
 

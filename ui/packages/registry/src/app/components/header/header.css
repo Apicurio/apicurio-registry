@@ -1,7 +1,2 @@
-.header-toolbar .header-icon {
-    font-size: 24px;
-    color: white;
-}
-.header-toolbar .header-icon:hover {
-    color: #ccc;
+.header-toolbar {
 }

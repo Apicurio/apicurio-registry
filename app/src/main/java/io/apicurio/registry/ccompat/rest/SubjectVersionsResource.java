@@ -21,6 +21,7 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 import java.util.List;
+
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -42,9 +43,9 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  *
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/api/ccompat/subjects/{subject}/versions")
+@Path("/apis/ccompat/v6/subjects/{subject}/versions")
 @RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
@@ -120,8 +121,8 @@ public interface SubjectVersionsResource {
             @PathParam("subject") String subject,
             @NotNull SchemaInfo request) throws Exception;
 
-    
-    // ----- Path: /subjects/{subject}/versions/{version} ----- 
+
+    // ----- Path: /subjects/{subject}/versions/{version} -----
 
 
     /**

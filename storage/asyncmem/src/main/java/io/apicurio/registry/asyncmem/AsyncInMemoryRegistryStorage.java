@@ -23,16 +23,16 @@ import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.SimpleMapRegistryStorage;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -81,26 +81,32 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     long updateDelay;
     @ConfigProperty(name = "registry.asyncmem.delays.delete", defaultValue = "500")
     long deleteDelay;
-    
-    private AtomicLong counter = new AtomicLong(1);
+
+    private AtomicLong globalCounter = new AtomicLong(1);
+    private AtomicLong contentCounter = new AtomicLong(1);
     private Map<String, Long> artifactCreation = new HashMap<>();
     private Map<Long, Long> globalCreation = new HashMap<>();
-    
+
     private ExecutorService executor = Executors.newCachedThreadPool();
-    
+
     @Override
     protected long nextGlobalId() {
-        return counter.getAndIncrement();
+        return globalCounter.getAndIncrement();
+    }
+
+    @Override
+    protected long nextContentId() {
+        return contentCounter.getAndIncrement();
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType,
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         try {
-            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, true, nextGlobalId());
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(groupId, artifactId, artifactType, content, true, nextGlobalId());
             long globalId = amdd.getGlobalId();
             long creationTime = amdd.getCreatedOn() + createDelay;
             this.artifactCreation.put(artifactId, creationTime);
@@ -114,41 +120,41 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
    // private static final Logger log = LoggerFactory.getLogger(AsyncInMemoryRegistryStorage.class);
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType,
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType,
             ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifact(artifactId, artifactType, content).thenApply(amdd -> {
+        return createArtifact(groupId, artifactId, artifactType, content).thenApply(amdd -> {
             this.executor.execute(() -> {
                 preUpdateSleep();
                 runWithErrorSuppression(() -> {
-                    super.updateArtifactMetaData(artifactId, metaData);
+                    super.updateArtifactMetaData(groupId, artifactId, metaData);
                 });
             });
             return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
-    public void createArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        if (this.hasArtifactRule(artifactId, rule)) {
+        if (this.hasArtifactRule(groupId, artifactId, rule)) {
             throw new RuleAlreadyExistsException(rule);
         }
         this.executor.execute(() -> {
             preCreateSleep();
             runWithErrorSuppression(() -> {
-                super.createArtifactRule(artifactId, rule, config);
+                super.createArtifactRule(groupId, artifactId, rule, config);
             });
         });
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -163,15 +169,15 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType,
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, ArtifactType artifactType,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         try {
-            ArtifactMetaDataDto amdd = createOrUpdateArtifact(artifactId, artifactType, content, false, nextGlobalId());
+            ArtifactMetaDataDto amdd = createOrUpdateArtifact(groupId, artifactId, artifactType, content, false, nextGlobalId());
             long globalId = amdd.getGlobalId();
             long creationTime = amdd.getCreatedOn() + updateDelay;
             this.globalCreation.put(globalId, creationTime);
@@ -182,16 +188,16 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactWithMetadata(java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType,
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType,
                                                                            ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return updateArtifact(artifactId, artifactType, content).thenApply(amdd -> {
+        return updateArtifact(groupId, artifactId, artifactType, content).thenApply(amdd -> {
             this.executor.execute(() -> {
                 preUpdateSleep();
                 runWithErrorSuppression(() -> {
-                    super.updateArtifactMetaData(artifactId, metaData);
+                    super.updateArtifactMetaData(groupId, artifactId, metaData);
                 });
             });
             return DtoUtil.setEditableMetaDataInArtifact(amdd, metaData);
@@ -199,70 +205,86 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData)
+    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactMetaData(artifactId);
+        this.getArtifactMetaData(groupId, artifactId);
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
-                super.updateArtifactMetaData(artifactId, metaData);
+                super.updateArtifactMetaData(groupId, artifactId, metaData);
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, io.apicurio.registry.types.ArtifactState, java.lang.Integer)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override
-    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) {
+        // Check if the artifact exists.
+        this.getArtifactMetaData(groupId, artifactId);
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
-                super.updateArtifactState(artifactId, state, version);
+                super.updateArtifactState(groupId, artifactId, state);
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, long, io.apicurio.registry.storage.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Long, io.apicurio.registry.types.ArtifactState)
      */
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, long version,
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        this.executor.execute(() -> {
+            preUpdateSleep();
+            runWithErrorSuppression(() -> {
+                super.updateArtifactState(groupId, artifactId, version, state);
+            });
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, long, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, long version,
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactVersionMetaData(artifactId, version);
+        this.getArtifactVersionMetaData(groupId, artifactId, version);
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
-                super.updateArtifactVersionMetaData(artifactId, version, metaData);
+                super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
-    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactMetaData(artifactId);
+        this.getArtifactMetaData(groupId, artifactId);
 
         this.executor.execute(() -> {
             preUpdateSleep();
             runWithErrorSuppression(() -> {
-                super.updateArtifactRule(artifactId, rule, config);
+                super.updateArtifactRule(groupId, artifactId, rule, config);
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -274,35 +296,35 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifact(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
     @Override
-    public StoredArtifact getArtifact(String artifactId)
+    public StoredArtifactDto getArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifact(artifactId);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifact(groupId, artifactId);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactMetaData(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId)
+    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactMetaData(artifactId);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactMetaData(groupId, artifactId);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRules(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
-    public List<RuleType> getArtifactRules(String artifactId)
+    public List<RuleType> getArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactRules(artifactId);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactRules(groupId, artifactId);
     }
 
     /**
@@ -314,158 +336,189 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         this.checkGlobalCreation(id);
         return super.getArtifactMetaData(id);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical,
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactVersionMetaData(artifactId, canonical, content);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
-    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule)
+    public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactRule(artifactId, rule);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactRule(groupId, artifactId, rule);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(long)
      */
     @Override
-    public StoredArtifact getArtifactVersion(long id)
+    public StoredArtifactDto getArtifactVersion(long id)
             throws ArtifactNotFoundException, RegistryStorageException {
         this.checkGlobalCreation(id);
         return super.getArtifactVersion(id);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(java.lang.String, long)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, long)
      */
     @Override
-    public StoredArtifact getArtifactVersion(String artifactId, long version)
+    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactVersion(artifactId, version);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactVersion(groupId, artifactId, version);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersions(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override
-    public SortedSet<Long> getArtifactVersions(String artifactId)
+    public SortedSet<Long> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactVersions(artifactId);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactVersions(groupId, artifactId);
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, long)
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, long)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        this.checkArtifactCreation(artifactId);
-        return super.getArtifactVersionMetaData(artifactId, version);
+        this.checkArtifactCreation(groupId, artifactId);
+        return super.getArtifactVersionMetaData(groupId, artifactId, version);
     }
-    
-    private final void checkArtifactCreation(String artifactId) throws ArtifactNotFoundException {
+
+    private final void checkArtifactCreation(String groupId, String artifactId) throws ArtifactNotFoundException {
         if (!this.artifactCreation.containsKey(artifactId)) {
-            throw new ArtifactNotFoundException(artifactId);
+            throw new ArtifactNotFoundException(groupId, artifactId);
         }
         long now = System.currentTimeMillis();
         long artifactTime = this.artifactCreation.get(artifactId);
         if (now < artifactTime) {
-            throw new ArtifactNotFoundException(artifactId);
+            throw new ArtifactNotFoundException(groupId, artifactId);
         }
     }
-    
+
     private final void checkGlobalCreation(long globalId) throws ArtifactNotFoundException {
         if (!this.globalCreation.containsKey(globalId)) {
-            throw new ArtifactNotFoundException(String.valueOf(globalId));
+            throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
         long now = System.currentTimeMillis();
         long globalTime = this.globalCreation.get(globalId);
         if (now < globalTime) {
-            throw new ArtifactNotFoundException(String.valueOf(globalId));
+            throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
+     */
     @Override
-    public SortedSet<Long> deleteArtifact(String artifactId)
+    public SortedSet<Long> deleteArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        SortedSet<Long> rval = this.getArtifactVersions(artifactId);
+        SortedSet<Long> rval = this.getArtifactVersions(groupId, artifactId);
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
-                super.deleteArtifact(artifactId);
+                super.deleteArtifact(groupId, artifactId);
             });
         });
         return rval;
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifacts(java.lang.String)
+     */
     @Override
-    public void deleteArtifactVersion(String artifactId, long version)
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        this.executor.execute(() -> {
+            preDeleteSleep();
+            runWithErrorSuppression(() -> {
+                super.deleteArtifacts(groupId);
+            });
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, long)
+     */
+    @Override
+    public void deleteArtifactVersion(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactVersionMetaData(artifactId, version);
+        this.getArtifactVersionMetaData(groupId, artifactId, version);
 
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
-                super.deleteArtifactVersion(artifactId, version);
+                super.deleteArtifactVersion(groupId, artifactId, version);
             });
         });
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, long)
+     */
     @Override
-    public void deleteArtifactVersionMetaData(String artifactId, long version)
+    public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactVersionMetaData(artifactId, version);
+        this.getArtifactVersionMetaData(groupId, artifactId, version);
 
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
-                super.deleteArtifactVersionMetaData(artifactId, version);
+                super.deleteArtifactVersionMetaData(groupId, artifactId, version);
             });
         });
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     */
     @Override
-    public void deleteArtifactRule(String artifactId, RuleType rule)
+    public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactMetaData(artifactId);
+        this.getArtifactMetaData(groupId, artifactId);
 
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
-                super.deleteArtifactRule(artifactId, rule);
+                super.deleteArtifactRule(groupId, artifactId, rule);
             });
         });
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
+     */
     @Override
-    public void deleteArtifactRules(String artifactId)
+    public void deleteArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         // Check if the artifact exists.
-        this.getArtifactMetaData(artifactId);
+        this.getArtifactMetaData(groupId, artifactId);
 
         this.executor.execute(() -> {
             preDeleteSleep();
             runWithErrorSuppression(() -> {
-                super.deleteArtifactRules(artifactId);
+                super.deleteArtifactRules(groupId, artifactId);
             });
         });
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
+     */
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         // Check if the global rule exists.
@@ -478,7 +531,10 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             });
         });
     }
-    
+
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#deleteGlobalRules()
+     */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
         this.executor.execute(() -> {
@@ -506,9 +562,9 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
         }
     }
 
-    private boolean hasArtifactRule(String artifactId, RuleType rule) {
+    private boolean hasArtifactRule(String groupId, String artifactId, RuleType rule) {
         try {
-            this.getArtifactRule(artifactId, rule);
+            this.getArtifactRule(groupId, artifactId, rule);
             return true;
         } catch (RuleNotFoundException e) {
             return false;
@@ -522,11 +578,11 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
     private void preUpdateSleep() {
         doSleep(this.updateDelay);
     }
-    
+
     private void preCreateSleep() {
         doSleep(this.createDelay);
     }
-    
+
     private void doSleep(long delay) {
         try {
             Thread.sleep(delay);
@@ -534,7 +590,7 @@ public class AsyncInMemoryRegistryStorage extends SimpleMapRegistryStorage {
             e.printStackTrace();
         }
     }
-    
+
     protected void runWithErrorSuppression(Runnable command) {
         try {
             command.run();

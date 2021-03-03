@@ -22,8 +22,8 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 
 /**
  * Base class for all Registry Mojo's.
@@ -40,16 +40,16 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     @Parameter(required = true)
     String registryUrl;
 
-    private RegistryRestClient client;
+    private RegistryClient client;
 
-    protected RegistryRestClient getClient() {
+    protected RegistryClient getClient() {
         if (client == null) {
-            client = RegistryRestClientFactory.create(registryUrl);
+            client = RegistryClientFactory.create(registryUrl);
         }
         return client;
     }
 
-    protected void setClient(RegistryRestClient client) {
+    protected void setClient(RegistryClient client) {
         this.client = client;
     }
 

@@ -17,22 +17,26 @@ package io.apicurio.registry.events;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
-import io.apicurio.registry.rest.beans.VersionSearchResults;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StoredArtifact;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -63,50 +67,77 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void updateArtifactState(String artifactId, ArtifactState state) {
-        storage.updateArtifactState(artifactId, state);
+    public boolean isReady() {
+        return storage.isReady();
     }
 
     @Override
-    public void updateArtifactState(String artifactId, ArtifactState state, Integer version) {
-        storage.updateArtifactState(artifactId, state, version);
+    public boolean isAlive() {
+        return storage.isAlive();
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return storage.createArtifact(artifactId, artifactType, content)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
-    }
-
-    @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content,
-            EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return storage.createArtifactWithMetadata(artifactId, artifactType, content, metaData)
-                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
-    }
-
-    @Override
-    public SortedSet<Long> deleteArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.deleteArtifact(artifactId);
-    }
-
-    @Override
-    public StoredArtifact getArtifact(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifact(artifactId);
-    }
-
-    @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String artifactId, ArtifactType artifactType, ContentHandle content)
+    public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.updateArtifact(artifactId, artifactType, content)
+        storage.updateArtifactState(groupId, artifactId, state);
+    }
+
+    @Override
+    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        storage.updateArtifactState(groupId, artifactId, version, state);
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
+            throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return storage.createArtifact(groupId, artifactId, artifactType, content)
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content,
+            EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return storage.createArtifactWithMetadata(groupId, artifactId, artifactType, content, metaData)
+                .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_CREATED, Optional.of(artifactId), meta, ex));
+    }
+
+    @Override
+    public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.deleteArtifact(groupId, artifactId);
+    }
+
+    @Override
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        storage.deleteArtifacts(groupId);
+    }
+
+    @Override
+    public StoredArtifactDto getArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifact(groupId, artifactId);
+    }
+
+    @Override
+    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+        return storage.getArtifactByContentHash(contentHash);
+    }
+
+    @Override
+    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+        return storage.getArtifactByContentId(contentId);
+    }
+
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.updateArtifact(groupId, artifactId, artifactType, content)
                 .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, Optional.of(artifactId), meta, ex));
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String artifactId, ArtifactType artifactType, ContentHandle content,
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.updateArtifactWithMetadata(artifactId, artifactType, content, metaData)
+        return storage.updateArtifactWithMetadata(groupId, artifactId, artifactType, content, metaData)
                 .whenComplete((meta, ex) -> fireEvent(RegistryEventType.ARTIFACT_UPDATED, Optional.of(artifactId), meta, ex));
     }
 
@@ -116,18 +147,19 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ArtifactSearchResults searchArtifacts(String search, int offset, int limit, SearchOver searchOver, SortOrder sortOrder) {
-        return storage.searchArtifacts(search, offset, limit, searchOver, sortOrder);
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) {
+        return storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit);
     }
 
     @Override
-    public ArtifactMetaDataDto getArtifactMetaData(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactMetaData(artifactId);
+    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifactMetaData(groupId, artifactId);
     }
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, boolean canonical, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersionMetaData(artifactId, canonical, content);
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifactVersionMetaData(groupId, artifactId, canonical, content);
     }
 
     @Override
@@ -136,82 +168,83 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void updateArtifactMetaData(String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        storage.updateArtifactMetaData(artifactId, metaData);
+    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        storage.updateArtifactMetaData(groupId, artifactId, metaData);
     }
 
     @Override
-    public List<RuleType> getArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactRules(artifactId);
+    public List<RuleType> getArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifactRules(groupId, artifactId);
     }
 
     @Override
-    public CompletionStage<Void> createArtifactRuleAsync(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public CompletionStage<Void> createArtifactRuleAsync(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        return storage.createArtifactRuleAsync(artifactId, rule, config);
+        return storage.createArtifactRuleAsync(groupId, artifactId, rule, config);
     }
 
     @Override
-    public void deleteArtifactRules(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        storage.deleteArtifactRules(artifactId);
+    public void deleteArtifactRules(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        storage.deleteArtifactRules(groupId, artifactId);
     }
 
     @Override
-    public RuleConfigurationDto getArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        return storage.getArtifactRule(artifactId, rule);
+    public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        return storage.getArtifactRule(groupId, artifactId, rule);
     }
 
     @Override
-    public void updateArtifactRule(String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        storage.updateArtifactRule(artifactId, rule, config);
+        storage.updateArtifactRule(groupId, artifactId, rule, config);
     }
 
     @Override
-    public void deleteArtifactRule(String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        storage.deleteArtifactRule(artifactId, rule);
+    public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        storage.deleteArtifactRule(groupId, artifactId, rule);
     }
 
     @Override
-    public SortedSet<Long> getArtifactVersions(String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersions(artifactId);
+    public SortedSet<Long> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.getArtifactVersions(groupId, artifactId);
     }
 
     @Override
-    public VersionSearchResults searchVersions(String artifactId, int offset, int limit) {
-        return storage.searchVersions(artifactId, offset, limit);
+    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        return storage.searchVersions(groupId, artifactId, offset, limit);
     }
 
     @Override
-    public StoredArtifact getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifactVersion(long id) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersion(id);
     }
 
     @Override
-    public StoredArtifact getArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersion(artifactId, version);
+    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        return storage.getArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
-    public void deleteArtifactVersion(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        storage.deleteArtifactVersion(artifactId, version);
+    public void deleteArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        storage.deleteArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String artifactId, long version)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return storage.getArtifactVersionMetaData(artifactId, version);
+        return storage.getArtifactVersionMetaData(groupId, artifactId, version);
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String artifactId, long version, EditableArtifactMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, long version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        storage.updateArtifactVersionMetaData(artifactId, version, metaData);
+        storage.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
     }
 
     @Override
-    public void deleteArtifactVersionMetaData(String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        storage.deleteArtifactVersionMetaData(artifactId, version);
+    public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        storage.deleteArtifactVersionMetaData(groupId, artifactId, version);
     }
 
     @Override
@@ -248,4 +281,25 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
         return storage.getTenantMetadata(tenantId);
     }
+
+    @Override
+    public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        return storage.getLogConfiguration(logger);
+    }
+
+    @Override
+    public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
+        storage.setLogConfiguration(logConfiguration);
+    }
+
+    @Override
+    public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
+        storage.removeLogConfiguration(logger);
+    }
+
+    @Override
+    public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
+        return storage.listLogConfigurations();
+    }
+
 }

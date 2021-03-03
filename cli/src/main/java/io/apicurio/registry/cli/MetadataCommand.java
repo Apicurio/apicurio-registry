@@ -16,6 +16,10 @@
 
 package io.apicurio.registry.cli;
 
+import java.io.UncheckedIOException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import picocli.CommandLine;
 
 /**
@@ -27,10 +31,14 @@ public class MetadataCommand extends ArtifactCommand {
     public void run() {
         Object md;
         if (version != null) {
-            md = getClient().getArtifactVersionMetaData(artifactId, version);
+            md = getClient().getArtifactVersionMetaData(groupId, artifactId, version);
         } else {
-            md = getClient().getArtifactMetaData(artifactId);
+            md = getClient().getArtifactMetaData(groupId, artifactId);
         }
-        println(md);
+        try {
+            println(mapper.writeValueAsString(md));
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

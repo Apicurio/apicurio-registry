@@ -45,7 +45,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class WrapUtil {
 

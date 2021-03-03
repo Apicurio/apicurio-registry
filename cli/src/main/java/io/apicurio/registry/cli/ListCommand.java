@@ -18,16 +18,30 @@ package io.apicurio.registry.cli;
 
 import picocli.CommandLine;
 
-import java.util.List;
+import java.io.UncheckedIOException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 
 /**
  * @author Ales Justin
  */
-@CommandLine.Command(name = "list", description = "List artifacts")
-public class ListCommand extends AbstractCommand {
+@CommandLine.Command(name = "list", description = "List artifacts in a specific group")
+public class ListCommand extends GroupCommand {
+
+    @CommandLine.Option(names = {"--offset"}, description = "Offset")
+    Integer offset;
+    @CommandLine.Option(names = {"--limit"}, description = "Limit")
+    Integer limit;
+
     @Override
     public void run() {
-        List<String> artifacts = getClient().listArtifacts();
-        artifacts.forEach(this::println);
+        ArtifactSearchResults artifacts = getClient().listArtifactsInGroup(groupId, null, null, offset == null ? 0 : offset, limit == null ? 10 : limit);
+        try {
+            println(mapper.writeValueAsString(artifacts));
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

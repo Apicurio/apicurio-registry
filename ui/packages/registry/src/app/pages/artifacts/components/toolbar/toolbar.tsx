@@ -80,8 +80,8 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                     }
                                     isOpen={this.state.filterIsExpanded}
                                     dropdownItems={[
-                                        <DropdownItem key="everything" id="everything" data-testid="toolbar-filter-everything" component="button">Everything</DropdownItem>,
                                         <DropdownItem key="name" id="name" data-testid="toolbar-filter-name" component="button">Name</DropdownItem>,
+                                        <DropdownItem key="group" id="group" data-testid="toolbar-filter-group" component="button">Group</DropdownItem>,
                                         <DropdownItem key="description" id="description" data-testid="toolbar-filter-description" component="button">Description</DropdownItem>,
                                         <DropdownItem key="labels" id="labels" data-testid="toolbar-filter-labels" component="button">Labels</DropdownItem>,
                                     ]}
@@ -128,7 +128,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         return {
             ascending: true,
             filterIsExpanded: false,
-            filterSelection: "everything",
+            filterSelection: "name",
             filterValue: ""
         };
     }
@@ -190,12 +190,14 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         switch (this.state.filterSelection) {
             case "name":
                 return "Name";
+            case "group":
+                return "Group";
             case "description":
                 return "Description";
             case "labels":
                 return "Labels";
             default:
-                return "Everything";
+                return "Name";
         }
     }
 }

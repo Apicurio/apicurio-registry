@@ -20,6 +20,8 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
+import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
+
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -27,8 +29,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-
-import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 
 /**
  * Note:
@@ -38,9 +38,9 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/api/ccompat/config")
+@Path("/apis/ccompat/v6/config")
 @RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})

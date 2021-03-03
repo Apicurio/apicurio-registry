@@ -16,27 +16,19 @@
 
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
-import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
-import io.apicurio.registry.metrics.LivenessUtil;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.mt.metadata.TenantNotFoundException;
-import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.rest.beans.RuleViolationError;
-import io.apicurio.registry.rules.DefaultRuleDeletionException;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.InvalidArtifactIdException;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -48,22 +40,41 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.metrics.LivenessUtil;
+import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
+import io.apicurio.registry.mt.metadata.TenantNotFoundException;
+import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v2.beans.RuleViolationError;
+import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.storage.AlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.InvalidArtifactIdException;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.InvalidGroupIdException;
+import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.NotFoundException;
+import io.apicurio.registry.storage.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionNotFoundException;
 
 /**
+ * TODO use v1 beans when appropriate (when handling REST API v1 calls)
+ *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Provider
@@ -88,6 +99,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
@@ -101,6 +113,9 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
+        map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
+        map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 
@@ -166,7 +181,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
             error = new RuleViolationError();
-            ((RuleViolationError) error).setCauses(rve.getCauses());
+            ((RuleViolationError) error).setCauses(toRestCauses(rve.getCauses()));
         } else {
             error = new Error();
         }
@@ -176,6 +191,22 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         error.setDetail(getStackTrace(t));
         error.setName(t.getClass().getSimpleName());
         return error;
+    }
+
+    /**
+     * Converts rule violations to appropriate error beans.
+     * @param violations
+     */
+    private static List<RuleViolationCause> toRestCauses(Set<RuleViolation> violations) {
+        if (violations == null) {
+            return null;
+        }
+        return violations.stream().map(violation -> {
+            RuleViolationCause cause = new RuleViolationCause();
+            cause.setContext(violation.getContext());
+            cause.setDescription(violation.getDescription());
+            return cause;
+        }).collect(Collectors.toList());
     }
 
     /**

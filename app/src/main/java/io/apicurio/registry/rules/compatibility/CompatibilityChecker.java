@@ -35,7 +35,7 @@ public interface CompatibilityChecker {
      * @param compatibilityLevel MUST NOT be null
      * @param existingArtifacts  MUST NOT be null and MUST NOT contain null elements,
      *                           but may be empty if the rule is executed and the artifact does not exist
-     *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
+     *                           (e.g. a global COMPATIBILITY rule with <code>io.apicurio.registry.rules.RuleApplicationType#CREATE</code>)
      * @param proposedArtifact   MUST NOT be null
      */
     default CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
@@ -55,7 +55,7 @@ public interface CompatibilityChecker {
      * @param compatibilityLevel MUST NOT be null
      * @param existingArtifacts  MUST NOT be null and MUST NOT contain null elements,
      *                           but may be empty if the rule is executed and the artifact does not exist
-     *                           (e.g. a global COMPATIBILITY rule with {@see io.apicurio.registry.rules.RuleApplicationType#CREATE})
+     *                           (e.g. a global COMPATIBILITY rule with <code>io.apicurio.registry.rules.RuleApplicationType#CREATE</code>)
      * @param proposedArtifact   MUST NOT be null
      */
     CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);

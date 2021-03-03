@@ -17,16 +17,15 @@
 
 package io.apicurio.registry.maven;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.IfExistsType;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -35,36 +34,46 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Ales Justin
  */
 @Mojo(name = "register")
-public class RegisterRegistryMojo extends ContentRegistryMojo {
+public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
-     * What to do if the artifact already exists.  Default is: RETURN_OR_UPDATE.  Options found in enum {@link IfExistsType}
+     * The list of artifacts to register.
      */
-    @Parameter(defaultValue="RETURN_OR_UPDATE")
-    IfExistsType ifExists;
+    @Parameter(required = true)
+    List<RegisterArtifact> artifacts;
 
     /**
-     * Whether to canonicalize the content when using the RETURN_OR_UPDATE setting for the <code>ifExists</code> parameter.
+     * Validate the configuration.
      */
-    @Parameter(defaultValue="false")
-    boolean canonicalize;
+    protected void validate() throws MojoExecutionException {
+        if (artifacts == null || artifacts.isEmpty()) {
+            getLog().warn("No artifacts are configured for registration.");
+        } else {
+            int idx = 0;
+            int errorCount = 0;
+            for (RegisterArtifact artifact : artifacts) {
+                if (artifact.getGroupId() == null) {
+                    getLog().error(String.format("GroupId is required when registering an artifact.  Missing from artifacts[%d].", idx));
+                    errorCount++;
+                }
+                if (artifact.getArtifactId() == null) {
+                    getLog().error(String.format("ArtifactId is required when registering an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                }
+                if (artifact.getFile() == null) {
+                    getLog().error(String.format("File is required when registering an artifact.  Missing from artifacts[%s].", idx));
+                    errorCount++;
+                } else if (!artifact.getFile().isFile()) {
+                    getLog().error(String.format("Artifact file to register is configured but file does not exist or is not a file: %s", artifact.getFile().getPath()));
+                    errorCount++;
+                }
 
-    /**
-     * Artifact versions / results of registry.
-     */
-    Map<String, Integer> artifactVersions;
-
-    public ArtifactMetaData register(String artifactId, ArtifactType artifactType, StreamHandle handle) {
-        try {
-            try (InputStream stream = handle.stream()) {
-                return getClient().createArtifact(artifactId, artifactType, stream, ifExists, canonicalize);
+                idx++;
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(String.format(
-                "Error [%s] registering artifact: %s",
-                e.getMessage(),
-                artifactId)
-            );
+
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Invalid configuration of the Register Artifact(s) mojo. See the output log for details.");
+            }
         }
     }
 
@@ -72,36 +81,26 @@ public class RegisterRegistryMojo extends ContentRegistryMojo {
     protected void executeInternal() throws MojoExecutionException {
         validate();
 
-        artifactVersions = new LinkedHashMap<>();
-
-        int errors = 0;
-        for (Map.Entry<String, StreamHandle> kvp : prepareArtifacts().entrySet()) {
-            try {
-                ArtifactType at = getArtifactType(kvp.getKey());
-
-                if (getLog().isDebugEnabled()) {
-                    getLog().debug(String.format("Registering artifact [%s]: '%s'", at, kvp.getKey()));
+        int errorCount = 0;
+        if (artifacts != null) {
+            for (RegisterArtifact artifact : artifacts) {
+                String groupId = artifact.getGroupId();
+                String artifactId = artifact.getArtifactId();
+                String version = artifact.getVersion();
+                ArtifactType type = artifact.getType();
+                IfExists ifExists = artifact.getIfExists();
+                Boolean canonicalize = artifact.getCanonicalize();
+                try (InputStream data = new FileInputStream(artifact.getFile())) {
+                    ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, data);
+                    getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+                } catch (Exception e) {
+                    errorCount++;
+                    getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId, artifactId), e);
                 }
-
-                ArtifactMetaData amd = register(kvp.getKey(), at, kvp.getValue());
-                getLog().info(
-                    String.format(
-                        "Registered artifact [%s] with global id %s, version %s",
-                        kvp.getKey(),
-                        amd.getGlobalId(),
-                        amd.getVersion()
-                    ));
-                artifactVersions.put(kvp.getKey(), amd.getVersion());
-            } catch (Exception e) {
-                errors++;
-                getLog().error(
-                    String.format("Exception while registering id [%s]", kvp.getKey()),
-                    e
-                );
             }
         }
 
-        if (errors > 0) {
+        if (errorCount > 0) {
             throw new MojoExecutionException("Errors while registering artifacts ...");
         }
     }

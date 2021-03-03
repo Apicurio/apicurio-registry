@@ -16,4 +16,5 @@
  */
 
 export * from "./artifactList";
+export * from "./artifactGroup";
 export * from "./artifactName";

@@ -18,7 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import java.util.Date;
 
-import io.apicurio.registry.storage.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 

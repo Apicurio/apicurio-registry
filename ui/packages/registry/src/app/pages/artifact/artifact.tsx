@@ -44,8 +44,9 @@ export class ArtifactRedirectPage extends PageComponent<ArtifactRedirectPageProp
     }
 
     public renderPage(): React.ReactElement {
+        const groupId: any = this.getPathParam("groupId");
         const artifactId: any = this.getPathParam("artifactId");
-        const redirect: string = `/artifacts/${ encodeURIComponent(artifactId) }/versions/latest`;
+        const redirect: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(artifactId) }/versions/latest`;
         return (
             <Redirect to={redirect}  />
         );

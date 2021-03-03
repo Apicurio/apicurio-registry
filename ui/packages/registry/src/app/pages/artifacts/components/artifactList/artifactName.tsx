@@ -25,7 +25,7 @@ import {
     DataListItemRow
 } from '@patternfly/react-core';
 import {SearchedArtifact} from "@apicurio/registry-models";
-import {Link} from "react-router-dom";
+import {Link, NavLink} from "react-router-dom";
 import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Services} from "@apicurio/registry-services";
 
@@ -33,6 +33,7 @@ import {Services} from "@apicurio/registry-services";
  * Properties
  */
 export interface ArtifactNameProps extends PureComponentProps {
+    groupId: string;
     id: string;
     name: string;
 }
@@ -57,12 +58,12 @@ export class ArtifactName extends PureComponent<ArtifactNameProps, ArtifactNameS
     public render(): React.ReactElement {
         return this.props.name ? (
             <React.Fragment>
-                <span className="name">{this.props.name}</span>
-                <span className="id">{this.props.id}</span>
+                <Link className="name" data-testid={this.testId("artifacts-lnk-view-")} to={this.artifactLink()}>{this.props.name}</Link>
+                <Link className="id" data-testid={this.testId("artifacts-lnk-view-id-")} to={this.artifactLink()}>{this.props.id}</Link>
             </React.Fragment>
         ) : (
             <React.Fragment>
-                <span className="name">{this.props.id}</span>
+                <Link className="name" data-testid={this.testId("artifacts-lnk-view-")} to={this.artifactLink()}>{this.props.id}</Link>
             </React.Fragment>
         );
     }
@@ -70,4 +71,11 @@ export class ArtifactName extends PureComponent<ArtifactNameProps, ArtifactNameS
     protected initializeState(): ArtifactNameState {
         return {};
     }
+
+    private artifactLink(): string {
+        const groupId: string = this.props.groupId == null ? "_" : this.props.groupId;
+        const link: string = `/artifacts/${ encodeURIComponent(groupId)}/${ encodeURIComponent(this.props.id) }`;
+        return link;
+    }
+
 }

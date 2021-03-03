@@ -36,14 +36,8 @@
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-rest-client</artifactId>
+            <artifactId>apicurio-registry-client</artifactId>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.apache.geronimo.config</groupId> -->
-<!--             <artifactId>geronimo-config-impl</artifactId> -->
-<!--             <version>${version.geronimo.config}</version> -->
-<!--             <scope>runtime</scope> -->
-<!--         </dependency> -->
     </dependencies>
 
     <build>
@@ -60,6 +54,7 @@
                         </goals>
                         <configuration>
                             <finalName>apicurio-kafka-connect-converter-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                             <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
                             <descriptors>
                                 <descriptor>src/assembly/${assembly.descriptor}.xml</descriptor>

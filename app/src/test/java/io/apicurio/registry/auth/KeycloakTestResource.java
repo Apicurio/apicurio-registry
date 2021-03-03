@@ -32,6 +32,7 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
 
     private KeycloakContainer container;
 
+    @SuppressWarnings("resource")
     @Override
     public Map<String, String> start() {
         log.info("Starting Keycloak Test Container");
@@ -51,6 +52,7 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
     public void stop() {
         log.info("Stopping Keycloak Test Container");
         container.stop();
+        container.close();
     }
 
 }

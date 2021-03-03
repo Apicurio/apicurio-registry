@@ -24,8 +24,8 @@ import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.storage.RuleConfigurationDto;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -47,7 +47,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @RestMetricsApply

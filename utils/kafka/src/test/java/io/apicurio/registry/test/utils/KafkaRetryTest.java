@@ -21,6 +21,7 @@ import io.apicurio.registry.utils.kafka.ConsumerContainer;
 import io.apicurio.registry.utils.kafka.Oneof2;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -63,6 +64,12 @@ public class KafkaRetryTest {
                 CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
                 System.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
         );
+        kafkaProperties.put(
+                AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                System.getProperty(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000"));
+        kafkaProperties.put(
+                AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG,
+                System.getProperty(AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, "5000"));
     }
 
     /**

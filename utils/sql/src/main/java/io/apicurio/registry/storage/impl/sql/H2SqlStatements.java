@@ -22,7 +22,7 @@ package io.apicurio.registry.storage.impl.sql;
  * @author eric.wittmann@gmail.com
  */
 public class H2SqlStatements extends CommonSqlStatements {
-    
+
     /**
      * Constructor.
      * @param config
@@ -37,7 +37,7 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String dbType() {
         return "h2";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
      */
@@ -70,4 +70,11 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?)";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
+     */
+    @Override
+    public String upsertLogConfiguration() {
+        return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
+    }
 }

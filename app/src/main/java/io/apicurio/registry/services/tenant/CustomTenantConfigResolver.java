@@ -22,8 +22,8 @@ import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.quarkus.oidc.OidcTenantConfig;
-import io.quarkus.oidc.OidcTenantConfig.Tls.Verification;
 import io.quarkus.oidc.TenantConfigResolver;
+import io.quarkus.oidc.common.runtime.OidcCommonConfig.Tls.Verification;
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.Optional;
@@ -84,7 +84,7 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
         config.setClientId(registryTenant.getClientId());
 
         if (tlsVerification.isPresent() && tlsVerification.get().equalsIgnoreCase("none")) {
-            config.tls.verification = Verification.NONE;
+            config.tls.verification = Optional.of(Verification.NONE);
         }
 
         return config;

@@ -16,45 +16,53 @@
 
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import picocli.CommandLine;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 /**
  * @author Ales Justin
  */
 public abstract class AbstractCommand implements Runnable {
+
+    /**
+     * Use this logger to log all debug traces, it will be printed if the --logLevel is set
+     */
     protected Logger log = Logger.getLogger(getClass().getName());
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
-    @CommandLine.Option(names = {"-d", "--debug"})
-    boolean debug;
-
     @CommandLine.Option(names = {"-ll", "--logLevel"}, description = "Set log level to enable logging")
-    Level level;
-
-    @CommandLine.Option(names = {"-url", "--url"}, description = "Registry url", defaultValue = "http://localhost:8080/api")
-    String url;
-
-    private static RegistryRestClient client; // single stateless client instance for all commands
-
-    protected void println(Object value) {
-        if (level != null) {
-            log.log(level, String.valueOf(value));
-        } else {
-            System.out.println(value);
-        }
+    void setLevel(Level level) {
+        log.setLevel(level);
     }
 
-    protected RegistryRestClient getClient() {
+    @CommandLine.Option(names = {"-url", "--url"}, description = "Registry url", defaultValue = "http://localhost:8080/apis/registry/v2")
+    String url;
+
+    private static RegistryClient client; // single stateless client instance for all commands
+
+    protected static final ObjectMapper mapper = new ObjectMapper()
+            .configure(SerializationFeature.INDENT_OUTPUT, true);
+
+    /**
+     * For printing the result of the commands we just use the standard output. Use the logger above for debug traces.
+     */
+    protected void println(Object value) {
+        System.out.println(value.toString());
+    }
+
+    protected RegistryClient getClient() {
         if (client == null) {
             log.info("Connecting to registry at " + url + "\n");
-            client = RegistryRestClientFactory.create(url);
+            client = RegistryClientFactory.create(url);
         }
         return client;
     }

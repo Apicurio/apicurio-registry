@@ -15,8 +15,8 @@ jobs:
           architecture: x64
 
       - name: Set up settings.xml
-        run: echo "<settings><servers><server><id>github</id><username>${{ github.repository_owner }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > settings.xml
-
+        run: echo "<settings><servers><server><id>github</id><username>${{ github.repository_owner }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > /home/runner/.m2/settings.xml
+    
       - name: Maven Deploy
-        if: github.ref == 'refs/heads/multitenant-sr-demo'
-        run: mvn deploy --batch-mode -Pprod -Pmultitenancy -Pgithub -DskipTests --settings settings.xml
+        if: github.ref == 'refs/heads/master'
+        run: mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pmultitenancy -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml

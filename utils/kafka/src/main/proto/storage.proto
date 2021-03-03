@@ -30,10 +30,15 @@ enum RuleType {
     COMPATIBILITY = 2;
 }
 
+message ArtifactKey {
+    string artifactId = 1;
+    string groupId = 2;
+}
+
 message ArtifactValue {
     int32 artifactType = 1;
     fixed64 id = 2;
-    bytes content = 3;
+    fixed64 contentId = 3;
     map<string, string> metadata = 4;
 }
 
@@ -53,6 +58,11 @@ message SnapshotValue {
     fixed64 timestamp = 1;
 }
 
+message LogConfigValue {
+    string logger = 1;
+    string logLevel = 2;
+}
+
 enum ValueType {
     __INVALID = 0;
     // crud
@@ -61,11 +71,13 @@ enum ValueType {
     RULE = 3;
     SNAPSHOT = 4;
     STATE = 5;
+    LOGCONFIG = 6;
+    CONTENT = 7;
 }
 
 message StorageValue {
     ActionType type = 1;
-    string artifactId = 2;
+    ArtifactKey key = 2;
     fixed64 version = 3;
     ValueType vt = 4;
     oneof value {
@@ -74,17 +86,28 @@ message StorageValue {
         RuleValue rule = 7;
         SnapshotValue snapshot = 8;
         ArtifactState state = 9;
+        LogConfigValue logConfig = 10;
+        ContentValue content = 11;
     }
 }
 
 message Data {
     fixed64 lastProcessedOffset = 1;
-    string artifactId = 2;
+    ArtifactKey key = 2;
     repeated ArtifactValue artifacts = 3;
     repeated RuleValue rules = 4;
+    repeated LogConfigValue logConfigs = 5;
+    repeated ContentValue contents = 6;
 }
 
 message TupleValue {
-    string artifactId = 1;
+    ArtifactKey key = 1;
     fixed64 version = 2;
+}
+
+message ContentValue {
+    fixed64 id = 1;
+    string canonicalHash = 2;
+    string contentHash = 3;
+    bytes content = 4;
 }

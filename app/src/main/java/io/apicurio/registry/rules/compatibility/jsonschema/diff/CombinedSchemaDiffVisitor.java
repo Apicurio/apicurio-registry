@@ -45,7 +45,7 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 import static java.util.Comparator.comparingInt;
 
 /**
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 

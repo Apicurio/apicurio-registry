@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import io.apicurio.registry.storage.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -48,6 +48,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
     public ArtifactVersionMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         ArtifactVersionMetaDataDto dto = new ArtifactVersionMetaDataDto();
         dto.setGlobalId(rs.getLong("globalId"));
+        dto.setContentId(rs.getLong("contentId"));
         dto.setState(ArtifactState.valueOf(rs.getString("state")));
         dto.setCreatedBy(rs.getString("createdBy"));
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());

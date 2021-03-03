@@ -24,14 +24,14 @@ import io.apicurio.registry.types.ArtifactType;
  * @author eric.wittmann@gmail.com
  */
 public class ContentValue extends AbstractMessageValue {
-    
+
     private ArtifactType artifactType;
     private ContentHandle content;
 
     /**
      * Creator method.
      * @param action
-     * @param canonicalHash
+     * @param artifactType
      * @param content
      */
     public static final ContentValue create(ActionType action, ArtifactType artifactType, ContentHandle content) {
@@ -41,7 +41,7 @@ public class ContentValue extends AbstractMessageValue {
         key.setContent(content);
         return key;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
      */

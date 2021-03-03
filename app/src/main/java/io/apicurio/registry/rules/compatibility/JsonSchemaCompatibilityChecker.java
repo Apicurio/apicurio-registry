@@ -16,27 +16,28 @@
 
 package io.apicurio.registry.rules.compatibility;
 
-import static java.util.Objects.requireNonNull;
+import com.google.common.collect.ImmutableSet;
+import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
-
-import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
+import static io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary.getIncompatibleDifferences;
+import static java.util.Objects.requireNonNull;
 
 /**
  * @author Ales Justin
  * @author Jonathan Halliday
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
 
     /**
-     * @see CompatibilityChecker#isCompatibleWith(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see io.apicurio.registry.rules.compatibility.CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
      */
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
@@ -47,27 +48,34 @@ public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
         if (existingSchemas.isEmpty()) {
             return CompatibilityExecutionResult.compatible();
         }
-        // TODO There is more information available on which differences are causing an issue. Make it visible to users.
-        Set<Difference> incompatibleDiffs = new HashSet<Difference>();
+
+        Set<Difference> incompatibleDiffs = new HashSet<>();
+        String lastExistingSchema = existingSchemas.get(existingSchemas.size() - 1);
+
         switch (compatibilityLevel) {
             case BACKWARD:
-                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(existingSchemas.get(existingSchemas.size() - 1), proposedSchema);
+                incompatibleDiffs = getIncompatibleDifferences(lastExistingSchema, proposedSchema);
                 break;
             case BACKWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingSchemas, proposedSchema);
+                incompatibleDiffs = transitively(existingSchemas, proposedSchema, JsonSchemaDiffLibrary::getIncompatibleDifferences);
                 break;
             case FORWARD:
-                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedSchema, existingSchemas.get(existingSchemas.size() - 1));
+                incompatibleDiffs = getIncompatibleDifferences(proposedSchema, lastExistingSchema);
                 break;
             case FORWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingSchemas, proposedSchema);
+                incompatibleDiffs = transitively(existingSchemas, proposedSchema, (existing, proposed) -> getIncompatibleDifferences(proposed, existing));
                 break;
             case FULL:
-                incompatibleDiffs = ImmutableSet.<Difference>builder().addAll(JsonSchemaDiffLibrary.getIncompatibleDifferences(existingSchemas.get(existingSchemas.size() - 1), proposedSchema)).addAll(
-                        JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedSchema, existingSchemas.get(existingSchemas.size() - 1))).build();
+                incompatibleDiffs = ImmutableSet.<Difference>builder()
+                    .addAll(getIncompatibleDifferences(lastExistingSchema, proposedSchema))
+                    .addAll(getIncompatibleDifferences(proposedSchema, lastExistingSchema))
+                    .build();
                 break;
             case FULL_TRANSITIVE:
-                incompatibleDiffs = ImmutableSet.<Difference>builder().addAll(transitively(existingSchemas, proposedSchema)).addAll(transitively(existingSchemas, proposedSchema)).build();
+                incompatibleDiffs = ImmutableSet.<Difference>builder()
+                    .addAll(transitively(existingSchemas, proposedSchema, JsonSchemaDiffLibrary::getIncompatibleDifferences)) // Forward
+                    .addAll(transitively(existingSchemas, proposedSchema, (existing, proposed) -> getIncompatibleDifferences(proposed, existing))) // Backward
+                    .build();
                 break;
             case NONE:
                 break;
@@ -76,15 +84,19 @@ public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
         return CompatibilityExecutionResult.incompatible(diffs);
     }
 
-    private Set<Difference> transitively(List<String> existingSchemas, String proposedSchema) {
-        String proposed = proposedSchema;
-        Set<Difference> resultSet = new HashSet<>();
+    /**
+     * Given a proposed schema, walk the existing schemas in reverse order (i.e. newest to oldest),
+     * and for each pair (existing, proposed) call the check function.
+     *
+     * @return The collected set of differences.
+     */
+    private Set<Difference> transitively(List<String> existingSchemas, String proposedSchema,
+                                         BiFunction<String, String, Set<Difference>> checkExistingProposed) {
+        Set<Difference> result = new HashSet<>();
         for (int i = existingSchemas.size() - 1; i >= 0; i--) { // TODO This may become too slow, more wide refactoring needed.
-            String existing = existingSchemas.get(i);
-            Set<Difference> currentSet = JsonSchemaDiffLibrary.getIncompatibleDifferences(existing, proposed);
-            resultSet.addAll(currentSet);
-            proposed = existing;
+            Set<Difference> current = checkExistingProposed.apply(existingSchemas.get(i), proposedSchema);
+            result.addAll(current);
         }
-        return resultSet;
+        return result;
     }
 }

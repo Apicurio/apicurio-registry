@@ -25,12 +25,18 @@ import java.util.Objects;
 public class TupleId implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private String groupId;
     private String id;
     private Long version;
 
-    public TupleId(String id, Long version) {
+    public TupleId(String groupId, String id, Long version) {
+        this.groupId = groupId;
         this.id = id;
         this.version = version;
+    }
+    
+    public String getGroupId() {
+        return groupId;
     }
 
     public String getId() {
@@ -41,17 +47,28 @@ public class TupleId implements Serializable {
         return version;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TupleId tupleId = (TupleId) o;
-        return id.equals(tupleId.id) &&
-                version.equals(tupleId.version);
-    }
-
+    /**
+     * @see java.lang.Object#hashCode()
+     */
     @Override
     public int hashCode() {
-        return Objects.hash(id, version);
+        return Objects.hash(groupId, id, version);
     }
+
+    /**
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TupleId other = (TupleId) obj;
+        return Objects.equals(groupId, other.groupId) && Objects.equals(id, other.id)
+                && Objects.equals(version, other.version);
+    }
+    
 }

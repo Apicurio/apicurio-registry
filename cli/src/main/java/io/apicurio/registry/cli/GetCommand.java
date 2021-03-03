@@ -29,8 +29,8 @@ public class GetCommand extends ArtifactCommand {
     @Override
     public void run() {
         InputStream content = (version == null) ?
-                getClient().getLatestArtifact(artifactId) :
-                getClient().getArtifactVersion(artifactId, version);
+                getClient().getLatestArtifact(groupId, artifactId) :
+                getClient().getArtifactVersion(groupId, artifactId, version);
         println(IoUtil.toString(content));
     }
 }

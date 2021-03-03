@@ -35,7 +35,8 @@ public class BaseKafkaSerDeConfig extends AbstractConfig {
                 .define(ID_HANDLER, Type.CLASS, ID_HANDLER_DEFAULT, Importance.MEDIUM, "TODO docs")
                 .define(ENABLE_CONFLUENT_ID_HANDLER, Type.BOOLEAN, false, Importance.LOW, "TODO docs")
                 .define(ENABLE_HEADERS, Type.BOOLEAN, ENABLE_HEADERS_DEFAULT, Importance.MEDIUM, "TODO docs")
-                .define(HEADERS_HANDLER, Type.CLASS, HEADERS_HANDLER_DEFAULT, Importance.MEDIUM, "TODO docs");
+                .define(HEADERS_HANDLER, Type.CLASS, HEADERS_HANDLER_DEFAULT, Importance.MEDIUM, "TODO docs")
+                .define(USE_ID, Type.STRING, USE_ID_DEFAULT, Importance.MEDIUM, "TODO docs");
         return configDef;
     }
 
@@ -63,5 +64,8 @@ public class BaseKafkaSerDeConfig extends AbstractConfig {
         return this.get(HEADERS_HANDLER);
     }
 
+    public IdOption useIdOption() {
+        return IdOption.valueOf(this.getString(USE_ID));
+    }
 
 }

@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.serde.strategy;
 
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.IdOption;
+
 /**
  * This class holds the information that reference one Artifact in Apicurio Registry. It will always make
  * reference to an artifact in a group. Optionally it can reference to a specific version.
@@ -42,11 +45,13 @@ public class ArtifactReference {
      */
     private Long globalId;
 
-    private ArtifactReference(String groupId, String artifactId, String version, Long globalId) {
-        this.groupId = groupId;
-        this.artifactId = artifactId;
-        this.version = version;
-        this.globalId = globalId;
+    /**
+     * Optional, unless the rest of the fields are empty or {@link SerdeConfig#USE_ID} is configured with {@link IdOption#contentId}
+     */
+    private Long contentId;
+
+    private ArtifactReference() {
+        //empty initialize using setters
     }
 
     /**
@@ -77,6 +82,47 @@ public class ArtifactReference {
         return globalId;
     }
 
+    /**
+     * @return the contentId
+     */
+    public Long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param groupId the groupId to set
+     */
+    private void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    /**
+     * @param artifactId the artifactId to set
+     */
+    private void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    /**
+     * @param version the version to set
+     */
+    private void setVersion(String version) {
+        this.version = version;
+    }
+
+    /**
+     * @param globalId the globalId to set
+     */
+    private void setGlobalId(Long globalId) {
+        this.globalId = globalId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    private void setContentId(Long contentId) {
+        this.contentId = contentId;
+    }
 
     /**
      * @see java.lang.Object#hashCode()
@@ -86,6 +132,7 @@ public class ArtifactReference {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((artifactId == null) ? 0 : artifactId.hashCode());
+        result = prime * result + ((contentId == null) ? 0 : contentId.hashCode());
         result = prime * result + ((globalId == null) ? 0 : globalId.hashCode());
         result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
         result = prime * result + ((version == null) ? 0 : version.hashCode());
@@ -108,6 +155,11 @@ public class ArtifactReference {
             if (other.artifactId != null)
                 return false;
         } else if (!artifactId.equals(other.artifactId))
+            return false;
+        if (contentId == null) {
+            if (other.contentId != null)
+                return false;
+        } else if (!contentId.equals(other.contentId))
             return false;
         if (globalId == null) {
             if (other.globalId != null)
@@ -133,7 +185,11 @@ public class ArtifactReference {
     @Override
     public String toString() {
         return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
-                + ", globalId=" + globalId + "]";
+                + ", globalId=" + globalId + ", contentId=" + contentId + "]";
+    }
+
+    public static ArtifactReference fromGlobalId(Long globalId) {
+        return builder().globalId(globalId).build();
     }
 
     public static ArtifactReferenceBuilder builder(){
@@ -142,32 +198,34 @@ public class ArtifactReference {
 
     public static class ArtifactReferenceBuilder {
 
-        private String groupId;
-        private String artifactId;
-        private String version;
-        private Long globalId;
+        private ArtifactReference reference;
 
         ArtifactReferenceBuilder() {
-            //empty
+            reference = new ArtifactReference();
         }
 
         public ArtifactReferenceBuilder groupId(String groupId) {
-            this.groupId = groupId;
+            reference.setGroupId(groupId);
             return ArtifactReferenceBuilder.this;
         }
 
         public ArtifactReferenceBuilder artifactId(String artifactId) {
-            this.artifactId = artifactId;
+            reference.setArtifactId(artifactId);
             return ArtifactReferenceBuilder.this;
         }
 
         public ArtifactReferenceBuilder version(String version) {
-            this.version = version;
+            reference.setVersion(version);
             return ArtifactReferenceBuilder.this;
         }
 
         public ArtifactReferenceBuilder globalId(Long globalId) {
-            this.globalId = globalId;
+            reference.setGlobalId(globalId);
+            return ArtifactReferenceBuilder.this;
+        }
+
+        public ArtifactReferenceBuilder contentId(Long contentId) {
+            reference.setContentId(contentId);
             return ArtifactReferenceBuilder.this;
         }
 
@@ -182,7 +240,7 @@ public class ArtifactReference {
 //            if (globalId == null) {
 //                Objects.requireNonNull(artifactId, "artifactId is required");
 //            }
-            return new ArtifactReference(this.groupId, this.artifactId, this.version, this.globalId);
+            return reference;
         }
 
     }

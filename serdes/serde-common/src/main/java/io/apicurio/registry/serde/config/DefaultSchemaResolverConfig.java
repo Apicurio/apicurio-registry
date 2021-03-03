@@ -20,7 +20,6 @@ import static io.apicurio.registry.serde.SerdeConfig.*;
 
 import java.util.Map;
 
-import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -28,7 +27,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 /**
  * @author Fabian Martinez
  */
-public class DefaultSchemaResolverConfig extends AbstractConfig {
+public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
     public static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
@@ -55,7 +54,7 @@ public class DefaultSchemaResolverConfig extends AbstractConfig {
       }
 
     public DefaultSchemaResolverConfig(Map<?, ?> originals) {
-        super(configDef(), originals, false);
+        super(configDef(), originals);
     }
 
     public String getRegistryUrl() {

@@ -17,22 +17,34 @@
 package io.apicurio.tests.serdes.confluent;
 
 import static io.apicurio.tests.common.Constants.SERDES;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.KafkaFacade;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.serdes.apicurio.SerdesTester;
 import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
 import io.apicurio.tests.serdes.apicurio.WrongConfiguredSerdesTesterBuilder;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -41,6 +53,7 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.subject.RecordNameStrategy;
 import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+import io.confluent.kafka.serializers.subject.TopicRecordNameStrategy;
 
 @Tag(SERDES)
 public class BasicConfluentSerDesIT extends ConfluentBaseIT {
@@ -195,72 +208,221 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
             .test();
     }
 
-//    @Test
-//    void testEvolveAvroConfluent() throws Exception {
-//        String topicName = TestUtils.generateTopic();
+    @Test
+    void testEvolveAvroConfluent() throws Exception {
+
+        Class<?> strategy = TopicRecordNameStrategy.class;
+
+        String topicName = TestUtils.generateTopic();
 //        String recordName = "myrecordconfluent5";
 //        String subjectName = topicName + "-" + recordName;
-////        String schemaKey = "key1";
-//        kafkaCluster.createTopic(topicName, 1, 1);
-//
-////        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-////        Schema schema = new Schema.Parser().parse(rawSchema);
-//
-//        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordName, List.of("key1"));
-//
-//        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
+//        String schemaKey = "key1";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
+//        Schema schema = new Schema.Parser().parse(rawSchema);
+
+        String recordName = TestUtils.generateSubject();
+        String subjectName = topicName + "-" + recordName;
+        String schemaKey = "key1";
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+
+        int messageCount = 10;
+
+        Producer<String, GenericRecord> producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        Consumer<String, GenericRecord> consumer = tester.createConsumer(StringDeserializer.class, KafkaAvroDeserializer.class, topicName);
+
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
 //        KafkaClients.consumeAvroConfluentMessages(topicName, 10).get(5, TimeUnit.SECONDS);
-//
+
 //        String schemaKey2 = "key2";
 //        String rawSchema2 = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}";
 //        Schema schema2 = new Schema.Parser().parse(rawSchema2);
-////        ParsedSchema pschema2 = new AvroSchema(rawSchema2);
-//        updateArtifactViaApicurioClient(registryClient, schema2, subjectName);
-//
+//        ParsedSchema pschema2 = new AvroSchema(rawSchema2);
+//        updateArtifactViaApicurioClient(registryClient, avroSchema2.generateSchema(), subjectName);
+        String schemaKey2 = "key2";
+        AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2));
+        createArtifactVersion(null, subjectName, avroSchema2.generateSchemaStream());
+
+        producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
+
+        producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+
+        consumer = tester.createConsumer(StringDeserializer.class, KafkaAvroDeserializer.class, topicName);
+        {
+            AtomicInteger schema1Counter = new AtomicInteger(0);
+            AtomicInteger schema2Counter = new AtomicInteger(0);
+            tester.consumeMessages(consumer, topicName, messageCount * 2, record -> {
+                if (avroSchema.validateRecord(record)) {
+                    schema1Counter.incrementAndGet();
+                    return true;
+                }
+                if (avroSchema2.validateRecord(record)) {
+                    schema2Counter.incrementAndGet();
+                    return true;
+                }
+                return false;
+            });
+            assertEquals(schema1Counter.get(), schema2Counter.get());
+        }
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
 //        KafkaClients.consumeAvroConfluentMessages(topicName, 20).get(5, TimeUnit.SECONDS);
-//
+
 //        String schemaKey3 = "key3";
 //        String rawSchema3 = "{\"type\":\"record\",\"name\":\"" + recordName +  "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}";
 //        Schema schema3 = new Schema.Parser().parse(rawSchema3);
 ////        ParsedSchema pschema3 = new AvroSchema(rawSchema3);
 //        updateArtifactViaApicurioClient(registryClient, schema3, subjectName);
-//
+        String schemaKey3 = "key3";
+        AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2, schemaKey3));
+        createArtifactVersion(null, subjectName, avroSchema3.generateSchemaStream());
+
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema3, 10, schemaKey, schemaKey2, schemaKey3).get(5, TimeUnit.SECONDS);
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
 //        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
 //        KafkaClients.consumeAvroConfluentMessages(topicName, 30).get(5, TimeUnit.SECONDS);
-//    }
-//
-//    @Test
-//    void testAvroConfluentForMultipleTopics() throws InterruptedException, ExecutionException, TimeoutException, IOException, RestClientException {
-//        String topicName1 = TestUtils.generateTopic();
-//        String topicName2 = TestUtils.generateTopic();
-//        String topicName3 = TestUtils.generateTopic();
-//        String subjectName = "myrecordconfluent6";
-//        String schemaKey = "key1";
-//
-//        kafkaCluster.createTopic(topicName1, 1, 1);
-//        kafkaCluster.createTopic(topicName2, 1, 1);
-//        kafkaCluster.createTopic(topicName3, 1, 1);
-//
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + subjectName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
-//        ParsedSchema pschema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(pschema, subjectName);
-//
-//        KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName1, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName2, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.produceAvroApicurioMessagesRecordStrategy(topicName3, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//
-//        KafkaClients.consumeAvroApicurioMessages(topicName1, 10).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroApicurioMessages(topicName2, 10).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroApicurioMessages(topicName3, 10).get(5, TimeUnit.SECONDS);
-//    }
+
+        producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);
+
+        producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
+
+        producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+
+        consumer = tester.createConsumer(StringDeserializer.class, KafkaAvroDeserializer.class, topicName);
+        {
+            AtomicInteger schema1Counter = new AtomicInteger(0);
+            AtomicInteger schema2Counter = new AtomicInteger(0);
+            AtomicInteger schema3Counter = new AtomicInteger(0);
+            tester.consumeMessages(consumer, topicName, messageCount * 3, record -> {
+                if (avroSchema.validateRecord(record)) {
+                    schema1Counter.incrementAndGet();
+                    return true;
+                }
+                if (avroSchema2.validateRecord(record)) {
+                    schema2Counter.incrementAndGet();
+                    return true;
+                }
+                if (avroSchema3.validateRecord(record)) {
+                    schema3Counter.incrementAndGet();
+                    return true;
+                }
+                return false;
+            });
+            assertEquals(schema1Counter.get(), schema2Counter.get());
+            assertEquals(schema1Counter.get(), schema3Counter.get());
+        }
+
+        IoUtil.closeIgnore(producer);
+        IoUtil.closeIgnore(consumer);
+    }
+
+    @Test
+    void testAvroConfluentForMultipleTopics() throws Exception {
+        Class<?> strategy = RecordIdStrategy.class;
+
+        String topicName1 = TestUtils.generateTopic();
+        String topicName2 = TestUtils.generateTopic();
+        String topicName3 = TestUtils.generateTopic();
+        String subjectName = "myrecordconfluent6";
+        String schemaKey = "key1";
+
+        kafkaCluster.createTopic(topicName1, 1, 1);
+        kafkaCluster.createTopic(topicName2, 1, 1);
+        kafkaCluster.createTopic(topicName3, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(subjectName, List.of(schemaKey));
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+
+        int messageCount = 10;
+
+        Producer<String, GenericRecord> producer1 = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName1, strategy);
+        Producer<String, GenericRecord> producer2 = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName2, strategy);
+        Producer<String, GenericRecord> producer3 = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName3, strategy);
+        Consumer<String, GenericRecord> consumer1 = tester.createConsumer(StringDeserializer.class, AvroKafkaDeserializer.class, topicName1);
+        Consumer<String, GenericRecord> consumer2 = tester.createConsumer(StringDeserializer.class, AvroKafkaDeserializer.class, topicName2);
+        Consumer<String, GenericRecord> consumer3 = tester.createConsumer(StringDeserializer.class, AvroKafkaDeserializer.class, topicName3);
+
+
+        tester.produceMessages(producer1, topicName1, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer2, topicName2, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer3, topicName3, avroSchema::generateRecord, messageCount);
+
+        tester.consumeMessages(consumer1, topicName1, messageCount, avroSchema::validateRecord);
+        tester.consumeMessages(consumer2, topicName2, messageCount, avroSchema::validateRecord);
+        tester.consumeMessages(consumer3, topicName3, messageCount, avroSchema::validateRecord);
+
+    }
+
+    // test confluent producer apicurio consumer use contentId
+    @Test
+    @Disabled
+    void testAvroConfluentApicurioUsingContentId() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
+
+        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
+        createArtifactViaConfluentClient(pschema, subjectName);
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(KafkaAvroSerializer.class)
+            .withDeserializer(AvroKafkaDeserializer.class)
+            .withConsumerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+            .withStrategy(TopicNameStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .withDataValidator(avroSchema::validateRecord)
+            .build()
+            .test();
+    }
+
+    // test apicurio producer use contentId confluent consumerf
+    @Test
+    @Disabled
+    void testAvroApicurioConfluentUsingContentId() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        String subjectName = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
+
+        createArtifact(null, subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(AvroKafkaSerializer.class)
+
+            //very important
+            .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+
+            .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+            .withDeserializer(KafkaAvroDeserializer.class)
+            .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)
+            .withDataGenerator(avroSchema::generateRecord)
+            .withDataValidator(avroSchema::validateRecord)
+            .build()
+            .test();
+    }
 
 }
 

@@ -37,6 +37,7 @@ public class MetaDataKeys {
     public static String ARTIFACT_ID = "artifact_id";
     public static String CONTENT = "content"; // TODO discuss
     public static String CONTENT_HASH = "content_hash";
+    public static String CANONICAL_HASH = "canonical_hash";
     public static String GLOBAL_ID = "global_id";
     public static String VERSION = "version";
     public static String NAME = "name";
@@ -63,6 +64,8 @@ public class MetaDataKeys {
         SEARCH_KEY_MAPPING.put("properties", PROPERTIES);
         SEARCH_KEY_MAPPING.put("name", NAME);
         SEARCH_KEY_MAPPING.put("description", DESCRIPTION);
+        SEARCH_KEY_MAPPING.put("contentHash", CONTENT_HASH);
+        SEARCH_KEY_MAPPING.put("canonicalHash", CANONICAL_HASH);
     }
 
     // Internal

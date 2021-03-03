@@ -20,13 +20,13 @@ import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
-import java.util.List;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+
+import java.util.List;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 

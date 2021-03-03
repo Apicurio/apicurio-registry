@@ -14,9 +14,6 @@
     <name>apicurio-registry-testsuite</name>
 
     <properties>
-        <maven.compiler.target>11</maven.compiler.target>
-        <maven.compiler.source>11</maven.compiler.source>
-
         <groups></groups>
         <skipTests>true</skipTests>
         

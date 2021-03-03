@@ -15,6 +15,12 @@
  */
 package io.apicurio.registry.events;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -43,12 +49,6 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Fabian Martinez

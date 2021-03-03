@@ -17,6 +17,11 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.CompletionStage;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -35,12 +40,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.CompletionStage;
-
 
 /**
  * The artifactStore layer for the registry.

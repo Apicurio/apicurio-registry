@@ -18,7 +18,8 @@ public enum ArtifactType {
     KCONNECT("KCONNECT"),
     WSDL("WSDL"),
     XSD("XSD"),
-    XML("XML");
+    XML("XML"),
+	CSV("CSV");
     private final String value;
     private final static Map<String, ArtifactType> CONSTANTS = new HashMap<String, ArtifactType>();
 

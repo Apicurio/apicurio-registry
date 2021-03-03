@@ -16,8 +16,14 @@
 
 package io.apicurio.registry.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -31,6 +37,9 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
+import uk.gov.nationalarchives.csv.validator.api.java.CsvValidator;
+import uk.gov.nationalarchives.csv.validator.api.java.FailMessage;
+import uk.gov.nationalarchives.csv.validator.api.java.Substitution;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -38,7 +47,7 @@ import io.apicurio.registry.types.ArtifactType;
 public final class ArtifactTypeUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-
+    protected final static Logger log = LoggerFactory.getLogger(ArtifactTypeUtil.class);
     /**
      * Constructor.
      */
@@ -66,6 +75,11 @@ public final class ArtifactTypeUtil {
             if (type != null) {
                 return type;
             }
+        }
+        
+        //Try CSV
+        if(tryCSV(content)) {
+        	return ArtifactType.CSV;
         }
 
         // Try the various JSON formatted types
@@ -161,4 +175,22 @@ public final class ArtifactTypeUtil {
         return false;
     }
 
+    private static boolean tryCSV(ContentHandle content) {
+    	
+    
+        List<FailMessage> failures = CsvValidator.validate(new InputStreamReader(new ByteArrayInputStream("test,test,test".getBytes())), new InputStreamReader(content.stream()), false,  new ArrayList<Substitution>(), Boolean.TRUE, Boolean.FALSE);
+        if(failures != null && !failures.isEmpty()) {
+        	for(FailMessage msg : failures) {
+        		
+        		if(failures.size() == 1 && msg.getMessage().startsWith("Metadata header, cannot find")) {
+        			return true;
+        		}
+        		
+        		log.info("CSV Parse error message: " + msg.getMessage());
+        	}
+        	
+        	return false;
+        }
+        return false;
+    }
 }

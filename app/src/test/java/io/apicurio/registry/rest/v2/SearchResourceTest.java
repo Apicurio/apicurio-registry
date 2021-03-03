@@ -288,4 +288,77 @@ public class SearchResourceTest extends AbstractResourceTestBase {
 
     }
 
+    @Test
+    public void testSearchByContent() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testSearchByContent";
+        String searchByContent = artifactContent.replaceAll("Empty API", "testSearchByContent-empty-api-2");
+        String searchByCanonicalContent = searchByContent.replaceAll("\\{", "   {\n");
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "testSearchByContent-empty-api-" + idx;
+            String artifactId = "Empty-1-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+
+            artifactId = "Empty-2-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+        }
+
+        given()
+            .when()
+                .body(searchByContent)
+                .post("/registry/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                ;
+
+        // Searching by content that is not the same should yield 0 results.
+        given()
+            .when()
+                .body(searchByCanonicalContent)
+                .post("/registry/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(0))
+                ;
+    }
+
+
+    @Test
+    public void testSearchByCanonicalContent() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testSearchByCanonicalContent";
+        String searchByContent = artifactContent.replaceAll("Empty API", "testSearchByCanonicalContent-empty-api-2").replaceAll("\\{", "   {\n");
+
+        System.out.println(searchByContent);
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "testSearchByCanonicalContent-empty-api-" + idx;
+            String artifactId = "Empty-1-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+
+            artifactId = "Empty-2-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+        }
+
+        given()
+            .when()
+                .queryParam("canonical", "true")
+                .queryParam("artifactType", ArtifactType.OPENAPI)
+                .body(searchByContent)
+                .post("/registry/v2/search/artifacts")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                ;
+    }
+
+
 }

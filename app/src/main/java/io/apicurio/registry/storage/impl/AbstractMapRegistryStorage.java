@@ -227,6 +227,15 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 return valueContainsSearch(search, artifactMetaData.getName()) || valueContainsSearch(search, artifactMetaData.getId());
             case properties:
                 return valueContainsSearch(search, artifactMetaData.getProperties());
+            case contentHash: {
+                String contentHash = this.contentHash.get(artifactMetaData.getContentId());
+                return valueIsSearchExact(search, contentHash);
+            }
+            case canonicalHash: {
+                String contentHash = this.contentHash.get(artifactMetaData.getContentId());
+                StoredContent storedContent = this.content.get(contentHash);
+                return valueIsSearchExact(search, storedContent.getCanonicalHash());
+            }
         }
         return false;
     }

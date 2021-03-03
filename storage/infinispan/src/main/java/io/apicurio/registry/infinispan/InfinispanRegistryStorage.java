@@ -213,7 +213,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage implem
 
     @Override
     protected Function<String, StoredContent> contentFn(String contentHash, ArtifactType artifactType, byte[] bytes) {
-        return new ContentFn(contentHash, artifactType, bytes);
+        return new ContentFn(this, contentHash, artifactType, bytes);
     }
 
     @Override // make it serializable

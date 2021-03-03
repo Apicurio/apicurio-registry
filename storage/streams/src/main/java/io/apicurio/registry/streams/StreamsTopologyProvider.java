@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.storage.proto.Str.GroupMetaDataValue;
 import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -222,9 +223,47 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     return consumeLogConfig(aggregate, value, type, offset);
                 case CONTENT:
                     return consumeContent(aggregate, value, type, offset, globalId);
+                case GROUP:
+                    return consumeGroupMetaData(aggregate, value, type, offset);
                 default:
                     throw new IllegalArgumentException("Cannot handle value type: " + vt);
             }
+        }
+
+        private Str.Data consumeGroupMetaData(Str.Data data, Str.StorageValue rv, Str.ActionType type, long offset) {
+            Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
+            Str.GroupMetaDataValue groupMeta = rv.getGroup();
+            if (type == Str.ActionType.CREATE || type == Str.ActionType.UPDATE) {
+                int i;
+                Str.GroupMetaDataValue found = null;
+                for (i = 0; i < builder.getGroupsCount(); i++) {
+                    if (builder.getGroups(i).getGroupId().equals(groupMeta.getGroupId())) {
+                        found = builder.getGroups(i);
+                        break;
+                    }
+                }
+                if (found == null) {
+                    builder.addGroups(GroupMetaDataValue.newBuilder(groupMeta).build());
+                } else {
+                    GroupMetaDataValue.Builder newMeta = GroupMetaDataValue.newBuilder(groupMeta);
+                    newMeta.setCreatedBy(found.getCreatedBy());
+                    newMeta.setCreatedOn(found.getCreatedOn());
+                    builder.addGroups(i, newMeta.build());
+                }
+            } else if (type == Str.ActionType.DELETE) {
+                int index = -1;
+                for (int i = 0; i < builder.getGroupsCount(); i++) {
+                    Str.GroupMetaDataValue g = builder.getGroups(i);
+                    if (g.getGroupId().equals(groupMeta.getGroupId())) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index >= 0) {
+                    builder.removeGroups(index);
+                }
+            }
+            return builder.build();
         }
 
         private Str.Data consumeContent(Str.Data data, Str.StorageValue rv, Str.ActionType type, long offset, long globalId) {

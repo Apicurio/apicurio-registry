@@ -16,22 +16,19 @@
 
 package io.apicurio.registry.infinispan;
 
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
+import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
+import io.apicurio.registry.storage.impl.ArtifactKey;
+import io.apicurio.registry.storage.impl.MultiMap;
+import io.apicurio.registry.storage.impl.StorageMap;
+import io.apicurio.registry.storage.impl.StoredContent;
+import io.apicurio.registry.storage.impl.TupleId;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -41,19 +38,21 @@ import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.health.ClusterHealth;
 import org.infinispan.health.HealthStatus;
 import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.util.function.SerializableBiFunction;
 
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
-import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.impl.AbstractMapRegistryStorage;
-import io.apicurio.registry.storage.impl.ArtifactKey;
-import io.apicurio.registry.storage.impl.MultiMap;
-import io.apicurio.registry.storage.impl.StorageMap;
-import io.apicurio.registry.storage.impl.StoredContent;
-import io.apicurio.registry.storage.impl.TupleId;
-import io.apicurio.registry.utils.ConcurrentUtil;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author Ales Justin
@@ -65,7 +64,7 @@ import io.apicurio.registry.utils.ConcurrentUtil;
 @ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT + "_InfinispanRegistryStorage", description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT}, reusable = true)
 @Timed(name = STORAGE_OPERATION_TIME + "_InfinispanRegistryStorage", description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS, reusable = true)
 @Logged
-public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
+public class InfinispanRegistryStorage extends AbstractMapRegistryStorage implements StorageHandle {
 
     static String KEY = "_ck";
     static String COUNTER_CACHE = "counter-cache";
@@ -76,6 +75,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
     static String GLOBAL_CACHE = "global-cache";
     static String GLOBAL_RULES_CACHE = "global-rules-cache";
     static String LOG_CONFIGURATION_CACHE = "log-configuration-cache";
+    static String GROUPS_CACHE = "groups-cache";
 
     @Inject
     EmbeddedCacheManager manager;
@@ -96,14 +96,14 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
     @Override
     protected long nextGlobalId() {
-        return counter.compute(KEY, (SerializableBiFunction<? super String, ? super Long, ? extends Long>) (k, v) -> (v == null ? 1 : v + 1));
+        return counter.compute(KEY, new Add());
     }
-    
+
     @Override
-    protected long nextContentId() {
+    public long nextContentId() {
         return nextGlobalId();
     }
-    
+
     @Override
     protected Map<Long, String> createContentHashMap() {
         manager.defineConfiguration(
@@ -115,7 +115,7 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
 
         return manager.getCache(CONTENT_HASH_CACHE, true);
     }
-    
+
     @Override
     protected Map<String, StoredContent> createContentMap() {
         manager.defineConfiguration(
@@ -196,11 +196,29 @@ public class InfinispanRegistryStorage extends AbstractMapRegistryStorage {
         return new CacheMultiMap<>(cache);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    /**
+     * @see io.apicurio.registry.storage.impl.AbstractMapRegistryStorage#createGroupsMap()
+     */
+    @Override
+    protected Map<String, GroupMetaDataDto> createGroupsMap() {
+        manager.defineConfiguration(
+            GROUPS_CACHE,
+            new ConfigurationBuilder()
+                .clustering().cacheMode(CacheMode.REPL_SYNC)
+                .build()
+        );
+
+        return manager.getCache(GROUPS_CACHE, true);
+    }
+
+    @Override
+    protected Function<String, StoredContent> contentFn(String contentHash, ArtifactType artifactType, byte[] bytes) {
+        return new ContentFn(this, contentHash, artifactType, bytes);
+    }
+
     @Override // make it serializable
     protected BiFunction<String, Map<Long, Map<String, String>>, Map<Long, Map<String, String>>> lookupFn() {
-        //noinspection unchecked
-        return (SerializableBiFunction) ((id, m) -> (m == null) ? new ConcurrentHashMap<>() : m);
+        return new MapFn();
     }
 
     @Override

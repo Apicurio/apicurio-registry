@@ -17,37 +17,8 @@
 
 package io.apicurio.registry.storage.impl;
 
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -57,6 +28,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -68,6 +41,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -85,6 +59,33 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DtoUtil;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
  * Base class for all map-based registry storage implementation.  Examples of
@@ -113,6 +114,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected MultiMap<ArtifactKey, String, String> artifactRules;
     protected Map<String, String> globalRules;
     protected Map<String, String> logConfigurations;
+    protected Map<String, GroupMetaDataDto> groups;
 
     protected void beforeInit() {
     }
@@ -127,6 +129,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         globalRules = createGlobalRulesMap();
         artifactRules = createArtifactRulesMap();
         logConfigurations = createLogConfigurationMap();
+        groups = createGroupsMap();
         afterInit();
     }
 
@@ -146,6 +149,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected abstract Map<Long, TupleId> createGlobalMap();
 
     protected abstract Map<String, String> createGlobalRulesMap();
+
+    protected abstract Map<String, GroupMetaDataDto> createGroupsMap();
 
     protected abstract MultiMap<ArtifactKey, String, String> createArtifactRulesMap();
 
@@ -276,16 +281,15 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return (id, m) -> (m == null) ? new ConcurrentHashMap<>() : m;
     }
 
-    private String sha256Hash(ContentHandle chandle) {
+    public static String sha256Hash(ContentHandle chandle) {
         return DigestUtils.sha256Hex(chandle.bytes());
     }
 
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+    public ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
-            return canonicalContent;
+            return canonicalizer.canonicalize(content);
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());
             return content;
@@ -295,19 +299,23 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     protected StoredContent ensureStoredContent(ArtifactType artifactType, ContentHandle chandle) {
         String contentHash = sha256Hash(chandle);
         // Store the content inside the content store if not already there.
-        StoredContent storedContent = this.content.computeIfAbsent(contentHash, (key) -> {
-            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, chandle));
+        StoredContent storedContent = this.content.computeIfAbsent(contentHash, contentFn(contentHash, artifactType, chandle.bytes()));
+        // Create a mapping from contentId to contentHash if not already present.
+        this.contentHash.putIfAbsent(storedContent.getContentId(), contentHash);
+        return storedContent;
+    }
+
+    protected Function<String, StoredContent> contentFn(String contentHash, ArtifactType artifactType, byte[] bytes) {
+        return (key) -> {
             long contentId = nextContentId();
+            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, ContentHandle.create(bytes)));
             StoredContent content = new StoredContent();
             content.setContentId(contentId);
             content.setContentHash(contentHash);
-            content.setContent(chandle.bytes());
+            content.setContent(bytes);
             content.setCanonicalHash(canonicalHash);
             return content;
-        });
-        // Create a mapping from contentId to contentHash if not already present.
-        this.contentHash.computeIfAbsent(storedContent.getContentId(), (key) -> contentHash);
-        return storedContent;
+        };
     }
 
     protected ArtifactMetaDataDto createOrUpdateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle contentHandle, boolean create, long globalId) {
@@ -638,7 +646,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         String contentHash = content.get(MetaDataKeys.CONTENT_HASH);
         long contentId = this.content.get(contentHash).getContentId();
         artifactMetaDataDto.setContentId(contentId);
-
 
         return artifactMetaDataDto;
     }
@@ -1021,6 +1028,70 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 .stream()
                 .map(e -> new LogConfigurationDto(e.getKey(), LogLevel.fromValue(e.getValue())))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group)
+            throws GroupAlreadyExistsException, RegistryStorageException {
+        GroupMetaDataDto prev = groups.putIfAbsent(group.getGroupId(), group);
+        if (prev != null) {
+            throw new GroupAlreadyExistsException(group.getGroupId());
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        if (!groups.containsKey(group.getGroupId())) {
+            throw new GroupNotFoundException(group.getGroupId());
+        }
+        groups.put(group.getGroupId(), group);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        GroupMetaDataDto prev = groups.remove(groupId);
+        if (prev == null) {
+            throw new GroupNotFoundException(groupId);
+        }
+        deleteArtifacts(groupId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        if (limit != null) {
+            return groups.keySet()
+                    .stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        } else {
+            return groups.keySet()
+                    .stream()
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        GroupMetaDataDto group = groups.get(groupId);
+        if (group == null) {
+            throw new GroupNotFoundException(groupId);
+        }
+        return group;
     }
 
 }

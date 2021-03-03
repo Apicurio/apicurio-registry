@@ -28,6 +28,8 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
@@ -37,6 +39,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -50,6 +53,7 @@ import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.MetaDataKeys;
 import io.apicurio.registry.storage.impl.SearchUtil;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.utils.GroupMetaDataUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -137,6 +141,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     /* Fake content as an artifact*/
     public static final String CONTENT_ID = "__CONTENT_ID__";
+
+    /* Fake group metadata as an artifact */
+    public static final String GROUP_METADATA_ID = "__GROUP_METADATA__";
 
     private static final int ARTIFACT_FIRST_VERSION = 1;
 
@@ -1066,6 +1073,70 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
         throw new UnsupportedOperationException("Multitenancy not supported");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(GROUP_METADATA_ID, GROUP_METADATA_ID);
+        ConcurrentUtil.get(submitter.submitGroup(Str.ActionType.CREATE, key, GroupMetaDataUtils.toValue(group)));
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(GROUP_METADATA_ID, GROUP_METADATA_ID);
+        ConcurrentUtil.get(submitter.submitGroup(Str.ActionType.UPDATE, key, GroupMetaDataUtils.toValue(group)));
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(GROUP_METADATA_ID, GROUP_METADATA_ID);
+        ConcurrentUtil.get(submitter.submitGroup(Str.ActionType.DELETE, key, GroupMetaDataUtils.toValue(groupId)));
+        deleteArtifacts(groupId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     */
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        final Str.ArtifactKey key = buildKey(GROUP_METADATA_ID, GROUP_METADATA_ID);
+        Str.Data data = storageStore.get(key);
+        if (data != null) {
+            return data.getGroupsList()
+                    .stream()
+                    .map(v -> v.getGroupId())
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
+     */
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        final Str.ArtifactKey logKey = buildKey(LOGGING_CONFIGURATION_ID, LOGGING_CONFIGURATION_ID);
+        Str.Data data = storageStore.get(logKey);
+        if (data != null) {
+            return data.getGroupsList()
+                    .stream()
+                    .filter(v -> v.getGroupId().equals(groupId))
+                    .findFirst()
+                    .map(GroupMetaDataUtils::toDto)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+        } else {
+            throw new GroupNotFoundException(groupId);
+        }
     }
 
     @AllArgsConstructor

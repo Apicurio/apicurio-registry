@@ -17,6 +17,7 @@
 package io.apicurio.registry.infinispan;
 
 import io.apicurio.registry.storage.impl.TupleId;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.RegistryProperties;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.infinispan.commons.marshall.JavaSerializationMarshaller;
@@ -52,9 +53,14 @@ public class InfinispanConfiguration {
                 .allowList()
                 .addRegexps(
                         "io.apicurio.registry.storage.",
+                        ArtifactType.class.getName(),
                         TupleId.class.getName(),
                         MapValue.class.getName(),
-                        HashMap.class.getName()
+                        HashMap.class.getName(),
+                        Add.class.getName(),
+                        MapFn.class.getName(),
+                        ContentFn.class.getName(),
+                        StorageHandle.class.getName()
                 );
 
         TransportConfigurationBuilder tConf = gConf.transport();

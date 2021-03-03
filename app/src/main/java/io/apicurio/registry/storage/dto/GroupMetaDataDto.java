@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.kafkasql.values;
+package io.apicurio.registry.storage.dto;
 
+import java.io.Serializable;
 import java.util.Map;
 
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.types.ArtifactType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public class GroupValue extends AbstractMessageValue {
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
+public class GroupMetaDataDto implements Serializable {
 
+    /**
+     *
+     */
+    private static final long serialVersionUID = -9015518049780762742L;
+
+    private String groupId;
     private String description;
     private ArtifactType artifactsType;
     private String createdBy;
@@ -35,43 +48,25 @@ public class GroupValue extends AbstractMessageValue {
     private long modifiedOn;
     private Map<String, String> properties;
 
-    private boolean onlyArtifacts;
-
     /**
-     * Creator method.
-     * @param action
+     * Constructor.
      */
-    public static final GroupValue create(ActionType action, boolean onlyArtifacts) {
-        GroupValue key = new GroupValue();
-        key.setAction(action);
-        key.setOnlyArtifacts(onlyArtifacts);
-        return key;
+    public GroupMetaDataDto() {
+        //empty
     }
 
     /**
-     * Creator method.
-     * @param action
-     * @param group metadata
+     * @return the groupId
      */
-    public static final GroupValue create(ActionType action, GroupMetaDataDto meta) {
-        GroupValue key = new GroupValue();
-        key.setAction(action);
-        key.setDescription(meta.getDescription());
-        key.setArtifactsType(meta.getArtifactsType());
-        key.setCreatedBy(meta.getCreatedBy());
-        key.setCreatedOn(meta.getCreatedOn());
-        key.setModifiedBy(meta.getModifiedBy());
-        key.setModifiedOn(meta.getModifiedOn());
-        key.setProperties(meta.getProperties());
-        return key;
+    public String getGroupId() {
+        return groupId;
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
+     * @param groupId the groupId to set
      */
-    @Override
-    public MessageType getType() {
-        return MessageType.Group;
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -170,20 +165,6 @@ public class GroupValue extends AbstractMessageValue {
      */
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
-    }
-
-    /**
-     * @return the onlyArtifacts
-     */
-    public boolean isOnlyArtifacts() {
-        return onlyArtifacts;
-    }
-
-    /**
-     * @param onlyArtifacts the onlyArtifacts to set
-     */
-    public void setOnlyArtifacts(boolean onlyArtifacts) {
-        this.onlyArtifacts = onlyArtifacts;
     }
 
 }

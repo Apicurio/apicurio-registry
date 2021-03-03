@@ -30,11 +30,13 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
@@ -102,9 +104,14 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Group
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action) {
+    public CompletableFuture<UUID> submitGroup(String tenantId, ActionType action, GroupMetaDataDto meta) {
+        GroupKey key = GroupKey.create(tenantId, meta.getGroupId());
+        GroupValue value = GroupValue.create(action, meta);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitGroup(String tenantId, String groupId, ActionType action, boolean onlyArtifacts) {
         GroupKey key = GroupKey.create(tenantId, groupId);
-        GroupValue value = GroupValue.create(action);
+        GroupValue value = GroupValue.create(action, onlyArtifacts);
         return send(key, value);
     }
 
@@ -188,6 +195,10 @@ public class KafkaSqlSubmitter {
     }
     public void submitArtifactRuleTombstone(String tenantId, String groupId, String artifactId, RuleType rule) {
         ArtifactRuleKey key = ArtifactRuleKey.create(tenantId, groupId, artifactId, rule);
+        send(key, null);
+    }
+    public void submitBootstrap(String bootstrapId) {
+        BootstrapKey key = BootstrapKey.create(bootstrapId);
         send(key, null);
     }
 

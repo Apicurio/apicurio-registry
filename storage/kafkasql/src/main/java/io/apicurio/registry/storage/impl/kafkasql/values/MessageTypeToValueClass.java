@@ -32,6 +32,8 @@ public class MessageTypeToValueClass {
     static {
         for (MessageType type : types) {
             switch (type) {
+                case Bootstrap:
+                    break;
                 case Group:
                     index.put(type, GroupValue.class);
                     break;

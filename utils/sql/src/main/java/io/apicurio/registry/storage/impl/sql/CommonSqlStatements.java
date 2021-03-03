@@ -559,4 +559,46 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT t.* FROM tenants t WHERE t.tenantId = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
+     */
+    @Override
+    public String insertGroup() {
+        return "INSERT INTO groups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
+     */
+    @Override
+    public String updateGroup() {
+        return "UPDATE groups SET description = ? , artifactsType = ? , modifiedBy = ? , modifiedOn = ? , properties = ? WHERE tenantId = ? AND groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteGroup()
+     */
+    @Override
+    public String deleteGroup() {
+        return "DELETE FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroups()
+     */
+    @Override
+    public String selectGroups() {
+        //TODO pagination?
+        return "SELECT g.* FROM groups g WHERE g.tenantId = ?"
+                + "ORDER BY g.groupId ASC LIMIT ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGroupByGroupId()
+     */
+    @Override
+    public String selectGroupByGroupId() {
+        return "SELECT g.* FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
+    }
+
 }

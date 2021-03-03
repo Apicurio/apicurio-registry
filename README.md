@@ -173,7 +173,9 @@ you can put the following system properties into JAVA_OPTIONS env var:
 * etc ...
 
 Of course that %dev depends on the Quarkus profile you're gonna use -- should be %prod when used in production.
-
+## Intellij IDE
+###Lombock
+Make sure to enable the Lombock plugin
 
 ## Eclipse IDE
 
@@ -232,3 +234,13 @@ get stored in various modules' `target` directories.  These are then recognized 
 but are sometimes deleted during the Eclipse "clean" phase.  To prevent Eclipse from
 over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your 
 `.m2/repository` directory and copy it into `$ECLIPSE_HOME/dropins`.
+##Troubleshooting
+###Group Id is too Big
+If you get an error similar to 
+"Failed to execute goal org.apache.maven.plugins:maven-assembly-plugin:3.3.0:single 
+(assembly) on project apicurio-registry-app: Execution assembly of goal 
+org.apache.maven.plugins:maven-assembly-plugin:3.3.0:single failed: group id '155673550' 
+is too big ( > 2097151 ). Use STAR or POSIX extensions to overcome this limit"
+<br>
+In the pom.xml Change <tar.long.file.mode>gnu</tar.long.file.mode> 
+to <tar.long.file.mode>posix</tar.long.file.mode>

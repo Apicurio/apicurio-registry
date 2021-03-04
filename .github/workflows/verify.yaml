@@ -43,11 +43,11 @@ jobs:
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
-      - name: Build All Variants
-        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pasyncmem -Pkafkasql -Pinfinispan -Pmultitenancy -DskipTests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+      - name: Build and Test All Variants
+        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pkafkasql -Pinfinispan -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-      - name: Test All Variants
-        run: ./mvnw test verify -Pprod -Psql -Pstreams -Pkafkasql -Pinfinispan -Pmultitenancy
+      - name: Build Asyncmem Variant
+        run: ./mvnw install -Pprod -Pasyncmem -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

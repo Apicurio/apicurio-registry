@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       release-version:
-        description: 'Version candidate being released'
+        description: 'RC version being released'
         required: true
       snapshot-version:
         description: 'Next snapshot version'
@@ -22,7 +22,7 @@ jobs:
 
       - name: Log Metadata
         run: |
-          echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
+          echo "Releasing Apicurio Registry (RC) version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
           echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
 
       - name: Set up Node.js v12
@@ -35,14 +35,6 @@ jobs:
         with:
           version: '11'
           architecture: x64
-
-      - name: Set up settings.xml
-        run: |
-          pwd
-          mkdir -p /home/runner/.m2
-          chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
-          cat /home/runner/.m2/settings.xml
 
       - name: Set up Gren
         run: npm install github-release-notes -g
@@ -87,7 +79,7 @@ jobs:
         run: |
           cd registry
           mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pkafkasql -DskipTests  -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pkafkasql -DskipTests -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Examples
         run: |
@@ -95,15 +87,15 @@ jobs:
           mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
           ./mvnw clean install
 
-      - name: Commit Release Version Change
+      - name: Commit RC Version Change
         run: |
           cd registry
           git add .
-          git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
+          git commit -m "Automated update to RC Version:: ${{ github.event.inputs.release-version}}"
           git push
           cd ../registry-examples
           git add .
-          git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
+          git commit -m "Automated update to RC Version:: ${{ github.event.inputs.release-version}}"
           git push
 
       - name: Import GPG Key
@@ -140,35 +132,26 @@ jobs:
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build The Release Docker Images
+      - name: Build The RC Docker Images
         run: ./.github/scripts/build-rc-images-for-docker.sh
 
       - name: List All The Tagged Docker Images
         run: docker images
 
-      - name: Push The Release Docker Images To Dockerhub 
+      - name: Push The RC Docker Images To Dockerhub 
         run: ./.github/scripts/push-rc-images-to-docker.sh ${{ github.event.inputs.release-version}}
 
       - name: Login to Quay.io Registry
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Tag Release Docker Images for Quay.io
+      - name: Tag RC Docker Images for Quay.io
         run: ./.github/scripts/tag-rc-images-for-quay.sh ${{ github.event.inputs.release-version}}
 
       - name: List All The Tagged Docker Images
         run: docker images
 
-      - name: Push The Release Docker Images to Quay.io
+      - name: Push The RC Docker Images to Quay.io
         run: ./.github/scripts/push-rc-images-to-quay.sh ${{ github.event.inputs.release-version}}
-
-      - name: Maven Deploy
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

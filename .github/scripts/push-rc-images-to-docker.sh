@@ -7,8 +7,6 @@ VERSION="$1"
 echo "Pushing Release Candidate Images"
 docker push apicurio/apicurio-registry-mem:latest-snapshot
 docker push apicurio/apicurio-registry-mem:${VERSION}
-docker push apicurio/apicurio-registry-asyncmem:latest-snapshot
-docker push apicurio/apicurio-registry-asyncmem:${VERSION}
 docker push apicurio/apicurio-registry-infinispan:latest-snapshot
 docker push apicurio/apicurio-registry-infinispan:${VERSION}
 docker push apicurio/apicurio-registry-kafkasql:latest-snapshot

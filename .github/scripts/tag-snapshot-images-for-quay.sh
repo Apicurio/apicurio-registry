@@ -13,7 +13,6 @@ case $BRANCH_NAME in
   "master")
        echo "Tagging Snapshot Images for Branch '$BRANCH_NAME'"
        docker image tag apicurio/apicurio-registry-mem:latest-snapshot quay.io/apicurio/apicurio-registry-mem:latest-snapshot
-       docker image tag apicurio/apicurio-registry-asyncmem:latest-snapshot quay.io/apicurio/apicurio-registry-asyncmem:latest-snapshot
        docker image tag apicurio/apicurio-registry-infinispan:latest-snapshot quay.io/apicurio/apicurio-registry-infinispan:latest-snapshot
        docker image tag apicurio/apicurio-registry-kafkasql:latest-snapshot quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
        docker image tag apicurio/apicurio-registry-sql:latest-snapshot quay.io/apicurio/apicurio-registry-sql:latest-snapshot
@@ -24,7 +23,6 @@ case $BRANCH_NAME in
    *)
        echo "Tagging Snapshot Images for Branch '$BRANCH_NAME'"
        docker image tag apicurio/apicurio-registry-mem:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-mem:${BRANCH_NAME}-snapshot
-       docker image tag apicurio/apicurio-registry-asyncmem:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-asyncmem:${BRANCH_NAME}-snapshot
        docker image tag apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-snapshot
        docker image tag apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-snapshot
        docker image tag apicurio/apicurio-registry-sql:${BRANCH_NAME}-snapshot quay.io/apicurio/apicurio-registry-sql:${BRANCH_NAME}-snapshot

@@ -7,8 +7,6 @@ VERSION="$1"
 echo "Pushing Release Candidate Images"
 docker push quay.io/apicurio/apicurio-registry-mem:latest-snapshot
 docker push quay.io/apicurio/apicurio-registry-mem:${VERSION}
-docker push quay.io/apicurio/apicurio-registry-asyncmem:latest-snapshot
-docker push quay.io/apicurio/apicurio-registry-asyncmem:${VERSION}
 docker push quay.io/apicurio/apicurio-registry-infinispan:latest-snapshot
 docker push quay.io/apicurio/apicurio-registry-infinispan:${VERSION}
 docker push quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot

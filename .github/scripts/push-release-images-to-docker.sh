@@ -11,8 +11,6 @@ case $BRANCH_NAME in
        echo "Pushing Release Images for Branch '$BRANCH_NAME'"
        docker push apicurio/apicurio-registry-mem:latest-release
        docker push apicurio/apicurio-registry-mem:${VERSION}
-       docker push apicurio/apicurio-registry-asyncmem:latest-release
-       docker push apicurio/apicurio-registry-asyncmem:${VERSION}
        docker push apicurio/apicurio-registry-infinispan:latest-release
        docker push apicurio/apicurio-registry-infinispan:${VERSION}
        docker push apicurio/apicurio-registry-kafkasql:latest-release
@@ -29,8 +27,6 @@ case $BRANCH_NAME in
        echo "Pushing Release Images for Branch '$BRANCH_NAME'"
        docker push apicurio/apicurio-registry-mem:${BRANCH_NAME}-release
        docker push apicurio/apicurio-registry-mem:${VERSION}
-       docker push apicurio/apicurio-registry-asyncmem:${BRANCH_NAME}-release
-       docker push apicurio/apicurio-registry-asyncmem:${VERSION}
        docker push apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-release
        docker push apicurio/apicurio-registry-infinispan:${VERSION}
        docker push apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-release

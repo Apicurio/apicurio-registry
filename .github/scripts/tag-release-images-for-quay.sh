@@ -11,8 +11,6 @@ case $BRANCH_NAME in
        echo "Tagging Release Images for Branch '$BRANCH_NAME'"
        docker image tag apicurio/apicurio-registry-mem:latest-release quay.io/apicurio/apicurio-registry-mem:latest-release
        docker image tag apicurio/apicurio-registry-mem:${VERSION} quay.io/apicurio/apicurio-registry-mem:${VERSION}
-       docker image tag apicurio/apicurio-registry-asyncmem:latest-release quay.io/apicurio/apicurio-registry-asyncmem:latest-release
-       docker image tag apicurio/apicurio-registry-asyncmem:${VERSION} quay.io/apicurio/apicurio-registry-asyncmem:${VERSION}
        docker image tag apicurio/apicurio-registry-infinispan:latest-release quay.io/apicurio/apicurio-registry-infinispan:latest-release
        docker image tag apicurio/apicurio-registry-infinispan:${VERSION} quay.io/apicurio/apicurio-registry-infinispan:${VERSION}
        docker image tag apicurio/apicurio-registry-kafkasql:latest-release quay.io/apicurio/apicurio-registry-kafkasql:latest-release
@@ -29,8 +27,6 @@ case $BRANCH_NAME in
        echo "Tagging Release Images for Branch '$BRANCH_NAME'"
        docker image tag apicurio/apicurio-registry-mem:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-mem:${BRANCH_NAME}-release
        docker image tag apicurio/apicurio-registry-mem:${VERSION} quay.io/apicurio/apicurio-registry-mem:${VERSION}
-       docker image tag apicurio/apicurio-registry-asyncmem:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-asyncmem:${BRANCH_NAME}-release
-       docker image tag apicurio/apicurio-registry-asyncmem:${VERSION} quay.io/apicurio/apicurio-registry-asyncmem:${VERSION}
        docker image tag apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-release
        docker image tag apicurio/apicurio-registry-infinispan:${VERSION} quay.io/apicurio/apicurio-registry-infinispan:${VERSION}
        docker image tag apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-release quay.io/apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-release

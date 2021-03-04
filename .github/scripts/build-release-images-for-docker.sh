@@ -10,7 +10,6 @@ case $BRANCH_NAME in
   "master")
        echo "Building Release Images for Branch '$BRANCH_NAME'"
        mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-release -pl distro/docker
-       mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-release -pl distro/docker
        mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-release -pl distro/docker
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-release -pl distro/docker
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-release -pl distro/docker
@@ -21,7 +20,6 @@ case $BRANCH_NAME in
    *)
        echo "Building Release Images for Branch '$BRANCH_NAME'"
        mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release -pl distro/docker
-       mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release -pl distro/docker
        mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release -pl distro/docker
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release -pl distro/docker
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-release -pl distro/docker

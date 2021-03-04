@@ -24,7 +24,7 @@ jobs:
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
           echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
-          
+
       - name: Set up Node.js v12
         uses: actions/setup-node@v1
         with:
@@ -113,7 +113,7 @@ jobs:
         run: |
           cd registry
           mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -DskipTests  -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pkafkasql -DskipTests  -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Examples
         run: |
@@ -182,17 +182,17 @@ jobs:
 
       - name: List All The Tagged Docker Images
         run: docker images
-       
+
       - name: Push The Release Docker Images to Quay.io
         run: ./.github/scripts/push-release-images-to-quay.sh ${{ github.event.inputs.branch }} ${{ github.event.inputs.release-version}}
-        
+
       - name: Maven Deploy
         run: |
           cd registry
           # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -DskipTests -Prelease --settings /home/runner/.m2/settings.xml -DskipTests) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
@@ -268,9 +268,6 @@ jobs:
       - name: Verify Docker Release For mem
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-mem:latest-release 
      
-      - name: Verify Docker Release For asyncmem
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-asyncmem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-asyncmem:latest-release 
-      
       - name: Verify Docker Release For streams
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-streams:latest-release 
     
@@ -283,7 +280,7 @@ jobs:
       - name: Verify Docker Release For kafkasql
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-kafkasql:latest-release 
 
-      - name: Verify Maven Release
-        run: |
-          cd .github/test-mvn-deploy
-          mvn clean install "-Dversion.apicurio=${{ github.event.inputs.release-version}}" # Passing the latest version at run-time
+#      - name: Verify Maven Release
+#        run: |
+#          cd .github/test-mvn-deploy
+#          mvn clean install "-Dversion.apicurio=${{ github.event.inputs.release-version}}" # Passing the latest version at run-time

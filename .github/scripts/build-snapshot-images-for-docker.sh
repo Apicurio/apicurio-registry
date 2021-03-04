@@ -14,7 +14,6 @@ case $BRANCH_NAME in
        # if master branch, tag image with "latest-snapshot"
        echo "Building Snapshot Images for Branch '$BRANCH_NAME'"
        mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot -pl distro/docker
-       mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot -pl distro/docker
        mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot -pl distro/docker
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot -pl distro/docker
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot -pl distro/docker
@@ -26,7 +25,6 @@ case $BRANCH_NAME in
        # if other than master, tag image in the form "${BRANCH_NAME}-snapshot"
        echo "Building Snapshot Images for Branch '$BRANCH_NAME'"
        mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-snapshot -pl distro/docker
-       mvn package -Pprod -Pasyncmem -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-snapshot -pl distro/docker
        mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-snapshot -pl distro/docker
        mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-snapshot -pl distro/docker
        mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=${BRANCH_NAME}-snapshot -pl distro/docker

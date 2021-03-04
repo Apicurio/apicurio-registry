@@ -603,9 +603,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.deleteArtifactRules(groupId, artifactId);
 
         //Assertions
-        final List<RuleType> emptyRules = clientV2.listArtifactRules(groupId, artifactId);
-        assertNotNull(emptyRules);
-        assertTrue(emptyRules.isEmpty());
+        TestUtils.retry(() -> {
+            final List<RuleType> emptyRules = clientV2.listArtifactRules(groupId, artifactId);
+            assertNotNull(emptyRules);
+            assertTrue(emptyRules.isEmpty());
+        });
     }
 
     @Test

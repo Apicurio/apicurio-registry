@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -203,7 +204,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     /**
-     * Wait for a global rule to be created.
+     * Wait for an artifact rule to be created.
      * @param ruleType
      * @throws Exception
      */
@@ -367,6 +368,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .pathParam("globalId", globalId)
                 .get("/registry/v1/ids/{globalId}/meta")
                 .then(), state, true);
+        });
+    }
+
+    /**
+     * Wait for a global rule to be created.
+     * @param ruleType
+     * @param ruleConfig
+     * @throws Exception
+     */
+    public void waitForGlobalRule(RuleType ruleType, String ruleConfig) throws Exception {
+        // Verify the default global rule exists
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .get("/registry/v1/rules/VALIDITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo(ruleType.value()))
+                    .body("config", equalTo(ruleConfig));
         });
     }
 

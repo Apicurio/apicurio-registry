@@ -245,22 +245,24 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private static Map<String, String> findMetadata(Map<String, String> filtersMap, Str.Data data) {
-        int count = data.getArtifactsCount();
-        if (count > 0) {
-            List<Str.ArtifactValue> list = data.getArtifactsList();
-            int index = count - 1;
-            while (index >= 0) {
-                Str.ArtifactValue value = list.get(index);
-                if (isValid(value)) {
-                    Map<String, String> metadata = value.getMetadataMap();
-                    ArtifactState state = ArtifactStateExt.getState(metadata);
-                    if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
-                        if (executeSearch(filtersMap, value, metadata)) {
-                            return metadata;
+        if (data != null) {
+            int count = data.getArtifactsCount();
+            if (count > 0) {
+                List<Str.ArtifactValue> list = data.getArtifactsList();
+                int index = count - 1;
+                while (index >= 0) {
+                    Str.ArtifactValue value = list.get(index);
+                    if (isValid(value)) {
+                        Map<String, String> metadata = value.getMetadataMap();
+                        ArtifactState state = ArtifactStateExt.getState(metadata);
+                        if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
+                            if (executeSearch(filtersMap, value, metadata)) {
+                                return metadata;
+                            }
                         }
                     }
+                    index--;
                 }
-                index--;
             }
         }
         return null;

@@ -21,7 +21,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityDifference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +30,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
+import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityDifference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;

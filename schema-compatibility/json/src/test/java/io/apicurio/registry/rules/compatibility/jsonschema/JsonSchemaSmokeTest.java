@@ -136,5 +136,4 @@ public class JsonSchemaSmokeTest {
             throw new RuntimeException(e);
         }
     }
-
 }

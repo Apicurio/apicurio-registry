@@ -151,7 +151,7 @@ public class StreamsRegistryConfiguration {
         String appServer = props.getApplicationServer();
         String[] hostPort = appServer.split(":");
         log.info("Application server gRPC: '{}'", appServer);
-        return new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
+        return new HostInfo(hostPort[0], Integer.parseInt(hostPort[hostPort.length - 1]));
     }
 
     @Produces

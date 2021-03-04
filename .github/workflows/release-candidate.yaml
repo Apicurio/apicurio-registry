@@ -61,8 +61,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
           git fetch
-          git checkout ${{steps.metadata.outputs.branch}}
-          git branch --set-upstream-to=origin/${{steps.metadata.outputs.branch}}
+          git checkout ${{steps.metadata.inputs.branch}}
+          git branch --set-upstream-to=origin/${{steps.metadata.inputs.branch}}
           git pull
 
       - name: Update Release Candidate Version ${{ github.event.inputs.release-version}}

@@ -854,7 +854,6 @@
         <profile>
             <id>multitenancy</id>
             <modules>
-                <module>storage/sql</module>
                 <module>multitenancy/tenant-manager-datamodel</module>
                 <module>multitenancy/tenant-manager-client</module>
                 <module>multitenancy/tenant-manager-api</module>

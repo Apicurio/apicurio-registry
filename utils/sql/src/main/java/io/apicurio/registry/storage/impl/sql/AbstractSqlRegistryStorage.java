@@ -2052,6 +2052,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+        return null;
+    }
+
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return withHandle( handle -> {
             String sql = sqlStatements().selectArtifactCountById();

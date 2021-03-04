@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -1103,4 +1104,27 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return group;
     }
 
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+
+        final String contentHash = this.contentHash.get(contentId);
+        final List<ArtifactMetaDataDto> artifactVersionsByContent = new ArrayList<>();
+
+        storage.keySet().forEach(key -> {
+            Map<Long, Map<String, String>> map = getVersion2ContentMap(key.getGroupId(), key.getArtifactId());
+            for (Map<String, String> cMap : map.values()) {
+                String candidateHash = cMap.get(MetaDataKeys.CONTENT_HASH);
+
+                if (StringUtils.equals(contentHash, candidateHash)) {
+                    ArtifactStateExt.logIfDeprecated(key.getGroupId(), key.getArtifactId(), cMap.get(MetaDataKeys.VERSION), ArtifactStateExt.getState(cMap));
+                    ArtifactMetaDataDto vmdDto = MetaDataKeys.toArtifactMetaData(cMap);
+                    long versionContentId = this.content.get(cMap.get(MetaDataKeys.CONTENT_HASH)).getContentId();
+                    vmdDto.setContentId(versionContentId);
+                    artifactVersionsByContent.add(vmdDto);
+                }
+            }
+        });
+
+        return artifactVersionsByContent;
+    }
 }

@@ -883,4 +883,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.getGroupMetaData(groupId);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionsByContent(long)
+     */
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+        return null;
+    }
+
 }

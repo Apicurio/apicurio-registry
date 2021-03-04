@@ -541,4 +541,10 @@ public interface RegistryStorage {
      */
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException;
 
+    /**
+     * Get artifact metadata for a given contentId
+     * @param contentId
+     * @return
+     */
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId);
 }

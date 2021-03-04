@@ -429,11 +429,19 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
      */
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
         return storage.getGroupMetaData(groupId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionsByContent(long)
+     */
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+        return null;
     }
 
 }

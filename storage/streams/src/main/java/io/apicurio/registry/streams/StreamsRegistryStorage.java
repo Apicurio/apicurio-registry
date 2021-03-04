@@ -1218,6 +1218,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+        return null;
+    }
+
     @AllArgsConstructor
     @Getter
     private static class RecordData {

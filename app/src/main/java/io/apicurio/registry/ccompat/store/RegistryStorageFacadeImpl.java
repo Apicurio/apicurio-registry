@@ -71,13 +71,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public List<SubjectVersion> getSubjectVersions(int globalId) {
+    public List<SubjectVersion> getSubjectVersions(int contentId) {
 
-        final String artifactId = storage.getArtifactMetaData(globalId).getId();
-
-        return storage.getArtifactVersions(null, artifactId)
+        return storage.getArtifactVersionsByContent(contentId)
                 .stream()
-                .map(version -> FacadeConverter.convert(artifactId, version))
+                .map(artifactMetaData -> FacadeConverter.convert(artifactMetaData.getId(), artifactMetaData.getVersion()))
                 .collect(Collectors.toList());
     }
 
@@ -91,8 +89,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
-        // TODO StoredArtifactDto should contain artifactId IF we are not treating globalId separately
+        return FacadeConverter.convert(storage.getArtifactByContentId(globalId));
     }
 
     @Override

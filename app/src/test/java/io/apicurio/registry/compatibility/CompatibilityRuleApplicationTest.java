@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -57,9 +58,12 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     CompatibilityRuleExecutor compatibility;
 
     @Test
-    public void testGlobalCompatibilityRuleNoArtifact() {
+    public void testGlobalCompatibilityRuleNoArtifact() throws Exception {
         // this should NOT throw an exception
         storage.createGlobalRule(RuleType.COMPATIBILITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        TestUtils.retry(() -> {
+            Assertions.assertTrue(storage.getGlobalRule(RuleType.COMPATIBILITY) != null);
+        });
         rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
             RuleApplicationType.CREATE);
     }

@@ -19,6 +19,7 @@ package io.apicurio.registry.compatibility;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleViolation;
@@ -26,18 +27,20 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import java.util.Set;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -48,10 +51,6 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
 
     @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Inject
     RulesService rules;
 
     @Inject
@@ -59,13 +58,32 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     @Test
     public void testGlobalCompatibilityRuleNoArtifact() throws Exception {
-        // this should NOT throw an exception
-        storage.createGlobalRule(RuleType.COMPATIBILITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        // Add a global rule
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("FULL");
+        given()
+                .when()
+                .contentType(CT_JSON).body(rule)
+                .post("/registry/v1/rules")
+                .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added.
         TestUtils.retry(() -> {
-            Assertions.assertTrue(storage.getGlobalRule(RuleType.COMPATIBILITY) != null);
+            given()
+                    .when()
+                    .get("/registry/v1/rules/COMPATIBILITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("FULL"));
         });
+
         rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, ContentHandle.create(SCHEMA_SIMPLE),
-            RuleApplicationType.CREATE);
+                RuleApplicationType.CREATE);
     }
 
     @Test

@@ -21,6 +21,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityDifference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -85,7 +86,8 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     private Difference findDiffByPathUpdated(Set<CompatibilityDifference> incompatibleDifferences, String path) {
         for(CompatibilityDifference cd : incompatibleDifferences) {
-            Difference diff = (Difference) cd;
+            JsonSchemaCompatibilityDifference jsonSchemaCompatibilityDifference = (JsonSchemaCompatibilityDifference) cd;
+            Difference diff = jsonSchemaCompatibilityDifference.getDifference();
             if(diff.getPathUpdated().equals(path)) {
                 return diff;
             }

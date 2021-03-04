@@ -14,35 +14,30 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility.jsonschema.diff;
+package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.ToString;
 
 /**
- * @author Jakub Senko 'jsenko@redhat.com'
+ * Translation object for Difference into CompatibilityDifference.
+ * @author Ravindranath Kakarla <rnath@amazon.com>
  */
 @Builder
 @Getter
 @EqualsAndHashCode
-@ToString
-public class Difference {
-
+public class JsonSchemaCompatibilityDifference implements CompatibilityDifference {
     @NonNull
-    private final DiffType diffType;
+    private final Difference difference;
 
-    @NonNull
-    private final String pathOriginal;
-
-    @NonNull
-    private final String pathUpdated;
-
-    @NonNull
-    private final String subSchemaOriginal;
-
-    @NonNull
-    private final String subSchemaUpdated;
+    /**
+     * @see CompatibilityDifference#asRuleViolation()
+     */
+    @Override public RuleViolation asRuleViolation() {
+        return new RuleViolation(difference.getDiffType().getDescription(), difference.getPathUpdated());
+    }
 }

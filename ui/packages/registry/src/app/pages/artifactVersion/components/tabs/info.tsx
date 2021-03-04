@@ -29,6 +29,7 @@ import {ArtifactMetaData, Rule} from "@apicurio/registry-models";
 import {DownloadIcon, EditIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
 import {IfFeature} from "../../../../components/common/ifFeature";
+import {If} from "../../../../components/common/if";
 
 /**
  * Properties
@@ -84,6 +85,16 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </div>
                     <div className="description">{this.description()}</div>
                     <div className="metaData">
+                        <If condition={this.isArtifactInGroup}>
+                            <div className="metaDataItem">
+                                <span className="label">Group</span>
+                                <span className="value">{this.props.artifact.groupId}</span>
+                            </div>
+                        </If>
+                        <div className="metaDataItem">
+                            <span className="label">ID</span>
+                            <span className="value">{this.props.artifact.id}</span>
+                        </div>
                         <div className="metaDataItem">
                             <span className="label">Status</span>
                             <span className="value">{this.props.artifact.state}</span>
@@ -141,4 +152,9 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
             this.props.artifact.description :
             `An artifact of type ${this.props.artifact.type} with no description.`;
     }
+
+    private isArtifactInGroup = (): boolean => {
+        const groupId: string|null = this.props.artifact.groupId;
+        return groupId != null && groupId != "default";
+    };
 }

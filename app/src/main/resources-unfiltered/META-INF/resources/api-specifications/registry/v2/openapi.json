@@ -183,6 +183,22 @@
                             "type": "string"
                         },
                         "in": "query"
+                    },
+                    {
+                        "name": "canonical",
+                        "description": "Parameter that can be set to `true` to indicate that the server should \"canonicalize\" the content when searching for matching artifacts.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.  Must be used along with the `artifactType` query parameter.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "artifactType",
+                        "description": "Indicates the type of artifact represented by the content being used for the search.  This is only needed when using the `canonical` query parameter, so that the server knows how to canonicalize the content prior to searching for matching artifacts.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactType"
+                        },
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2031,7 +2047,7 @@
                 }
             ]
         },
-        "x-codegen-contextRoot": "/v2"
+        "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
         "schemas": {

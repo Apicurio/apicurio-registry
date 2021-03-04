@@ -44,6 +44,7 @@ import {UploadVersionForm} from "./components/uploadForm";
 import {Link} from "react-router-dom";
 import {EditMetaDataModal} from "./components/modals";
 import {InvalidContentModal} from "../../components/modals";
+import {IfFeature} from "../../components";
 
 
 /**
@@ -120,7 +121,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         }
 
         let groupId: string = this.getPathParam("groupId");
-        let hasGroup: boolean = groupId != "_";
+        let hasGroup: boolean = groupId != "default";
         let breadcrumbs = (
             <Breadcrumb>
                 <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
@@ -140,7 +141,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
         return (
             <React.Fragment>
-                <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                <IfFeature feature="breadcrumbs" is={true}>
+                    <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                </IfFeature>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactVersionPageHeader versions={this.versions()}
                                                version={this.version()}
@@ -230,7 +233,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     // @ts-ignore
     protected createLoaders(): Promise[] | null {
         let groupId: string|null = this.getPathParam("groupId");
-        if (groupId == "_") {
+        if (groupId == "default") {
             groupId = null;
         }
         const artifactId: string = this.getPathParam("artifactId");
@@ -409,7 +412,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 type: this.artifactType()
             };
             Services.getGroupsService().createArtifactVersion(this.groupId(), this.artifactId(), data).then(versionMetaData => {
-                const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "_";
+                const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "default";
                 const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
                 Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(artifactVersionLocation)();

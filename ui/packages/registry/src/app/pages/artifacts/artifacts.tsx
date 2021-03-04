@@ -28,6 +28,7 @@ import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
 import {SearchedArtifact} from "@apicurio/registry-models";
 import {InvalidContentModal} from "../../components/modals";
+import {If} from "../../components/common/if";
 
 
 /**
@@ -67,13 +68,15 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} noPadding={true}>
-                    <ArtifactsPageToolbar artifacts={this.results()}
-                                          paging={this.state.paging}
-                                          onPerPageSelect={this.onPerPageSelect}
-                                          onSetPage={this.onSetPage}
-                                          onChange={this.onFilterChange}/>
-                </PageSection>
+                <If condition={this.showToolbar}>
+                    <PageSection variant={PageSectionVariants.light} noPadding={true}>
+                        <ArtifactsPageToolbar artifacts={this.results()}
+                                              paging={this.state.paging}
+                                              onPerPageSelect={this.onPerPageSelect}
+                                              onSetPage={this.onSetPage}
+                                              onChange={this.onFilterChange}/>
+                    </PageSection>
+                </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
                         this.isLoading() ?
@@ -153,8 +156,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private doUploadArtifact = (): void => {
         this.onUploadModalClose();
         if (this.state.uploadFormData !== null) {
+            // If no groupId is provided, set it to the "default" group
+            if (!this.state.uploadFormData.groupId) {
+                this.state.uploadFormData.groupId = "default";
+            }
             Services.getGroupsService().createArtifact(this.state.uploadFormData).then(metaData => {
-                const artifactLocation: string = `/artifacts/${ encodeURIComponent(metaData.groupId) }/${ encodeURIComponent(metaData.id) }`;
+                const groupId: string = metaData.groupId ? metaData.groupId : "default";
+                const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`;
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
@@ -255,5 +263,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private onGroupClick = (groupId: string): void => {
         // TODO filter by the group
     };
+
+    private showToolbar = (): boolean => {
+        const hasCriteria: boolean = this.state.criteria && this.state.criteria.value != null && this.state.criteria.value != "";
+        return hasCriteria || this.results().count > 0;
+    }
 
 }

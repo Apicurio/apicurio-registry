@@ -21,7 +21,7 @@ import {Service} from "../baseService";
 const DEFAULT_CONFIG: ConfigType = {
     artifacts: {
         type: "rest",
-        url: "http://localhost:8080/api/"
+        url: "http://localhost:8080/apis/registry"
     },
     auth: {
         options: {
@@ -33,7 +33,8 @@ const DEFAULT_CONFIG: ConfigType = {
         type: "keycloakjs"
     },
     features: {
-        readOnly: false
+        readOnly: false,
+        breadcrumbs: true
     },
     mode: "dev",
     ui: {
@@ -93,17 +94,25 @@ export class ConfigService implements Service {
     }
 
     public features(): FeaturesConfig {
+        const defaults: FeaturesConfig = {
+            readOnly: false,
+            breadcrumbs: true
+        };
         if (!this.config.features) {
-            return {};
+            return defaults;
         }
-        return this.config.features;
+        return {
+            ...defaults,
+            ...this.config.features
+        };
     }
 
     public featureReadOnly(): boolean {
-        if (!this.config.features || !this.config.features.readOnly) {
-            return false;
-        }
-        return this.config.features.readOnly;
+        return this.features().readOnly;
+    }
+
+    public featureBreadcrumbs(): boolean {
+        return this.features().breadcrumbs;
     }
 
     public authType(): string {

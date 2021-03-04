@@ -45,6 +45,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
@@ -254,22 +255,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     Map<String, String> metadata = value.getMetadataMap();
                     ArtifactState state = ArtifactStateExt.getState(metadata);
                     if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
-
-                        //FIXME extract this
-                        if (filtersMap.isEmpty()) {
+                        if (executeSearch(filtersMap, value, metadata)) {
                             return metadata;
-                        }
-
-                        if (null != filtersMap.get("everything")) {
-                                if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
-                                    return metadata;
-                                }
-                        }
-
-                        for (String key : filtersMap.keySet()) {
-                            if (stringMetadataContainsFilter(filtersMap.get(key), metadata.get(MetaDataKeys.SEARCH_KEY_MAPPING.get(key)))) {
-                                return metadata;
-                            }
                         }
                     }
                 }
@@ -277,6 +264,41 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
         }
         return null;
+    }
+
+    private static boolean executeSearch(Map<String, String> filtersMap, Str.ArtifactValue value, Map<String, String> metadata) {
+        if (filtersMap.isEmpty()) {
+            return true;
+        }
+
+        final String contentHashSearchValue = filtersMap.get(MetaDataKeys.SEARCH_KEY_MAPPING.get("contentHash"));
+
+        if (null != contentHashSearchValue) {
+            if (String.valueOf(value.getContentId()).equals(contentHashSearchValue)) {
+                return true;
+            }
+        }
+
+        final String canonicalContentSearchValue = filtersMap.get(MetaDataKeys.SEARCH_KEY_MAPPING.get("canonicalHash"));
+
+        if (null != canonicalContentSearchValue) {
+            if (String.valueOf(value.getContentId()).equals(canonicalContentSearchValue)) {
+                return true;
+            }
+        }
+
+        if (null != filtersMap.get("everything")) {
+                if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
+                    return true;
+                }
+        }
+
+        for (String key : filtersMap.keySet()) {
+            if (stringMetadataContainsFilter(filtersMap.get(key), metadata.get(MetaDataKeys.SEARCH_KEY_MAPPING.get(key)))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean stringMetadataContainsFilter(String filter, String name) {
@@ -559,7 +581,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     .findFirst()
                     .orElseThrow(() -> new ContentNotFoundException(String.valueOf(contentId))).getContent().toByteArray());
         } else {
-            throw new LogConfigurationNotFoundException(String.valueOf(contentId));
+            throw new ContentNotFoundException(String.valueOf(contentId));
         }
     }
 
@@ -659,6 +681,23 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 searchFilter -> filtersMap.put(searchFilter.getType().name(), searchFilter.getValue())
         );
 
+        try {
+            if (containsContentHashFilter(filters)) {
+                filtersMap.put(MetaDataKeys.CONTENT_HASH, String.valueOf(getIdFromContentHash(filtersMap.get(SearchFilterType.contentHash.name()))));
+            }
+
+            if (containsCanonicalHashFilter(filters)) {
+                filtersMap.put(MetaDataKeys.CANONICAL_HASH, String.valueOf(getIdFromCanonicalHash(filtersMap.get(SearchFilterType.canonicalHash.name()))));
+            }
+        } catch (ContentNotFoundException ex) {
+            //Content filter provided but no content found, we can safely return 0 search results
+            final ArtifactSearchResultsDto artifactSearchResults = new ArtifactSearchResultsDto();
+            artifactSearchResults.setArtifacts(Collections.emptyList());
+            artifactSearchResults.setCount(0);
+
+            return artifactSearchResults;
+        }
+
         final LongAdder itemsCount = new LongAdder();
 
         final List<SearchedArtifactDto> matchedArtifacts = storageStore.filter(filtersMap)
@@ -676,6 +715,44 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         artifactSearchResults.setCount(itemsCount.intValue());
 
         return artifactSearchResults;
+    }
+
+    private boolean containsContentHashFilter(Set<SearchFilter> filters) {
+        return filters.stream().anyMatch(filter -> SearchFilterType.contentHash.equals(filter.getType()));
+    }
+
+    private boolean containsCanonicalHashFilter(Set<SearchFilter> filters) {
+        return filters.stream().anyMatch(filter -> SearchFilterType.canonicalHash.equals(filter.getType()));
+    }
+
+    private long getIdFromContentHash(String contentHash) {
+        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
+        final Str.Data data = storageStore.get(contentKey);
+        if (data != null) {
+            return data.getContentsList()
+                    .stream()
+                    .filter(v -> v.getContentHash().equals(contentHash))
+                    .findFirst()
+                    .orElseThrow(() -> new ContentNotFoundException(contentHash))
+                    .getId();
+        } else {
+            throw new ContentNotFoundException(String.valueOf(contentHash));
+        }
+    }
+
+    private long getIdFromCanonicalHash(String canonicalHash) {
+        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
+        final Str.Data data = storageStore.get(contentKey);
+        if (data != null) {
+            return data.getContentsList()
+                    .stream()
+                    .filter(v -> v.getCanonicalHash().equals(canonicalHash))
+                    .findFirst()
+                    .orElseThrow(() -> new ContentNotFoundException(canonicalHash))
+                    .getId();
+        } else {
+            throw new ContentNotFoundException(String.valueOf(canonicalHash));
+        }
     }
 
     @Override

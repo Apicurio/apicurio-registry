@@ -214,8 +214,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionMetaDataByContent(java.lang.String, java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
-            Boolean canonical, InputStream data) {
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 

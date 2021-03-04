@@ -148,10 +148,14 @@ public class StreamsRegistryConfiguration {
     @Produces
     @Singleton
     public HostInfo storageLocalHost(StreamsProperties props) {
-        String appServer = props.getApplicationServer();
-        String[] hostPort = appServer.split(":");
+        String appServer = props.getApplicationServer().replaceAll("\\[", "")
+                .replaceAll("\\[", "");
+
+        int lastIndexOf = appServer.lastIndexOf(":");
+        String host = appServer.substring(0, lastIndexOf);
+        String port = appServer.substring(lastIndexOf + 1);
         log.info("Application server gRPC: '{}'", appServer);
-        return new HostInfo(hostPort[0], Integer.parseInt(hostPort[hostPort.length - 1]));
+        return new HostInfo(host, Integer.parseInt(port));
     }
 
     @Produces

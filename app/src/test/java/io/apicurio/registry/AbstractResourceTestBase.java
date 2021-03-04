@@ -222,23 +222,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     /**
-     * Wait for a global rule to be created.
-     * @param ruleType
-     * @throws Exception
-     */
-    protected void waitGlobalRuleRule(String artifactId, RuleType ruleType) throws Exception {
-        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .contentType(CT_JSON)
-                    .pathParam("rule", ruleType.value())
-                    .get("/registry/v1/artifacts/{artifactId}/rules/{rule}")
-                    .then()
-                    .statusCode(200);
-        });
-    }
-
-    /**
      * Wait for an artifact version to be created.
      * @param artifactId
      * @param version

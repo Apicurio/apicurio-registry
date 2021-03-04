@@ -33,6 +33,14 @@ jobs:
           version: '11'
           architecture: x64
 
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Set test profile to acceptance
         if: github.ref != 'refs/heads/master'
         run: |

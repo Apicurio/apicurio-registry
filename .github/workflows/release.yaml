@@ -104,7 +104,7 @@ jobs:
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           sed -i  "s/version\:\s.*/version: \'${{ github.event.inputs.release-version}}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ github.event.inputs.release-version}}\"/g" common/src/main/resources/META-INF/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ github.event.inputs.release-version}}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
           cd ../registry-examples
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           mvn versions:set-property -Dproperty=apicurio-registry.version -DgenerateBackupPoms=false -DnewVersion=${{ github.event.inputs.release-version}}

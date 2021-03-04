@@ -9,7 +9,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>${basedir}/../../common/src/main/resources/META-INF/openapi.json</source>
+            <source>${basedir}/../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json</source>
             <destName>openapi.json</destName>
         </file>
         <file>

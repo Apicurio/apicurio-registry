@@ -148,9 +148,11 @@ public class StreamsRegistryConfiguration {
     @Produces
     @Singleton
     public HostInfo storageLocalHost(StreamsProperties props) {
+        // Remove brackets in case we have an ipv6 address of the form [2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8080.
         String appServer = props.getApplicationServer().replaceAll("\\[", "")
-                .replaceAll("\\[", "");
+                .replaceAll("\\]", "");
 
+        // In all cases we assume there is a :{port} included.  So we split on the last : and take the rest as the host.
         int lastIndexOf = appServer.lastIndexOf(":");
         String host = appServer.substring(0, lastIndexOf);
         String port = appServer.substring(lastIndexOf + 1);

@@ -2,7 +2,7 @@ name: Integration Tests Workflow
 on:
   push:
     paths-ignore:
-      - '.github/**'
+      # - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -10,7 +10,7 @@ on:
     branches: [master, '[1-9].[1-9].x']
   pull_request:
     paths-ignore:
-      - '.github/**'
+      # - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -32,6 +32,14 @@ jobs:
         with:
           version: '11'
           architecture: x64
+
+      - name: Cache Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Set test profile to acceptance
         if: github.ref != 'refs/heads/master'

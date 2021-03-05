@@ -55,22 +55,22 @@ public class SerdesTester<K, P, C> {
 
     private boolean autoClose = true;
 
-    protected SerdesTester() {
+    public SerdesTester() {
         //empty
     }
 
     /**
      * @param autoClose the autoClose to set
      */
-    protected void setAutoClose(boolean autoClose) {
+    public void setAutoClose(boolean autoClose) {
         this.autoClose = autoClose;
     }
 
-    protected Producer<K, P> createProducer(Class<?> keySerializer, Class<?> valueSerializer, String topicName, Class<?> artifactIdStrategy) {
+    public Producer<K, P> createProducer(Class<?> keySerializer, Class<?> valueSerializer, String topicName, Class<?> artifactIdStrategy) {
         return createProducer(new Properties(), keySerializer, valueSerializer, topicName, artifactIdStrategy);
     }
 
-    protected Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass, Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
+    public Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass, Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
@@ -89,11 +89,11 @@ public class SerdesTester<K, P, C> {
         return new KafkaProducer<>(props);
     }
 
-    protected Consumer<K, C> createConsumer(Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
+    public Consumer<K, C> createConsumer(Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
         return createConsumer(new Properties(), keyDeserializer, valueDeserializer, topicName);
     }
 
-    protected Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
+    public Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
         props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + topicName);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
@@ -110,7 +110,7 @@ public class SerdesTester<K, P, C> {
         return new KafkaConsumer<>(props);
     }
 
-    protected void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator, int messageCount) throws Exception {
+    public void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator, int messageCount) throws Exception {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
 
             int producedMessages = 0;
@@ -142,7 +142,7 @@ public class SerdesTester<K, P, C> {
         }
     }
 
-    protected void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount, Predicate<C> dataValidator) throws Exception {
+    public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount, Predicate<C> dataValidator) throws Exception {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
 
             consumer.subscribe(Collections.singletonList(topicName));

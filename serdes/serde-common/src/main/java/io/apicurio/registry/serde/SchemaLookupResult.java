@@ -27,19 +27,13 @@ public class SchemaLookupResult<T> {
     private T schema;
 
     private long globalId;
+    private long contentId;
     private String groupId;
     private String artifactId;
     private String version;
 
-    private SchemaLookupResult(byte[] rawSchema, T schema, long globalId, String groupId,
-            String artifactId, String version) {
-        super();
-        this.rawSchema = rawSchema;
-        this.schema = schema;
-        this.globalId = globalId;
-        this.groupId = groupId;
-        this.artifactId = artifactId;
-        this.version = version;
+    private SchemaLookupResult() {
+        //empty initialize manually
     }
 
     /**
@@ -61,6 +55,13 @@ public class SchemaLookupResult<T> {
      */
     public long getGlobalId() {
         return globalId;
+    }
+
+    /**
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
     }
 
     /**
@@ -87,6 +88,7 @@ public class SchemaLookupResult<T> {
     public ArtifactReference toArtifactReference() {
         return ArtifactReference.builder()
                 .globalId(this.getGlobalId())
+                .contentId(this.getContentId())
                 .groupId(this.getGroupId())
                 .artifactId(this.getArtifactId())
                 .version(this.getVersion())
@@ -99,50 +101,49 @@ public class SchemaLookupResult<T> {
 
     public static class SchemaLookupResultBuilder<T> {
 
-        private byte[] rawSchema;
-        private T schema;
-        private long globalId;
-        private String groupId;
-        private String artifactId;
-        private String version;
+        private SchemaLookupResult<T> result;
 
         SchemaLookupResultBuilder() {
-            //empty
+            this.result = new SchemaLookupResult<>();
         }
 
         public SchemaLookupResultBuilder<T> rawSchema(byte[] rawSchema) {
-            this.rawSchema = rawSchema;
+            this.result.rawSchema = rawSchema;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResultBuilder<T> schema(T schema) {
-            this.schema = schema;
+            this.result.schema = schema;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResultBuilder<T> globalId(long globalId) {
-            this.globalId = globalId;
+            this.result.globalId = globalId;
+            return SchemaLookupResultBuilder.this;
+        }
+
+        public SchemaLookupResultBuilder<T> contentId(long contentId) {
+            this.result.contentId = contentId;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResultBuilder<T> groupId(String groupId) {
-            this.groupId = groupId;
+            this.result.groupId = groupId;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResultBuilder<T> artifactId(String artifactId) {
-            this.artifactId = artifactId;
+            this.result.artifactId = artifactId;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResultBuilder<T> version(String version) {
-            this.version = version;
+            this.result.version = version;
             return SchemaLookupResultBuilder.this;
         }
 
         public SchemaLookupResult<T> build() {
-            return new SchemaLookupResult<>(this.rawSchema, this.schema, this.globalId, this.groupId,
-                    this.artifactId, this.version);
+            return this.result;
         }
 
     }

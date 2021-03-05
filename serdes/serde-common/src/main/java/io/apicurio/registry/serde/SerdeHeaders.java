@@ -35,6 +35,8 @@ public class SerdeHeaders {
     public static final String HEADER_VALUE_VERSION = "apicurio.value.version";
     public static final String HEADER_KEY_GLOBAL_ID = "apicurio.key.globalId";
     public static final String HEADER_VALUE_GLOBAL_ID = "apicurio.value.globalId";
+    public static final String HEADER_KEY_CONTENT_ID = "apicurio.key.contentId";
+    public static final String HEADER_VALUE_CONTENT_ID = "apicurio.value.contentId";
     public static final String HEADER_KEY_MESSAGE_TYPE = "apicurio.key.msgType";
     public static final String HEADER_VALUE_MESSAGE_TYPE = "apicurio.value.msgType";
 

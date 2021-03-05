@@ -19,11 +19,11 @@ package io.apicurio.registry.serde.headers;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.SerdeHeaders;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -33,26 +33,32 @@ import io.apicurio.registry.utils.IoUtil;
 public class DefaultHeadersHandler implements HeadersHandler {
 
     private String globalIdHeaderName;
+    private String contentIdHeaderName;
     private String groupIdHeaderName;
     private String artifactIdHeaderName;
     private String versionHeaderName;
+    private IdOption idOption;
 
     /**
      * @see io.apicurio.registry.serde.headers.HeadersHandler#configure(java.util.Map, boolean)
      */
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
+        DefaultHeadersHandlerConfig config = new DefaultHeadersHandlerConfig(configs);
         if (isKey) {
-            groupIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_GROUP_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_GROUP_ID);
-            artifactIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_ARTIFACT_ID);
-            globalIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_GLOBAL_ID);
-            versionHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_VERSION_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_VERSION);
+            globalIdHeaderName = config.getKeyGlobalIdHeader();
+            contentIdHeaderName = config.getKeyContentIdHeader();
+            groupIdHeaderName = config.getKeyGroupIdHeader();
+            artifactIdHeaderName = config.getKeyArtifactIdHeader();
+            versionHeaderName = config.getKeyVersionHeader();
         } else {
-            groupIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_GROUP_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_GROUP_ID);
-            artifactIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_ARTIFACT_ID);
-            globalIdHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
-            versionHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_VERSION_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_VERSION);
+            globalIdHeaderName = config.getValueGlobalIdHeader();
+            contentIdHeaderName = config.getValueContentIdHeader();
+            groupIdHeaderName = config.getValueGroupIdHeader();
+            artifactIdHeaderName = config.getValueArtifactIdHeader();
+            versionHeaderName = config.getValueVersionHeader();
         }
+        idOption = config.useIdOption();
     }
 
     /**
@@ -60,6 +66,17 @@ public class DefaultHeadersHandler implements HeadersHandler {
      */
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {
+        if (idOption == IdOption.contentId) {
+            //TODO leave this exception or fallback to other options? if the latter it's recommended to remove a similar exception from DefaultSchemaResolver
+            if (reference.getContentId() == null) {
+                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+            }
+            ByteBuffer buff = ByteBuffer.allocate(8);
+            buff.putLong(reference.getContentId());
+            headers.add(contentIdHeaderName, buff.array());
+            return;
+        }
+
         if (reference.getGlobalId() != null) {
             ByteBuffer buff = ByteBuffer.allocate(8);
             buff.putLong(reference.getGlobalId());
@@ -80,6 +97,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
     public ArtifactReference readHeaders(Headers headers) {
         return ArtifactReference.builder()
                 .globalId(getGlobalId(headers))
+                .contentId(getContentId(headers))
                 .groupId(getGroupId(headers))
                 .artifactId(getArtifactId(headers))
                 .version(getVersion(headers))
@@ -112,6 +130,15 @@ public class DefaultHeadersHandler implements HeadersHandler {
 
     private Long getGlobalId(Headers headers) {
         Header header = headers.lastHeader(globalIdHeaderName);
+        if (header == null) {
+            return null;
+        } else {
+            return ByteBuffer.wrap(header.value()).getLong();
+        }
+    }
+
+    private Long getContentId(Headers headers) {
+        Header header = headers.lastHeader(contentIdHeaderName);
         if (header == null) {
             return null;
         } else {

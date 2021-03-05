@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.headers.DefaultHeadersHandler;
 import io.apicurio.registry.serde.headers.HeadersHandler;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
@@ -149,6 +150,14 @@ public class SerdeConfig {
     public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
 
     /**
+     * Configures the serdes to use the specified {@link IdOption} as the identifier for the artifacts.
+     * Instructs the serializer to write the specified id into the kafka records and
+     * instructs the deserializer to read and use the specified id from the kafka records (to find the schema).
+     */
+    public static final String USE_ID = "apicurio.registry.use-id";
+    public static final String USE_ID_DEFAULT = IdOption.globalId.name();
+
+    /**
      * Config prefix that allows configuration of arbitrary HTTP client request headers used by
      * the Registry REST Client in the serde class when communicating with the Registry.  For
      * example, this could be used to pass authentication information:
@@ -247,6 +256,16 @@ public class SerdeConfig {
      * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Default value is {@link SerdeHeaders#HEADER_VALUE_GLOBAL_ID}.
      */
     public static final String HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME = "apicurio.registry.headers.value.globalId.name";
+    /**
+     * Used to override the Kafka message header name used to pass the contentId for the message key.  Only
+     * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Default value is {@link SerdeHeaders#HEADER_KEY_CONTENT_ID}.
+     */
+    public static final String HEADER_KEY_CONTENT_ID_OVERRIDE_NAME = "apicurio.registry.headers.key.contentId.name";
+    /**
+     * Used to override the Kafka message header name used to pass the contentId for the message value.  Only
+     * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Default value is {@link SerdeHeaders#HEADER_VALUE_CONTENT_ID}.
+     */
+    public static final String HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME = "apicurio.registry.headers.value.contentId.name";
     /**
      * Used to override the Kafka message header name used to pass the message type for the message key.  Only
      * applicable when {@link SerdeConfig#ENABLE_HEADERS} is enabled.  Only used by the JSON Schema serde classes.

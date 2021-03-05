@@ -96,8 +96,10 @@ jobs:
           version: '11'
           architecture: x64
 
-      - name: Build Converters Distro (used in testsuite)
-        run: mvn install -pl distro/connect-converter -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Build artifacts used in testsuite
+        run: |
+          mvn install -am -Pprod -pl distro/connect-converter -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn install -am -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-client' -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Kubernetes Tests
         run: ./.github/scripts/test_apicurio_kubernetes.sh

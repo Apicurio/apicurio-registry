@@ -63,8 +63,16 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
     @Inject
     TenantIdResolver tenantIdResolver;
 
+    @Inject
+    @ConfigProperty(name = "registry.auth.enabled")
+    boolean authEnabled;
+
     @Override
     public OidcTenantConfig resolve(RoutingContext context) {
+
+        if (!authEnabled) {
+            return null;
+        }
 
         if (!tenantIdResolver.resolveTenantId(context)) {
             log.debug("Tenant config is not loaded, fallback to default tenant");

@@ -39,6 +39,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -54,6 +55,7 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyNoAuthTest.class);
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     @Test

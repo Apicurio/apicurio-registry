@@ -35,9 +35,9 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -59,16 +59,8 @@ import io.vertx.core.json.JsonObject;
 @QuarkusTest
 public class AdminResourceTest extends AbstractResourceTestBase {
 
-    private static final String TEST_LOGGER_NAME = "org.acme.test";
-
     @ConfigProperty(name = "quarkus.log.level")
     String defaultLogLevel;
-
-    @BeforeEach
-    public void setUp() {
-        Logger logger = Logger.getLogger(TEST_LOGGER_NAME);
-        logger.setLevel(Level.parse(defaultLogLevel));
-    }
 
     @Test
     public void testGlobalRulesEndpoint() {
@@ -331,8 +323,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     void testLoggerSetsLevel() throws Exception {
-        String defaultLogLevel = Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName();
-        verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+        String testLoggerName = "foo.logger.testLoggerSetsLevel";
+        Logger logger = Logger.getLogger(testLoggerName);
+        logger.setLevel(Level.parse(defaultLogLevel));
+
+        String defaultLogLevel = Logger.getLogger(testLoggerName).getLevel().getName();
+        TestUtils.retry(() -> {
+            verifyLogLevel(testLoggerName, LogLevel.fromValue(defaultLogLevel));
+        });
+
         //remove default log level to avoid conflicts with the checkLogLevel daemon process
         List<LogLevel> levels =  EnumSet.allOf(LogLevel.class)
             .stream()
@@ -347,14 +346,16 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                     .body(lc)
                     .contentType(ContentType.JSON)
-                    .pathParam("logger", TEST_LOGGER_NAME)
+                    .pathParam("logger", testLoggerName)
                     .put("/registry/v2/admin/loggers/{logger}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            TestUtils.retry(() -> assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName()));
+            TestUtils.retry(() -> assertEquals(level.value(), Logger.getLogger(testLoggerName).getLevel().getName()));
         }
+
+        clearLogConfig(testLoggerName);
     }
 
     @Test
@@ -364,16 +365,16 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .when()
                 .body(lc)
                 .contentType(ContentType.JSON)
-                .pathParam("logger", TEST_LOGGER_NAME)
+                .pathParam("logger", "foo.logger.invalid")
                 .put("/registry/v2/admin/loggers/{logger}")
             .then()
                 .statusCode(400);
     }
 
-    private void verifyLogLevel(LogLevel level) {
+    private void verifyLogLevel(String loggerName, LogLevel level) {
         given()
             .when()
-                .pathParam("logger", TEST_LOGGER_NAME)
+                .pathParam("logger", loggerName)
                 .get("/registry/v2/admin/loggers/{logger}")
             .then()
                 .statusCode(200)
@@ -381,11 +382,39 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body("level", is(level.value()));
     }
 
+    private void clearLogConfig(String loggerName) throws Exception {
+        given()
+        .when()
+            .pathParam("logger", loggerName)
+            .delete("/registry/v2/admin/loggers/{logger}")
+        .then()
+            .statusCode(200);
+
+        TestUtils.retry(() -> {
+            Response res = given()
+                    .when()
+                        .get("/registry/v2/admin/loggers")
+                    .thenReturn();
+                assertEquals(200, res.statusCode());
+                NamedLogConfiguration[] configs = res.as(NamedLogConfiguration[].class);
+
+                assertTrue(Stream.of(configs)
+                        .filter(named -> named.getName().equals(loggerName))
+                        .findAny()
+                        .isEmpty());
+
+        }, "Clear log config", 50);
+    }
+
     @Test
     void testLoggersCRUD() throws Exception {
-        String defaultLogLevel = Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName();
+        String testLoggerName = "foo.logger.testLoggersCRUD";
+        Logger logger = Logger.getLogger(testLoggerName);
+        logger.setLevel(Level.parse(defaultLogLevel));
+
+        String defaultLogLevel = Logger.getLogger(testLoggerName).getLevel().getName();
         TestUtils.retry(() -> {
-            verifyLogLevel(LogLevel.fromValue(defaultLogLevel));
+            verifyLogLevel(testLoggerName, LogLevel.fromValue(defaultLogLevel));
         });
 
         Consumer<LogLevel> setLog = (level) -> {
@@ -395,13 +424,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .when()
                     .body(lc)
                     .contentType(ContentType.JSON)
-                    .pathParam("logger", TEST_LOGGER_NAME)
+                    .pathParam("logger", testLoggerName)
                     .put("/registry/v2/admin/loggers/{logger}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+            assertEquals(level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
@@ -410,11 +439,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .get("/registry/v2/admin/loggers")
                 .thenReturn();
             NamedLogConfiguration[] configs = res.as(NamedLogConfiguration[].class);
-            assertTrue(configs.length == 1);
-            assertTrue(configs[0].getName().equals(TEST_LOGGER_NAME));
-            assertTrue(configs[0].getLevel().equals(level));
 
-            assertEquals(level.value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+            assertTrue(Stream.of(configs)
+                    .filter(named -> named.getName().equals(testLoggerName) && named.getLevel().equals(level))
+                    .findAny()
+                    .isPresent());
+
+            assertEquals(level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
         };
 
 
@@ -436,40 +467,25 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         LogLevel secondLevel = testLevels.get("second");
 
         setLog.accept(firstLevel);
-        TestUtils.retry(() -> verifyLogLevel(firstLevel));
+        TestUtils.retry(() -> verifyLogLevel(testLoggerName, firstLevel));
         TestUtils.retry(() -> verifyLevel.accept(firstLevel));
 
         setLog.accept(secondLevel);
-        TestUtils.retry(() -> verifyLogLevel(secondLevel));
+        TestUtils.retry(() -> verifyLogLevel(testLoggerName, secondLevel));
         TestUtils.retry(() -> verifyLevel.accept(secondLevel));
 
-        given()
-            .when()
-                .pathParam("logger", TEST_LOGGER_NAME)
-                .delete("/registry/v2/admin/loggers/{logger}")
-            .then()
-                .statusCode(200);
-
-        TestUtils.retry(() -> {
-            Response res = given()
-                    .when()
-                        .get("/registry/v2/admin/loggers")
-                    .thenReturn();
-                assertEquals(200, res.statusCode());
-                NamedLogConfiguration[] configs = res.as(NamedLogConfiguration[].class);
-                assertTrue(configs.length == 0);
-        }, "Clear log config", 50);
+        clearLogConfig(testLoggerName);
 
         Response res = given()
             .when()
-                .pathParam("logger", TEST_LOGGER_NAME)
+                .pathParam("logger", testLoggerName)
                 .get("/registry/v2/admin/loggers/{logger}")
             .thenReturn();
 
         assertEquals(200, res.statusCode());
         NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
 
-        assertEquals(cfg.getLevel().value(), Logger.getLogger(TEST_LOGGER_NAME).getLevel().getName());
+        assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
 
     }
 

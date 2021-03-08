@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,8 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
 
 /**
  * @author Fabian Martinez
@@ -60,6 +63,14 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
 
     protected RegistryClient createRegistryClient() {
         return RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+    }
+
+    @BeforeAll
+    void prepareRestAssured() {
+        RestAssured.baseURI = TestUtils.getRegistryV2ApiUrl();
+        logger.info("RestAssured configured with {}", RestAssured.baseURI);
+        RestAssured.defaultParser = Parser.JSON;
+        RestAssured.urlEncodingEnabled = false;
     }
 
     @AfterEach

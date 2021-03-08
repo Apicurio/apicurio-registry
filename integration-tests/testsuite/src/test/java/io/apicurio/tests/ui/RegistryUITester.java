@@ -54,9 +54,13 @@ public class RegistryUITester {
         verifyArtifactsListOpen();
     }
 
-    public String uploadArtifact(String artifactId, ArtifactType type, String content) throws UnsupportedEncodingException {
+    public String uploadArtifact(String groupId, String artifactId, ArtifactType type, String content) throws UnsupportedEncodingException {
 
         UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
+
+        if (groupId != null) {
+            uploadDialog.fillGroupId(groupId);
+        }
 
         if (artifactId != null) {
             uploadDialog.fillArtifactId(artifactId);
@@ -106,9 +110,9 @@ public class RegistryUITester {
         return artifactsListPage.getArtifactListItems();
     }
 
-    public void deleteArtifact(String artifactId) throws Exception {
+    public void deleteArtifact(String groupId, String artifactId) throws Exception {
 
-        ArtifactDetailsPage detailsPage = artifactsListPage.openArtifactDetailsPage(artifactId);
+        ArtifactDetailsPage detailsPage = artifactsListPage.openArtifactDetailsPage(groupId, artifactId);
 
         selenium.clickOnItem(detailsPage.getDeleteButton());
         selenium.clickOnItem(detailsPage.getDeleteButtonDeleteDialog());

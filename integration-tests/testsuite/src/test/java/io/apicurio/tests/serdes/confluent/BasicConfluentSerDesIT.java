@@ -214,13 +214,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         Class<?> strategy = TopicRecordNameStrategy.class;
 
         String topicName = TestUtils.generateTopic();
-//        String recordName = "myrecordconfluent5";
-//        String subjectName = topicName + "-" + recordName;
-//        String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
-
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"}]}";
-//        Schema schema = new Schema.Parser().parse(rawSchema);
 
         String recordName = TestUtils.generateSubject();
         String subjectName = topicName + "-" + recordName;
@@ -239,14 +233,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
         tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroConfluentMessages(topicName, 10).get(5, TimeUnit.SECONDS);
 
-//        String schemaKey2 = "key2";
-//        String rawSchema2 = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"}]}";
-//        Schema schema2 = new Schema.Parser().parse(rawSchema2);
-//        ParsedSchema pschema2 = new AvroSchema(rawSchema2);
-//        updateArtifactViaApicurioClient(registryClient, avroSchema2.generateSchema(), subjectName);
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2));
         createArtifactVersion(null, subjectName, avroSchema2.generateSchemaStream());
@@ -274,23 +261,10 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
             });
             assertEquals(schema1Counter.get(), schema2Counter.get());
         }
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroConfluentMessages(topicName, 20).get(5, TimeUnit.SECONDS);
 
-//        String schemaKey3 = "key3";
-//        String rawSchema3 = "{\"type\":\"record\",\"name\":\"" + recordName +  "\",\"fields\":[{\"name\":\"" + schemaKey + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey2 + "\",\"type\":\"string\"},{\"name\":\"" + schemaKey3 + "\",\"type\":\"string\"}]}";
-//        Schema schema3 = new Schema.Parser().parse(rawSchema3);
-////        ParsedSchema pschema3 = new AvroSchema(rawSchema3);
-//        updateArtifactViaApicurioClient(registryClient, schema3, subjectName);
         String schemaKey3 = "key3";
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordName, List.of(schemaKey, schemaKey2, schemaKey3));
         createArtifactVersion(null, subjectName, avroSchema3.generateSchemaStream());
-
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema3, 10, schemaKey, schemaKey2, schemaKey3).get(5, TimeUnit.SECONDS);
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema2, 10, schemaKey, schemaKey2).get(5, TimeUnit.SECONDS);
-//        KafkaClients.produceAvroConfluentMessagesTopicRecordStrategy(topicName, subjectName, schema, 10, schemaKey).get(5, TimeUnit.SECONDS);
-//        KafkaClients.consumeAvroConfluentMessages(topicName, 30).get(5, TimeUnit.SECONDS);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName, strategy);
         tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);

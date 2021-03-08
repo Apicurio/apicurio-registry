@@ -46,7 +46,6 @@ public class ArtifactsListPage extends BasePage {
         selenium.getDriverWait().withTimeout(Duration.ofSeconds(30)).until(ExpectedConditions.and(
                 ExpectedConditions.urlContains("/ui/artifacts")));
         assertNotNull(selenium.getWebElement(() -> getUploadArtifactOpenDialogButton()));
-        assertNotNull(selenium.getWebElement(() -> getArtifactsListSortButton()));
     }
 
     public WebElement getUploadArtifactOpenDialogButton() {
@@ -74,20 +73,20 @@ public class ArtifactsListPage extends BasePage {
         List<ArtifactListItem> items = new ArrayList<>();
         for (int i = 0; i < elements.size(); i++) {
             WebElement element = elements.get(i);
-            ArtifactListItem item = new ArtifactListItem(i, element);
+            ArtifactListItem item = new ArtifactListItem(element);
             LOGGER.info("Got artifact {}", item.toString());
             items.add(item);
         }
         return items;
     }
 
-    private WebElement getViewArtifactButton(String artifactId) throws Exception {
+    private WebElement getViewArtifactLink(String groupId, String artifactId) throws Exception {
         return getArtifactListItems()
                 .stream()
-                .filter(item -> item.getArtifactId().equals(artifactId))
+                .filter(item -> item.matches(groupId, artifactId))
                 .findFirst()
-                .map(item -> item.getViewArtifactButton())
-                .orElseThrow(() -> new IllegalStateException("Artifact " + artifactId + " not found"));
+                .map(item -> item.getViewArtifactLink())
+                .orElseThrow(() -> new IllegalStateException("Artifact " + groupId + " , " + artifactId + " not found"));
     }
 
     //sub-pages
@@ -96,8 +95,8 @@ public class ArtifactsListPage extends BasePage {
         return this.uploadArtifactDialog;
     }
 
-    public ArtifactDetailsPage openArtifactDetailsPage(String artifactId) throws Exception {
-        selenium.clickOnItem(this.getViewArtifactButton(artifactId));
+    public ArtifactDetailsPage openArtifactDetailsPage(String groupId, String artifactId) throws Exception {
+        selenium.clickOnItem(this.getViewArtifactLink(groupId, artifactId));
         return new ArtifactDetailsPage(selenium);
     }
 

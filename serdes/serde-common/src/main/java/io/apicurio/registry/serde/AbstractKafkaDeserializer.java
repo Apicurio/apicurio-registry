@@ -57,10 +57,9 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         }
 
         ByteBuffer buffer = getByteBuffer(data);
-        long id = getIdHandler().readId(buffer);
+        ArtifactReference artifactReference = getIdHandler().readId(buffer);
 
-        SchemaLookupResult<T> schema = getSchemaResolver()
-                .resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(id).build());
+        SchemaLookupResult<T> schema = getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
 
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();

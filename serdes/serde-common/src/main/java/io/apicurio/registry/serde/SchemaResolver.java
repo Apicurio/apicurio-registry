@@ -43,8 +43,22 @@ public interface SchemaResolver<SCHEMA, DATA> {
 
     public void setArtifactResolverStrategy(ArtifactResolverStrategy<SCHEMA> artifactResolverStrategy);
 
+    /**
+     * Used by Serializers to lookup the schema for a given kafka record.
+     * @param topic
+     * @param headers, can be null
+     * @param data
+     * @param parsedSchema
+     * @return SchemaLookupResult
+     */
     public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, Optional<ParsedSchema<SCHEMA>> parsedSchema);
 
+    /**
+     * Used by Deserializers to lookup the schema for a given kafka record.
+     * The schema resolver may use different pieces of information from the {@link ArtifactReference} depending on the configuration of the schema resolver.
+     * @param reference
+     * @return SchemaLookupResult
+     */
     public SchemaLookupResult<SCHEMA> resolveSchemaByArtifactReference(ArtifactReference reference);
 
     /**

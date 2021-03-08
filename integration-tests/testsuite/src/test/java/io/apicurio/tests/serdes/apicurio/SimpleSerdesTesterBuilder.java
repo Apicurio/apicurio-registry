@@ -37,20 +37,20 @@ import io.apicurio.tests.serdes.apicurio.Tester.TesterBuilder;
  */
 public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
-    private DataGenerator<P> dataGenerator;
-    private Predicate<C> dataValidator;
+    protected DataGenerator<P> dataGenerator;
+    protected Predicate<C> dataValidator;
 
-    private Validator afterProduceValidator;
+    protected Validator afterProduceValidator;
 
-    private String topic;
+    protected String topic;
 
-    private Class<?> artifactResolverStrategy;
+    protected Class<?> artifactResolverStrategy;
 
-    private Class<?> serializer;
-    private Class<?> deserializer;
+    protected Class<?> serializer;
+    protected Class<?> deserializer;
 
-    private Properties producerProperties = new Properties();
-    private Properties consumerProperties = new Properties();
+    protected Properties producerProperties = new Properties();
+    protected Properties consumerProperties = new Properties();
 
     public SimpleSerdesTesterBuilder() {
         super();

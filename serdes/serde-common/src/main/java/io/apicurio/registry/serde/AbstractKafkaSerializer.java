@@ -106,7 +106,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
                 serializeData(headers, parsedSchema, data, out);
             } else {
                 out.write(MAGIC_BYTE);
-                getIdHandler().writeId(schema.getGlobalId(), out);
+                getIdHandler().writeId(schema.toArtifactReference(), out);
                 serializeData(parsedSchema, data, out);
             }
             return out.toByteArray();

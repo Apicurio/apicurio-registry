@@ -77,6 +77,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
                 }
                 setIdHandler(new Legacy4ByteIdHandler());
             }
+            idHandler.configure(config.originals(), isKey);
         }
 
         boolean headersEnabled = config.enableHeaders();

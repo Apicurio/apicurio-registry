@@ -18,14 +18,18 @@ package io.apicurio.registry.serde;
 
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -36,9 +40,12 @@ import io.apicurio.registry.utils.IoUtil;
  */
 public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
 
+    protected final Map<Long, SchemaLookupResult<S>> schemaCacheByContentId = new ConcurrentHashMap<>();
+
     private boolean autoCreateArtifact;
     private IfExists autoCreateBehavior;
     private boolean findLatest;
+    private IdOption idOption;
 
     /**
      * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
@@ -52,6 +59,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
         this.findLatest = config.findLatest();
+        this.idOption = config.useIdOption();
     }
 
     /**
@@ -59,6 +67,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
      */
     @Override
     public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
+        Objects.requireNonNull(topic);
+        Objects.requireNonNull(data);
+        Objects.requireNonNull(parsedSchema);
+
         final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
 
         {
@@ -130,7 +142,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
-        //TODO add here more conditions whenever we support referencing by contentId or contentHash
+        //TODO add here more conditions whenever we support referencing by contentHash or some other thing
+        if (idOption == IdOption.contentId) {
+            if (reference.getContentId() == null) {
+                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+            }
+            return resolveSchemaByContentId(reference.getContentId());
+        }
         if (reference.getGlobalId() == null) {
             return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
         } else {
@@ -176,4 +194,33 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
 
         return schemaCacheByGlobalId.get(globalId);
     }
+
+    protected SchemaLookupResult<S> resolveSchemaByContentId(long contentId) {
+        return schemaCacheByContentId.computeIfAbsent(contentId, k -> {
+
+            // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok for this case
+            InputStream rawSchema = client.getContentById(contentId);
+
+            byte[] schema = IoUtil.toBytes(rawSchema);
+            S parsed = schemaParser.parseSchema(schema);
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            return result
+                    .contentId(contentId)
+                    .rawSchema(schema)
+                    .schema(parsed)
+                    .build();
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
+     */
+    @Override
+    public void reset() {
+        super.reset();
+        schemaCacheByContentId.clear();
+    }
+
 }

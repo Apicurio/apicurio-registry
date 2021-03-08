@@ -22,6 +22,8 @@ import io.apicurio.registry.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.converter.avro.AvroData;
 import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
 import org.apache.avro.generic.GenericContainer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 
@@ -39,6 +41,22 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
 
     public AvroConverter() {
         super();
+    }
+
+    /**
+     * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#serializerClass()
+     */
+    @Override
+    protected Class<? extends Serializer> serializerClass() {
+        return AvroKafkaSerializer.class;
+    }
+
+    /**
+     * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#deserializerClass()
+     */
+    @Override
+    protected Class<? extends Deserializer> deserializerClass() {
+        return AvroKafkaDeserializer.class;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

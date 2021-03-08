@@ -50,7 +50,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
 
-    private static final String SCHEMA_SIMPLE_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\"}";
+    public static final String SCHEMA_SIMPLE_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\"}";
 
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
             + "\"schemaType\": \"AVRO\"}";

@@ -1221,7 +1221,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return storageStore.filter(Map.of(SearchFilterType.contentHash.name(), String.valueOf(contentId)))
                 .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
                 .filter(Objects::nonNull)

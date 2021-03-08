@@ -1106,7 +1106,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
 
         final String contentHash = this.contentHash.get(contentId);
         final List<ArtifactMetaDataDto> artifactVersionsByContent = new ArrayList<>();

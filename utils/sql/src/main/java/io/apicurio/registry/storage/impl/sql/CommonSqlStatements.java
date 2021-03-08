@@ -199,6 +199,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
     }
 
+    @Override
+    public String selectArtifactVersionMetaDataByContentId() {
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND c.contentId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByCanonicalHash()
      */

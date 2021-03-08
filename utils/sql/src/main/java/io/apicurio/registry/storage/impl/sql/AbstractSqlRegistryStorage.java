@@ -336,6 +336,27 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
+     */
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+        return withHandle( handle -> {
+            try {
+                String sql = sqlStatements().selectArtifactVersionMetaDataByContentId();
+                return handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, contentId)
+                        .map(ArtifactMetaDataDtoMapper.instance)
+                        .list();
+            } catch (IllegalStateException e) {
+                log.debug("Error getArtifactVersionsByContentId", e);
+                throw new ContentNotFoundException("contentId-" + contentId);
+            }
+        });
+    }
+
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override @Transactional
@@ -2050,11 +2071,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
-    }
-
-    @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
-        return null;
     }
 
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {

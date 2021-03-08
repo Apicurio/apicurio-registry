@@ -437,11 +437,11 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionsByContent(long)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionsByContentId(long)
      */
     @Override
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
-        return storage.getArtifactVersionsByContent(contentId);
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+        return storage.getArtifactVersionsByContentId(contentId);
     }
 
 }

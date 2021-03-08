@@ -73,7 +73,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public List<SubjectVersion> getSubjectVersions(int contentId) {
 
-        return storage.getArtifactVersionsByContent(contentId)
+        return storage.getArtifactVersionsByContentId(contentId)
                 .stream()
                 .map(artifactMetaData -> FacadeConverter.convert(artifactMetaData.getId(), artifactMetaData.getVersion()))
                 .collect(Collectors.toList());

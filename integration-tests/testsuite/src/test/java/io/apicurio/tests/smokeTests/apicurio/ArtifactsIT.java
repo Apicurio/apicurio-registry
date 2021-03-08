@@ -31,6 +31,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.utils.ArtifactUtils;
 
 import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -387,8 +388,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
             registryClient.createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData);
         });
 
-        //TODO
-//        ArtifactUtils.createArtifact(groupId, artifactId, content, 400);
+        ArtifactUtils.createArtifact(groupId, artifactId, content, 400);
 
     }
 
@@ -413,34 +413,34 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getLatestArtifact(groupId, artifactId);
 
-        //TODO
-//        ArtifactUtils.getArtifact(artifactId);
+        ArtifactUtils.getArtifact(groupId, artifactId);
     }
-//
-//    @Test
-//    void testAllowedSpecialCharactersCreateViaApi() throws Exception {
-//        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
-//
-//        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-//
-//        ArtifactUtils.createArtifact(artifactId, content, 200);
-//
-//        TestUtils.retry(() -> registryClient.getArtifactMetaData(artifactId));
-//
-//        registryClient.getArtifactMetaData(artifactId);
-//
-//        registryClient.getArtifactMetaDataByContent(artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-//
-//        registryClient.listArtifactVersions(artifactId);
-//
-//        registryClient.testUpdateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-//
-//        registryClient.updateArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
-//
-//        registryClient.getLatestArtifact(artifactId);
-//
-//        ArtifactUtils.getArtifact(artifactId);
-//    }
+
+    @Test
+    void testAllowedSpecialCharactersCreateViaApi() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "._:-'`?0=)(/&$!<>,;,:";
+
+        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        ArtifactUtils.createArtifact(groupId, artifactId, content, 200);
+
+        TestUtils.retry(() -> registryClient.getArtifactMetaData(groupId,artifactId));
+
+        registryClient.getArtifactMetaData(groupId, artifactId);
+
+        registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.listArtifactVersions(groupId, artifactId, 0, 100);
+
+        registryClient.testUpdateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.updateArtifact(groupId, artifactId, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+
+        registryClient.getLatestArtifact(groupId, artifactId);
+
+        ArtifactUtils.getArtifact(groupId, artifactId);
+    }
 
     @AfterEach
     void deleteRules() throws Exception {

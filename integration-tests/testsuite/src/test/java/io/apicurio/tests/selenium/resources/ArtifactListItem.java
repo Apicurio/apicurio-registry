@@ -26,36 +26,57 @@ import org.openqa.selenium.WebElement;
 
 public class ArtifactListItem extends WebItem {
 
+    private String groupId;
     private String artifactId;
+    private String name;
     private String description;
-    private WebElement viewArtifactButton;
+    private WebElement viewArtifactLink;
 
-    public ArtifactListItem(int index, WebElement webItem) throws UnsupportedEncodingException {
+    public ArtifactListItem(WebElement webItem) throws UnsupportedEncodingException {
         super(webItem);
 
-        viewArtifactButton = webItem.findElement(byDataTestId("artifacts-lnk-view-" + index));
-        String[] slices = viewArtifactButton.getAttribute("href").split("/");
+        viewArtifactLink = webItem.findElement(byDataTestId("artifacts-lnk-view-1"));
+        String[] slices = viewArtifactLink.getAttribute("href").split("/");
 
+        name = viewArtifactLink.getText();
+
+        // sclies href="/ui/artifacts/{groupId}/{artifactId}"
+        groupId = URLDecoder.decode(slices[slices.length - 2], StandardCharsets.UTF_8.name());
         artifactId = URLDecoder.decode(slices[slices.length - 1], StandardCharsets.UTF_8.name());
 
         description = webItem.findElement(By.className("artifact-description")).getText();
+    }
+
+    public String getGroupId() {
+        return groupId;
     }
 
     public String getArtifactId() {
         return artifactId;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public String getDescription() {
         return description;
     }
 
-    public WebElement getViewArtifactButton() {
-        return viewArtifactButton;
+    public WebElement getViewArtifactLink() {
+        return viewArtifactLink;
     }
 
     @Override
     public String toString() {
         return "ArtifactListItem [artifactId=" + artifactId + ", description=" + description + "]";
+    }
+
+    public boolean matches(String groupId, String artifactId) {
+        if (groupId == null) {
+            groupId = "default";
+        }
+        return this.groupId.equals(groupId) && this.artifactId.equals(artifactId);
     }
 
 }

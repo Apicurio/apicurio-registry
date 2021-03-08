@@ -31,6 +31,10 @@ public class UploadArtifactDialog extends BasePage {
         return selenium.getDriver().findElement(By.xpath("//div[@aria-label='Upload Artifact']"));
     }
 
+    public WebElement getGroupIdInput() {
+        return getUploadArtifactDialog().findElement(byDataTestId("form-group"));
+    }
+
     public WebElement getArtifactIdInput() {
         return getUploadArtifactDialog().findElement(byDataTestId("form-id"));
     }
@@ -61,6 +65,10 @@ public class UploadArtifactDialog extends BasePage {
 
     public WebElement getLinkToArtifactsListPage() {
         return selenium.getDriver().findElement(byDataTestId("breadcrumb-lnk-artifacts"));
+    }
+
+    public void fillGroupId(String groupId) {
+        selenium.fillInputItem(this.getGroupIdInput(), groupId);
     }
 
     public void fillArtifactId(String artifactId) {

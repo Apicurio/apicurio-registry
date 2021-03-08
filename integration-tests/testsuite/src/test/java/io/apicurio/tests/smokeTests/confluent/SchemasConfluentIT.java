@@ -16,20 +16,24 @@
 
 package io.apicurio.tests.smokeTests.confluent;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.hasItems;
 
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.utils.subUtils.ConfluentSubjectsUtils;
+import io.apicurio.tests.utils.ArtifactUtils;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.restassured.response.Response;
 
 import org.apache.avro.SchemaParseException;
 import org.junit.jupiter.api.Tag;
@@ -160,8 +164,6 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThrows(RestClientException.class, () -> confluentService.deleteSubject("non-existing"));
     }
 
-    //TODO decide what to do to make artifacts created via confluent api available in v2 api, define a default group used for v1 api and confluent api?
-
     @Test
     void createInvalidSchemaDefinition() throws TimeoutException {
         String subjectName = TestUtils.generateArtifactId();
@@ -186,84 +188,83 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         ConfluentSubjectsUtils.createSchema(invalidSchema, subjectName, 422);
   }
 
-//    @Test
-//    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
-//        String name = "schemaname";
-//        String subjectName = TestUtils.generateArtifactId();
-//        String rawSchema = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-//        ParsedSchema schema = new AvroSchema(rawSchema);
-//        createArtifactViaConfluentClient(schema, subjectName);
-//
-//        assertThat(1, is(confluentService.getAllSubjects().size()));
-//
-//        Response ar = ArtifactUtils.getArtifact(subjectName);
-////        registryClient.getLatestArtifact(subjectName, rawSchema)
-//        assertEquals(rawSchema, ar.asString());
-//        LOGGER.info(ar.asString());
-//
-//        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                return registryClient.getLatestArtifact(subjectName) != null;
-//            } catch (WebApplicationException e) {
-//                return false;
-//            }
-//        });
-//    }
-//
-//    @Test
-//    void testCreateDeleteSchemaRuleIsDeleted() throws Exception {
-//
-//        String name = "schemaname";
-//        String subjectName = TestUtils.generateArtifactId();
-//        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-//        int globalId = createArtifactViaConfluentClient(schema, subjectName);
-//
-//        assertThat(1, is(confluentService.getAllSubjects().size()));
-//
-//        TestUtils.retry(() -> registryClient.getContentByGlobalId(globalId));
-//
-//        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                return registryClient.getLatestArtifact(subjectName) != null;
-//            } catch (WebApplicationException e) {
-//                return false;
-//            }
-//        });
-//
-//        Rule rule = new Rule();
-//        rule.setType(RuleType.VALIDITY);
-//        rule.setConfig("FULL");
-//        registryClient.createArtifactRule(subjectName, rule);
-//
-//        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                Rule r = registryClient.getArtifactRuleConfig(subjectName, RuleType.VALIDITY);
-//                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
-//            } catch (WebApplicationException e) {
-//                return false;
-//            }
-//        });
-//
-//        List<RuleType> rules = registryClient.listArtifactRules(subjectName);
-//        assertThat(1, is(rules.size()));
-//
-//        confluentService.deleteSubject(subjectName);
-//
-//        TestUtils.waitFor("schema deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                return confluentService.getAllSubjects().size() == 0;
-//            } catch (IOException | RestClientException e) {
-//                return false;
-//            }
-//        });
-//
-//        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(subjectName), true, errorCodeExtractor);
-//        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(subjectName), true, errorCodeExtractor);
-//        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(subjectName, rules.get(0)), true, errorCodeExtractor);
-//
-//        //if rule was actually deleted creating same artifact again shouldn't fail
-//        createArtifactViaConfluentClient(schema, subjectName);
-//        assertThat(1, is(confluentService.getAllSubjects().size()));
-//    }
+    @Test
+    void createConfluentQueryApicurio() throws IOException, RestClientException, TimeoutException {
+        String name = "schemaname";
+        String subjectName = TestUtils.generateArtifactId();
+        String rawSchema = "{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        ParsedSchema schema = new AvroSchema(rawSchema);
+        createArtifactViaConfluentClient(schema, subjectName);
+
+        assertThat(1, is(confluentService.getAllSubjects().size()));
+
+        Response ar = ArtifactUtils.getArtifact("default", subjectName);
+        assertEquals(rawSchema, ar.asString());
+        LOGGER.info(ar.asString());
+
+        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return registryClient.getLatestArtifact(null, subjectName) != null;
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+    }
+
+    @Test
+    void testCreateDeleteSchemaRuleIsDeleted() throws Exception {
+
+        String name = "schemaname";
+        String subjectName = TestUtils.generateArtifactId();
+        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        int globalId = createArtifactViaConfluentClient(schema, subjectName);
+
+        assertThat(1, is(confluentService.getAllSubjects().size()));
+
+        TestUtils.retry(() -> registryClient.getContentByGlobalId(globalId));
+
+        TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return registryClient.getLatestArtifact(null, subjectName) != null;
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("FULL");
+        registryClient.createArtifactRule(null, subjectName, rule);
+
+        TestUtils.waitFor("artifact rule created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                Rule r = registryClient.getArtifactRuleConfig(null, subjectName, RuleType.VALIDITY);
+                return r != null && r.getConfig() != null && r.getConfig().equalsIgnoreCase("FULL");
+            } catch (WebApplicationException e) {
+                return false;
+            }
+        });
+
+        List<RuleType> rules = registryClient.listArtifactRules(null, subjectName);
+        assertThat(1, is(rules.size()));
+
+        confluentService.deleteSubject(subjectName);
+
+        TestUtils.waitFor("schema deletion", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return confluentService.getAllSubjects().size() == 0;
+            } catch (IOException | RestClientException e) {
+                return false;
+            }
+        });
+
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(null, subjectName), true, errorCodeExtractor);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(null, subjectName), true, errorCodeExtractor);
+        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(null, subjectName, rules.get(0)), true, errorCodeExtractor);
+
+        //if rule was actually deleted creating same artifact again shouldn't fail
+        createArtifactViaConfluentClient(schema, subjectName);
+        assertThat(1, is(confluentService.getAllSubjects().size()));
+    }
 
 }

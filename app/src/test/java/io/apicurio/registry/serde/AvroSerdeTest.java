@@ -285,7 +285,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
                 AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes, bb -> (long) bb.getInt());
+            TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt());
 
             deserializer1.asLegacyId();
             Map<String, String> config = new HashMap<>();

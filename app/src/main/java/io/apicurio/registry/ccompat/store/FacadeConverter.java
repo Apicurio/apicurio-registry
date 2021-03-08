@@ -33,7 +33,7 @@ public class FacadeConverter {
 
     public static Schema convert(String subject, StoredArtifactDto storedArtifact) {
         return new Schema(
-                convertUnsigned(storedArtifact.getGlobalId()),
+                convertUnsigned(storedArtifact.getContentId()),
                 subject,
                 convertUnsigned(storedArtifact.getVersion().intValue()),
                 storedArtifact.getContent().content()

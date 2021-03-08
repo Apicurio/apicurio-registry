@@ -45,10 +45,11 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
     public StoredArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
         Long globalId = rs.getLong("globalId");
         Long version = rs.getLong("version");
+        Long contentId = rs.getLong("contentId");
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
         
-        return StoredArtifactDto.builder().content(content).globalId(globalId).version(version).build();
+        return StoredArtifactDto.builder().content(content).contentId(contentId).globalId(globalId).version(version).build();
     }
 
 }

@@ -25,6 +25,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
+import io.restassured.response.ResponseBodyExtractionOptions;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -359,6 +360,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testGetSchemaVersions() throws Exception {
         final String SUBJECT = "subjectTestSchemaVersions";
+        final String SECOND_SUBJECT = "secondSubjectTestSchemaVersions";
 
         //Create two versions of the same artifact
         // POST
@@ -379,8 +381,8 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final Integer globalId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
@@ -390,12 +392,15 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         this.waitForGlobalId(globalId2);
 
         //Verify
-        Assertions.assertEquals(Arrays.asList(1, 2), given()
+        final ResponseBodyExtractionOptions body = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get("/ccompat/v6/schemas/ids/{id}/versions", globalId2)
                 .then()
-                .extract().body().jsonPath().get("version"));
+                .extract().body();
+
+        Assertions.assertEquals(Arrays.asList("subjectTestSchemaVersions", "secondSubjectTestSchemaVersions"), body.jsonPath().get("subject"));
+        Assertions.assertEquals(Arrays.asList(1, 1), body.jsonPath().get("version"));
     }
 
     /**

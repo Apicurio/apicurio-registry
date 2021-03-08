@@ -36,6 +36,7 @@ public class MetaDataKeys {
     public static String GROUP_ID = "group_id";
     public static String ARTIFACT_ID = "artifact_id";
     public static String CONTENT = "content"; // TODO discuss
+    public static String CONTENT_ID = "content_id";
     public static String CONTENT_HASH = "content_hash";
     public static String CANONICAL_HASH = "canonical_hash";
     public static String GLOBAL_ID = "global_id";

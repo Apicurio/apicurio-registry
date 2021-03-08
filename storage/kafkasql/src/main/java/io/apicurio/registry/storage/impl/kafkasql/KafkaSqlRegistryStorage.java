@@ -888,7 +888,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
-        return null;
+        return sqlStore.getArtifactVersionsByContent(contentId);
     }
 
 }

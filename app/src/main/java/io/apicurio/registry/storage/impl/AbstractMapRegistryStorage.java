@@ -282,6 +282,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         StoredContent storedContent = this.content.get(contentHash);
         return StoredArtifactDto.builder()
                              .content(ContentHandle.create(storedContent.getContent()))
+                             .contentId(storedContent.getContentId())
                              .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
                              .globalId(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
                              .build();

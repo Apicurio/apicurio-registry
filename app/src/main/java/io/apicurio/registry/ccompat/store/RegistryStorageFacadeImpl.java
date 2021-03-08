@@ -127,7 +127,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             ContentHandle content = ContentHandle.create(schema);
             // Don't canonicalize the content when getting it - Confluent does not.
             ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
-            return CompletableFuture.completedFuture(dto.getGlobalId());
+            return CompletableFuture.completedFuture(dto.getContentId());
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
@@ -136,7 +136,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         // TODO method that returns a completion stage should not throw an exception
         CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
 
-        return artifactMeta.thenApply(ArtifactMetaDataDto::getGlobalId);
+        return artifactMeta.thenApply(ArtifactMetaDataDto::getContentId);
     }
 
     @Override

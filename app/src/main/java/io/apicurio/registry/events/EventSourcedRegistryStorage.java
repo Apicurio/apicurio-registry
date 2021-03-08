@@ -441,7 +441,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
      */
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContent(long contentId) {
-        return null;
+        return storage.getArtifactVersionsByContent(contentId);
     }
 
 }

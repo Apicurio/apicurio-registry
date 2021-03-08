@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -50,15 +51,19 @@ public class DisabledApisMatcherService {
             return;
         }
         for (String regexp : disableRegexps.get()) {
-            Pattern p = Pattern.compile(regexp);
-            disabledPatternsList.add(p);
+            try {
+                Pattern p = Pattern.compile(regexp);
+                disabledPatternsList.add(p);
+            } catch (PatternSyntaxException e) {
+                log.error("An error occurred parsing a regexp for disabling APIs: " + regexp, e);
+            }
         }
     }
 
     public boolean isDisabled(String requestPath) {
         for (Pattern pattern : disabledPatternsList) {
             if (pattern.matcher(requestPath).matches()) {
-                log.debug("Request {} is rejected because it's disabled by pattern {}", requestPath, pattern.pattern());
+                log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath, pattern.pattern());
                 return true;
             }
         }

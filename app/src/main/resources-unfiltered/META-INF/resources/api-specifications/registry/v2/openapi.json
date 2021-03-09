@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.0.0.RC1",
+        "version": "2.0.0-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers (schema and file descriptor)\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `http://MY-REGISTRY-URL/api` by default. Therefore you must prefix all API operation paths with `/api` in this case. For example: `/api/ids/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -2047,6 +2047,29 @@
                 }
             ]
         },
+        "/system/info": {
+            "summary": "Retrieve system information",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SystemInfo"
+                                }
+                            }
+                        },
+                        "description": "On success, returns the system information."
+                    }
+                },
+                "operationId": "getSystemInfo",
+                "summary": "Get system information",
+                "description": "This operation retrieves information about the running registry system, such as the version\nof the software and when it was built."
+            }
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
@@ -2744,6 +2767,32 @@
                 ],
                 "type": "string",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "SystemInfo": {
+                "title": "Root Type for SystemInfo",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "builtOn": {
+                        "format": "date-time",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Apicurio Registry (SQL)",
+                    "description": "The Apicurio Registry application.",
+                    "version": "2.0.0.Final",
+                    "builtOn": "2021-03-19T12:55:00Z"
+                }
             }
         },
         "responses": {
@@ -2869,6 +2918,10 @@
         {
             "name": "Admin",
             "description": "Application functionality that is only accessible to admin users.  Includes things like Logging and Global Rules."
+        },
+        {
+            "name": "System",
+            "description": "System level functionality, including versioning and status information."
         }
     ],
     "x-codegen": {

@@ -6,9 +6,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry</artifactId>
+        <artifactId>apicurio-registry-storage</artifactId>
         <version>2.0.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>apicurio-registry-storage-streams</artifactId>
@@ -32,72 +32,6 @@
 
         <!-- Test Only -->
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-avro-serializer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-protobuf-serializer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-json-schema-serializer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-avro-converter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-app</artifactId>
-            <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-maven-plugin</artifactId>
-            <type>maven-plugin</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-tests</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
             <scope>test</scope>
@@ -111,11 +45,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-test-common</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.dasniko</groupId>
-            <artifactId>testcontainers-keycloak</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

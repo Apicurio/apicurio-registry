@@ -15,196 +15,6 @@
         }
     },
     "paths": {
-        "/search/artifacts": {
-            "summary": "Search for artifacts in the registry.",
-            "get": {
-                "tags": [
-                    "Search",
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "name",
-                        "description": "Filter by artifact name.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "offset",
-                        "description": "The number of artifacts to skip before starting to collect the result set.  Defaults to 0.",
-                        "schema": {
-                            "default": 0,
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    },
-                    {
-                        "name": "limit",
-                        "description": "The number of artifacts to return.  Defaults to 20.",
-                        "schema": {
-                            "default": 20,
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    },
-                    {
-                        "name": "order",
-                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
-                        "schema": {
-                            "$ref": "#/components/schemas/SortOrder"
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "orderby",
-                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
-                        "schema": {
-                            "$ref": "#/components/schemas/SortBy"
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "labels",
-                        "description": "Filter by label.  Include one or more label to only return artifacts containing all of the\nspecified labels.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "properties",
-                        "description": "Filter by one or more name/value property.  Separate each name/value pair using a colon.  For\nexample `properties=foo:bar` will return only artifacts with a custom property named `foo`\nand value `bar`.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "description",
-                        "description": "Filter by description.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "group",
-                        "description": "Filter by artifact group.",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactSearchResults"
-                                }
-                            }
-                        },
-                        "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "searchArtifacts",
-                "summary": "Search for artifacts",
-                "description": "Returns a paginated list of all artifacts that match the provided filter criteria.\n"
-            },
-            "post": {
-                "requestBody": {
-                    "description": "The content to search for.",
-                    "content": {
-                        "*/*": {
-
-                        }
-                    },
-                    "required": true
-                },
-                "tags": [
-                    "Search",
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "offset",
-                        "description": "The number of artifacts to skip before starting to collect the result set.  Defaults to 0.",
-                        "schema": {
-                            "default": 0,
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    },
-                    {
-                        "name": "limit",
-                        "description": "The number of artifacts to return.  Defaults to 20.",
-                        "schema": {
-                            "default": 20,
-                            "type": "integer"
-                        },
-                        "in": "query",
-                        "required": false
-                    },
-                    {
-                        "name": "order",
-                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
-                        "schema": {
-                            "enum": [
-                                "asc",
-                                "desc"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "query"
-                    },
-                    {
-                        "name": "orderby",
-                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
-                        "schema": {
-                            "enum": [
-                                "name",
-                                "createdOn"
-                            ],
-                            "type": "string"
-                        },
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ArtifactSearchResults"
-                                }
-                            }
-                        },
-                        "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "searchArtifactsByContent",
-                "summary": "Search for artifacts by content",
-                "description": "Returns a paginated list of all artifacts with at least one version that matches the\nposted content.\n"
-            }
-        },
         "/ids/contentIds/{contentId}/": {
             "summary": "Access artifact content utilizing the unique content identifier for that content.",
             "get": {
@@ -2031,7 +1841,236 @@
                 }
             ]
         },
-        "x-codegen-contextRoot": "/v2"
+        "/system/info": {
+            "summary": "Retrieve system information",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SystemInfo"
+                                }
+                            }
+                        },
+                        "description": "On success, returns the system information."
+                    }
+                },
+                "operationId": "getSystemInfo",
+                "summary": "Get system information",
+                "description": "This operation retrieves information about the running registry system, such as the version\nof the software and when it was built."
+            }
+        },
+        "/search/artifacts": {
+            "summary": "Search for artifacts in the registry.",
+            "get": {
+                "tags": [
+                    "Search",
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "name",
+                        "description": "Filter by artifact name.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of artifacts to skip before starting to collect the result set.  Defaults to 0.",
+                        "schema": {
+                            "default": 0,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of artifacts to return.  Defaults to 20.",
+                        "schema": {
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortOrder"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "orderby",
+                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortBy"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "labels",
+                        "description": "Filter by label.  Include one or more label to only return artifacts containing all of the\nspecified labels.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "properties",
+                        "description": "Filter by one or more name/value property.  Separate each name/value pair using a colon.  For\nexample `properties=foo:bar` will return only artifacts with a custom property named `foo`\nand value `bar`.",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "description",
+                        "description": "Filter by description.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "group",
+                        "description": "Filter by artifact group.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactSearchResults"
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "searchArtifacts",
+                "summary": "Search for artifacts",
+                "description": "Returns a paginated list of all artifacts that match the provided filter criteria.\n"
+            },
+            "post": {
+                "requestBody": {
+                    "description": "The content to search for.",
+                    "content": {
+                        "*/*": {
+
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Search",
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "canonical",
+                        "description": "Parameter that can be set to `true` to indicate that the server should \"canonicalize\" the content when searching for matching artifacts.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.  Must be used along with the `artifactType` query parameter.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "artifactType",
+                        "description": "Indicates the type of artifact represented by the content being used for the search.  This is only needed when using the `canonical` query parameter, so that the server knows how to canonicalize the content prior to searching for matching artifacts.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactType"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of artifacts to skip before starting to collect the result set.  Defaults to 0.",
+                        "schema": {
+                            "default": 0,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of artifacts to return.  Defaults to 20.",
+                        "schema": {
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+                        "schema": {
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "orderby",
+                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
+                        "schema": {
+                            "enum": [
+                                "name",
+                                "createdOn"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactSearchResults"
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "searchArtifactsByContent",
+                "summary": "Search for artifacts by content",
+                "description": "Returns a paginated list of all artifacts with at least one version that matches the\nposted content.\n"
+            }
+        },
+        "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
         "schemas": {
@@ -2728,6 +2767,32 @@
                 ],
                 "type": "string",
                 "x-codegen-package": "io.apicurio.registry.types"
+            },
+            "SystemInfo": {
+                "title": "Root Type for SystemInfo",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "builtOn": {
+                        "format": "date-time",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Apicurio Registry (SQL)",
+                    "description": "The Apicurio Registry application.",
+                    "version": "2.0.0.Final",
+                    "builtOn": "2021-03-19T12:55:00Z"
+                }
             }
         },
         "responses": {
@@ -2853,6 +2918,10 @@
         {
             "name": "Admin",
             "description": "Application functionality that is only accessible to admin users.  Includes things like Logging and Global Rules."
+        },
+        {
+            "name": "System",
+            "description": "System level functionality, including versioning and status information."
         }
     ],
     "x-codegen": {

@@ -1,19 +1,17 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.types.ArtifactType;
 import java.io.InputStream;
 import java.util.List;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -43,8 +41,7 @@ public interface SearchResource {
   @Produces("application/json")
   @Consumes("*/*")
   ArtifactSearchResults searchArtifactsByContent(@QueryParam("canonical") Boolean canonical,
-      @QueryParam("artifactType") ArtifactType artifactType,
-      @QueryParam("offset") Integer offset,
+      @QueryParam("artifactType") ArtifactType artifactType, @QueryParam("offset") Integer offset,
       @QueryParam("limit") Integer limit, @QueryParam("order") SortOrder order,
       @QueryParam("orderby") SortBy orderby, InputStream data);
 }

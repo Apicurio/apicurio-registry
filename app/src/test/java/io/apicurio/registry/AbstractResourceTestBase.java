@@ -279,6 +279,23 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     /**
+     * Wait for an artifact version to be created.
+     * @param contentId
+     * @throws Exception
+     */
+    protected void waitForContentId(long contentId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("contentId", contentId)
+                    .get("/registry/v2/ids/contentIds/{contentId}")
+                    .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
      * Wait for an artifact's state to change.
      * @param artifactId
      * @param state

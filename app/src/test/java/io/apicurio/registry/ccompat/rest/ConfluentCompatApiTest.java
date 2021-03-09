@@ -31,7 +31,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anything;
@@ -115,7 +115,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id1 = res.extract().jsonPath().getInt("id");
 
-        this.waitForGlobalId(id1);
+        this.waitForContentId(id1);
 
         // POST content2
         res = given()
@@ -128,7 +128,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id2 = res.extract().jsonPath().getInt("id");
 
-        this.waitForGlobalId(id2);
+        this.waitForContentId(id2);
 
         // POST content3 (duplicate of content1)
         res = given()
@@ -373,9 +373,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId1);
 
+        Assertions.assertNotNull(globalId1);
         this.waitForArtifact(SUBJECT);
+        this.waitForContentId(globalId1);
 
         // POST
         final Integer globalId2 = given()
@@ -385,11 +386,12 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId2);
 
-        this.waitForGlobalId(globalId2);
+        Assertions.assertNotNull(globalId2);
+        this.waitForArtifact(SECOND_SUBJECT);
+        this.waitForContentId(globalId2);
 
         //Verify
         final ResponseBodyExtractionOptions body = given()
@@ -398,9 +400,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .get("/ccompat/v6/schemas/ids/{id}/versions", globalId2)
                 .then()
                 .extract().body();
-
-        Assertions.assertEquals(Arrays.asList("subjectTestSchemaVersions", "secondSubjectTestSchemaVersions"), body.jsonPath().get("subject"));
-        Assertions.assertEquals(Arrays.asList(1, 1), body.jsonPath().get("version"));
+        final List<String> subjects = body.jsonPath().get("subject");
+        final List<Integer> versions = body.jsonPath().get("version");
+        Assertions.assertTrue(subjects.containsAll(List.of("subjectTestSchemaVersions", "secondSubjectTestSchemaVersions")));
+        Assertions.assertTrue(versions.containsAll(List.of(1, 1)));
     }
 
     /**
@@ -429,7 +432,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(globalId2);
 
-        this.waitForGlobalId(globalId2);
+        this.waitForContentId(globalId2);
 
         //Verify
         Integer[] versions = given().when()

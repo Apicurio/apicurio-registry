@@ -195,7 +195,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             given()
                 .when()
                     .contentType(CT_JSON)
-                    .pathParam("groupId", groupId)
+                    .pathParam("groupId", groupId == null ? "default" : groupId)
                     .pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then()

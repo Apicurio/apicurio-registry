@@ -463,7 +463,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                                 // somebody beat us to it ...
                                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
                             }
-                            final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(first.getMetadataMap());
+                            final ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(first.getMetadataMap());
                             artifactMetaDataDto.setContentId(first.getContentId());
                             return artifactMetaDataDto;
                         }
@@ -628,7 +628,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                     for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
                         Str.ArtifactValue value = d.getArtifacts(i);
                         if (value.getId() == globalId) {
-                            ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+                            ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(value.getMetadataMap());
 
                             if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
                                 ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
@@ -763,7 +763,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Str.ArtifactValue artifactValue = getLastArtifact(groupId, artifactId);
         final Map<String, String> content = getLastArtifact(groupId, artifactId).getMetadataMap();
 
-        final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(content);
+        final ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(content);
 
         artifactMetaDataDto.setContentId(artifactValue.getContentId());
 
@@ -843,7 +843,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             throw new ArtifactNotFoundException("GlobalId: " + id);
         }
         return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> {
-                    final ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
+                    final ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(value.getMetadataMap());
                     artifactMetaDataDto.setContentId(value.getContentId());
                     return artifactMetaDataDto;
                 }
@@ -1224,4 +1224,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         private RecordMetadata rmd;
         private Str.Data data;
     }
+
+    private static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
+        ArtifactMetaDataDto dto = MetaDataKeys.toArtifactMetaData(content);
+        if (dto.getGroupId().equals(LEGACY_GROUP_ID)) {
+            dto.setGroupId(null);
+        }
+        return dto;
+    }
+
 }

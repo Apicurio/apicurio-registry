@@ -59,6 +59,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -808,13 +809,75 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.removeLogConfiguration(logger);
     }
 
+    @Test
+    public void testDefaultGroup() throws Exception {
+        String nullDefaultGroup = null;
+        String artifactId1 = "test1";
+        createArtifact(nullDefaultGroup, artifactId1);
+        verifyGroupNullInMetadata(artifactId1, IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8)));
+
+        String defaultDefaultGroup = "default";
+        String artifactId2 = "test2";
+        createArtifact(defaultDefaultGroup, artifactId2);
+        verifyGroupNullInMetadata(artifactId2, IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8)));
+
+        String dummyGroup = "dummy";
+        String artifactId3 = "test3";
+        createArtifact(dummyGroup, artifactId3);
+
+        ArtifactSearchResults result = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);
+
+        SearchedArtifact artifact1 = result.getArtifacts().stream()
+            .filter(s -> s.getId().equals(artifactId1))
+            .findFirst()
+            .orElseThrow();
+
+        assertNull(artifact1.getGroupId());
+
+        SearchedArtifact artifact2 = result.getArtifacts().stream()
+                .filter(s -> s.getId().equals(artifactId2))
+                .findFirst()
+                .orElseThrow();
+
+        assertNull(artifact2.getGroupId());
+
+        SearchedArtifact artifact3 = result.getArtifacts().stream()
+                .filter(s -> s.getId().equals(artifactId3))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(dummyGroup, artifact3.getGroupId());
+
+    }
+
+    private void verifyGroupNullInMetadata(String artifactId, InputStream content) {
+        ArtifactMetaData meta = clientV2.getArtifactMetaData(null, artifactId);
+        assertNull(meta.getGroupId());
+
+        VersionMetaData vmeta = clientV2.getArtifactVersionMetaData(null, artifactId, Long.toString(meta.getVersion()));
+        assertNull(vmeta.getGroupId());
+
+        vmeta = clientV2.getArtifactVersionMetaDataByContent(null, artifactId, content);
+        assertNull(vmeta.getGroupId());
+
+        clientV2.listArtifactsInGroup(null).getArtifacts()
+            .stream()
+            .filter(s -> s.getId().equals(artifactId))
+            .forEach(s -> assertNull(s.getGroupId()));
+
+    }
+
     private ArtifactMetaData createArtifact(String groupId, String artifactId) throws Exception {
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.JSON, IfExists.FAIL, false, stream);
         waitForArtifact(groupId, artifactId);
 
         assertNotNull(created);
-        assertEquals(groupId, created.getGroupId());
+        if (groupId == null || groupId.equals("default")) {
+            assertNull(created.getGroupId());
+        } else {
+            assertEquals(groupId, created.getGroupId());
+        }
         assertEquals(artifactId, created.getId());
 
         return created;

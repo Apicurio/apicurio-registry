@@ -67,9 +67,13 @@ public class ArtifactListItem extends WebItem {
         return viewArtifactLink;
     }
 
+    /**
+     * @see java.lang.Object#toString()
+     */
     @Override
     public String toString() {
-        return "ArtifactListItem [artifactId=" + artifactId + ", description=" + description + "]";
+        return "ArtifactListItem [groupId=" + groupId + ", artifactId=" + artifactId + ", description="
+                + description + "]";
     }
 
     public boolean matches(String groupId, String artifactId) {

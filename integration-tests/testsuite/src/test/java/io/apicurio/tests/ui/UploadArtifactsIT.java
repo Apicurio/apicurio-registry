@@ -74,28 +74,7 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
         page.goBackToArtifactsList();
 
-//        TestUtils.waitFor("Artifacts list updated", Duration.ofSeconds(3).toMillis(), Constants.TIMEOUT_GLOBAL, () -> {
-//            try {
-//                selenium.refreshPage();
-//                List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-//                return webArtifacts.stream()
-//                        .filter(item -> item.matches(groupId, webArtifactId))
-//                        .findFirst()
-//                        .isPresent();
-//            } catch (Exception e) {
-//                return false;
-//            }
-//        });
-
-        TestUtils.retry(() -> {
-            selenium.refreshPage();
-            List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-            return webArtifacts.stream()
-                    .filter(item -> item.matches(groupId, webArtifactId))
-                    .findFirst()
-                    .isPresent();
-        });
-
+        waitForArtifactWeb(page, groupId, webArtifactId);
 
         ArtifactMetaData meta = TestUtils.retry(() -> client.getArtifactMetaData(groupId, webArtifactId));
         assertEquals(type, meta.getType());
@@ -194,18 +173,10 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         ArtifactMetaData meta =
             registryClient.createArtifact(null, null, ArtifactType.PROTOBUF, new ByteArrayInputStream(content.getBytes()));
 
-        selenium.refreshPage();
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return page.getArtifactsList().size() == 1;
-            } catch (Exception e) {
-                LOGGER.error("", e);
-                return false;
-            }
-        });
+        ArtifactListItem webArtifact = waitForArtifactWeb(page, null, meta.getId());
 
-        webArtifacts = page.getArtifactsList();
-        assertEquals(meta.getId(), webArtifacts.get(0).getArtifactId());
+        assertEquals(meta.getId(), webArtifact.getArtifactId());
+
     }
 
     @Test
@@ -224,19 +195,9 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         assertEquals(1, registryClient.listArtifactsInGroup(null).getCount());
         page.goBackToArtifactsList();
 
-        selenium.refreshPage();
-        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
-            try {
-                return page.getArtifactsList().size() == 1;
-            } catch (Exception e) {
-                LOGGER.error("", e);
-                return false;
-            }
-        });
+        ArtifactListItem webArtifact = waitForArtifactWeb(page, null, webArtifactId);
 
-        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-        assertEquals(artifactId, webArtifacts.get(0).getArtifactId());
-
+        assertEquals(artifactId, webArtifact.getArtifactId());
 
         ArtifactDetailsPage artifactPage = page.getArtifactsListPage().openArtifactDetailsPage(null, artifactId);
 
@@ -268,6 +229,17 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 
         assertEquals("true", invalid, "UI is not marking " + artifactId + " artifact id as invalid");
 
+    }
+
+    private ArtifactListItem waitForArtifactWeb(RegistryUITester page, String groupId, String webArtifactId) throws Exception {
+        return TestUtils.retry(() -> {
+            selenium.refreshPage();
+            List<ArtifactListItem> webArtifacts = page.getArtifactsList();
+            return webArtifacts.stream()
+                    .filter(item -> item.matches(groupId, webArtifactId))
+                    .findFirst()
+                    .orElseThrow();
+        });
     }
 
 }

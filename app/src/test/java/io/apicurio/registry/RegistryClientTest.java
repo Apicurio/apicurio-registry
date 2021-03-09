@@ -861,6 +861,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertNull(vmeta.getGroupId());
 
         clientV2.listArtifactsInGroup(null).getArtifacts()
+            .stream()
+            .filter(s -> s.getId().equals(artifactId))
             .forEach(s -> assertNull(s.getGroupId()));
 
     }

@@ -1225,7 +1225,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         private Str.Data data;
     }
 
-    public static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
+    private static ArtifactMetaDataDto toArtifactMetaData(Map<String, String> content) {
         ArtifactMetaDataDto dto = MetaDataKeys.toArtifactMetaData(content);
         if (dto.getGroupId().equals(LEGACY_GROUP_ID)) {
             dto.setGroupId(null);

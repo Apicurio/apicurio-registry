@@ -55,6 +55,9 @@ jobs:
         run: mvn clean install -Pprod -Psql -Pstreams -Pkafkasql -Pmultitenancy -Pinfinispan -DskipTests
       - name: Build integration-tests-common
         run: mvn install -Pintegration-tests -pl integration-tests/integration-tests-common
+      - name: Run UI tests - only PRs
+        if: github.ref != 'refs/heads/master'
+        run: mvn verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - streams
         run: mvn verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql

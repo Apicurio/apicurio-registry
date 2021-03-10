@@ -140,7 +140,11 @@ public class ConsumerContainer<K, V> implements ConsumerActions<K, V> {
                 } else {
                     tasks.add(consumerTask);
                 }
-                return actionTask;
+                return actionTask.whenComplete((r, t) -> {
+                    if (t != null) {
+                        log.error("Exception submitting consumer action ...", t);
+                    }
+                });
             }
         }
     }

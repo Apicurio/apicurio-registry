@@ -43,7 +43,6 @@ public class DisableApisFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-
         URI reqUri = requestContext.getUriInfo().getRequestUri();
         String path = reqUri.getPath();
 

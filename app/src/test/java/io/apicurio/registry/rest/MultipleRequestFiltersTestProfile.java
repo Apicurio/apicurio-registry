@@ -30,7 +30,7 @@ public class MultipleRequestFiltersTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         Map<String, String> props = new HashMap<>();
         props.put("registry.enable.multitenancy", "true");
-        props.put("apicurio.registry.disable.apis", "/apis/ibmcompat/.*,/apis/ccompat/v6/subjects/[^/]+/versions.*");
+        props.put("registry.disable.apis", "/apis/ibmcompat/.*,/apis/ccompat/v6/subjects/[^/]+/versions.*");
         return props;
     }
 

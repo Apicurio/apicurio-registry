@@ -42,7 +42,7 @@ import io.quarkus.test.junit.TestProfile;
 @TestProfile(DisableApisTestProfile.class)
 public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
-//    apicurio.registry.disable.apis
+//    registry.disable.apis
 
     @Inject
     DisabledApisMatcherService matcherService;

@@ -30,13 +30,15 @@ public class ArtifactListItem extends WebItem {
     private String artifactId;
     private String name;
     private String description;
+    private String link;
     private WebElement viewArtifactLink;
 
     public ArtifactListItem(WebElement webItem) throws UnsupportedEncodingException {
         super(webItem);
 
         viewArtifactLink = webItem.findElement(byDataTestId("artifacts-lnk-view-1"));
-        String[] slices = viewArtifactLink.getAttribute("href").split("/");
+        link = viewArtifactLink.getAttribute("href");
+        String[] slices = link.split("/");
 
         name = viewArtifactLink.getText();
 
@@ -72,8 +74,8 @@ public class ArtifactListItem extends WebItem {
      */
     @Override
     public String toString() {
-        return "ArtifactListItem [groupId=" + groupId + ", artifactId=" + artifactId + ", description="
-                + description + "]";
+        return "ArtifactListItem [groupId=" + groupId + ", artifactId=" + artifactId + ", name=" + name
+                + ", description=" + description + ", link=" + link + "]";
     }
 
     public boolean matches(String groupId, String artifactId) {

@@ -17,9 +17,12 @@ package io.apicurio.tests.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -68,10 +71,11 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
         assertEquals(2, webArtifacts.size());
 
-        webArtifacts.removeIf(artifact -> {
-            return artifact.getArtifactId().equals(artifactId1) || artifact.getArtifactId().equals(artifactId2);
-        });
-        assertTrue(webArtifacts.isEmpty());
+        List<String> webArtifactIds = webArtifacts.stream()
+            .map(a-> a.getArtifactId())
+            .collect(Collectors.toList());
+
+        assertThat(webArtifactIds, hasItems(artifactId1, artifactId2));
 
         page.deleteArtifact(groupId, artifactId1);
 

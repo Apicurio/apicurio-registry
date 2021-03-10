@@ -58,9 +58,11 @@ public class ArtifactsListPage extends BasePage {
 
     private List<WebElement> getArtifactListWebElements() throws Exception {
         try {
+            selenium.takeScreenShot();
             return selenium.getDriver().findElement(By.className("artifact-list"))
                     .findElements(By.className("artifact-list-item"));
         } catch (NoSuchElementException e) {
+            selenium.takeScreenShot();
             verifyIsOpen();
             selenium.getDriver().findElement(byDataTestId("empty-btn-upload"));
             return Collections.emptyList();

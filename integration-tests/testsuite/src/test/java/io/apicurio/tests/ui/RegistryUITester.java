@@ -51,7 +51,7 @@ public class RegistryUITester {
     public void openWebPage() throws Exception {
         log.info("Opening global console on url {}", url);
         selenium.getDriver().get(url);
-        verifyArtifactsListOpen();
+        artifactsListPage.verifyIsOpen();
     }
 
     public String uploadArtifact(String groupId, String artifactId, ArtifactType type, String content) throws UnsupportedEncodingException {
@@ -100,7 +100,7 @@ public class RegistryUITester {
         selenium.clickOnItem(artifactsListPage.getUploadArtifactDialogPage().getLinkToArtifactsListPage());
 
         try {
-            verifyArtifactsListOpen();
+            artifactsListPage.verifyIsOpen();
         } finally {
             selenium.takeScreenShot();
         }
@@ -117,14 +117,10 @@ public class RegistryUITester {
         selenium.clickOnItem(detailsPage.getDeleteButton());
         selenium.clickOnItem(detailsPage.getDeleteButtonDeleteDialog());
         try {
-            verifyArtifactsListOpen();
+            artifactsListPage.verifyIsOpen();
         } finally {
             selenium.takeScreenShot();
         }
-    }
-
-    private void verifyArtifactsListOpen() throws Exception {
-        artifactsListPage.verifyIsOpen();
     }
 
     public ArtifactsListPage getArtifactsListPage() {

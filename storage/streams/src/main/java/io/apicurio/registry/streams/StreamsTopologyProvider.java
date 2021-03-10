@@ -131,7 +131,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         private final StreamsProperties properties;
         private final ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dispatcher;
-        private final ArtifactTypeUtilProviderFactory factory;
 
         private ProcessorContext context;
         private KeyValueStore<Str.ArtifactKey, Str.Data> dataStore;
@@ -144,9 +143,9 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         ) {
             this.properties = properties;
             this.dispatcher = dispatcher;
-            this.factory = factory;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public void init(ProcessorContext context) {
             this.context = context;
@@ -182,12 +181,18 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                                 .setVersion(data.getArtifactsCount()) // data should not be null
                                 .build();
                         idStore.put(globalId, tupleValue);
-                        break;
                     }
+                    break;
                 case DELETE:
                     if (value.getVt() != Str.ValueType.CONTENT) {
                         idStore.delete(globalId);
                     }
+                    break;
+                case READ:
+                case UNDEFINED:
+                case UNRECOGNIZED:
+                default:
+                    break;
             }
 
             if (data != null) {

@@ -46,6 +46,7 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
     /**
      * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#serializerClass()
      */
+    @SuppressWarnings("rawtypes")
     @Override
     protected Class<? extends Serializer> serializerClass() {
         return AvroKafkaSerializer.class;
@@ -54,6 +55,7 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
     /**
      * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#deserializerClass()
      */
+    @SuppressWarnings("rawtypes")
     @Override
     protected Class<? extends Deserializer> deserializerClass() {
         return AvroKafkaDeserializer.class;

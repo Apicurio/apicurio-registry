@@ -88,6 +88,7 @@ public class StreamsRegistryConfiguration {
         return new StreamsPropertiesImpl(properties);
     }
 
+    @SuppressWarnings("resource")
     @Produces
     @ApplicationScoped
     public ProducerActions<Str.ArtifactKey, Str.StorageValue> storageProducer(

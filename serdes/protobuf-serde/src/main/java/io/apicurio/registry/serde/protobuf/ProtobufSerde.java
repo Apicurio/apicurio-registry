@@ -19,15 +19,13 @@ import com.google.protobuf.Message;
 
 import io.apicurio.registry.serde.AbstractSerde;
 
-import org.apache.kafka.common.serialization.Deserializer;
-
 /****
  * Wraps the ProtobufKafkaSerializer and ProtobufKafkaDeserializer.
  */
 public class ProtobufSerde<T extends Message> extends AbstractSerde<T> {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public ProtobufSerde() {
-        super(new ProtobufKafkaSerializer<T>(), (Deserializer<T>) new ProtobufKafkaDeserializer());
+        super(new ProtobufKafkaSerializer<T>(), new ProtobufKafkaDeserializer());
     }
 }
 

@@ -80,7 +80,6 @@ public class AdminRequestsProvider {
                 .build();
     }
 
-    @SuppressWarnings("rawtypes")
     public static Request<List<NamedLogConfiguration>> listLogConfigurations() {
         return new Request.RequestBuilder<List<NamedLogConfiguration>>()
                 .operation(GET)
@@ -142,7 +141,6 @@ public class AdminRequestsProvider {
         }
     }
 
-    @SuppressWarnings("rawtypes")
     public static Request<List<RuleType>> listGlobalRules() {
         return new Request.RequestBuilder<List<RuleType>>()
                 .operation(GET)

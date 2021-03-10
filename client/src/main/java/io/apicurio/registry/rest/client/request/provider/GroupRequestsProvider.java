@@ -244,7 +244,6 @@ public class GroupRequestsProvider {
         }
     }
 
-    @SuppressWarnings("rawtypes")
     public static Request<List<RuleType>> listArtifactRules(String groupId, String artifactId) {
         return new Request.RequestBuilder<List<RuleType>>()
                 .operation(GET)

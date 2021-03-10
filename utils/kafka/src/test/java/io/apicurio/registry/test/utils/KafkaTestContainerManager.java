@@ -36,6 +36,8 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     private final boolean skipKafkaContainer = Boolean.getBoolean("skipKafkaContainer");
     private KafkaContainer kafka;
 
+    @SuppressWarnings("deprecation")
+    @Override
     public Map<String, String> start() {
         log.info("Starting the Kafka Test Container");
         String bootstrapServers = "localhost:9092";
@@ -64,6 +66,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
         properties.put("request.timeout.ms", 5000);
     }
 
+    @Override
     public void stop() {
         log.info("Stopping the Kafka Test Container");
         if (!skipKafkaContainer) {

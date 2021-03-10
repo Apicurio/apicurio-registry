@@ -151,7 +151,7 @@
         <grpc.version>1.36.0</grpc.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>6.0.1</confluent.version>
+        <confluent.version>6.1.0</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>

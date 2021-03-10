@@ -30,6 +30,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
+import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityDifference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -85,7 +86,8 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     private Difference findDiffByPathUpdated(Set<CompatibilityDifference> incompatibleDifferences, String path) {
         for(CompatibilityDifference cd : incompatibleDifferences) {
-            Difference diff = (Difference) cd;
+            JsonSchemaCompatibilityDifference jsonSchemaCompatibilityDifference = (JsonSchemaCompatibilityDifference) cd;
+            Difference diff = jsonSchemaCompatibilityDifference.getDifference();
             if(diff.getPathUpdated().equals(path)) {
                 return diff;
             }

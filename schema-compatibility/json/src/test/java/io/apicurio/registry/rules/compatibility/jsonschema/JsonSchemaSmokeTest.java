@@ -18,23 +18,29 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
-import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary.findDifferences;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
  */
-public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
+public class JsonSchemaSmokeTest {
 
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaSmokeTest.class);
 
@@ -49,7 +55,7 @@ public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
 
         Set<String> failed = new HashSet<>(); // TODO add diff
 
-        JSONObject testData = MAPPER.readValue(resourceToString("compatibility-test-data.json"), JSONObject.class);
+        JSONObject testData = MAPPER.readValue(readResource("compatibility-test-data.json"), JSONObject.class);
         JSONArray testCasesData = testData.getJSONArray("tests");
         for (Object testCaseData_ : testCasesData) {
             JSONObject testCaseData = (JSONObject) testCaseData_;
@@ -119,6 +125,15 @@ public class JsonSchemaSmokeTest extends AbstractRegistryTestBase {
         if (!failed.isEmpty()) {
             throw new RuntimeException(failed.size() + " test cases failed: " +
                 failed.stream().reduce("", (a, s) -> a + "\n" + s));
+        }
+    }
+
+    private String readResource(String resourceName) {
+        try (InputStream stream = getClass().getResourceAsStream(resourceName)) {
+            Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

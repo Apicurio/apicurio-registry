@@ -862,30 +862,35 @@
         <profile>
             <id>infinispan</id>
             <modules>
+                <module>storage</module>
                 <module>storage/infinispan</module>
             </modules>
         </profile>
         <profile>
             <id>asyncmem</id>
             <modules>
+                <module>storage</module>
                 <module>storage/asyncmem</module>
             </modules>
         </profile>
         <profile>
             <id>sql</id>
             <modules>
+                <module>storage</module>
                 <module>storage/sql</module>
             </modules>
         </profile>
         <profile>
             <id>streams</id>
             <modules>
+                <module>storage</module>
                 <module>storage/streams</module>
             </modules>
         </profile>
         <profile>
             <id>kafkasql</id>
             <modules>
+                <module>storage</module>
                 <module>storage/kafkasql</module>
             </modules>
         </profile>

@@ -16,7 +16,7 @@
     <name>apicurio-registry-cli</name>
 
     <properties>
-        <exec-plugin.version>1.6.0</exec-plugin.version>
+        <exec-plugin.version>3.0.0</exec-plugin.version>
     </properties>
 
     <dependencies>

@@ -7,16 +7,9 @@
         <version>2.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>apicurio-registry-storage</artifactId>
+    <artifactId>apicurio-registry-storage-test-bom</artifactId>
     <packaging>pom</packaging>
-    <name>apicurio-registry-storage</name>
-    <modules>
-        <module>asyncmem</module>
-        <module>infinispan</module>
-        <module>kafkasql</module>
-        <module>sql</module>
-        <module>streams</module>
-    </modules>
+    <name>apicurio-registry-storage-test-bom</name>
 
     <dependencies>
         <!-- Test Only -->

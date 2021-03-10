@@ -68,12 +68,14 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         assertEquals(2, registryClient.listArtifactsInGroup(groupId).getCount());
         page.goBackToArtifactsList();
 
-        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
-        assertEquals(2, webArtifacts.size());
+        TestUtils.retry(() -> {
+            List<ArtifactListItem> webArtifacts = page.getArtifactsList();
+            assertEquals(2, webArtifacts.size());
+        });
 
-        List<String> webArtifactIds = webArtifacts.stream()
-            .map(a-> a.getArtifactId())
-            .collect(Collectors.toList());
+        List<String> webArtifactIds = page.getArtifactsList().stream()
+                .map(a-> a.getArtifactId())
+                .collect(Collectors.toList());
 
         assertThat(webArtifactIds, hasItems(artifactId1, artifactId2));
 
@@ -87,7 +89,7 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
                 return false;
             }
         });
-        webArtifacts = page.getArtifactsList();
+        List<ArtifactListItem> webArtifacts = page.getArtifactsList();
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
         page.deleteArtifact(groupId, artifactId2);

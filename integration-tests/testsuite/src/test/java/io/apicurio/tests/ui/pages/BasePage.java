@@ -29,11 +29,11 @@ public abstract class BasePage {
     }
 
     public static By byDataTestId(String dataTestId) {
-        return By.xpath("//*[@data-testid='" + dataTestId + "']");
+        return By.xpath(".//*[@data-testid='" + dataTestId + "']");
     }
 
     public static By byDataTestIdLike(String dataTestId) {
-        return By.xpath("//*[contains(@data-testid, '" + dataTestId + "')]");
+        return By.xpath(".//*[contains(@data-testid, '" + dataTestId + "')]");
     }
 
 }

@@ -29,12 +29,11 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import io.apicurio.registry.Version;
+import io.apicurio.registry.System;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -56,15 +55,7 @@ import io.apicurio.registry.rest.v2.beans.SystemInfo;
 public class SystemResourceImpl implements SystemResource {
 
     @Inject
-    @ConfigProperty(name = "registry.name")
-    String systemName;
-
-    @Inject
-    @ConfigProperty(name = "registry.description")
-    String systemDescription;
-
-    @Inject
-    Version version;
+    System system;
 
     /**
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
@@ -72,10 +63,10 @@ public class SystemResourceImpl implements SystemResource {
     @Override
     public SystemInfo getSystemInfo() {
         SystemInfo info = new SystemInfo();
-        info.setName(systemName);
-        info.setDescription(systemDescription);
-        info.setVersion(version.getVersionString());
-        info.setBuiltOn(version.getVersionDate());
+        info.setName(system.getName());
+        info.setDescription(system.getDescription());
+        info.setVersion(system.getVersion());
+        info.setBuiltOn(system.getDate());
         return info;
     }
 

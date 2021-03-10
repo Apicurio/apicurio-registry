@@ -34,7 +34,7 @@ import javax.ws.rs.core.Response;
 public interface GroupsResource {
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
-   * response depends on the artifact type.  In most cases, this is `application/json`, but
+   * response depends on the artifact type.  In most cases, this is `application/json`, but 
    * for some types it may be different (for example, `PROTOBUF`).
    *
    * This operation may fail for one of the following reasons:

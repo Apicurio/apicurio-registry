@@ -59,13 +59,13 @@ public class LoggingInterceptor {
 
     private void logEnter(InvocationContext context, Logger logger) {
         if (context != null && context.getMethod() != null && context.getMethod().getName() != null && context.getParameters() != null && logger != null) {
-            logger.debug("ENTERING method [{}] with {} parameters", context.getMethod().getName(), context.getParameters().length);
+            logger.trace("ENTERING method [{}] with {} parameters", context.getMethod().getName(), context.getParameters().length);
         }
     }
 
     private void logLeave(InvocationContext context, Logger logger) {
         if (context != null && context.getMethod() != null && context.getMethod().getName() != null && context.getParameters() != null && logger != null) {
-            logger.debug("LEAVING method [{}]", context.getMethod().getName());
+            logger.trace("LEAVING method [{}]", context.getMethod().getName());
         }
     }
 

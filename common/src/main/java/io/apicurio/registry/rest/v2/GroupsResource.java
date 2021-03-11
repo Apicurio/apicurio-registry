@@ -71,7 +71,8 @@ public interface GroupsResource {
   @Produces("application/json")
   @Consumes("*/*")
   CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, InputStream data);
+      @PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion, InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being

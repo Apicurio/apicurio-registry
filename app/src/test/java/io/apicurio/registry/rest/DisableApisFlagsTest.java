@@ -56,6 +56,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
         assertFalse(matcherService.isDisabled("/apis/ccompat/v6/subjects"));
 
+        assertTrue(matcherService.isDisabled("/ui/artifacts"));
     }
 
     @Test
@@ -69,6 +70,17 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         doTestDisabledPathExactMatch();
 
         doTestDisabledChildPathByParentPath();
+
+        doTestUIDisabled();
+    }
+
+    private static void doTestUIDisabled() {
+        given()
+            .baseUri("http://localhost:8081")
+            .when()
+                .get("/ui")
+            .then()
+                .statusCode(404);
     }
 
     private static void doTestDisabledSubPathRegexp() {

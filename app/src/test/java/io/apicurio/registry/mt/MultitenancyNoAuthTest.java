@@ -59,7 +59,7 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
     RegistryStorage storage;
 
     @Test
-    public void testSecuredMultitenantRegistry() throws Exception {
+    public void testMultitenantRegistry() throws Exception {
 
         try {
             storage.getTenantMetadata("foo");

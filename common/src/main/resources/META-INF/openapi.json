@@ -2135,8 +2135,7 @@
                 "type": "object",
                 "properties": {
                     "version": {
-                        "format": "int64",
-                        "type": "integer"
+                        "type": "string"
                     },
                     "name": {
                         "type": "string"
@@ -2414,9 +2413,8 @@
                         "type": "integer"
                     },
                     "version": {
-                        "format": "int64",
                         "description": "",
-                        "type": "integer"
+                        "type": "string"
                     },
                     "properties": {
                         "$ref": "#/components/schemas/Properties",
@@ -2638,9 +2636,8 @@
                         "description": ""
                     },
                     "version": {
-                        "format": "int64",
                         "description": "",
-                        "type": "integer"
+                        "type": "string"
                     },
                     "type": {
                         "$ref": "#/components/schemas/ArtifactType",

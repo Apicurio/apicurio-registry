@@ -90,7 +90,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Long version;
+    private String version;
     /**
      * 
      * (Required)
@@ -276,7 +276,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("version")
-    public Long getVersion() {
+    public String getVersion() {
         return version;
     }
 
@@ -286,7 +286,7 @@ public class ArtifactMetaData {
      * 
      */
     @JsonProperty("version")
-    public void setVersion(Long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

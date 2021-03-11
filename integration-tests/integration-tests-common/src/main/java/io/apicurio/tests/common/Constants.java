@@ -51,5 +51,10 @@ public interface Constants {
      */
     String MULTITENANCY = "multitenancy";
 
+    /**
+     * Tag for clustered tests, the suite will deploy the registry as a cluster of 2 replicas
+     */
+    String CLUSTERED = "clustered";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

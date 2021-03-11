@@ -44,7 +44,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build and Test All Variants
-        run: ./mvnw clean install -Pprod -Pinfinispan -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean install -Pprod -Pinfinispan -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 -DtrimStackTrace=false
 
       - name: Build Asyncmem Variant
         run: ./mvnw install -Pprod -Pasyncmem -DskipTests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5

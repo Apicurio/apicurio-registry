@@ -376,6 +376,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(contentId1);
 
         this.waitForArtifact(SUBJECT);
+        this.waitForContentId(contentId1);
 
         //Register different schema in second subject
         // POST

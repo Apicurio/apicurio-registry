@@ -516,18 +516,6 @@
                 <version>${jackson-dataformat-yaml.version}</version>
             </dependency>
 
-            <!-- Search -->
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>connect-runtime</artifactId>
-                <version>${connect.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-client-rest</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-
             <!-- Gatling -->
             <dependency>
                 <groupId>io.gatling</groupId>

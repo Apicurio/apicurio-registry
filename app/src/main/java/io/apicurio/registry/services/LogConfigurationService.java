@@ -56,7 +56,7 @@ public class LogConfigurationService {
         if (!storage.isAlive() || !storage.isReady()) {
             return;
         }
-        LOGGER.fine("Running periodic log configuration process");
+        LOGGER.finest("Running periodic log configuration process");
         for (LogConfigurationDto logConfig : storage.listLogConfigurations()) {
             Logger logger = Logger.getLogger(logConfig.getLogger());
             Level expectedLevel = Level.parse(logConfig.getLogLevel().value());

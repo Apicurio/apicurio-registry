@@ -15,16 +15,12 @@
  */
 package io.apicurio.registry.mt;
 
-import java.net.URI;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.UriBuilder;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,26 +69,7 @@ public class TenantIdResolver {
         return resolveTenantId(ctx.request().uri(), () -> ctx.request().getHeader(Headers.TENANT_ID), null);
     }
 
-    public void rewriteTenantRequest(ContainerRequestContext requestContext) {
-        URI reqUri = requestContext.getUriInfo().getRequestUri();
-        String uri = reqUri.getPath();
-        resolveTenantId(uri, () -> requestContext.getHeaderString(Headers.TENANT_ID),
-                (tenantId) -> {
-
-                    String actualUri = uri.substring(tenantPrefixLength(tenantId));
-                    if (actualUri.length() == 0) {
-                        actualUri = "/";
-                    }
-
-                    log.debug("Rewriting request {} to {} , tenantId {}", uri, actualUri, tenantId);
-
-                    URI newUri = UriBuilder.fromUri(reqUri).replacePath(actualUri).build();
-
-                    requestContext.setRequestUri(newUri);
-                });
-    }
-
-    private boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
+    public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
         if (multitenancyEnabled) {
             log.debug("Resolving tenantId for request {}", uri);
 
@@ -120,7 +97,7 @@ public class TenantIdResolver {
         return false;
     }
 
-    private int tenantPrefixLength(String tenantId) {
+    public int tenantPrefixLength(String tenantId) {
         return (multitenancyBasePath + tenantId).length();
     }
 

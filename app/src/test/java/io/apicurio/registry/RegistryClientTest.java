@@ -812,20 +812,20 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void testDefaultGroup() throws Exception {
         String nullDefaultGroup = null;
-        String artifactId1 = "test1";
+        String artifactId1 = "testDefaultGroup-" + UUID.randomUUID().toString();
         createArtifact(nullDefaultGroup, artifactId1);
         verifyGroupNullInMetadata(artifactId1, IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8)));
 
         String defaultDefaultGroup = "default";
-        String artifactId2 = "test2";
+        String artifactId2 = "testDefaultGroup-" + UUID.randomUUID().toString();
         createArtifact(defaultDefaultGroup, artifactId2);
         verifyGroupNullInMetadata(artifactId2, IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8)));
 
         String dummyGroup = "dummy";
-        String artifactId3 = "test3";
+        String artifactId3 = "testDefaultGroup-" + UUID.randomUUID().toString();
         createArtifact(dummyGroup, artifactId3);
 
-        ArtifactSearchResults result = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);
+        ArtifactSearchResults result = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, 100);
 
         SearchedArtifact artifact1 = result.getArtifacts().stream()
             .filter(s -> s.getId().equals(artifactId1))

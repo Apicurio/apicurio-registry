@@ -36,6 +36,15 @@ import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 
 /**
+ *
+ * This Servlet Filter combines various functionalities that can be configured using config properties:
+ *
+ * Multitenancy: the registry can accept per-tenant URLs, accepting requests like /t/{tenantId}/...rest of the api...
+ *
+ * Disable APIs: it's possible to provide a list of regular expresions for disable API paths.
+ * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
+ * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
+ *
  * @author Fabian Martinez
  */
 @ApplicationScoped

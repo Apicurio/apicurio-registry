@@ -41,6 +41,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
+import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.KafkaFacade;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.serdes.apicurio.SerdesTester;
@@ -70,6 +71,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     }
 
     @Test
+    @Tag(Constants.ACCEPTANCE)
     void testAvroConfluentSerDes() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
@@ -141,6 +143,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     }
 
     @Test
+    @Tag(Constants.ACCEPTANCE)
     void testAvroConfluentSerDesFail() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = "myrecordconfluent2";

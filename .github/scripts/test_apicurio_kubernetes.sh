@@ -10,7 +10,13 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/install_kind.sh
 
-make run-apicurio-ci
+# make run-apicurio-ci
+
+E2E_EXTRA_MAVEN_ARGS=-Dit.test=RulesResourceIT#testRulesDeletedWithArtifact
+E2E_APICURIO_TESTS_PROFILE=acceptance
+KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
+make run-apicurio-base-ci
+make run-clustered-tests
 
 popd
 

@@ -28,6 +28,15 @@
             <artifactId>apicurio-registry-utils-streams</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-census</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-okhttp</artifactId>
+        </dependency>
+
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>

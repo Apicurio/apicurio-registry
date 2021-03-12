@@ -217,4 +217,51 @@ public class ClusterIT {
             client1.deleteArtifact(groupId, artifactId);
         }
     }
+
+
+    @Test
+    public void testGetContentByGlobalId() throws Exception {
+        Properties properties = getClusterProperties();
+        Assumptions.assumeTrue(properties != null);
+
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
+
+        // warm-up both nodes (its storages)
+        client1.listArtifactsInGroup(groupId);
+        client2.listArtifactsInGroup(groupId);
+
+        String artifactId = UUID.randomUUID().toString();
+        String secondId = UUID.randomUUID().toString();
+        String thirdId = UUID.randomUUID().toString();
+
+        ByteArrayInputStream first = new ByteArrayInputStream(("{\"name\":\"redhat\"}").getBytes(StandardCharsets.UTF_8));
+        ByteArrayInputStream second = new ByteArrayInputStream(("{\"name\":\"ibm\"}").getBytes(StandardCharsets.UTF_8));
+        ByteArrayInputStream third = new ByteArrayInputStream(("{\"name\":\"company\"}").getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData firstArtifact = client1.createArtifact(groupId, artifactId, ArtifactType.JSON, first);
+        final ArtifactMetaData secondArtifact = client2.createArtifact(groupId, secondId, ArtifactType.JSON, second);
+        final ArtifactMetaData thirdArtifact = client1.createArtifact(groupId, thirdId, ArtifactType.JSON, third);
+
+        try {
+            String name = UUID.randomUUID().toString();
+            String desc = UUID.randomUUID().toString();
+
+            TestUtils.retry(() -> {
+                EditableMetaData emd = new EditableMetaData();
+                emd.setName(name);
+                emd.setDescription(desc);
+                client2.updateArtifactMetaData(groupId, artifactId, emd);
+            });
+
+            TestUtils.retry(() -> {
+                client2.getContentByGlobalId(firstArtifact.getGlobalId());
+                client1.getContentByGlobalId(secondArtifact.getGlobalId());
+                client2.getContentByGlobalId(thirdArtifact.getGlobalId());
+            });
+        } finally {
+            client1.deleteArtifact(groupId, artifactId);
+            client1.deleteArtifact(groupId, secondId);
+            client1.deleteArtifact(groupId, thirdId);
+        }
+    }
 }

@@ -183,7 +183,10 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
                 } else {
                     log.info("Obtaining remote service '{}' for host info '{}'", storeName, hInfo);
                     // connect to remote for other host info(s)
-                    return remoteServiceGrpcClient(storeName, grpcChannelProvider.apply(hInfo), keySerde);
+                    Channel channel = grpcChannelProvider.apply(hInfo);
+                    log.info("   GRPC Channel created: {}", channel);
+                    S gclient = remoteServiceGrpcClient(storeName, channel, keySerde);
+                    return gclient;
                 }
             }
         );

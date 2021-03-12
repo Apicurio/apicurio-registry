@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class StreamObserverCompletableFuture<T> extends CompletableFuture<T> implements StreamObserver<T> {
 
-    private static final Logger logger = LoggerFactory.getLogger(AsyncBiFunctionServiceGrpcLocalDispatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(StreamObserverCompletableFuture.class);
 
     @Override
     public void onNext(T value) {

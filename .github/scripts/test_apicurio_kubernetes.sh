@@ -21,4 +21,4 @@ fi
 
 popd
 
-set +e +a 
+set +e +a

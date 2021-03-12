@@ -126,6 +126,11 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaDataByContentHash();
 
     /**
+     * A statement used to select a single row in the versions by artifactId and content id.
+     */
+    public String selectArtifactVersionMetaDataByContentId();
+
+    /**
      * A statement used to select a single row in the versions by artifactId and canonical content hash.
      */
     public String selectArtifactVersionMetaDataByCanonicalHash();

@@ -191,11 +191,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     private StoredArtifactDto addContent(Str.ArtifactValue value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
         MetaDataKeys.putContent(contents, getArtifactByContentId(value.getContentId()).bytes());
+        contents.put(MetaDataKeys.CONTENT_ID, String.valueOf(value.getContentId()));
         return toStoredArtifact(contents);
     }
 
     public static StoredArtifactDto toStoredArtifact(Map<String, String> content) {
         return StoredArtifactDto.builder()
+                .contentId(Long.parseLong(content.get(MetaDataKeys.CONTENT_ID)))
                 .content(ContentHandle.create(MetaDataKeys.getContent(content)))
                 .version(Long.parseLong(content.get(MetaDataKeys.VERSION)))
                 .globalId(Long.parseLong(content.get(MetaDataKeys.GLOBAL_ID)))
@@ -1216,6 +1218,15 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         } else {
             throw new GroupNotFoundException(groupId);
         }
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+
+        return storageStore.filter(Map.of(MetaDataKeys.CONTENT_HASH, String.valueOf(contentId)))
+                .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @AllArgsConstructor

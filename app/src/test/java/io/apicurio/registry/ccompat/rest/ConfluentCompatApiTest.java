@@ -25,12 +25,13 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
+import io.restassured.response.ResponseBodyExtractionOptions;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anything;
@@ -114,7 +115,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id1 = res.extract().jsonPath().getInt("id");
 
-        this.waitForGlobalId(id1);
+        this.waitForContentId(id1);
 
         // POST content2
         res = given()
@@ -127,7 +128,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id2 = res.extract().jsonPath().getInt("id");
 
-        this.waitForGlobalId(id2);
+        this.waitForContentId(id2);
 
         // POST content3 (duplicate of content1)
         res = given()
@@ -359,10 +360,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testGetSchemaVersions() throws Exception {
         final String SUBJECT = "subjectTestSchemaVersions";
+        final String SECOND_SUBJECT = "secondSubjectTestSchemaVersions";
 
         //Create two versions of the same artifact
         // POST
-        final Integer globalId1 = given()
+        final Integer contentId1 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
@@ -371,31 +373,61 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId1);
+        Assertions.assertNotNull(contentId1);
 
         this.waitForArtifact(SUBJECT);
 
+        //Register different schema in second subject
         // POST
-        final Integer globalId2 = given()
+        final Integer contentId2 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId2);
 
-        this.waitForGlobalId(globalId2);
+        Assertions.assertNotNull(contentId2);
 
-        //Verify
-        Assertions.assertEquals(Arrays.asList(1, 2), given()
+        this.waitForArtifact(SECOND_SUBJECT);
+        this.waitForContentId(contentId2);
+
+        //Register again schema 1 in different subject gives same contentId
+        // POST
+        final Integer contentId3 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/schemas/ids/{id}/versions", globalId2)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
-                .extract().body().jsonPath().get("version"));
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+
+        Assertions.assertNotNull(contentId3);
+
+        this.waitForArtifact(SECOND_SUBJECT);
+        this.waitForContentId(contentId3);
+
+        TestUtils.retry(() -> {
+            //Verify
+            final ResponseBodyExtractionOptions body = given()
+                    .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .get("/ccompat/v6/schemas/ids/{id}/versions", contentId1)
+                    .then()
+                    .statusCode(200)
+                    .extract().body();
+
+            assertEquals(contentId1, contentId3);
+
+            final List<String> subjects = body.jsonPath().get("subject");
+            final List<Integer> versions = body.jsonPath().get("version");
+            Assertions.assertTrue(List.of("subjectTestSchemaVersions", "secondSubjectTestSchemaVersions").containsAll(subjects));
+            Assertions.assertTrue(List.of(1, 2).containsAll(versions));
+        });
     }
 
     /**
@@ -424,7 +456,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .extract().body().jsonPath().get("id");
         Assertions.assertNotNull(globalId2);
 
-        this.waitForGlobalId(globalId2);
+        this.waitForContentId(globalId2);
 
         //Verify
         Integer[] versions = given().when()

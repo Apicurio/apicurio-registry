@@ -21,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.apicurio.registry.serde.config.IdOption;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Header;
@@ -285,10 +285,12 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
                 AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes, bb -> (long) bb.getInt());
+            TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt());
 
             deserializer1.asLegacyId();
-            deserializer1.configure(Collections.emptyMap(), false);
+            Map<String, String> config = new HashMap<>();
+            config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
+            deserializer1.configure(config, false);
             GenericData.Record ir = deserializer1.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
@@ -296,8 +298,11 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
                 AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<GenericData.Record>(restClient)) {
 
+            Map<String, String> config = new HashMap<>();
+            config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
+
             serializer2.asLegacyId();
-            serializer2.configure(Collections.emptyMap(), false);
+            serializer2.configure(config, false);
             byte[] bytes = serializer2.serialize(subject, record);
 
             GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);

@@ -199,6 +199,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
     }
 
+    @Override
+    public String selectArtifactVersionMetaDataByContentId() {
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                + "FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND c.contentId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByCanonicalHash()
      */
@@ -215,7 +224,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
+        return "SELECT v.globalId, v.version, c.contentId, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -223,7 +232,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, c.content FROM versions v "
+        return "SELECT v.globalId, v.version, c.contentId, c.content FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
@@ -233,7 +242,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactContent() {
-        return "SELECT v.globalId, v.version, c.content FROM artifacts a "
+        return "SELECT v.globalId, v.version, c.contentId, c.content FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";

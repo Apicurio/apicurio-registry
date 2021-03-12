@@ -71,13 +71,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public List<SubjectVersion> getSubjectVersions(int globalId) {
+    public List<SubjectVersion> getSubjectVersions(int contentId) {
 
-        final String artifactId = storage.getArtifactMetaData(globalId).getId();
-
-        return storage.getArtifactVersions(null, artifactId)
+        return storage.getArtifactVersionsByContentId(contentId)
                 .stream()
-                .map(version -> FacadeConverter.convert(artifactId, version))
+                .map(artifactMetaData -> FacadeConverter.convert(artifactMetaData.getId(), artifactMetaData.getVersion()))
                 .collect(Collectors.toList());
     }
 
@@ -91,8 +89,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactVersion(globalId));
-        // TODO StoredArtifactDto should contain artifactId IF we are not treating globalId separately
+        return FacadeConverter.convert(storage.getArtifactByContentId(globalId));
     }
 
     @Override
@@ -130,7 +127,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             ContentHandle content = ContentHandle.create(schema);
             // Don't canonicalize the content when getting it - Confluent does not.
             ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
-            return CompletableFuture.completedFuture(dto.getGlobalId());
+            return CompletableFuture.completedFuture(dto.getContentId());
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
@@ -139,7 +136,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         // TODO method that returns a completion stage should not throw an exception
         CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
 
-        return artifactMeta.thenApply(ArtifactMetaDataDto::getGlobalId);
+        return artifactMeta.thenApply(ArtifactMetaDataDto::getContentId);
     }
 
     @Override

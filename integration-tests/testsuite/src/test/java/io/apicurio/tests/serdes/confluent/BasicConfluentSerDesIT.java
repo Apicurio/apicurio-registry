@@ -29,7 +29,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -345,7 +344,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
     // test confluent producer apicurio consumer use contentId
     @Test
-    @Disabled
     void testAvroConfluentApicurioUsingContentId() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
@@ -371,7 +369,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
     // test apicurio producer use contentId confluent consumerf
     @Test
-    @Disabled
     void testAvroApicurioConfluentUsingContentId() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";

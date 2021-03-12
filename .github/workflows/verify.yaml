@@ -85,7 +85,8 @@ jobs:
     name: Kubernetes Tests
     runs-on: ubuntu-18.04
     needs: ["build-verify"]
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'Apicurio'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2

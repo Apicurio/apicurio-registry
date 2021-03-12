@@ -31,11 +31,13 @@ public class StoredArtifactDto { // TODO rename this to ArtifactVersion
 
     // TODO add artifactId
 
-    private Long version;
+    private String version;
+
+    private int versionId;
 
     private Long contentId;
 
     // TODO Can the CH be used multiple times?
     private ContentHandle content;
-    
+
 }

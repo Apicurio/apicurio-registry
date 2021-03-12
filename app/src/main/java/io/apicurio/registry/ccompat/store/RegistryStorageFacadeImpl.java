@@ -40,6 +40,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.VersionUtil;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -65,6 +66,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Inject
     RulesService rulesService;
 
+    @Override
     public List<String> getSubjects() {
         // TODO maybe not necessary...
         return new ArrayList<>(storage.getArtifactIds(null));
@@ -75,7 +77,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
         return storage.getArtifactVersionsByContentId(contentId)
                 .stream()
-                .map(artifactMetaData -> FacadeConverter.convert(artifactMetaData.getId(), artifactMetaData.getVersion()))
+                .map(artifactMetaData -> FacadeConverter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()))
                 .collect(Collectors.toList());
     }
 
@@ -83,6 +85,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public List<Integer> deleteSubject(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.deleteArtifact(null, subject)
                 .stream()
+                .map(VersionUtil::toInteger)
                 .map(FacadeConverter::convertUnsigned)
                 .collect(Collectors.toList());
     }
@@ -95,7 +98,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return parseVersionString(subject, versionString,
-                version -> {
+                versionId -> {
+                    String version = VersionUtil.toString(versionId);
                     if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
                         throw new VersionNotFoundException(null, subject, version);
                     }
@@ -107,6 +111,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersions(null, subject)
                 .stream()
+                .map(VersionUtil::toLong)
                 .map(FacadeConverter::convertUnsigned)
                 .collect(Collectors.toList());
     }
@@ -131,7 +136,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
-        
+
         // TODO Should this creation and updating of an artifact be a different operation?
         // TODO method that returns a completion stage should not throw an exception
         CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
@@ -142,7 +147,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return FacadeConverter.convertUnsigned(parseVersionString(subject, versionString, version -> {
-            storage.deleteArtifactVersion(null, subject, version);
+            storage.deleteArtifactVersion(null, subject, VersionUtil.toString(version));
             return version;
         }));
     }
@@ -170,11 +175,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             SchemaContent request) {
 
         return parseVersionString(subject, version, parsedVersion -> {
-
+            String v = VersionUtil.toString(parsedVersion);
             try {
                 final ArtifactVersionMetaDataDto artifact = storage
-                        .getArtifactVersionMetaData(null, subject, parsedVersion);
-                rulesService.applyRules(null, subject, parsedVersion, artifact.getType(),
+                        .getArtifactVersionMetaData(null, subject, v);
+                rulesService.applyRules(null, subject, v, artifact.getType(),
                         ContentHandle.create(request.getSchema()));
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
@@ -188,10 +193,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             if (!doesArtifactExist(subject)) {
                 rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(null, subject, artifactType, ContentHandle.create(schema));
+                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema));
             } else {
                 rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
-                res = storage.updateArtifact(null, subject, artifactType, ContentHandle.create(schema));
+                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema));
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -211,11 +216,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
      * On success, call the "then" function with the parsed version (MUST NOT be null) and return it's result.
      * Optionally provide an "else" function that will receive the exception that would be otherwise thrown.
      */
+    @Override
     public <T> T parseVersionString(String subject, String versionString, Function<Long, T> then) {
         long version;
         if ("latest".equals(versionString)) {
-            SortedSet<Long> versions = storage.getArtifactVersions(null, subject);
-            version = versions.last();
+            SortedSet<String> versions = storage.getArtifactVersions(null, subject);
+            version = VersionUtil.toLong(versions.last());
         } else {
             try {
                 version = Integer.parseUnsignedInt(versionString); // required by the spec, ignoring the possible leading "+"

@@ -44,7 +44,8 @@ public class ArtifactMetaDataDto {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private long version;
+    private String version;
+    private int versionId;
     private long globalId;
     private long contentId;
     private ArtifactType type;
@@ -57,7 +58,7 @@ public class ArtifactMetaDataDto {
      */
     public ArtifactMetaDataDto() {
     }
-    
+
     /**
      * @return the description
      */
@@ -131,14 +132,14 @@ public class ArtifactMetaDataDto {
     /**
      * @return the version
      */
-    public long getVersion() {
+    public String getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 
@@ -225,7 +226,7 @@ public class ArtifactMetaDataDto {
     public void setContentId(long contentId) {
         this.contentId = contentId;
     }
-    
+
     /**
      * @return the labels
      */
@@ -266,5 +267,19 @@ public class ArtifactMetaDataDto {
      */
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    /**
+     * @return the versionId
+     */
+    public int getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * @param versionId the versionId to set
+     */
+    public void setVersionId(int versionId) {
+        this.versionId = versionId;
     }
 }

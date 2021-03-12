@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.cncf.schemaregistry.impl;
 
-import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.*;
+import static io.apicurio.registry.cncf.schemaregistry.impl.CNCFApiUtil.dtoToSchemaGroup;
 import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
 import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
 import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
@@ -79,6 +79,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.apicurio.registry.util.VersionUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
@@ -226,10 +227,10 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         try {
             if (!artifactExists(groupId, schemaId)) {
                 rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE);
-                res = storage.createArtifactWithMetadata(groupId, schemaId, artifactType, content, metadata);
+                res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata);
             } else {
                 rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE);
-                res = storage.updateArtifactWithMetadata(groupId, schemaId, artifactType, content, metadata);
+                res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -264,9 +265,9 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     public Response getSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
-        StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, versionNumber);
+        StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
 
-        ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, schemaId, versionNumber);
+        ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, schemaId, VersionUtil.toString(versionNumber));
         String contentType = metadata.getProperties().get(PROP_CONTENT_TYPE);
 
         return Response.ok(artifact.getContent(), contentType).build();
@@ -275,7 +276,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     @Override
     public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
-        storage.deleteArtifactVersion(groupId, schemaId, versionNumber);
+        storage.deleteArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
     }
 
     private boolean artifactExists(String groupId, String schemaId) {

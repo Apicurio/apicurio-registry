@@ -411,7 +411,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         artifactMetaDataDto.setContentId(storedContent.getContentId());
 
         //Set the createdOn based on the first version metadata.
-        if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
+        if (artifactMetaDataDto.getVersionId() != ARTIFACT_FIRST_VERSION) {
             ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
             artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
         }
@@ -873,18 +873,18 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     @Override
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(groupId, artifactId, version, ArtifactStateExt.ACTIVE_STATES);
         return toStoredArtifact(content);
     }
 
     @Override
-    public void deleteArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         deleteArtifactVersionInternal(groupId, artifactId, version);
     }
 
     // internal - so we don't call sub-classes method
-    private void deleteArtifactVersionInternal(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    private void deleteArtifactVersionInternal(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
         Long globalId = storage.remove(akey, version);
         if (globalId == null) {
@@ -895,7 +895,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         Map<String, String> content = getContentMap(groupId, artifactId, version, null);
         ArtifactVersionMetaDataDto vmdDto = MetaDataKeys.toArtifactVersionMetaData(content);
@@ -906,7 +906,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, long version, EditableArtifactMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
         if (metaData.getName() != null) {
@@ -927,11 +927,8 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, long)
-     */
     @Override
-    public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
         storage.remove(akey, version, MetaDataKeys.NAME);
         storage.remove(akey, version, MetaDataKeys.DESCRIPTION);
@@ -940,17 +937,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         storage.remove(akey, version, MetaDataKeys.CREATED_BY);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRules()
-     */
     @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         return globalRules.keySet().stream().map(RuleType::fromValue).collect(Collectors.toList());
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
-     */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
@@ -961,17 +952,11 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRules()
-     */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
         globalRules.clear();
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
-     */
     @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         String cdata = globalRules.get(rule.name());
@@ -981,9 +966,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         return new RuleConfigurationDto(cdata);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
-     */
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
         String rname = rule.name();
@@ -994,9 +976,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         globalRules.put(rname, cdata == null ? "" : cdata);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
-     */
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
         String prevValue = globalRules.remove(rule.name());
@@ -1005,9 +984,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(java.lang.String)
-     */
     @Override
     public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
         throw new UnsupportedOperationException("Multitenancy not supported");
@@ -1040,9 +1016,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
                 .collect(Collectors.toList());
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
-     */
     @Override
     public void createGroup(GroupMetaDataDto group)
             throws GroupAlreadyExistsException, RegistryStorageException {
@@ -1052,9 +1025,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
-     */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
         if (!groups.containsKey(group.getGroupId())) {
@@ -1063,9 +1033,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         groups.put(group.getGroupId(), group);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
-     */
     @Override
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
         GroupMetaDataDto prev = groups.remove(groupId);
@@ -1075,9 +1042,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         deleteArtifacts(groupId);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
-     */
     @Override
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
         if (limit != null) {
@@ -1092,9 +1056,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
-     */
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
         GroupMetaDataDto group = groups.get(groupId);

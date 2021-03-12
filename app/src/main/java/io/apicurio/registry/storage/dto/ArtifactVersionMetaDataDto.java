@@ -35,7 +35,8 @@ import lombok.ToString;
 @ToString
 public class ArtifactVersionMetaDataDto {
 
-    private long version;
+    private String version;
+    private int versionId;
     private long globalId;
     private long contentId;
     private String name;
@@ -52,7 +53,7 @@ public class ArtifactVersionMetaDataDto {
      */
     public ArtifactVersionMetaDataDto() {
     }
-    
+
     /**
      * @return the description
      */
@@ -168,14 +169,14 @@ public class ArtifactVersionMetaDataDto {
     /**
      * @return the version
      */
-    public long getVersion() {
+    public String getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 
@@ -205,5 +206,19 @@ public class ArtifactVersionMetaDataDto {
      */
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+    /**
+     * @return the versionId
+     */
+    public int getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * @param versionId the versionId to set
+     */
+    public void setVersionId(int versionId) {
+        this.versionId = versionId;
     }
 }

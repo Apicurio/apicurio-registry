@@ -23,17 +23,17 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
 
     private static final long serialVersionUID = 969959730600115392L;
 
-    private final long version;
+    private final String version;
 
     /**
      * Constructor.
      */
-    public VersionNotFoundException(String groupId, String artifactId, long version) {
+    public VersionNotFoundException(String groupId, String artifactId, String version) {
         super(groupId, artifactId);
         this.version = version;
     }
 
-    public VersionNotFoundException(String groupId, String artifactId, long version, Throwable cause) {
+    public VersionNotFoundException(String groupId, String artifactId, String version, Throwable cause) {
         super(groupId, artifactId, cause);
         this.version = version;
     }
@@ -41,7 +41,7 @@ public class VersionNotFoundException extends ArtifactNotFoundException {
     /**
      * @return the version
      */
-    public long getVersion() {
+    public String getVersion() {
         return version;
     }
 

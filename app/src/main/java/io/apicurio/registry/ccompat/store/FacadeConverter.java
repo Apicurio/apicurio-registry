@@ -35,7 +35,7 @@ public class FacadeConverter {
         return new Schema(
                 convertUnsigned(storedArtifact.getContentId()),
                 subject,
-                convertUnsigned(storedArtifact.getVersion().intValue()),
+                convertUnsigned(storedArtifact.getVersionId()),
                 storedArtifact.getContent().content()
         );
     }
@@ -44,7 +44,7 @@ public class FacadeConverter {
         return new SchemaContent(content.content());
     }
 
-    public static SubjectVersion convert(String artifactId, Long version) {
-        return new SubjectVersion(artifactId, version);
+    public static SubjectVersion convert(String artifactId, Number version) {
+        return new SubjectVersion(artifactId, version.longValue());
     }
 }

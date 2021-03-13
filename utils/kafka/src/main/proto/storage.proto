@@ -38,6 +38,13 @@ message ArtifactKey {
 message ArtifactValue {
     int32 artifactType = 1;
     fixed64 id = 2;
+    bytes content = 3;
+    map<string, string> metadata = 4;
+}
+
+message ArtifactData {
+    int32 artifactType = 1;
+    fixed64 id = 2;
     fixed64 contentId = 3;
     map<string, string> metadata = 4;
 }
@@ -83,7 +90,6 @@ enum ValueType {
     SNAPSHOT = 4;
     STATE = 5;
     LOGCONFIG = 6;
-    CONTENT = 7;
     GROUP = 8;
 }
 
@@ -107,7 +113,7 @@ message StorageValue {
 message Data {
     fixed64 lastProcessedOffset = 1;
     ArtifactKey key = 2;
-    repeated ArtifactValue artifacts = 3;
+    repeated ArtifactData artifacts = 3;
     repeated RuleValue rules = 4;
     repeated LogConfigValue logConfigs = 5;
     repeated ContentValue contents = 6;

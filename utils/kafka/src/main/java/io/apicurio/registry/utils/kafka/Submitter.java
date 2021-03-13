@@ -59,13 +59,15 @@ public class Submitter<T> {
         return builder;
     }
 
-    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, Str.ArtifactKey key, long version, ArtifactType artifactType, long contentId, String createdBy, Map<String, String> extractedContents) {
+    public CompletableFuture<T> submitArtifact(Str.ActionType actionType, Str.ArtifactKey key, long version, ArtifactType artifactType, byte[] content, String createdBy, Map<String, String> extractedContents) {
         Str.ArtifactValue.Builder builder = Str.ArtifactValue.newBuilder();
 
         if (artifactType != null) {
             builder.setArtifactType(artifactType.ordinal());
         }
-        builder.setContentId(contentId);
+        if (content != null) {
+            builder.setContent(ByteString.copyFrom(content));
+        }
 
         if (createdBy != null) {
             builder.putMetadata(CREATED_BY, createdBy);
@@ -135,19 +137,6 @@ public class Submitter<T> {
             builder.setLogLevel(logLevel);
         }
         rvb.setLogConfig(builder);
-        return submit(rvb.build());
-    }
-
-    public CompletableFuture<T> submitContent(Str.ActionType actionType, Str.ArtifactKey key, String contentHash, byte[] content, String canonicalContentHash) {
-
-        Str.ContentValue.Builder builder = Str.ContentValue.newBuilder()
-                .setContentHash(contentHash)
-                .setCanonicalHash(canonicalContentHash)
-                .setContent(ByteString.copyFrom(content));
-
-        Str.StorageValue.Builder rvb = getRVBuilder(Str.ValueType.CONTENT, actionType, key, -1L)
-                .setContent(builder);
-
         return submit(rvb.build());
     }
 

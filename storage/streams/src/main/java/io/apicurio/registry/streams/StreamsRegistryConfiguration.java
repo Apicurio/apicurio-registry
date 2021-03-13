@@ -221,6 +221,28 @@ public class StreamsRegistryConfiguration {
     }
 
     @Produces
+    @ApplicationScoped
+    public ExtReadOnlyKeyValueStore<Long, Str.ContentValue> contentKeyValueStore(
+            KafkaStreams streams,
+            HostInfo storageLocalHost,
+            StreamsProperties properties
+    ) {
+        return new DistributedReadOnlyKeyValueStore<>(
+                streams,
+                storageLocalHost,
+                properties.getContentStoreName(),
+                Serdes.Long(), ProtoSerde.parsedWith(Str.ContentValue.parser()),
+                new DefaultGrpcChannelProvider(),
+                true,
+                (filter, id, tuple) -> true
+        );
+    }
+
+    public void destroyContentStore(@Observes ShutdownEvent event, ReadOnlyKeyValueStore<Long, Str.ContentValue> store) {
+        close(store);
+    }
+
+    @Produces
     @Singleton
     public ForeachActionDispatcher<Str.ArtifactKey, Str.Data> dataDispatcher() {
         return new ForeachActionDispatcher<>();
@@ -398,6 +420,10 @@ public class StreamsRegistryConfiguration {
                 .register(
                     props.getGlobalIdStoreName(),
                     Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser())
+                )
+                .register(
+                        props.getContentStoreName(),
+                        Serdes.Long(), ProtoSerde.parsedWith(Str.ContentValue.parser())
                 ),
             filterPredicate
         );

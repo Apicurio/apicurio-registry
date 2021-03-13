@@ -36,6 +36,10 @@ public class StreamsPropertiesImpl implements StreamsProperties {
         return properties.getProperty("global.id.store", "global-id-store");
     }
 
+    public String getContentStoreName() {
+        return properties.getProperty("content.store", "content-store");
+    }
+
     public String getStorageTopic() {
         return properties.getProperty("storage.topic", "storage-topic");
     }

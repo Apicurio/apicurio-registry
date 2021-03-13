@@ -20,6 +20,9 @@ package io.apicurio.registry.streams;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidPropertiesException;
@@ -30,8 +33,10 @@ import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.kafka.ProtoSerde;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KeyValue;
@@ -44,6 +49,7 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.processor.AbstractProcessor;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -66,9 +72,9 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
     private final ArtifactTypeUtilProviderFactory factory;
 
     public StreamsTopologyProvider(
-        StreamsProperties properties,
-        ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dataDispatcher,
-        ArtifactTypeUtilProviderFactory factory
+            StreamsProperties properties,
+            ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dataDispatcher,
+            ArtifactTypeUtilProviderFactory factory
     ) {
         this.properties = properties;
         this.dataDispatcher = dataDispatcher;
@@ -81,9 +87,9 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         // Simple defaults
         ImmutableMap<String, String> configuration = ImmutableMap.of(
-            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-            TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG, "0",
-            TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
+                TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
+                TopicConfig.MIN_COMPACTION_LAG_MS_CONFIG, "0",
+                TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
         );
 
         // Input topic -- storage topic
@@ -130,6 +136,18 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         builder.addStateStore(globalIdStoreBuilder);
 
+        String contentStoreName = properties.getContentStoreName();
+        StoreBuilder<KeyValueStore<Long /* contentId */, Str.ContentValue>> contentStoreBuilder =
+                Stores
+                        .keyValueStoreBuilder(
+                                Stores.inMemoryKeyValueStore(contentStoreName),
+                                Serdes.Long(), ProtoSerde.parsedWith(Str.ContentValue.parser())
+                        )
+                        .withCachingEnabled()
+                        .withLoggingEnabled(configuration);
+
+        builder.addStateStore(contentStoreBuilder);
+
         // Just handle globalId mapping -- put or delete
         globalRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
 
@@ -166,10 +184,13 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         private final StreamsProperties properties;
         private final ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dispatcher;
-        private final ArtifactTypeUtilProviderFactory factory;
 
         private ProcessorContext context;
-        private KeyValueStore<Str.ArtifactKey, Str.Data> store;
+        private KeyValueStore<Str.ArtifactKey, Str.Data> dataStore;
+        private KeyValueStore<Long, Str.TupleValue> idStore;
+        private KeyValueStore<Long, Str.ContentValue> contentStore;
+        private ArtifactTypeUtilProviderFactory factory;
+
 
         public StorageTransformer(
                 StreamsProperties properties,
@@ -185,12 +206,16 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         public void init(ProcessorContext context) {
             this.context = context;
             //noinspection unchecked
-            store = (KeyValueStore<Str.ArtifactKey, Str.Data>) context.getStateStore(properties.getStorageStoreName());
+            dataStore = (KeyValueStore<Str.ArtifactKey, Str.Data>) context.getStateStore(properties.getStorageStoreName());
+            //noinspection unchecked
+            idStore = (KeyValueStore<Long, Str.TupleValue>) context.getStateStore(properties.getGlobalIdStoreName());
+            //noinspection unchecked
+            contentStore = (KeyValueStore<Long, Str.ContentValue>) context.getStateStore(properties.getContentStoreName());
         }
 
         @Override
         public KeyValue<Long, Str.TupleValue> transform(Str.ArtifactKey artifactKey, Str.StorageValue value) {
-            Str.Data data = store.get(artifactKey);
+            Str.Data data = dataStore.get(artifactKey);
             if (data == null) {
                 // initial value can be "empty" default
                 data = Str.Data.getDefaultInstance();
@@ -202,27 +227,23 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
             data = apply(artifactKey, value, data, globalId, offset);
             if (data != null) {
-                store.put(artifactKey, data);
+                dataStore.put(artifactKey, data);
                 // dispatch
                 dispatcher.apply(artifactKey, data);
             } else {
-                store.delete(artifactKey);
+                dataStore.delete(artifactKey);
             }
 
             Str.ActionType action = value.getType();
             switch (action) {
                 case CREATE:
                 case UPDATE:
-                    if (value.getVt() != Str.ValueType.CONTENT) {
-                        return new KeyValue<>(globalId, Str.TupleValue.newBuilder()
-                                .setKey(artifactKey)
-                                .setVersion(data.getArtifactsCount())
-                                .build());
-                    }
+                    return new KeyValue<>(globalId, Str.TupleValue.newBuilder()
+                            .setKey(artifactKey)
+                            .setVersion(data.getArtifactsCount())
+                            .build());
                 case DELETE:
-                    if (value.getVt() != Str.ValueType.CONTENT) {
-                        return new KeyValue<>(globalId, null); // null value means delete entry
-                    }
+                    return new KeyValue<>(globalId, null); // null value means delete entry
                 default:
                     return null; // just skip?
             }
@@ -249,8 +270,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     return consumeState(aggregate, value, key, version, offset);
                 case LOGCONFIG:
                     return consumeLogConfig(aggregate, value, type, offset);
-                case CONTENT:
-                    return consumeContent(aggregate, value, type, offset, globalId);
                 case GROUP:
                     return consumeGroupMetaData(aggregate, value, type, offset);
                 default:
@@ -290,23 +309,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                 if (index >= 0) {
                     builder.removeGroups(index);
                 }
-            }
-            return builder.build();
-        }
-
-        private Str.Data consumeContent(Str.Data data, Str.StorageValue rv, Str.ActionType type, long offset, long globalId) {
-            Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
-            Str.ContentValue content = rv.getContent();
-            if (type == Str.ActionType.CREATE) {
-                boolean notFound = builder.getContentsList().stream().noneMatch(c -> c.getContentHash().equals(content.getContentHash()));
-                if (notFound) {
-                    builder.addContents(Str.ContentValue.newBuilder().setContentHash(content.getContentHash())
-                            .setCanonicalHash(content.getCanonicalHash())
-                            .setContent(content.getContent())
-                            .setId(globalId));
-                }
-            } else if (type == Str.ActionType.DELETE) {
-                //TODO For now delete content is not supported
             }
             return builder.build();
         }
@@ -402,11 +404,11 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             } else {
                 int index = (int) (version >= 0 ? version : data.getArtifactsCount()) - 1;
 
-                Str.ArtifactValue artifact = data.getArtifacts(index);
+                Str.ArtifactData artifact = data.getArtifacts(index);
                 ArtifactState currentState = ArtifactStateExt.getState(artifact.getMetadataMap());
                 ArtifactState newState = ArtifactState.valueOf(rv.getState().name());
 
-                Str.ArtifactValue.Builder ab = Str.ArtifactValue.newBuilder(artifact);
+                Str.ArtifactData.Builder ab = Str.ArtifactData.newBuilder(artifact);
 
                 if (ArtifactStateExt.canTransition(currentState, newState) == false) {
                     log.error(InvalidArtifactStateException.errorMsg(currentState, newState));
@@ -427,7 +429,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             if (version > count) {
                 log.warn("Version not found: {} [{}]", version, key);
             } else {
-                Str.ArtifactValue av = null;
+                Str.ArtifactData av = null;
 
                 int index;
                 if (version > 0) {
@@ -452,7 +454,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                 }
 
                 if (av != null) {
-                    Str.ArtifactValue.Builder avb = Str.ArtifactValue.newBuilder(av);
+                    Str.ArtifactData.Builder avb = Str.ArtifactData.newBuilder(av);
 
                     if (type == Str.ActionType.UPDATE) {
                         avb.putMetadata(MetaDataKeys.NAME, metaData.getName());
@@ -486,7 +488,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         log.warn("Version not found: {} [{}]", version, key);
                     } else {
                         // set default as deleted
-                        builder.setArtifacts((int) (version - 1), Str.ArtifactValue.getDefaultInstance());
+                        builder.setArtifacts((int) (version - 1), Str.ArtifactData.getDefaultInstance());
                     }
                 } else {
                     return null; // this will remove artifacts from the store
@@ -508,14 +510,17 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                 return;
             }
 
-            Str.ArtifactValue.Builder avb = Str.ArtifactValue.newBuilder(artifact);
+            ArtifactType type = ArtifactType.values()[artifact.getArtifactType()];
+
+            final long contentId = insertContentOrReturnId(artifact.getContent().toByteArray(), type, globalId);
+
+            Str.ArtifactData.Builder avb = buildArtifactDataFromValue(artifact);
             avb.setId(globalId);
-            avb.setContentId(artifact.getContentId());
+            avb.setContentId(contentId);
 
             // +1 on version
             int version = builder.getArtifactsCount() + 1;
 
-            ArtifactType type = ArtifactType.values()[artifact.getArtifactType()];
 
             Map<String, String> contents = new HashMap<>();
             contents.put(MetaDataKeys.GROUP_ID, key.getGroupId());
@@ -544,6 +549,63 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
             avb.putAllMetadata(contents);
             builder.addArtifacts(avb);
+        }
+
+        private static Str.ArtifactData.Builder buildArtifactDataFromValue(Str.ArtifactValue artifactValue) {
+
+            return Str.ArtifactData.newBuilder()
+                    .setArtifactType(artifactValue.getArtifactType())
+                    .setId(artifactValue.getId())
+                    .putAllMetadata(artifactValue.getMetadataMap());
+        }
+
+        private long insertContentOrReturnId(byte[] content, ArtifactType artifactType, long globalId) {
+
+            final String candidateHash = DigestUtils.sha256Hex(content);
+
+            final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
+            while (keyValueIterator.hasNext()) {
+                KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
+                if (candidateHash.equals(keyValue.value.getContentHash())) {
+                    return keyValue.key;
+                }
+            }
+            return createContent(globalId, artifactType, content, candidateHash);
+        }
+
+        private Long createContent(long globalId, ArtifactType artifactType, byte[] content, String contentHash) {
+
+            final ContentHandle canonicalContent = canonicalizeContent(artifactType, ContentHandle.create(content));
+            final byte[] canonicalContentBytes = canonicalContent.bytes();
+            final String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+
+            final Str.ContentValue contentValue = Str.ContentValue.newBuilder()
+                    .setContent(ByteString.copyFrom(content))
+                    .setContentHash(contentHash)
+                    .setCanonicalHash(canonicalContentHash)
+                    .setId(globalId)
+                    .build();
+
+            contentStore.put(globalId, contentValue);
+
+            return contentValue.getId();
+        }
+
+        /**
+         * Canonicalize the given content, returns the content unchanged in the case of an error.
+         *
+         * @param artifactType
+         * @param content
+         */
+        private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+            try {
+                ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+                ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+                return canonicalizer.canonicalize(content);
+            } catch (Exception e) {
+                log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+                return content;
+            }
         }
     }
 }

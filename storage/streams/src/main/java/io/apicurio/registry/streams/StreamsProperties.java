@@ -11,6 +11,7 @@ public interface StreamsProperties {
     long getBaseOffset();
     String getStorageStoreName();
     String getGlobalIdStoreName();
+    String getContentStoreName();
     String getStorageTopic();
     String getApplicationServer();
     boolean ignoreAutoCreate();

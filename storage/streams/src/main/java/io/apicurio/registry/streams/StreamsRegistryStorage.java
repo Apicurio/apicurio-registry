@@ -72,11 +72,12 @@ import io.apicurio.registry.utils.streams.distore.FilterPredicate;
 import io.quarkus.security.identity.SecurityIdentity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
@@ -161,6 +162,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     ExtReadOnlyKeyValueStore<Str.ArtifactKey, Str.Data> storageStore;
 
     @Inject
+    ExtReadOnlyKeyValueStore<Long, Str.ContentValue> contentStore;
+
+    @Inject
     ReadOnlyKeyValueStore<Long, Str.TupleValue> globalIdStore;
 
     @Inject
@@ -181,14 +185,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     private CompletableFuture<RecordMetadata> send(Str.StorageValue value) {
         ProducerRecord<Str.ArtifactKey, Str.StorageValue> record = new ProducerRecord<>(
-            properties.getStorageTopic(),
-            value.getKey(), // MUST be set
-            value
+                properties.getStorageTopic(),
+                value.getKey(), // MUST be set
+                value
         );
         return storageProducer.apply(record);
     }
 
-    private StoredArtifactDto addContent(Str.ArtifactValue value) {
+    private StoredArtifactDto addContent(Str.ArtifactData value) {
         Map<String, String> contents = new HashMap<>(value.getMetadataMap());
         MetaDataKeys.putContent(contents, getArtifactByContentId(value.getContentId()).bytes());
         contents.put(MetaDataKeys.CONTENT_ID, String.valueOf(value.getContentId()));
@@ -204,15 +208,15 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 .build();
     }
 
-    private static boolean isValid(Str.ArtifactValue value) {
-        return !value.equals(Str.ArtifactValue.getDefaultInstance());
+    private static boolean isValid(Str.ArtifactData value) {
+        return !value.equals(Str.ArtifactData.getDefaultInstance());
     }
 
     private static boolean isGlobalRules(String groupId, String artifactId) {
         return GLOBAL_RULES_GROUP_ID.equals(groupId) && GLOBAL_RULES_ID.equals(artifactId);
     }
 
-    private Str.ArtifactValue getLastArtifact(String groupId, String artifactId) {
+    private Str.ArtifactData getLastArtifact(String groupId, String artifactId) {
 
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
@@ -220,14 +224,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return getLastArtifact(key, data);
     }
 
-    private Str.ArtifactValue getLastArtifact(Str.ArtifactKey key, Str.Data data) {
+    private Str.ArtifactData getLastArtifact(Str.ArtifactKey key, Str.Data data) {
         if (data != null) {
             int count = data.getArtifactsCount();
             if (count > 0) {
-                List<Str.ArtifactValue> list = data.getArtifactsList();
+                List<Str.ArtifactData> list = data.getArtifactsList();
                 int index = count - 1;
                 while (index >= 0) {
-                    Str.ArtifactValue value = list.get(index);
+                    Str.ArtifactData value = list.get(index);
                     if (isValid(value)) {
                         ArtifactState state = ArtifactStateExt.getState(value.getMetadataMap());
                         if (ArtifactStateExt.ACTIVE_STATES.contains(state)) {
@@ -250,10 +254,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         if (data != null) {
             int count = data.getArtifactsCount();
             if (count > 0) {
-                List<Str.ArtifactValue> list = data.getArtifactsList();
+                List<Str.ArtifactData> list = data.getArtifactsList();
                 int index = count - 1;
                 while (index >= 0) {
-                    Str.ArtifactValue value = list.get(index);
+                    Str.ArtifactData value = list.get(index);
                     if (isValid(value)) {
                         Map<String, String> metadata = value.getMetadataMap();
                         ArtifactState state = ArtifactStateExt.getState(metadata);
@@ -270,7 +274,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return null;
     }
 
-    private static boolean executeSearch(Map<String, String> filtersMap, Str.ArtifactValue value, Map<String, String> metadata) {
+    private static boolean executeSearch(Map<String, String> filtersMap, Str.ArtifactData value, Map<String, String> metadata) {
         if (filtersMap.isEmpty()) {
             return true;
         }
@@ -292,9 +296,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
 
         if (null != filtersMap.get("everything")) {
-                if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
-                    return true;
-                }
+            if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
+                return true;
+            }
         }
 
         for (String key : filtersMap.keySet()) {
@@ -313,15 +317,15 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return null == filter || metadataValues.stream().anyMatch(value -> stringMetadataContainsFilter(filter, value));
     }
 
-    private <T> T handleVersion(Str.ArtifactKey key, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactValue, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
+    private <T> T handleVersion(Str.ArtifactKey key, long version, EnumSet<ArtifactState> states, Function<Str.ArtifactData, T> handler) throws ArtifactNotFoundException, RegistryStorageException {
 
         Str.Data data = storageStore.get(key);
 
         if (data != null) {
             int index = (int) (version - 1);
-            List<Str.ArtifactValue> list = data.getArtifactsList();
+            List<Str.ArtifactData> list = data.getArtifactsList();
             if (index < list.size()) {
-                Str.ArtifactValue value = list.get(index);
+                Str.ArtifactData value = list.get(index);
                 if (isValid(value)) {
                     ArtifactState state = ArtifactStateExt.getState(value.getMetadataMap());
                     ArtifactStateExt.validateState(states, state, key.getGroupId(), key.getArtifactId(), version);
@@ -337,20 +341,20 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     private void updateArtifactState(Str.Data data, Long version, ArtifactState state) {
         Str.ArtifactKey key = data.getKey();
         ArtifactState current = handleVersion(
-            key,
-            version,
-            null,
-            av -> ArtifactStateExt.getState(av.getMetadataMap())
+                key,
+                version,
+                null,
+                av -> ArtifactStateExt.getState(av.getMetadataMap())
         );
 
         ArtifactStateExt.applyState(
-            s -> ConcurrentUtil.get(
-                submitter.submitState(data.getKey(),
-                                      version,
-                                      state)
-            ),
-            current,
-            state
+                s -> ConcurrentUtil.get(
+                        submitter.submitState(data.getKey(),
+                                version,
+                                state)
+                ),
+                current,
+                state
         );
     }
 
@@ -358,7 +362,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         Str.Data data = storageStore.get(key);
         if (data != null) {
             for (int i = 0; i < data.getArtifactsCount(); i++) {
-                Str.ArtifactValue artifact = data.getArtifacts(i);
+                Str.ArtifactData artifact = data.getArtifacts(i);
                 if (isValid(artifact)) {
                     return true; // we found a valid one
                 }
@@ -379,23 +383,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 .build();
     }
 
-    /**
-     * Canonicalize the given content, returns the content unchanged in the case of an error.
-     *
-     * @param artifactType
-     * @param content
-     */
-    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
-        try {
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            return canonicalizer.canonicalize(content);
-        } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
-            return content;
-        }
-    }
-
     @Override
     public boolean isReady() {
         // first a quick local check
@@ -404,8 +391,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
         // then check all
         return stateFunction.apply()
-            .map(ConcurrentUtil::result)
-            .allMatch(s -> s == KafkaStreams.State.RUNNING);
+                .map(ConcurrentUtil::result)
+                .allMatch(s -> s == KafkaStreams.State.RUNNING);
     }
 
     @Override
@@ -453,17 +440,16 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Map<String, String> extractedContents = extractMetaDataFromContent(key, content, artifactType);
         final String principalName = securityIdentity.getPrincipal().getName();
 
-        return submitContent(content, artifactType)
-                .thenCompose(contentId -> submitter.submitArtifact(Str.ActionType.CREATE, key, -1, artifactType, contentId, principalName, extractedContents))
-                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.CREATE, key, -1, artifactType, content.bytes(), principalName, extractedContents);
+        return submitCF.thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
                 .thenApply(rd -> {
                             RecordMetadata rmd = rd.getRmd();
                             Str.Data d = rd.getData();
-                            Str.ArtifactValue first = d.getArtifacts(0);
+                            Str.ArtifactData first = d.getArtifacts(0);
                             long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
                             if (first.getId() != globalId) {
                                 // somebody beat us to it ...
-                                throw new ArtifactAlreadyExistsException(groupId, artifactId);
+                                throw new ArtifactAlreadyExistsException(key.getGroupId(), key.getArtifactId());
                             }
                             final ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(first.getMetadataMap());
                             artifactMetaDataDto.setContentId(first.getContentId());
@@ -498,36 +484,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
-    private CompletableFuture<Long> submitContent(ContentHandle content, ArtifactType artifactType) {
-
-        final Str.ArtifactKey key = buildKey(CONTENT_ID, CONTENT_ID);
-        final byte[] contentBytes = content.bytes();
-        final String contentHash = DigestUtils.sha256Hex(contentBytes);
-        final ContentHandle canonicalContent = canonicalizeContent(artifactType, content);
-        final byte[] canonicalContentBytes = canonicalContent.bytes();
-        final String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-
-        return submitter.submitContent(Str.ActionType.CREATE, key, contentHash, content.bytes(), canonicalContentHash)
-                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
-                .thenApply(rd -> {
-                    Str.Data d = rd.getData();
-                    for (Str.ContentValue contentValue : d.getContentsList()) {
-                        if (contentValue.getContentHash().equals(contentHash)) {
-                            return contentValue.getId();
-                        }
-                    }
-                    throw new IllegalStateException();
-                });
-    }
-
     @Override
     public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
 
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
         return createArtifact(groupId, artifactId, artifactType, content)
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+                .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                        .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
     }
 
     @Override
@@ -545,10 +509,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             // Delete any rules configured for the artifact.
             this.deleteArtifactRulesInternal(key);
 
-            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, -1, null, -1, null, Collections.emptyMap()));
+            ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, -1, null, null, null, Collections.emptyMap()));
 
             SortedSet<Long> result = new TreeSet<>();
-            List<Str.ArtifactValue> list = data.getArtifactsList();
+            List<Str.ArtifactData> list = data.getArtifactsList();
             for (int i = 0; i < list.size(); i++) {
                 if (isValid(list.get(i))) {
                     result.add((long) (i + 1));
@@ -576,14 +540,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
-        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
-        Str.Data data = storageStore.get(contentKey);
-        if (data != null) {
-            return ContentHandle.create(data.getContentsList()
-                    .stream()
-                    .filter(v -> v.getId() == contentId)
-                    .findFirst()
-                    .orElseThrow(() -> new ContentNotFoundException(String.valueOf(contentId))).getContent().toByteArray());
+        final Str.ContentValue contentValue = contentStore.get(contentId);
+        if (contentValue != null) {
+            return ContentHandle.create(contentValue.getContent().toByteArray());
         } else {
             throw new ContentNotFoundException(String.valueOf(contentId));
         }
@@ -591,16 +550,16 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
-        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
-        Str.Data data = storageStore.get(contentKey);
-        if (data != null) {
-            return ContentHandle.create(data.getContentsList()
-                    .stream()
-                    .filter(v -> v.getContentHash().equals(contentHash))
+
+        //Think about this, we're getting  the content twice
+        try (Stream<Long> stream = contentStore.allKeys()) {
+            return ContentHandle.create(stream
+                    .filter(contentId -> contentStore.get(contentId).getContentHash().equals(contentHash))
+                    .map(contentStore::get)
                     .findFirst()
-                    .orElseThrow(() -> new ContentNotFoundException(contentHash)).getContent().toByteArray());
-        } else {
-            throw new ContentNotFoundException(contentHash);
+                    .orElseThrow(() -> new ContentNotFoundException(contentHash))
+                    .getContent()
+                    .toByteArray());
         }
     }
 
@@ -620,20 +579,19 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Map<String, String> extractedContents = extractMetaDataFromContent(key, content, artifactType);
         final String principalName = securityIdentity.getPrincipal().getName();
 
-        return submitContent(content, artifactType)
-                .thenCompose(contentId -> submitter.submitArtifact(Str.ActionType.UPDATE, key, -1, artifactType, contentId, principalName, extractedContents))
-                .thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
+        CompletableFuture<RecordMetadata> submitCF = submitter.submitArtifact(Str.ActionType.UPDATE, key, -1, artifactType, content.bytes(), principalName, extractedContents);
+        return submitCF.thenCompose(r -> storageFunction.apply(key, r.offset()).thenApply(d -> new RecordData(r, d)))
                 .thenApply(rd -> {
                     RecordMetadata rmd = rd.getRmd();
                     Str.Data d = rd.getData();
                     long globalId = properties.toGlobalId(rmd.offset(), rmd.partition());
                     for (int i = d.getArtifactsCount() - 1; i >= 0; i--) {
-                        Str.ArtifactValue value = d.getArtifacts(i);
+                        Str.ArtifactData value = d.getArtifacts(i);
                         if (value.getId() == globalId) {
-                            ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(value.getMetadataMap());
+                            ArtifactMetaDataDto artifactMetaDataDto = MetaDataKeys.toArtifactMetaData(value.getMetadataMap());
 
                             if (artifactMetaDataDto.getVersion() != ARTIFACT_FIRST_VERSION) {
-                                ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(groupId, artifactId, ARTIFACT_FIRST_VERSION);
+                                ArtifactVersionMetaDataDto firstVersionContent = getArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), ARTIFACT_FIRST_VERSION);
                                 artifactMetaDataDto.setCreatedOn(firstVersionContent.getCreatedOn());
                             }
 
@@ -641,7 +599,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                             return artifactMetaDataDto;
                         }
                     }
-                    throw new ArtifactNotFoundException(groupId, artifactId);
+                    throw new ArtifactNotFoundException(artifactId);
                 });
     }
 
@@ -652,8 +610,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
         return updateArtifact(groupId, artifactId, artifactType, content)
-            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+                .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                        .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
     }
 
 
@@ -705,14 +663,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final LongAdder itemsCount = new LongAdder();
 
         final List<SearchedArtifactDto> matchedArtifacts = storageStore.filter(filtersMap)
-            .peek((kv) -> itemsCount.increment())
-            .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
-            .filter(Objects::nonNull)
-            .sorted((art1, art2) -> SearchUtil.compare(orderBy, orderDirection, art1, art2))
-            .skip(offset)
-            .limit(limit)
-            .map(SearchUtil::buildSearchedArtifact)
-            .collect(Collectors.toList());
+                .peek((kv) -> itemsCount.increment())
+                .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
+                .filter(Objects::nonNull)
+                .sorted((art1, art2) -> SearchUtil.compare(orderBy, orderDirection, art1, art2))
+                .skip(offset)
+                .limit(limit)
+                .map(SearchUtil::buildSearchedArtifact)
+                .collect(Collectors.toList());
 
         final ArtifactSearchResultsDto artifactSearchResults = new ArtifactSearchResultsDto();
         artifactSearchResults.setArtifacts(matchedArtifacts);
@@ -729,40 +687,34 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         return filters.stream().anyMatch(filter -> SearchFilterType.canonicalHash.equals(filter.getType()));
     }
 
-    private long getIdFromContentHash(String contentHash) {
-        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
-        final Str.Data data = storageStore.get(contentKey);
-        if (data != null) {
-            return data.getContentsList()
-                    .stream()
-                    .filter(v -> v.getContentHash().equals(contentHash))
-                    .findFirst()
-                    .orElseThrow(() -> new ContentNotFoundException(contentHash))
-                    .getId();
-        } else {
-            throw new ContentNotFoundException(String.valueOf(contentHash));
+    private long getIdFromContentHash(String candidateHash) {
+        //Think about this, we're getting  the content twice
+        final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
+        while (keyValueIterator.hasNext()) {
+            KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
+            if (candidateHash.equals(keyValue.value.getContentHash())) {
+                return keyValue.key;
+            }
         }
+        throw new ContentNotFoundException(candidateHash);
     }
 
     private long getIdFromCanonicalHash(String canonicalHash) {
-        final Str.ArtifactKey contentKey = buildKey(CONTENT_ID, CONTENT_ID);
-        final Str.Data data = storageStore.get(contentKey);
-        if (data != null) {
-            return data.getContentsList()
-                    .stream()
-                    .filter(v -> v.getCanonicalHash().equals(canonicalHash))
-                    .findFirst()
-                    .orElseThrow(() -> new ContentNotFoundException(canonicalHash))
-                    .getId();
-        } else {
-            throw new ContentNotFoundException(String.valueOf(canonicalHash));
+        //Think about this, we're getting  the content twice
+        final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
+        while (keyValueIterator.hasNext()) {
+            KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
+            if (canonicalHash.equals(keyValue.value.getCanonicalHash())) {
+                return keyValue.key;
+            }
         }
+        throw new ContentNotFoundException(canonicalHash);
     }
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
 
-        final Str.ArtifactValue artifactValue = getLastArtifact(groupId, artifactId);
+        final Str.ArtifactData artifactValue = getLastArtifact(groupId, artifactId);
         final Map<String, String> content = getLastArtifact(groupId, artifactId).getMetadataMap();
 
         final ArtifactMetaDataDto artifactMetaDataDto = toArtifactMetaData(content);
@@ -796,7 +748,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+                                                                 ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         // Get the meta-data for the artifact
         ArtifactMetaDataDto metaData = getArtifactMetaData(groupId, artifactId);
 
@@ -817,7 +769,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             }
 
             for (int i = data.getArtifactsCount() - 1; i >= 0; i--) {
-                Str.ArtifactValue candidateArtifact = data.getArtifacts(i);
+                Str.ArtifactData candidateArtifact = data.getArtifacts(i);
                 if (isValid(candidateArtifact)) {
                     ContentHandle candidateContent = getArtifactByContentId(candidateArtifact.getContentId());
                     byte[] candidateBytes;
@@ -929,11 +881,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             return data.getRulesList()
-                .stream()
-                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                .findFirst()
-                .map(r -> new RuleConfigurationDto(r.getConfiguration()))
-                .orElseThrow(() -> new RuleNotFoundException(rule));
+                    .stream()
+                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                    .findFirst()
+                    .map(r -> new RuleConfigurationDto(r.getConfiguration()))
+                    .orElseThrow(() -> new RuleNotFoundException(rule));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {
@@ -950,10 +902,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             data.getRulesList()
-                .stream()
-                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                .findFirst()
-                .orElseThrow(() -> new RuleNotFoundException(rule));
+                    .stream()
+                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                    .findFirst()
+                    .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, key, rule, config.getConfiguration()));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
@@ -971,10 +923,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             data.getRulesList()
-                .stream()
-                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                .findFirst()
-                .orElseThrow(() -> new RuleNotFoundException(rule));
+                    .stream()
+                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                    .findFirst()
+                    .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, key, rule, null));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
@@ -990,7 +942,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             SortedSet<Long> result = new TreeSet<>();
-            List<Str.ArtifactValue> list = data.getArtifactsList();
+            List<Str.ArtifactData> list = data.getArtifactsList();
             for (int i = 0; i < list.size(); i++) {
                 if (isValid(list.get(i))) {
                     result.add((long) (i + 1));
@@ -1041,7 +993,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
-        handleVersion(key, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, version, null, -1, null, Collections.emptyMap())));
+        handleVersion(key, version, null, value -> ConcurrentUtil.get(submitter.submitArtifact(Str.ActionType.DELETE, key, version, null, null, null, Collections.emptyMap())));
     }
 
     @Override
@@ -1101,7 +1053,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-        updateArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID,  rule, config);
+        updateArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID, rule, config);
     }
 
     @Override

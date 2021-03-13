@@ -32,7 +32,11 @@ public class ArtifactNotFoundException extends NotFoundException {
      * @param artifactId
      */
     public ArtifactNotFoundException(String groupId, String artifactId) {
-        this.groupId = groupId;
+        if (groupId != null && groupId.equals("legacy")) {
+            this.groupId = null;
+        } else {
+            this.groupId = groupId;
+        }
         this.artifactId = artifactId;
     }
 

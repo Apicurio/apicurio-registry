@@ -136,7 +136,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public static final String GLOBAL_RULES_GROUP_ID = "__GLOBAL_RULES__";
 
     /* Fake groupId for legacy artifacts*/
-    public static final String LEGACY_GROUP_ID = "null";
+    public static final String LEGACY_GROUP_ID = "legacy";
 
     /* Fake logging configuration as an artifact */
     public static final String LOGGING_CONFIGURATION_ID = "__LOGGING_CONFIGURATION__";
@@ -243,6 +243,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
                 }
             }
         }
+        log.error("Error trying to find last artifact with group {} and id {}: ", key.getGroupId(), key.getArtifactId());
         throw new ArtifactNotFoundException(key.getGroupId(), key.getArtifactId());
     }
 
@@ -651,6 +652,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
             if (containsCanonicalHashFilter(filters)) {
                 filtersMap.put(MetaDataKeys.CANONICAL_HASH, String.valueOf(getIdFromCanonicalHash(filtersMap.get(SearchFilterType.canonicalHash.name()))));
             }
+
+            checkGroupFilter(filters, filtersMap);
+
         } catch (ContentNotFoundException ex) {
             //Content filter provided but no content found, we can safely return 0 search results
             final ArtifactSearchResultsDto artifactSearchResults = new ArtifactSearchResultsDto();
@@ -677,6 +681,13 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         artifactSearchResults.setCount(itemsCount.intValue());
 
         return artifactSearchResults;
+    }
+
+    private void checkGroupFilter(Set<SearchFilter> filters, Map<String, String> filtersMap) {
+
+        filters.stream()
+                .filter(filter -> SearchFilterType.group.equals(filter.getType()) && null == filter.getValue())
+                .forEach(searchFilter -> filtersMap.put(MetaDataKeys.GROUP_ID, LEGACY_GROUP_ID));
     }
 
     private boolean containsContentHashFilter(Set<SearchFilter> filters) {

@@ -103,13 +103,13 @@ jobs:
       - name: Build The Tagged Docker Images
         run: |
           cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
 
       - name: Kubernetes Tests
-        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-snapshot" ./.github/scripts/test_apicurio_kubernetes.sh
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()

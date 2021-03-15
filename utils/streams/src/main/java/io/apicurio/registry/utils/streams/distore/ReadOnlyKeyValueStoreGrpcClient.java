@@ -104,10 +104,13 @@ public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValu
             observer
         );
         return observer
-            .stream()
-            .map(value -> keyValueSerde.deserializeVal(value.getValue().toByteArray()))
-            .findFirst()
-            .orElse(null);
+                .stream()
+                .map(value -> {
+                    log.info("Response for key {} found: ", key);
+                    return keyValueSerde.deserializeVal(value.getValue().toByteArray());
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     @Override

@@ -175,18 +175,16 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             switch (action) {
                 case CREATE:
                 case UPDATE:
-                    if (value.getVt() != Str.ValueType.CONTENT) {
-                        Str.TupleValue tupleValue = Str.TupleValue.newBuilder()
-                                .setKey(key)
-                                .setVersion(data.getArtifactsCount()) // data should not be null
-                                .build();
-                        idStore.put(globalId, tupleValue);
-                    }
+                    log.info("Storing globalId {} into globalIdStore", globalId);
+                    Str.TupleValue tupleValue = Str.TupleValue.newBuilder()
+                            .setKey(key)
+                            .setVersion(data.getArtifactsCount()) // data should not be null
+                            .build();
+                    idStore.put(globalId, tupleValue);
                     break;
                 case DELETE:
-                    if (value.getVt() != Str.ValueType.CONTENT) {
-                        idStore.delete(globalId);
-                    }
+                    log.info("Deleting globalId {} from globalIdStore", globalId);
+                    idStore.delete(globalId);
                     break;
                 case READ:
                 case UNDEFINED:

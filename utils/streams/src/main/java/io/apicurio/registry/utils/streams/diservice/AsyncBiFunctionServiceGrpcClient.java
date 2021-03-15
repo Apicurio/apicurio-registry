@@ -7,11 +7,15 @@ import io.apicurio.registry.utils.streams.diservice.proto.BiFunctionRes;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import org.apache.kafka.common.serialization.Serde;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
 public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFunctionService<K, REQ, RES> {
+
+    private static final Logger logger = LoggerFactory.getLogger(AsyncBiFunctionServiceGrpcClient.class);
 
     private final String serviceName;
     private final Channel channel;
@@ -51,6 +55,8 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
         ByteString keyByteStr = keyBytes == null ? ByteString.EMPTY : ByteString.copyFrom(keyBytes);
         ByteString reqByteStr = reqBytes == null ? ByteString.EMPTY : ByteString.copyFrom(reqBytes);
 
+        logger.info("Performing call through GRPC for key: {}", key);
+
         BiFunctionReq reqProto = BiFunctionReq
             .newBuilder()
             .setKey(keyByteStr)
@@ -63,9 +69,12 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
 
         return observerCF
             .thenApply(
-                resProto ->
-                    resSerde.deserializer()
-                            .deserialize(serviceName, resProto.getRes().isEmpty() ? null : resProto.getRes().toByteArray())
+                resProto -> {
+                    final RES responseDeserialized = resSerde.deserializer()
+                            .deserialize(serviceName, resProto.getRes().isEmpty() ? null : resProto.getRes().toByteArray());
+                    logger.info("Response received: {} from grpc call for key: {}", responseDeserialized, key);
+                    return responseDeserialized;
+                }
             );
     }
 

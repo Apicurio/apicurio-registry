@@ -56,10 +56,11 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * @author Ales Justin
@@ -118,7 +119,10 @@ public class StreamsRegistryConfiguration {
         if (!properties.ignoreAutoCreate()) {
             Map<String, Object> configMap = new HashMap(properties.getProperties());
             try (Admin admin = kcs.getAdmin(configMap)) {
-                KafkaUtil.createTopics(admin, Collections.singleton(properties.getStorageTopic()));
+                Set<String> topicNames = new LinkedHashSet<>();
+                topicNames.add(properties.getStorageTopic());
+                topicNames.add(properties.getGlobalIdTopic());
+                KafkaUtil.createTopics(admin, topicNames);
             }
         }
         return kcs;
@@ -212,7 +216,7 @@ public class StreamsRegistryConfiguration {
         );
     }
 
-    public void destroyGlobaIdStore(@Observes ShutdownEvent event, ReadOnlyKeyValueStore<Long, Str.TupleValue> store) {
+    public void destroyGlobalIdStore(@Observes ShutdownEvent event, ReadOnlyKeyValueStore<Long, Str.TupleValue> store) {
         close(store);
     }
 

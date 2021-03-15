@@ -80,7 +80,9 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String topic = generateArtifactId();
 
-        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+        final Integer globalId = createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString());
+
+        this.waitForGlobalId(globalId);
 
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
@@ -90,35 +92,40 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
         serializer.configure(config, true);
 
-        GenericData.Record record = new GenericData.Record(schema);
-        record.put("bar", "somebar");
-        byte[] bytes = serializer.serialize(topic, record);
-
-        Map<String, Object> deserializerConfig = new HashMap<>();
-        deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<GenericData.Record>();
-        deserializer.configure(deserializerConfig, true);
 
-        GenericData.Record deserializedRecord = deserializer.deserialize(topic, bytes);
-        Assertions.assertEquals(record, deserializedRecord);
-        Assertions.assertEquals("somebar", record.get("bar").toString());
+        TestUtils.retry(() -> {
 
-        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class);
-        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class);
-        serializer.configure(config, true);
-        bytes = serializer.serialize(topic, record);
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+            byte[] bytes = serializer.serialize(topic, record);
 
-        deserializer.configure(deserializerConfig, true);
-        record = deserializer.deserialize(topic, bytes);
-        Assertions.assertEquals("somebar", record.get("bar").toString());
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
+            deserializer.configure(deserializerConfig, true);
 
-        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
-        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
-        serializer.configure(config, true);
-        bytes = serializer.serialize(topic, record);
-        deserializer.configure(deserializerConfig, true);
-        record = deserializer.deserialize(topic, bytes);
-        Assertions.assertEquals("somebar", record.get("bar").toString());
+            GenericData.Record deserializedRecord = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals(record, deserializedRecord);
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+
+
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class);
+            config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class);
+            serializer.configure(config, true);
+            bytes = serializer.serialize(topic, record);
+
+            deserializer.configure(deserializerConfig, true);
+            record = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+            config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+            serializer.configure(config, true);
+            bytes = serializer.serialize(topic, record);
+            deserializer.configure(deserializerConfig, true);
+            record = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+        });
 
         serializer.close();
         deserializer.close();

@@ -153,27 +153,29 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // Create the artifact.
         ArtifactMetaData amd = given()
                 .when()
-                    .contentType(CT_JSON)
-                    .pathParam("groupId", GROUP)
-                    .header("X-Registry-ArtifactId", artifactId)
-                    .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
-                    .body(artifactContent)
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
                 .then()
-                    .statusCode(200)
+                .statusCode(200)
                 .extract()
-                    .as(ArtifactMetaData.class);
+                .as(ArtifactMetaData.class);
         waitForArtifact(GROUP, artifactId);
 
         long globalId = amd.getGlobalId();
 
+        this.waitForGlobalId(globalId);
+
         // Get by globalId
         given()
-            .when()
+                .when()
                 .contentType(CT_JSON)
                 .pathParam("globalId", globalId)
                 .get("/registry/v2/ids/globalIds/{globalId}")
-            .then()
+                .then()
                 .statusCode(200)
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo(title));

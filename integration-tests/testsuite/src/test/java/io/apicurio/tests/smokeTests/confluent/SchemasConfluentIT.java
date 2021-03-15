@@ -217,11 +217,11 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         String name = "schemaname";
         String subjectName = TestUtils.generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
-        int globalId = createArtifactViaConfluentClient(schema, subjectName);
+        int contentId = createArtifactViaConfluentClient(schema, subjectName);
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        TestUtils.retry(() -> registryClient.getContentByGlobalId(globalId));
+        TestUtils.retry(() -> registryClient.getContentById(contentId));
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {

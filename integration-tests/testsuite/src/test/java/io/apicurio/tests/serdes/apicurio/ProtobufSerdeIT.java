@@ -18,6 +18,7 @@ package io.apicurio.tests.serdes.apicurio;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -308,9 +309,13 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withDataGenerator(schema::generateMessage)
             .withDataValidator(schema::validateMessage)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
             .build()
             .test();
 
@@ -337,9 +342,13 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withDataValidator(schema::validateDynamicMessage)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, DynamicMessage.class.getName())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
             .build()
             .test();
 
@@ -365,9 +374,13 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withDataValidator(schema::validateMessage)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
             .build()
             .test();
 

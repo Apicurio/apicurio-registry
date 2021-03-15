@@ -97,13 +97,19 @@ jobs:
           version: '11'
           architecture: x64
 
-      - name: Build artifacts used in testsuite
+      - name: Build All Variants
+        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Build The Tagged Docker Images
         run: |
-          mvn install -am -Pprod -pl distro/connect-converter -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
-          mvn install -am -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-client' -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          cd distro/docker
+          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
 
       - name: Kubernetes Tests
-        run: ./.github/scripts/test_apicurio_kubernetes.sh
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-snapshot" ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()

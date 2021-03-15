@@ -179,9 +179,13 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withDataGenerator(avroSchema::generateRecord)
             .withDataValidator(avroSchema::validateRecord)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
             .build()
             .test();
 

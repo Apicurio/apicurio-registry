@@ -109,6 +109,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
             .withSerializer(KafkaAvroSerializer.class)
             .withDeserializer(AvroKafkaDeserializer.class)
             .withConsumerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
             .withStrategy(TopicNameStrategy.class)
             .withDataGenerator(avroSchema::generateRecord)
             .withDataValidator(avroSchema::validateRecord)
@@ -134,6 +135,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
             .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
 
             .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
+            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
             .withDeserializer(KafkaAvroDeserializer.class)
             .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)
             .withDataGenerator(avroSchema::generateRecord)
@@ -343,59 +345,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         tester.consumeMessages(consumer2, topicName2, messageCount, avroSchema::validateRecord);
         tester.consumeMessages(consumer3, topicName3, messageCount, avroSchema::validateRecord);
 
-    }
-
-    // test confluent producer apicurio consumer use contentId
-    @Test
-    void testAvroConfluentApicurioUsingContentId() throws Exception {
-        String topicName = TestUtils.generateTopic();
-        String subjectName = topicName + "-value";
-        kafkaCluster.createTopic(topicName, 1, 1);
-
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
-
-        ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
-        createArtifactViaConfluentClient(pschema, subjectName);
-
-        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(KafkaAvroSerializer.class)
-            .withDeserializer(AvroKafkaDeserializer.class)
-            .withConsumerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
-            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withStrategy(TopicNameStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .build()
-            .test();
-    }
-
-    // test apicurio producer use contentId confluent consumerf
-    @Test
-    void testAvroApicurioConfluentUsingContentId() throws Exception {
-        String topicName = TestUtils.generateTopic();
-        String subjectName = topicName + "-value";
-        kafkaCluster.createTopic(topicName, 1, 1);
-
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1", List.of("key1"));
-
-        createArtifact(null, subjectName, ArtifactType.AVRO, avroSchema.generateSchemaStream());
-
-        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(AvroKafkaSerializer.class)
-
-            //very important
-            .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-
-            .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
-            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withDeserializer(KafkaAvroDeserializer.class)
-            .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .build()
-            .test();
     }
 
 }

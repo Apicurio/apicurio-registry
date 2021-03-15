@@ -90,7 +90,7 @@ enum ValueType {
     SNAPSHOT = 4;
     STATE = 5;
     LOGCONFIG = 6;
-    GROUP = 8;
+    GROUP = 7;
 }
 
 message StorageValue {

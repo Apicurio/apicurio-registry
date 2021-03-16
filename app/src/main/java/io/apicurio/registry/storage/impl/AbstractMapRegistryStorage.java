@@ -1052,7 +1052,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
@@ -1092,7 +1092,7 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetadata(java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
      */
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {

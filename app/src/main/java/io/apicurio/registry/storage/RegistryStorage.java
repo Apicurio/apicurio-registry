@@ -23,6 +23,7 @@ import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;

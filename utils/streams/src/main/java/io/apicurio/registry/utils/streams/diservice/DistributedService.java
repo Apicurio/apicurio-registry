@@ -177,14 +177,14 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
             hostInfo,
             hInfo -> {
                 if (localApplicationServer.equals(hInfo)) {
-                    log.info("Obtaining local service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
+                    log.debug("Obtaining local service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
                     // use local store if host info is local host info
                     return localService(storeName, streams);
                 } else {
-                    log.info("Obtaining remote service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
+                    log.debug("Obtaining remote service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
                     // connect to remote for other host info(s)
                     Channel channel = grpcChannelProvider.apply(hInfo);
-                    log.info("   GRPC Channel created: {}", channel);
+                    log.debug("   GRPC Channel created: {}", channel);
                     S gclient = remoteServiceGrpcClient(storeName, channel, keySerde);
                     return gclient;
                 }

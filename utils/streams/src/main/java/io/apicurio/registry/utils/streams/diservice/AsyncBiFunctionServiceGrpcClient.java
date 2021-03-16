@@ -55,7 +55,7 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
         ByteString keyByteStr = keyBytes == null ? ByteString.EMPTY : ByteString.copyFrom(keyBytes);
         ByteString reqByteStr = reqBytes == null ? ByteString.EMPTY : ByteString.copyFrom(reqBytes);
 
-        logger.info("Performing call through GRPC for key: {}", key);
+        logger.debug("Performing call through GRPC for key: {}", key);
 
         BiFunctionReq reqProto = BiFunctionReq
             .newBuilder()
@@ -72,7 +72,7 @@ public class AsyncBiFunctionServiceGrpcClient<K, REQ, RES> implements AsyncBiFun
                 resProto -> {
                     final RES responseDeserialized = resSerde.deserializer()
                             .deserialize(serviceName, resProto.getRes().isEmpty() ? null : resProto.getRes().toByteArray());
-                    logger.info("Response received: {} from grpc call for key: {}", responseDeserialized, key);
+                    logger.debug("Response received: {} from grpc call for key: {}", responseDeserialized, key);
                     return responseDeserialized;
                 }
             );

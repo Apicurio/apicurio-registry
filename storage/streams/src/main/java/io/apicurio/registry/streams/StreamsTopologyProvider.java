@@ -667,13 +667,5 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             avb.putAllMetadata(contents);
             builder.addArtifacts(avb);
         }
-
-        private static Str.ArtifactData.Builder buildArtifactDataFromValue(Str.ArtifactValue artifactValue) {
-
-            return Str.ArtifactData.newBuilder()
-                    .setArtifactType(artifactValue.getArtifactType())
-                    .setId(artifactValue.getId())
-                    .putAllMetadata(artifactValue.getMetadataMap());
-        }
     }
 }

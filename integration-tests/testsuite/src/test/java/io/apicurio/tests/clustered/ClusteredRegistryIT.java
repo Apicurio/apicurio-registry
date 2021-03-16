@@ -1,23 +1,31 @@
-package io.apicurio.registry.cluster;
+/*
+ * Copyright 2021 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import static io.apicurio.registry.cluster.support.ClusterUtils.getClusterProperties;
+package io.apicurio.tests.clustered;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.cluster.support.ClusterUtils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -27,60 +35,30 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-import io.apicurio.registry.support.HealthResponse;
-import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioV2BaseIT;
+import io.apicurio.tests.common.Constants;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.quarkus.runtime.configuration.QuarkusConfigFactory;
-import io.smallrye.config.SmallRyeConfig;
 
 /**
- * @author Ales Justin
+ * @author Fabian Martinez
  */
-public class ClusterIT {
+@Tag(Constants.CLUSTERED)
+public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
 
     private final String groupId = getClass().getSimpleName();
 
-    @BeforeAll
-    public static void startCluster() throws Exception {
-        // hack around Quarkus core config factory ...
-        ClassLoader systemCL = new ClassLoader(null) {};
-        Config config = ConfigProviderResolver.instance().getConfig(systemCL);
-        QuarkusConfigFactory.setConfig((SmallRyeConfig) config);
-
-        ClusterUtils.startCluster();
-    }
-
-    @AfterAll
-    public static void stopCluster() {
-        ClusterUtils.stopCluster();
-    }
-
-    private void testReadiness(int port) throws Exception {
-        HealthUtils.assertHealthCheck(port, HealthUtils.Type.READY, HealthResponse.Status.UP);
-    }
-
-    @Test
-    public void testReadiness() throws Exception {
-        Properties properties = getClusterProperties();
-        Assumptions.assumeTrue(properties != null);
-
-        testReadiness(8080);
-        testReadiness(8081);
-    }
-
     @Test
     public void testSmoke() throws Exception {
-        Properties properties = getClusterProperties();
-        Assumptions.assumeTrue(properties != null);
 
-        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
-        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        int node2port = TestUtils.getRegistryPort() + 1;
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup("testSmoke");
@@ -146,11 +124,10 @@ public class ClusterIT {
 
     @Test
     public void testConfluent() throws Exception {
-        Properties properties = getClusterProperties();
-        Assumptions.assumeTrue(properties != null);
 
-        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:8080/apis/ccompat/v6", 3);
-        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:8081/apis/ccompat/v6", 3);
+        SchemaRegistryClient client1 = new CachedSchemaRegistryClient("http://localhost:" + TestUtils.getRegistryPort() + "/apis/ccompat/v6", 3);
+        int node2port = TestUtils.getRegistryPort() + 1;
+        SchemaRegistryClient client2 = new CachedSchemaRegistryClient("http://localhost:" + node2port + "/apis/ccompat/v6", 3);
 
         String subject = UUID.randomUUID().toString();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
@@ -172,11 +149,10 @@ public class ClusterIT {
 
     @Test
     public void testSearch() throws Exception {
-        Properties properties = getClusterProperties();
-        Assumptions.assumeTrue(properties != null);
 
-        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
-        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        int node2port = TestUtils.getRegistryPort() + 1;
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup(groupId);
@@ -218,14 +194,12 @@ public class ClusterIT {
         }
     }
 
-
     @Test
     public void testGetContentByGlobalId() throws Exception {
-        Properties properties = getClusterProperties();
-        Assumptions.assumeTrue(properties != null);
 
-        RegistryClient client1 = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
-        RegistryClient client2 = RegistryClientFactory.create("http://localhost:8081/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        int node2port = TestUtils.getRegistryPort() + 1;
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup(groupId);
@@ -264,4 +238,5 @@ public class ClusterIT {
             client1.deleteArtifact(groupId, thirdId);
         }
     }
+
 }

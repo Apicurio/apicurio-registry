@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,6 +48,8 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
+import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.utils.RegistryUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 
@@ -62,7 +65,16 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
     protected final RegistryClient registryClient = createRegistryClient();
 
     protected RegistryClient createRegistryClient() {
-        return RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
+
+            RegistryClient c1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+            int c2port = TestUtils.getRegistryPort() + 1;
+            RegistryClient c2 = RegistryClientFactory.create("http://localhost:" + c2port + "/apis/registry/v2");
+
+            return new LoadBalanceRegistryClient(Arrays.asList(c1, c2));
+        } else {
+            return RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        }
     }
 
     @BeforeAll

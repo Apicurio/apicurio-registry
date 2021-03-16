@@ -60,6 +60,8 @@ jobs:
         run: mvn verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - streams
         run: mvn verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - streams clustered
+        run: mvn verify -Pintegration-tests -Pclustered -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - sql
         run: mvn verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - infinispan

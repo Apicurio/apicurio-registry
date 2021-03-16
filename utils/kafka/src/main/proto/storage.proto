@@ -91,6 +91,7 @@ enum ValueType {
     STATE = 5;
     LOGCONFIG = 6;
     GROUP = 7;
+    ARTIFACT_DATA = 8;
 }
 
 message StorageValue {
@@ -105,8 +106,8 @@ message StorageValue {
         SnapshotValue snapshot = 8;
         ArtifactState state = 9;
         LogConfigValue logConfig = 10;
-        ContentValue content = 11;
-        GroupMetaDataValue group = 12;
+        GroupMetaDataValue group = 11;
+        ArtifactData artifactData = 12;
     }
 }
 

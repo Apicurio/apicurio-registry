@@ -92,17 +92,12 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                 TopicConfig.SEGMENT_BYTES_CONFIG, String.valueOf(64 * 1024 * 1024)
         );
 
-        // Input topic -- storage topic
-        // This is where we handle "http" requests
-        // Key is artifactId -- which is also used for KeyValue store key
-        KStream<Str.ArtifactKey, Str.StorageValue> storageRequest = builder.stream(
-                properties.getStorageTopic(),
-                Consumed.with(new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.StorageValue.parser()))
-        );
+        String storageStoreName = properties.getStorageStoreName();
+        String contentStoreName = properties.getContentStoreName();
+        String globalIdStoreName = properties.getGlobalIdStoreName();
 
         // Data structure holds all artifact information
         // Global rules are Data as well, with constant artifactId (GLOBAL_RULES variable)
-        String storageStoreName = properties.getStorageStoreName();
         StoreBuilder<KeyValueStore<Str.ArtifactKey /* artifactId */, Str.Data>> storageStoreBuilder =
                 Stores
                         .keyValueStoreBuilder(
@@ -112,10 +107,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         .withCachingEnabled()
                         .withLoggingEnabled(configuration);
 
-        builder.addStateStore(storageStoreBuilder);
-
-
-        String contentStoreName = properties.getContentStoreName();
         StoreBuilder<KeyValueStore<Long /* contentId */, Str.ContentValue>> contentStoreBuilder =
                 Stores
                         .keyValueStoreBuilder(
@@ -125,19 +116,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         .withCachingEnabled()
                         .withLoggingEnabled(configuration);
 
-        builder.addStateStore(contentStoreBuilder);
-
-        // We transform <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
-        KStream<Long, Str.TupleValue> globalRequest =
-                storageRequest.transform(
-                        () -> new StorageTransformer(properties, dataDispatcher, factory),
-                        storageStoreName, contentStoreName
-                ).through(
-                        properties.getGlobalIdTopic(),
-                        Produced.with(Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()))
-                );
-
-        String globalIdStoreName = properties.getGlobalIdStoreName();
         StoreBuilder<KeyValueStore<Long /* globalId */, Str.TupleValue>> globalIdStoreBuilder =
                 Stores
                         .keyValueStoreBuilder(
@@ -147,10 +125,32 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         .withCachingEnabled()
                         .withLoggingEnabled(configuration);
 
+        builder.addStateStore(storageStoreBuilder);
+        builder.addStateStore(contentStoreBuilder);
         builder.addStateStore(globalIdStoreBuilder);
 
+        // Input topic -- storage topic
+        // This is where we handle "http" requests
+        // Key is artifactId -- which is also used for KeyValue store key
+        KStream<Str.ArtifactKey, Str.StorageValue> contentRequest = builder.stream(
+                properties.getStorageTopic(),
+                Consumed.with(new ArtifactKeySerde(), ProtoSerde.parsedWith(Str.StorageValue.parser()))
+        );
+
+        // We transform <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
+        KStream<Long, Str.TupleValue> storageRequest = contentRequest
+                .transform(
+                        () -> new ContentTransformer(properties, factory), contentStoreName)
+                .transform(
+                        () -> new StorageTransformer(properties, dataDispatcher), storageStoreName
+                ).through(
+                        properties.getGlobalIdTopic(),
+                        Produced.with(Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()))
+                );
+
+
         // Just handle globalId mapping -- put or delete
-        globalRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
+        storageRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
 
         return builder.build(properties.getProperties());
     }
@@ -180,6 +180,135 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
         }
     }
 
+    private static class ContentTransformer implements Transformer<Str.ArtifactKey, Str.StorageValue, KeyValue<Str.ArtifactKey, Str.StorageValue>> {
+        private static final Logger log = LoggerFactory.getLogger(StreamsTopologyProvider.ContentTransformer.class);
+
+        private final StreamsProperties properties;
+
+        private ProcessorContext context;
+        private KeyValueStore<Long, Str.ContentValue> contentStore;
+        private ArtifactTypeUtilProviderFactory factory;
+
+        public ContentTransformer(
+                StreamsProperties properties,
+                ArtifactTypeUtilProviderFactory factory
+        ) {
+            this.properties = properties;
+            this.factory = factory;
+        }
+
+        @Override
+        public void init(ProcessorContext context) {
+            this.context = context;
+            //noinspection unchecked
+            contentStore = (KeyValueStore<Long, Str.ContentValue>) context.getStateStore(properties.getContentStoreName());
+        }
+
+        @Override
+        public KeyValue<Str.ArtifactKey, Str.StorageValue> transform(Str.ArtifactKey artifactKey, Str.StorageValue value) {
+
+            long offset = context.offset();
+            // should be unique enough
+            long globalId = properties.toGlobalId(offset, context.partition());
+
+            Str.ActionType action = value.getType();
+            switch (action) {
+                case CREATE:
+                case UPDATE:
+                    if (value.getVt() != Str.ValueType.ARTIFACT) {
+                        return new KeyValue<>(artifactKey, value);
+                    } else {
+                        return handleContent(artifactKey, value, globalId);
+                    }
+                case DELETE:
+                    if (value.getVt() == Str.ValueType.ARTIFACT) {
+                        value = Str.StorageValue.newBuilder(value)
+                                .setVt(Str.ValueType.ARTIFACT_DATA)
+                                .build();
+                    }
+                    return new KeyValue<>(artifactKey, value);
+                default:
+                    return null; // just skip?
+            }
+        }
+
+        @Override
+        public void close() {
+        }
+
+        private KeyValue<Str.ArtifactKey, Str.StorageValue> handleContent(Str.ArtifactKey key, Str.StorageValue value, long globalId) {
+
+            final Str.ArtifactValue artifactValue = value.getArtifact();
+            final ArtifactType type = ArtifactType.values()[artifactValue.getArtifactType()];
+
+            final long contentId = insertContentOrReturnId(artifactValue.getContent().toByteArray(), type, globalId);
+
+            final Str.ArtifactData artifactData = Str.ArtifactData.newBuilder()
+                    .setContentId(contentId)
+                    .setArtifactType(artifactValue.getArtifactType())
+                    .putAllMetadata(artifactValue.getMetadataMap())
+                    .build();
+
+            final Str.StorageValue storageValue = Str.StorageValue.newBuilder()
+                    .setType(value.getType())
+                    .setKey(key)
+                    .setArtifactData(artifactData)
+                    .setVt(Str.ValueType.ARTIFACT_DATA)
+                    .build();
+
+            return new KeyValue<>(key, storageValue);
+        }
+
+        private long insertContentOrReturnId(byte[] content, ArtifactType artifactType, long globalId) {
+
+            final String candidateHash = DigestUtils.sha256Hex(content);
+
+            final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
+            while (keyValueIterator.hasNext()) {
+                KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
+                if (candidateHash.equals(keyValue.value.getContentHash())) {
+                    return keyValue.key;
+                }
+            }
+            return createContent(globalId, artifactType, content, candidateHash);
+        }
+
+        private Long createContent(long globalId, ArtifactType artifactType, byte[] content, String contentHash) {
+
+            final ContentHandle canonicalContent = canonicalizeContent(artifactType, ContentHandle.create(content));
+            final byte[] canonicalContentBytes = canonicalContent.bytes();
+            final String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+
+            final Str.ContentValue contentValue = Str.ContentValue.newBuilder()
+                    .setContent(ByteString.copyFrom(content))
+                    .setContentHash(contentHash)
+                    .setCanonicalHash(canonicalContentHash)
+                    .setId(globalId)
+                    .build();
+
+            contentStore.put(globalId, contentValue);
+
+            return contentValue.getId();
+        }
+
+        /**
+         * Canonicalize the given content, returns the content unchanged in the case of an error.
+         *
+         * @param artifactType
+         * @param content
+         */
+        private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+            try {
+                ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+                ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+                return canonicalizer.canonicalize(content);
+            } catch (Exception e) {
+                log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+                return content;
+            }
+        }
+    }
+
     private static class StorageTransformer implements Transformer<Str.ArtifactKey, Str.StorageValue, KeyValue<Long, Str.TupleValue>> {
         private static final Logger log = LoggerFactory.getLogger(StorageTransformer.class);
 
@@ -188,18 +317,13 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         private ProcessorContext context;
         private KeyValueStore<Str.ArtifactKey, Str.Data> dataStore;
-        private KeyValueStore<Long, Str.ContentValue> contentStore;
-        private ArtifactTypeUtilProviderFactory factory;
-
 
         public StorageTransformer(
                 StreamsProperties properties,
-                ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dispatcher,
-                ArtifactTypeUtilProviderFactory factory
+                ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dispatcher
         ) {
             this.properties = properties;
             this.dispatcher = dispatcher;
-            this.factory = factory;
         }
 
         @Override
@@ -207,8 +331,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             this.context = context;
             //noinspection unchecked
             dataStore = (KeyValueStore<Str.ArtifactKey, Str.Data>) context.getStateStore(properties.getStorageStoreName());
-            //noinspection unchecked
-            contentStore = (KeyValueStore<Long, Str.ContentValue>) context.getStateStore(properties.getContentStoreName());
         }
 
         @Override
@@ -258,7 +380,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
             Str.ValueType vt = value.getVt();
             switch (vt) {
-                case ARTIFACT:
+                case ARTIFACT_DATA:
                     return consumeArtifact(aggregate, value, type, key, version, globalId, offset);
                 case METADATA:
                     return consumeMetaData(aggregate, value, type, key, version, offset);
@@ -477,7 +599,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         private Str.Data consumeArtifact(Str.Data data, Str.StorageValue rv, Str.ActionType type, Str.ArtifactKey key, long version, long globalId, long offset) {
             Str.Data.Builder builder = Str.Data.newBuilder(data).setLastProcessedOffset(offset);
-            Str.ArtifactValue artifact = rv.getArtifact();
+            Str.ArtifactData artifact = rv.getArtifactData();
             if (type == Str.ActionType.CREATE || type == Str.ActionType.UPDATE) {
                 createOrUpdateArtifact(builder, key, globalId, artifact, type == Str.ActionType.CREATE);
             } else if (type == Str.ActionType.DELETE) {
@@ -495,7 +617,7 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             return builder.build();
         }
 
-        private void createOrUpdateArtifact(Str.Data.Builder builder, Str.ArtifactKey key, long globalId, Str.ArtifactValue artifact, boolean create) {
+        private void createOrUpdateArtifact(Str.Data.Builder builder, Str.ArtifactKey key, long globalId, Str.ArtifactData artifact, boolean create) {
             builder.setKey(key);
 
             int count = builder.getArtifactsCount();
@@ -510,15 +632,12 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
             ArtifactType type = ArtifactType.values()[artifact.getArtifactType()];
 
-            final long contentId = insertContentOrReturnId(artifact.getContent().toByteArray(), type, globalId);
-
-            Str.ArtifactData.Builder avb = buildArtifactDataFromValue(artifact);
+            Str.ArtifactData.Builder avb = Str.ArtifactData.newBuilder(artifact);
             avb.setId(globalId);
-            avb.setContentId(contentId);
+            avb.setContentId(artifact.getContentId());
 
             // +1 on version
             int version = builder.getArtifactsCount() + 1;
-
 
             Map<String, String> contents = new HashMap<>();
             contents.put(MetaDataKeys.GROUP_ID, key.getGroupId());
@@ -555,55 +674,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                     .setArtifactType(artifactValue.getArtifactType())
                     .setId(artifactValue.getId())
                     .putAllMetadata(artifactValue.getMetadataMap());
-        }
-
-        private long insertContentOrReturnId(byte[] content, ArtifactType artifactType, long globalId) {
-
-            final String candidateHash = DigestUtils.sha256Hex(content);
-
-            final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
-            while (keyValueIterator.hasNext()) {
-                KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
-                if (candidateHash.equals(keyValue.value.getContentHash())) {
-                    return keyValue.key;
-                }
-            }
-            return createContent(globalId, artifactType, content, candidateHash);
-        }
-
-        private Long createContent(long globalId, ArtifactType artifactType, byte[] content, String contentHash) {
-
-            final ContentHandle canonicalContent = canonicalizeContent(artifactType, ContentHandle.create(content));
-            final byte[] canonicalContentBytes = canonicalContent.bytes();
-            final String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-
-            final Str.ContentValue contentValue = Str.ContentValue.newBuilder()
-                    .setContent(ByteString.copyFrom(content))
-                    .setContentHash(contentHash)
-                    .setCanonicalHash(canonicalContentHash)
-                    .setId(globalId)
-                    .build();
-
-            contentStore.put(globalId, contentValue);
-
-            return contentValue.getId();
-        }
-
-        /**
-         * Canonicalize the given content, returns the content unchanged in the case of an error.
-         *
-         * @param artifactType
-         * @param content
-         */
-        private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
-            try {
-                ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-                ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-                return canonicalizer.canonicalize(content);
-            } catch (Exception e) {
-                log.debug("Failed to canonicalize content of type: {}", artifactType.name());
-                return content;
-            }
         }
     }
 }

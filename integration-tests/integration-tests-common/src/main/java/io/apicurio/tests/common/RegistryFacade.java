@@ -62,7 +62,7 @@ public class RegistryFacade {
 
     private KeycloakContainer keycloakContainer;
 
-    private String tenantManagerUrl = "http://localhost:8080";
+    private String tenantManagerUrl = "http://localhost:8585";
 
     private static RegistryFacade instance;
 
@@ -182,8 +182,6 @@ public class RegistryFacade {
             } catch (Throwable e) {
                 throw new Exception(e);
             }
-
-
         } else {
             TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
@@ -193,7 +191,7 @@ public class RegistryFacade {
 
             if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                 TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
-                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8080, "Tenant Manager"));
+                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
 
                 TestUtils.waitFor("Tenant Manager reports is ready",
                         Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
@@ -272,7 +270,6 @@ public class RegistryFacade {
                 cmd.add("java");
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=8080",
                         "-Dquarkus.log.console.level=DEBUG",
                         "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));

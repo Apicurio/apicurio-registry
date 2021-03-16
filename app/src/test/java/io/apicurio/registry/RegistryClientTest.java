@@ -702,26 +702,23 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         });
     }
 
-    //TODO commented out since search by content hasn't been implemented yet.
-    /*
-        @Test
-        public void searchArtifactsByContent() {
-            //Preparation
-            final String groupId = "deleteArtifactsInGroup";
-            final String firstArtifactId = generateArtifactId();
-            final String secondArtifactId = generateArtifactId();
+    @Test
+    public void searchArtifactsByContent() throws Exception {
+        //Preparation
+        final String groupId = "searchArtifactsByContent";
+        final String firstArtifactId = generateArtifactId();
+        final String secondArtifactId = generateArtifactId();
 
-            createArtifact(groupId, firstArtifactId);
-            createArtifact(groupId, secondArtifactId);
+        String content = "{\"name\":\"" + TestUtils.generateSubject() + "\"}";
+        createArtifact(groupId, firstArtifactId, ArtifactType.AVRO, content);
+        createArtifact(groupId, secondArtifactId, ArtifactType.AVRO, content);
 
-            //Execution
-            final ArtifactSearchResults searchResults = clientV2.searchArtifactsByContent(IoUtil.toStream(ARTIFACT_CONTENT), null, null, null, null);
+        //Execution
+        final ArtifactSearchResults searchResults = clientV2.searchArtifactsByContent(IoUtil.toStream(content), null, null, null, null);
 
-            //Assertions
-            assertEquals(2, searchResults.getCount());
-        }
-    */
-
+        //Assertions
+        assertEquals(2, searchResults.getCount());
+    }
 
     @Test
     public void smokeGlobalRules() throws Exception {

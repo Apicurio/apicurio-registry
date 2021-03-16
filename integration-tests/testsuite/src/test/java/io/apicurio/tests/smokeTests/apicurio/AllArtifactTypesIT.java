@@ -65,7 +65,6 @@ class AllArtifactTypesIT extends ApicurioV2BaseIT {
         TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("This is not valid content")), errorCodeExtractor);
 
         // Update artifact (valid v2 content)
-        //TODO old tests used update artifact instead of create new version, is still ok?
         createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
 
         // Find artifact by content

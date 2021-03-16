@@ -2,7 +2,7 @@
 set -e -a
 
 E2E_APICURIO_PROJECT_DIR=$(pwd)
-# BUNDLE_URL=$(pwd)/apicurio-registry-k8s-tests-e2e/apicurio-registry-operator/docs/resources/install.yaml
+E2E_APICURIO_TESTS_PROFILE=acceptance
 
 git clone https://github.com/Apicurio/apicurio-registry-k8s-tests-e2e.git
 
@@ -10,13 +10,7 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/install_kind.sh
 
-# make run-apicurio-ci
-
-E2E_EXTRA_MAVEN_ARGS=-Dit.test=RulesResourceIT#testRulesDeletedWithArtifact
-E2E_APICURIO_TESTS_PROFILE=acceptance
-KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
-make run-apicurio-base-ci
-make run-clustered-tests
+make run-apicurio-ci
 
 popd
 

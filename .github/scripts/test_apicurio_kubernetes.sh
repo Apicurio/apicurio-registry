@@ -9,9 +9,15 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/install_kind.sh
 
-KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
-make run-apicurio-base-ci
-make run-apicurio-tests-with-clustered-tests
+if [ "$E2E_APICURIO_TESTS_PROFILE" == "clustered" ]
+then
+    E2E_APICURIO_TESTS_PROFILE=acceptance
+    KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
+    make run-apicurio-base-ci
+    make run-clustered-tests
+else
+    make run-apicurio-ci
+fi
 
 popd
 

@@ -57,7 +57,7 @@ public class ArtifactStateExt {
         return ArtifactState.valueOf(getStateRaw(context));
     }
 
-    public static void validateState(EnumSet<ArtifactState> states, ArtifactState state, String groupId, String artifactId, Number version) {
+    public static void validateState(EnumSet<ArtifactState> states, ArtifactState state, String groupId, String artifactId, String version) {
         if (states != null && states.contains(state) == false) {
             throw new InvalidArtifactStateException(groupId, artifactId, version, state);
         }

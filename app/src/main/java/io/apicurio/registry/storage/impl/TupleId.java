@@ -27,14 +27,16 @@ public class TupleId implements Serializable {
 
     private String groupId;
     private String id;
-    private Long version;
+    private String version;
+    private Long versionId;
 
-    public TupleId(String groupId, String id, Long version) {
+    public TupleId(String groupId, String id, String version, Long versionId) {
         this.groupId = groupId;
         this.id = id;
         this.version = version;
+        this.versionId = versionId;
     }
-    
+
     public String getGroupId() {
         return groupId;
     }
@@ -43,8 +45,12 @@ public class TupleId implements Serializable {
         return id;
     }
 
-    public Long getVersion() {
+    public String getVersion() {
         return version;
+    }
+
+    public Long getVersionId() {
+        return versionId;
     }
 
     /**
@@ -52,7 +58,7 @@ public class TupleId implements Serializable {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(groupId, id, version);
+        return Objects.hash(groupId, id, version, versionId);
     }
 
     /**
@@ -68,7 +74,7 @@ public class TupleId implements Serializable {
             return false;
         TupleId other = (TupleId) obj;
         return Objects.equals(groupId, other.groupId) && Objects.equals(id, other.id)
-                && Objects.equals(version, other.version);
+                && Objects.equals(version, other.version) && Objects.equals(versionId, other.versionId);
     }
-    
+
 }

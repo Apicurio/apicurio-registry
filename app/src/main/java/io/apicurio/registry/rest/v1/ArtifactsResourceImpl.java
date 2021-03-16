@@ -35,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -84,6 +85,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
+import io.apicurio.registry.util.VersionUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 
 /**
@@ -219,7 +221,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return updateArtifactInternal(artifactId, artifactType, content, ct);
     }
 
-    public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {
+    public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
@@ -249,11 +251,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         Objects.requireNonNull(artifactId);
         Objects.requireNonNull(data.getState());
         Objects.requireNonNull(version);
-        Long v = null;
-        if (version != null) {
-            v = version.longValue();
-        }
-        storage.updateArtifactState(null, artifactId, v, data.getState());
+
+        storage.updateArtifactState(null, artifactId, VersionUtil.toString(version), data.getState());
     }
 
     /**
@@ -305,7 +304,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            return storage.createArtifact(null, artifactId, artifactType, content)
+            return storage.createArtifact(null, artifactId, null, artifactType, content)
                     .exceptionally(t -> {
                         if (t instanceof CompletionException) {
                             t = t.getCause();
@@ -361,7 +360,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(null, artifactId, artifactType, content)
+        return storage.updateArtifact(null, artifactId, null, artifactType, content)
             .thenApply(dto -> V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto));
     }
 
@@ -390,8 +389,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        SortedSet<Long> versions = storage.getArtifactVersions(null, artifactId);
-        return new ArrayList<>(versions);
+        SortedSet<String> versions = storage.getArtifactVersions(null, artifactId);
+        return versions.stream().map(vstr -> VersionUtil.toLong(vstr)).collect(Collectors.toList());
     }
 
     /**
@@ -411,7 +410,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(null, artifactId, artifactType, content)
+        return storage.updateArtifact(null, artifactId, null, artifactType, content)
                 .thenApply(amd -> V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
     }
 
@@ -420,11 +419,12 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public Response getArtifactVersion(Integer version, String artifactId) {
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(null, artifactId, version);
+        String sversion = VersionUtil.toString(version);
+        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(null, artifactId, sversion);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
-            throw new VersionNotFoundException(null, artifactId, version);
+            throw new VersionNotFoundException(null, artifactId, sversion);
         }
-        StoredArtifactDto artifact = storage.getArtifactVersion(null, artifactId, version);
+        StoredArtifactDto artifact = storage.getArtifactVersion(null, artifactId, sversion);
 
         // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
         MediaType contentType = ArtifactMediaTypes.JSON;
@@ -439,7 +439,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
-        checkIfDeprecated(metaData::getState, artifactId, version, builder);
+        checkIfDeprecated(metaData::getState, artifactId, sversion, builder);
         return builder.build();
     }
 
@@ -551,7 +551,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(Integer version, String artifactId) {
-        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, version);
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, artifactId, VersionUtil.toString(version));
         return V1ApiUtil.dtoToVersionMetaData(artifactId, dto.getType(), dto);
     }
 
@@ -565,7 +565,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
-        storage.updateArtifactVersionMetaData(null, artifactId, version.longValue(), dto);
+        storage.updateArtifactVersionMetaData(null, artifactId, VersionUtil.toString(version), dto);
     }
 
     /**
@@ -573,6 +573,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public void deleteArtifactVersionMetaData(Integer version, String artifactId) {
-        storage.deleteArtifactVersionMetaData(null, artifactId, version);
+        storage.deleteArtifactVersionMetaData(null, artifactId, VersionUtil.toString(version));
     }
 }

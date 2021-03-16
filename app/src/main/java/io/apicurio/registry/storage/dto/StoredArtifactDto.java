@@ -25,7 +25,7 @@ import lombok.Value;
  */
 @Value
 @Builder
-public class StoredArtifactDto { // TODO rename this to ArtifactVersion
+public class StoredArtifactDto {
 
     private Long globalId;
 

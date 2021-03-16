@@ -41,6 +41,7 @@ public class MetaDataKeys {
     public static String CANONICAL_HASH = "canonical_hash";
     public static String GLOBAL_ID = "global_id";
     public static String VERSION = "version";
+    public static String VERSION_ID = "version_id";
     public static String NAME = "name";
     public static String TYPE = "type";
     public static String DESCRIPTION = "description";
@@ -72,7 +73,7 @@ public class MetaDataKeys {
     // Internal
 
     public static String DELETED = "_deleted";
-    
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // Helpers
@@ -86,7 +87,7 @@ public class MetaDataKeys {
 
         String createdOn = content.get(CREATED_ON);
         String modifiedOn = content.get(MODIFIED_ON);
-        
+
         dto.setCreatedBy(content.get(CREATED_BY));
         if (createdOn != null) {
             dto.setCreatedOn(Long.parseLong(createdOn)); // TODO discuss
@@ -98,7 +99,8 @@ public class MetaDataKeys {
         dto.setDescription(content.get(DESCRIPTION));
         dto.setName(content.get(NAME));
         dto.setType(ArtifactType.fromValue(content.get(TYPE))); // TODO null check
-        dto.setVersion(Integer.parseInt(content.get(VERSION)));
+        dto.setVersion(content.get(VERSION));
+        dto.setVersionId(Integer.parseInt(content.get(VERSION_ID)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         dto.setState(ArtifactStateExt.getState(content));
         if (content.get(LABELS) != null) {
@@ -125,7 +127,8 @@ public class MetaDataKeys {
         dto.setDescription(content.get(DESCRIPTION));
         dto.setName(content.get(NAME));
         dto.setType(ArtifactType.fromValue(content.get(TYPE)));
-        dto.setVersion(Integer.parseInt(content.get(VERSION)));
+        dto.setVersion(content.get(VERSION));
+        dto.setVersionId(Integer.parseInt(content.get(VERSION_ID)));
         dto.setGlobalId(Long.parseLong(content.get(GLOBAL_ID)));
         dto.setState(ArtifactStateExt.getState(content));
         if (content.get(LABELS) != null) {

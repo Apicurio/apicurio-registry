@@ -30,6 +30,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.util.VersionUtil;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -62,7 +63,7 @@ public final class V1ApiUtil {
         } else {
             metaData.setType(dto.getType());
         }
-        metaData.setVersion((int) dto.getVersion());
+        metaData.setVersion(VersionUtil.toInteger(dto.getVersion()));
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
@@ -85,7 +86,7 @@ public final class V1ApiUtil {
         } else {
             metaData.setType(dto.getType());
         }
-        metaData.setVersion((int) dto.getVersion());
+        metaData.setVersion(VersionUtil.toInteger(dto.getVersion()));
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
@@ -110,7 +111,7 @@ public final class V1ApiUtil {
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
-        metaData.setVersion((int) dto.getVersion());
+        metaData.setVersion(VersionUtil.toInteger(dto.getVersion()));
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
@@ -158,7 +159,7 @@ public final class V1ApiUtil {
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
-        metaData.setVersion((int) dto.getVersion());
+        metaData.setVersion(VersionUtil.toInteger(dto.getVersion()));
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
@@ -224,7 +225,7 @@ public final class V1ApiUtil {
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setType(version.getType());
-            sv.setVersion(version.getVersion());
+            sv.setVersion(VersionUtil.toLong(version.getVersion()));
             results.getVersions().add(sv);
         });
         return results;

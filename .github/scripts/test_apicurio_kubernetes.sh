@@ -2,7 +2,6 @@
 set -e -a
 
 E2E_APICURIO_PROJECT_DIR=$(pwd)
-E2E_APICURIO_TESTS_PROFILE=acceptance
 
 git clone https://github.com/Apicurio/apicurio-registry-k8s-tests-e2e.git
 
@@ -10,7 +9,9 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/install_kind.sh
 
-make run-apicurio-ci
+KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
+make run-apicurio-base-ci
+make run-apicurio-tests-with-clustered-tests
 
 popd
 

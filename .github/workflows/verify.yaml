@@ -108,7 +108,7 @@ jobs:
           mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
 
       - name: Kubernetes Tests
-        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" ./.github/scripts/test_apicurio_kubernetes.sh
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()

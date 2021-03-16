@@ -43,12 +43,20 @@ public class InMemoryRegistryStorage extends SimpleMapRegistryStorage {
 
     private AtomicLong globalIdCounter = new AtomicLong(1);
     private AtomicLong contentIdCounter = new AtomicLong(1);
-    
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     */
+    @Override
+    public String storageName() {
+        return "in-memory";
+    }
+
     @Override
     protected long nextGlobalId() {
         return globalIdCounter.getAndIncrement();
     }
-    
+
     @Override
     protected long nextContentId() {
         return contentIdCounter.getAndIncrement();

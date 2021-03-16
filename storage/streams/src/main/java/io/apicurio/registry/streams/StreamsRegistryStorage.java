@@ -23,7 +23,6 @@ import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -176,6 +175,22 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     */
+    @Override
+    public String storageName() {
+        return "streams";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     */
+    @Override
+    public boolean supportsMultiTenancy() {
+        return false;
+    }
 
     private final Submitter<RecordMetadata> submitter = new Submitter<>(this::send);
 
@@ -1150,11 +1165,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         } else {
             return Collections.emptyList();
         }
-    }
-
-    @Override
-    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
-        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 
     /**

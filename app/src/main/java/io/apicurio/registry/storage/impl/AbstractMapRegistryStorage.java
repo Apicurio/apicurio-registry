@@ -23,7 +23,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
-import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -458,6 +457,14 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
 
         ArtifactKey akey = new ArtifactKey(groupId, artifactId);
         ArtifactStateExt.applyState(s -> storage.put(akey, fVersion, MetaDataKeys.STATE, s.name()), content, state);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     */
+    @Override
+    public boolean supportsMultiTenancy() {
+        return false;
     }
 
     /**
@@ -1003,14 +1010,6 @@ public abstract class AbstractMapRegistryStorage extends AbstractRegistryStorage
         if (prevValue == null) {
             throw new RuleNotFoundException(rule);
         }
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(java.lang.String)
-     */
-    @Override
-    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
-        throw new UnsupportedOperationException("Multitenancy not supported");
     }
 
     @Override

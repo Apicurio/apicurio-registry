@@ -341,11 +341,6 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
-     * A statement to select tenants metadata by tenantId
-     */
-    public String selectTenantMetadataByTenantId();
-
-    /**
      * A statement to select the bytes of a content row by contentHash
      */
     public String selectContentByContentHash();

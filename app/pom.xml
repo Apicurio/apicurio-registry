@@ -34,6 +34,11 @@
             <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+        </dependency>
+
         <!-- Quarkus Dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>

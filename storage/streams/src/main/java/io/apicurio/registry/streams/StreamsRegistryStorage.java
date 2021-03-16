@@ -141,9 +141,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     /* Fake logging configuration as an artifact */
     public static final String LOGGING_CONFIGURATION_ID = "__LOGGING_CONFIGURATION__";
 
-    /* Fake content as an artifact*/
-    public static final String CONTENT_ID = "__CONTENT_ID__";
-
     /* Fake group metadata as an artifact */
     public static final String GROUP_METADATA_ID = "__GROUP_METADATA__";
 
@@ -185,9 +182,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     private CompletableFuture<RecordMetadata> send(Str.StorageValue value) {
         ProducerRecord<Str.ArtifactKey, Str.StorageValue> record = new ProducerRecord<>(
-                properties.getStorageTopic(),
-                value.getKey(), // MUST be set
-                value
+            properties.getStorageTopic(),
+            value.getKey(), // MUST be set
+            value
         );
         return storageProducer.apply(record);
     }
@@ -297,9 +294,9 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
 
         if (null != filtersMap.get("everything")) {
-            if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
-                return true;
-            }
+                if (metaDataContainsFilter(filtersMap.get("everything"), metadata.values())) {
+                    return true;
+                }
         }
 
         for (String key : filtersMap.keySet()) {
@@ -342,20 +339,20 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     private void updateArtifactState(Str.Data data, Long version, ArtifactState state) {
         Str.ArtifactKey key = data.getKey();
         ArtifactState current = handleVersion(
-                key,
-                version,
-                null,
-                av -> ArtifactStateExt.getState(av.getMetadataMap())
+            key,
+            version,
+            null,
+            av -> ArtifactStateExt.getState(av.getMetadataMap())
         );
 
         ArtifactStateExt.applyState(
-                s -> ConcurrentUtil.get(
-                        submitter.submitState(data.getKey(),
-                                version,
-                                state)
-                ),
-                current,
-                state
+            s -> ConcurrentUtil.get(
+                submitter.submitState(data.getKey(),
+                                      version,
+                                      state)
+            ),
+            current,
+            state
         );
     }
 
@@ -392,8 +389,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         }
         // then check all
         return stateFunction.apply()
-                .map(ConcurrentUtil::result)
-                .allMatch(s -> s == KafkaStreams.State.RUNNING);
+            .map(ConcurrentUtil::result)
+            .allMatch(s -> s == KafkaStreams.State.RUNNING);
     }
 
     @Override
@@ -491,8 +488,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
         return createArtifact(groupId, artifactId, artifactType, content)
-                .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                        .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
     }
 
     @Override
@@ -609,8 +606,8 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final Str.ArtifactKey key = buildKey(groupId, artifactId);
 
         return updateArtifact(groupId, artifactId, artifactType, content)
-                .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
-                        .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
+            .thenCompose(amdd -> submitter.submitMetadata(Str.ActionType.UPDATE, key, -1, metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties())
+                .thenApply(v -> DtoUtil.setEditableMetaDataInArtifact(amdd, metaData)));
     }
 
 
@@ -665,14 +662,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
         final LongAdder itemsCount = new LongAdder();
 
         final List<SearchedArtifactDto> matchedArtifacts = storageStore.filter(filtersMap)
-                .peek((kv) -> itemsCount.increment())
-                .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
-                .filter(Objects::nonNull)
-                .sorted((art1, art2) -> SearchUtil.compare(orderBy, orderDirection, art1, art2))
-                .skip(offset)
-                .limit(limit)
-                .map(SearchUtil::buildSearchedArtifact)
-                .collect(Collectors.toList());
+            .peek((kv) -> itemsCount.increment())
+            .map(kv -> getArtifactMetaDataOrNull(kv.key.getGroupId(), kv.key.getArtifactId()))
+            .filter(Objects::nonNull)
+            .sorted((art1, art2) -> SearchUtil.compare(orderBy, orderDirection, art1, art2))
+            .skip(offset)
+            .limit(limit)
+            .map(SearchUtil::buildSearchedArtifact)
+            .collect(Collectors.toList());
 
         final ArtifactSearchResultsDto artifactSearchResults = new ArtifactSearchResultsDto();
         artifactSearchResults.setArtifacts(matchedArtifacts);
@@ -889,11 +886,11 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             return data.getRulesList()
-                    .stream()
-                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                    .findFirst()
-                    .map(r -> new RuleConfigurationDto(r.getConfiguration()))
-                    .orElseThrow(() -> new RuleNotFoundException(rule));
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .map(r -> new RuleConfigurationDto(r.getConfiguration()))
+                .orElseThrow(() -> new RuleNotFoundException(rule));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
         } else {
@@ -910,10 +907,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             data.getRulesList()
-                    .stream()
-                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                    .findFirst()
-                    .orElseThrow(() -> new RuleNotFoundException(rule));
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.UPDATE, key, rule, config.getConfiguration()));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
@@ -931,10 +928,10 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
         if (data != null) {
             data.getRulesList()
-                    .stream()
-                    .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
-                    .findFirst()
-                    .orElseThrow(() -> new RuleNotFoundException(rule));
+                .stream()
+                .filter(v -> RuleType.fromValue(v.getType().name()) == rule)
+                .findFirst()
+                .orElseThrow(() -> new RuleNotFoundException(rule));
             ConcurrentUtil.get(submitter.submitRule(Str.ActionType.DELETE, key, rule, null));
         } else if (isGlobalRules(groupId, artifactId)) {
             throw new RuleNotFoundException(rule);
@@ -1061,7 +1058,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleNotFoundException, RegistryStorageException {
-        updateArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID, rule, config);
+        updateArtifactRule(GLOBAL_RULES_GROUP_ID, GLOBAL_RULES_ID,  rule, config);
     }
 
     @Override

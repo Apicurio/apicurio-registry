@@ -136,7 +136,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public static final String GLOBAL_RULES_GROUP_ID = "__GLOBAL_RULES__";
 
     /* Fake groupId for legacy artifacts*/
-    public static final String LEGACY_GROUP_ID = "legacy";
+    public static final String LEGACY_GROUP_ID = "null";
 
     /* Fake logging configuration as an artifact */
     public static final String LOGGING_CONFIGURATION_ID = "__LOGGING_CONFIGURATION__";
@@ -552,16 +552,14 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
 
-        //Think about this, we're getting  the content twice
-        try (Stream<Long> stream = contentStore.allKeys()) {
-            return ContentHandle.create(stream
-                    .filter(contentId -> contentStore.get(contentId).getContentHash().equals(contentHash))
-                    .map(contentStore::get)
-                    .findFirst()
-                    .orElseThrow(() -> new ContentNotFoundException(contentHash))
-                    .getContent()
-                    .toByteArray());
+        final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
+        while (keyValueIterator.hasNext()) {
+            KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
+            if (contentHash.equals(keyValue.value.getContentHash())) {
+                return ContentHandle.create(keyValue.value.getContent().toByteArray());
+            }
         }
+        throw new ContentNotFoundException(contentHash);
     }
 
     @Override
@@ -699,7 +697,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private long getIdFromContentHash(String candidateHash) {
-        //Think about this, we're getting  the content twice
         final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
         while (keyValueIterator.hasNext()) {
             KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();
@@ -711,7 +708,6 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     }
 
     private long getIdFromCanonicalHash(String canonicalHash) {
-        //Think about this, we're getting  the content twice
         final KeyValueIterator<Long, Str.ContentValue> keyValueIterator = contentStore.all();
         while (keyValueIterator.hasNext()) {
             KeyValue<Long, Str.ContentValue> keyValue = keyValueIterator.next();

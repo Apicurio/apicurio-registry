@@ -114,11 +114,24 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         builder.addStateStore(storageStoreBuilder);
 
+
+        String contentStoreName = properties.getContentStoreName();
+        StoreBuilder<KeyValueStore<Long /* contentId */, Str.ContentValue>> contentStoreBuilder =
+                Stores
+                        .keyValueStoreBuilder(
+                                Stores.inMemoryKeyValueStore(contentStoreName),
+                                Serdes.Long(), ProtoSerde.parsedWith(Str.ContentValue.parser())
+                        )
+                        .withCachingEnabled()
+                        .withLoggingEnabled(configuration);
+
+        builder.addStateStore(contentStoreBuilder);
+
         // We transform <artifactId, Data> into simple mapping <globalId, <artifactId, version>>
         KStream<Long, Str.TupleValue> globalRequest =
                 storageRequest.transform(
                         () -> new StorageTransformer(properties, dataDispatcher, factory),
-                        storageStoreName
+                        storageStoreName, contentStoreName
                 ).through(
                         properties.getGlobalIdTopic(),
                         Produced.with(Serdes.Long(), ProtoSerde.parsedWith(Str.TupleValue.parser()))
@@ -135,18 +148,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
                         .withLoggingEnabled(configuration);
 
         builder.addStateStore(globalIdStoreBuilder);
-
-        String contentStoreName = properties.getContentStoreName();
-        StoreBuilder<KeyValueStore<Long /* contentId */, Str.ContentValue>> contentStoreBuilder =
-                Stores
-                        .keyValueStoreBuilder(
-                                Stores.inMemoryKeyValueStore(contentStoreName),
-                                Serdes.Long(), ProtoSerde.parsedWith(Str.ContentValue.parser())
-                        )
-                        .withCachingEnabled()
-                        .withLoggingEnabled(configuration);
-
-        builder.addStateStore(contentStoreBuilder);
 
         // Just handle globalId mapping -- put or delete
         globalRequest.process(() -> new GlobalIdProcessor(globalIdStoreName), globalIdStoreName);
@@ -187,7 +188,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
 
         private ProcessorContext context;
         private KeyValueStore<Str.ArtifactKey, Str.Data> dataStore;
-        private KeyValueStore<Long, Str.TupleValue> idStore;
         private KeyValueStore<Long, Str.ContentValue> contentStore;
         private ArtifactTypeUtilProviderFactory factory;
 
@@ -207,8 +207,6 @@ public class StreamsTopologyProvider implements Supplier<Topology> {
             this.context = context;
             //noinspection unchecked
             dataStore = (KeyValueStore<Str.ArtifactKey, Str.Data>) context.getStateStore(properties.getStorageStoreName());
-            //noinspection unchecked
-            idStore = (KeyValueStore<Long, Str.TupleValue>) context.getStateStore(properties.getGlobalIdStoreName());
             //noinspection unchecked
             contentStore = (KeyValueStore<Long, Str.ContentValue>) context.getStateStore(properties.getContentStoreName());
         }

@@ -180,7 +180,11 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
             .withDataValidator(avroSchema::validateRecord)
             .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
             .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
+                return TestUtils.retry(() -> {
+                    ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                    registryClient.getContentByGlobalId(meta.getGlobalId());
+                    return true;
+                });
             })
             .build()
             .test();
@@ -451,21 +455,25 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecord3", List.of("bar"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-            .withProducerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
-            .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .withProducerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
+                .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
     }
 
     //TODO TEST avro specific record
@@ -479,20 +487,24 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         new SimpleSerdesTesterBuilder<TestObject, TestObject>()
-            .withTopic(topicName)
-            .withStrategy(TopicIdStrategy.class)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withDataGenerator(i -> new TestObject("Apicurio"))
-            .withDataValidator(o -> "Apicurio".equals(o.getName()))
-            .withProducerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withStrategy(TopicIdStrategy.class)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withDataGenerator(i -> new TestObject("Apicurio"))
+                .withDataValidator(o -> "Apicurio".equals(o.getName()))
+                .withProducerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
 
     }
 
@@ -508,20 +520,24 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
 
     }
 
@@ -536,21 +552,25 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
 
     }
 
@@ -565,19 +585,23 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
 
     }
 
@@ -592,19 +616,23 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>()
-            .withTopic(topicName)
-            .withSerializer(serializer)
-            .withDeserializer(deserializer)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .withDataValidator(avroSchema::validateRecord)
-            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-            .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-            .withAfterProduceValidator(() -> {
-                return TestUtils.retry(() -> registryClient.getArtifactMetaData(null, artifactId) != null);
-            })
-            .build()
-            .test();
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
 
     }
 

@@ -842,6 +842,7 @@ public class StreamsRegistryStorage extends AbstractRegistryStorage {
     public ArtifactMetaDataDto getArtifactMetaData(long id) throws ArtifactNotFoundException, RegistryStorageException {
         Str.TupleValue tuple = globalIdStore.get(id);
         if (tuple == null) {
+            log.info("Artifact by global Id {} not found", id);
             throw new ArtifactNotFoundException("GlobalId: " + id);
         }
         return handleVersion(tuple.getKey(), tuple.getVersion(), null, value -> {

@@ -1,6 +1,7 @@
 package io.apicurio.registry.utils.streams.distore;
 
 import com.google.protobuf.ByteString;
+
 import io.apicurio.registry.utils.streams.distore.proto.FilterReq;
 import io.apicurio.registry.utils.streams.distore.proto.KeyFromKeyToReq;
 import io.apicurio.registry.utils.streams.distore.proto.KeyReq;
@@ -14,6 +15,8 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -23,6 +26,8 @@ import java.util.stream.StreamSupport;
  * A gRPC based client of some remote {@link ReadOnlyKeyValueStore}.
  */
 public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValueStore<K, V>, AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(ReadOnlyKeyValueStoreGrpcClient.class);
 
     private final String storeName;
     private final Channel channel;
@@ -38,6 +43,14 @@ public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValu
         this.channel = channel;
         this.stub = KeyValueStoreGrpc.newStub(channel);
         this.keyValueSerde = new KeyValueSerde<>(storeName + "-serde-topic", keySerde, valSerde);
+
+        log.debug("ReadOnlyKeyValueStoreGrpcClient created with for store {} with channel {} and stub {}", storeName, channel, stub);
+        log.debug("   Testing newly created stub...");
+        try {
+            this.allKeys();
+        } catch (Throwable t) {
+            log.error("   !!!!Newly created stub FAILED!!!!", t);
+        }
     }
 
     @Override
@@ -91,10 +104,13 @@ public class ReadOnlyKeyValueStoreGrpcClient<K, V> implements ExtReadOnlyKeyValu
             observer
         );
         return observer
-            .stream()
-            .map(value -> keyValueSerde.deserializeVal(value.getValue().toByteArray()))
-            .findFirst()
-            .orElse(null);
+                .stream()
+                .map(value -> {
+                    log.debug("Response for key {} found: ", key);
+                    return keyValueSerde.deserializeVal(value.getValue().toByteArray());
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     @Override

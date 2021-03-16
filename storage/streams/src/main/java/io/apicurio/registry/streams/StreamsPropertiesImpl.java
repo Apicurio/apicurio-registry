@@ -40,6 +40,10 @@ public class StreamsPropertiesImpl implements StreamsProperties {
         return properties.getProperty("storage.topic", "storage-topic");
     }
 
+    public String getGlobalIdTopic() {
+        return properties.getProperty("global.id.topic", "global-id-topic");
+    }
+
     public String getApplicationServer() {
         return properties.getProperty(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost:9000");
     }

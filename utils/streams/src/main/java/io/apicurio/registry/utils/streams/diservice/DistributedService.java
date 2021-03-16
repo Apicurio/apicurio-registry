@@ -120,7 +120,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
                             "Key: " + key
             );
         }
-        return serviceForHostInfo(smeta.getActiveHost());
+        return serviceForHostInfo(smeta.getActiveHost(), key);
     }
 
     protected final Collection<S> allServicesForStore() {
@@ -136,7 +136,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         for (StreamsMetadata smeta : smetas) {
             // only use stores that have some active partitions
             if (smeta.topicPartitions().size() > 0) {
-                services.add(serviceForHostInfo(smeta.hostInfo()));
+                services.add(serviceForHostInfo(smeta.hostInfo(), null));
             }
         }
         return services;
@@ -160,7 +160,7 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         for (StreamsMetadata smeta : smetas) {
             // only use stores that have some active partitions
             if (smeta.topicPartitions().size() > 0) {
-                services.add(serviceForHostInfo(smeta.hostInfo()));
+                services.add(serviceForHostInfo(smeta.hostInfo(), null));
             }
         }
         return services;
@@ -172,18 +172,21 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         return parallel && services.size() > 1 ? services.parallelStream() : services.stream();
     }
 
-    private S serviceForHostInfo(HostInfo hostInfo) {
+    private S serviceForHostInfo(HostInfo hostInfo, K key) {
         return hostInfo2service.computeIfAbsent(
             hostInfo,
             hInfo -> {
                 if (localApplicationServer.equals(hInfo)) {
-                    log.info("Obtaining local service '{}' for host info '{}'", storeName, hInfo);
+                    log.debug("Obtaining local service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
                     // use local store if host info is local host info
                     return localService(storeName, streams);
                 } else {
-                    log.info("Obtaining remote service '{}' for host info '{}'", storeName, hInfo);
+                    log.debug("Obtaining remote service '{}' for host info '{}' for key '{}'", storeName, hInfo, key);
                     // connect to remote for other host info(s)
-                    return remoteServiceGrpcClient(storeName, grpcChannelProvider.apply(hInfo), keySerde);
+                    Channel channel = grpcChannelProvider.apply(hInfo);
+                    log.debug("   GRPC Channel created: {}", channel);
+                    S gclient = remoteServiceGrpcClient(storeName, channel, keySerde);
+                    return gclient;
                 }
             }
         );

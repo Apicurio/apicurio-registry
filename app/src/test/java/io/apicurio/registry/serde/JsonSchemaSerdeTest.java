@@ -65,7 +65,9 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
+        final Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
+
+        this.waitForGlobalId(globalId);
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -119,6 +121,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
 
+        this.waitForGlobalId(globalId);
+
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
@@ -161,6 +165,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         Integer globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema));
+
+        this.waitForGlobalId(globalId);
 
         Person person = new Person("Ales", "Justin", 23);
 

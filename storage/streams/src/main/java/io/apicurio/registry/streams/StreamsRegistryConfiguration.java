@@ -56,10 +56,11 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * @author Ales Justin
@@ -97,6 +98,7 @@ public class StreamsRegistryConfiguration {
                 empties = {"ssl.endpoint.identification.algorithm="}
         ) Properties properties
     ) {
+        log.debug("Providing a new ProducerActions<> instance.");
         return new AsyncProducer<>(
                 properties,
                 new ArtifactKeySerde().serializer(),
@@ -112,11 +114,15 @@ public class StreamsRegistryConfiguration {
     @Produces
     @Singleton // required (cannot be ApplicationScoped), as we don't want proxy
     public KafkaClientSupplier kafkaClientSupplier(StreamsProperties properties) {
+        log.debug("Providing a new KafkaClientSupplier instance.");
         KafkaClientSupplier kcs = new DefaultKafkaClientSupplier();
         if (!properties.ignoreAutoCreate()) {
             Map<String, Object> configMap = new HashMap(properties.getProperties());
             try (Admin admin = kcs.getAdmin(configMap)) {
-                KafkaUtil.createTopics(admin, Collections.singleton(properties.getStorageTopic()));
+                Set<String> topicNames = new LinkedHashSet<>();
+                topicNames.add(properties.getStorageTopic());
+                topicNames.add(properties.getGlobalIdTopic());
+                KafkaUtil.createTopics(admin, topicNames);
             }
         }
         return kcs;
@@ -130,7 +136,9 @@ public class StreamsRegistryConfiguration {
         ForeachAction<? super Str.ArtifactKey, ? super Str.Data> dataDispatcher,
         ArtifactTypeUtilProviderFactory factory
     ) {
+        log.debug("Providing a new KafkaStreams instance.");
         Topology topology = new StreamsTopologyProvider(properties, dataDispatcher, factory).get();
+        log.debug("   Using topology: {}", topology);
 
         KafkaStreams streams = new KafkaStreams(topology, properties.getProperties(), kafkaClientSupplier);
         streams.setGlobalStateRestoreListener(new LoggingStateRestoreListener());
@@ -208,7 +216,7 @@ public class StreamsRegistryConfiguration {
         );
     }
 
-    public void destroyGlobaIdStore(@Observes ShutdownEvent event, ReadOnlyKeyValueStore<Long, Str.TupleValue> store) {
+    public void destroyGlobalIdStore(@Observes ShutdownEvent event, ReadOnlyKeyValueStore<Long, Str.TupleValue> store) {
         close(store);
     }
 
@@ -318,6 +326,7 @@ public class StreamsRegistryConfiguration {
                 )
             );
 
+        log.debug("Creating the gRPC server for localhost: {}", storageLocalHost);
         Server server = ServerBuilder
             .forPort(storageLocalHost.port())
             .addService(
@@ -334,12 +343,17 @@ public class StreamsRegistryConfiguration {
             )
             .build();
 
+        log.debug("   gRPC server created: {}", server);
+
         return new Lifecycle() {
             @Override
             public void start() {
+                log.debug("   Starting gRPC server.");
                 try {
                     server.start();
+                    log.debug("   gRPC server started!!");
                 } catch (IOException e) {
+                    log.error("   Failed to start gRPC server.", e);
                     throw new UncheckedIOException(e);
                 }
             }

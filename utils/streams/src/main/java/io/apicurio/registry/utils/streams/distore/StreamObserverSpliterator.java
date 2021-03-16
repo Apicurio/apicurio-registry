@@ -1,6 +1,8 @@
 package io.apicurio.registry.utils.streams.distore;
 
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -15,6 +17,8 @@ import java.util.stream.StreamSupport;
  * gRPC client which calls into it with new data via {@link StreamObserver} interface.
  */
 public class StreamObserverSpliterator<T> extends Spliterators.AbstractSpliterator<T> implements StreamObserver<T> {
+
+    private static final Logger logger = LoggerFactory.getLogger(StreamObserverSpliterator.class);
     private static final Object EOS = new Object();
 
     public StreamObserverSpliterator() {
@@ -46,6 +50,7 @@ public class StreamObserverSpliterator<T> extends Spliterators.AbstractSpliterat
 
     @Override
     public void onError(Throwable throwable) {
+        logger.error("Error in grpc stream", throwable);
         queue.add(new ExceptionWrapper(throwable));
     }
 

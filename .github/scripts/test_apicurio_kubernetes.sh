@@ -2,7 +2,6 @@
 set -e -a
 
 E2E_APICURIO_PROJECT_DIR=$(pwd)
-# BUNDLE_URL=$(pwd)/apicurio-registry-k8s-tests-e2e/apicurio-registry-operator/docs/resources/install.yaml
 
 git clone https://github.com/Apicurio/apicurio-registry-k8s-tests-e2e.git
 
@@ -10,7 +9,15 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/install_kind.sh
 
-make run-apicurio-ci
+if [ "$E2E_APICURIO_TESTS_PROFILE" == "clustered" ]
+then
+    E2E_APICURIO_TESTS_PROFILE=smoke
+    KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
+    make run-apicurio-base-ci
+    make run-clustered-tests
+else
+    make run-apicurio-ci
+fi
 
 popd
 

@@ -14,6 +14,8 @@ public class DefaultGrpcChannelProvider implements Function<HostInfo, Channel> {
     public Channel apply(HostInfo hostInfo) {
         return ManagedChannelBuilder
             .forAddress(hostInfo.host(), hostInfo.port())
+            .enableRetry()
+            .maxRetryAttempts(5)
             .usePlaintext()
             .build();
     }

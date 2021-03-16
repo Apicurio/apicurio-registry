@@ -6,10 +6,14 @@ import io.apicurio.registry.utils.streams.diservice.proto.BiFunctionReq;
 import io.apicurio.registry.utils.streams.diservice.proto.BiFunctionRes;
 import io.grpc.stub.StreamObserver;
 import org.apache.kafka.common.serialization.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
 public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionServiceGrpc.AsyncBiFunctionServiceImplBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(AsyncBiFunctionServiceGrpcLocalDispatcher.class);
     private final LocalService.Registry<? extends AsyncBiFunctionService.WithSerdes<?, ?, ?>> localServiceRegistry;
 
     public AsyncBiFunctionServiceGrpcLocalDispatcher(
@@ -33,6 +37,7 @@ public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionSe
                 (AsyncBiFunctionService.WithSerdes) localServiceRegistry.get(serviceName);
             localService = _abfs;
         } catch (Exception e) {
+            logger.error("Error getting localServiceRegistry with name: ", e);
             responseObserver.onError(e);
             return;
         }
@@ -46,6 +51,7 @@ public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionSe
                 .apply(key, req)
                 .whenComplete((res, serviceExc) -> {
                     if (serviceExc != null) {
+                        logger.error("Error in Grpc Local Dispatcher: ", serviceExc);
                         responseObserver.onError(serviceExc);
                     } else {
                         BiFunctionRes resProto = null;
@@ -56,6 +62,7 @@ public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionSe
                                 .setRes(resBytes == null ? ByteString.EMPTY : ByteString.copyFrom(resBytes))
                                 .build();
                         } catch (Throwable serializeExc) {
+                            logger.error("Error serializing Grpc response: ", serviceExc);
                             responseObserver.onError(serializeExc);
                         }
                         if (resProto != null) {
@@ -65,6 +72,7 @@ public class AsyncBiFunctionServiceGrpcLocalDispatcher extends AsyncBiFunctionSe
                     }
                 });
         } catch (Throwable applyExc) {
+            logger.error("Error in Grpc Local Dispatcher: ", applyExc);
             responseObserver.onError(applyExc);
         }
     }

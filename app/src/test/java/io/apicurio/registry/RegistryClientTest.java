@@ -540,12 +540,17 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         ArtifactMetaData amd = createArtifact(groupId, artifactId);
 
         //Execution
-        InputStream content = clientV2.getContentByGlobalId(amd.getGlobalId());
-        assertNotNull(content);
+        TestUtils.retry(() -> {
+            InputStream content = clientV2.getContentByGlobalId(amd.getGlobalId());
+            assertNotNull(content);
 
-        //Assertions
-        String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
-        assertEquals(ARTIFACT_CONTENT, artifactContent);
+            //Assertions
+            String artifactContent = IOUtils.toString(content, StandardCharsets.UTF_8);
+            assertEquals(ARTIFACT_CONTENT, artifactContent);
+        });
+
+
+
     }
 
     @Test

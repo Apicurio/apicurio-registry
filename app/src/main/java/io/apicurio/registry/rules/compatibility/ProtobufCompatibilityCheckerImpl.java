@@ -208,9 +208,7 @@ class ProtobufCompatibilityCheckerImpl {
 
     /**
      * Determine if any field type has been changed.
-     *
-     * TODO : Make sure getType is actually type
-     *
+     **
      * @return number of issues
      */
     public int checkNoChangingFieldTypes() {

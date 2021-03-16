@@ -11,7 +11,7 @@ pushd apicurio-registry-k8s-tests-e2e
 
 if [ "$E2E_APICURIO_TESTS_PROFILE" == "clustered" ]
 then
-    E2E_APICURIO_TESTS_PROFILE=acceptance
+    E2E_APICURIO_TESTS_PROFILE=smoke
     KIND_CLUSTER_CONFIG=kind-config-big-cluster.yaml
     make run-apicurio-base-ci
     make run-clustered-tests

@@ -2,7 +2,7 @@ name: Verify Build Workflow
 on:
   push:
     paths-ignore:
-      # - '.github/**'
+      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -10,7 +10,7 @@ on:
     branches: [master, '[1-9].[0-9].x']
   pull_request:
     paths-ignore:
-      # - '.github/**'
+      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -46,8 +46,8 @@ jobs:
       - name: Build and Test All Variants
         run: ./mvnw clean install -Pprod -Psql -Pstreams -Pkafkasql -Pinfinispan -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-       - name: Build Asyncmem Variant
-         run: ./mvnw install -Pprod -Pasyncmem -DskipTests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+      - name: Build Asyncmem Variant
+        run: ./mvnw install -Pprod -Pasyncmem -DskipTests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -85,7 +85,6 @@ jobs:
     name: Kubernetes Tests
     runs-on: ubuntu-18.04
     needs: ["build-verify"]
-    # if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
     if: github.repository_owner == 'Apicurio'
     steps:
       - name: Checkout Code
